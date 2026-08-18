@@ -779,6 +779,9 @@ export const DEFAULT_EMAIL_TEMPLATES: Record<string, {
   <table style="width:100%;border-collapse:collapse;font-size:14px;">
     <tr><td style="padding:7px 0;color:#475569;">Package</td><td style="padding:7px 0;text-align:right;font-weight:700;color:#0f172a;">{{pricing_plan}}</td></tr>
     {{#if plan_price}}<tr><td style="padding:7px 0;color:#475569;">Base price</td><td style="padding:7px 0;text-align:right;font-weight:600;color:#0f172a;">{{plan_price}}</td></tr>{{/if}}
+    {{#if property_city}}<tr><td style="padding:7px 0;color:#475569;">Property city</td><td style="padding:7px 0;text-align:right;font-weight:600;color:#0f172a;">{{property_city}}</td></tr>{{/if}}
+    {{#if travel_distance_round_trip}}<tr><td style="padding:7px 0;color:#475569;">Estimated travel distance</td><td style="padding:7px 0;text-align:right;font-weight:600;color:#0f172a;">{{travel_distance_round_trip}} round trip{{#if travel_distance_one_way}} ({{travel_distance_one_way}} one way){{/if}}</td></tr>{{/if}}
+    {{#if estimated_travel_fee}}<tr><td style="padding:7px 0;color:#475569;">Estimated travel fee</td><td style="padding:7px 0;text-align:right;font-weight:600;color:#0f172a;">{{estimated_travel_fee}}</td></tr>{{/if}}
     {{#if selected_items_html}}{{selected_items_html}}{{/if}}
     {{#if fee_details_html}}{{fee_details_html}}{{/if}}
     {{#if estimated_total}}<tr style="border-top:1px solid #cbd5e1;"><td style="padding:11px 0 4px;font-weight:700;color:#0f172a;">Estimated total</td><td style="padding:11px 0 4px;text-align:right;font-size:16px;font-weight:800;color:#2563eb;">{{estimated_total}}</td></tr>{{/if}}
@@ -797,7 +800,7 @@ export const DEFAULT_EMAIL_TEMPLATES: Record<string, {
   </a>
 </div>
     `.trim(),
-    body_text: `New contact inquiry from {{client_name}} ({{client_email}}):\n\nProperty: {{property_address}}\nPhone: {{client_phone}}\nSubject: {{inquiry_subject}}\nAvailability: {{availability_window}}\n\nSelected package: {{pricing_plan}}\nBase price: {{plan_price}}\n{{selected_items_text}}\n{{fee_details_text}}\nEstimated total: {{estimated_total}}\n\nMessage:\n{{inquiry_message}}`.trim(),
+    body_text: `New contact inquiry from {{client_name}} ({{client_email}}):\n\nProperty: {{property_address}}\nPhone: {{client_phone}}\nSubject: {{inquiry_subject}}\nAvailability: {{availability_window}}\n\nSelected package: {{pricing_plan}}\nBase price: {{plan_price}}\nProperty city: {{property_city}}\nTravel distance: {{travel_distance_round_trip}} round trip ({{travel_distance_one_way}} one way)\nEstimated travel fee: {{estimated_travel_fee}}\n{{selected_items_text}}\n{{fee_details_text}}\nEstimated total: {{estimated_total}}\n\nMessage:\n{{inquiry_message}}`.trim(),
     available_tokens: [
       { token: "{{client_name}}", label: "Client Name", description: "Name entered in form", example: "Sophia Laurent" },
       { token: "{{client_email}}", label: "Client Email", description: "Email address entered in form", example: "sophia@luxuryestates.com" },
@@ -816,6 +819,10 @@ export const DEFAULT_EMAIL_TEMPLATES: Record<string, {
       { token: "{{fee_details_text}}", label: "Calculated Fees (Text)", description: "Plain-text list of travel and calculated fees", example: "Travel fee: 12 500 Ft" },
       { token: "{{estimated_total}}", label: "Estimated Total", description: "Final calculated package estimate with currency", example: "172 500 Ft" },
       { token: "{{currency}}", label: "Currency", description: "Configured pricing currency code", example: "HUF" },
+      { token: "{{property_city}}", label: "Property City", description: "City used for the travel calculation", example: "Szeged" },
+      { token: "{{travel_distance_one_way}}", label: "One-Way Distance", description: "Estimated distance from Hódmezővásárhely to the property city", example: "27 km" },
+      { token: "{{travel_distance_round_trip}}", label: "Round-Trip Distance", description: "Estimated return distance used by the fee calculator", example: "54 km" },
+      { token: "{{estimated_travel_fee}}", label: "Estimated Travel Fee", description: "Calculated kilometer/travel fee with currency", example: "12 500 Ft" },
       { token: "{{timestamp}}", label: "Timestamp", description: "Date and time received", example: "August 15, 2026 10:30 AM" },
       { token: "{{action_url}}", label: "Admin CRM Link", description: "Link to open inquiry in admin", example: "https://spsstudio.com/admin/contacts" },
       { token: "{{studio_name}}", label: "Studio Name", description: "Studio brand name", example: "SPS Studio" }
@@ -838,6 +845,10 @@ export const DEFAULT_EMAIL_TEMPLATES: Record<string, {
       "fee_details_text": "Travel fee: 12 500 Ft",
       "estimated_total": "172 500 Ft",
       "currency": "HUF",
+      "property_city": "Szeged",
+      "travel_distance_one_way": "27 km",
+      "travel_distance_round_trip": "54 km",
+      "estimated_travel_fee": "12 500 Ft",
       "timestamp": "August 15, 2026 10:30 AM",
       "action_url": "https://spsstudio.com/admin/contacts",
       "studio_name": "SPS Studio"
@@ -864,6 +875,9 @@ export const DEFAULT_EMAIL_TEMPLATES: Record<string, {
   <table style="width:100%;border-collapse:collapse;font-size:14px;">
     <tr><td style="padding:7px 0;color:#475569;">Package</td><td style="padding:7px 0;text-align:right;font-weight:700;color:#0f172a;">{{pricing_plan}}</td></tr>
     {{#if plan_price}}<tr><td style="padding:7px 0;color:#475569;">Base price</td><td style="padding:7px 0;text-align:right;font-weight:600;color:#0f172a;">{{plan_price}}</td></tr>{{/if}}
+    {{#if property_city}}<tr><td style="padding:7px 0;color:#475569;">Property city</td><td style="padding:7px 0;text-align:right;font-weight:600;color:#0f172a;">{{property_city}}</td></tr>{{/if}}
+    {{#if travel_distance_round_trip}}<tr><td style="padding:7px 0;color:#475569;">Estimated travel distance</td><td style="padding:7px 0;text-align:right;font-weight:600;color:#0f172a;">{{travel_distance_round_trip}} round trip{{#if travel_distance_one_way}} ({{travel_distance_one_way}} one way){{/if}}</td></tr>{{/if}}
+    {{#if estimated_travel_fee}}<tr><td style="padding:7px 0;color:#475569;">Estimated travel fee</td><td style="padding:7px 0;text-align:right;font-weight:600;color:#0f172a;">{{estimated_travel_fee}}</td></tr>{{/if}}
     {{#if selected_items_html}}{{selected_items_html}}{{/if}}
     {{#if fee_details_html}}{{fee_details_html}}{{/if}}
     {{#if estimated_total}}<tr style="border-top:1px solid #cbd5e1;"><td style="padding:11px 0 4px;font-weight:700;color:#0f172a;">Estimated total</td><td style="padding:11px 0 4px;text-align:right;font-size:16px;font-weight:800;color:#2563eb;">{{estimated_total}}</td></tr>{{/if}}
@@ -884,7 +898,7 @@ export const DEFAULT_EMAIL_TEMPLATES: Record<string, {
   If your photoshoot request is urgent, you can also reach us directly at <a href="mailto:{{contact_email}}" style="color: #3b82f6;">{{contact_email}}</a>.
 </p>
     `.trim(),
-    body_text: `Dear {{client_name}},\n\nThank you for reaching out to {{studio_name}}. We have received your inquiry and will be in touch shortly.\n\nSelected package: {{pricing_plan}}\nBase price: {{plan_price}}\n{{selected_items_text}}\n{{fee_details_text}}\nEstimated total: {{estimated_total}}\n\nYour message:\n{{inquiry_message}}\n\nDirect contact: {{contact_email}}`.trim(),
+    body_text: `Dear {{client_name}},\n\nThank you for reaching out to {{studio_name}}. We have received your inquiry and will be in touch shortly.\n\nSelected package: {{pricing_plan}}\nBase price: {{plan_price}}\nProperty city: {{property_city}}\nTravel distance: {{travel_distance_round_trip}} round trip ({{travel_distance_one_way}} one way)\nEstimated travel fee: {{estimated_travel_fee}}\n{{selected_items_text}}\n{{fee_details_text}}\nEstimated total: {{estimated_total}}\n\nYour message:\n{{inquiry_message}}\n\nDirect contact: {{contact_email}}`.trim(),
     available_tokens: [
       { token: "{{client_name}}", label: "Client Name", description: "Prospect name", example: "Sophia Laurent" },
       { token: "{{inquiry_message}}", label: "Message Summary", description: "Echo of the submitted message", example: "We have a 6,000 sq ft listing coming up." },
@@ -896,6 +910,10 @@ export const DEFAULT_EMAIL_TEMPLATES: Record<string, {
       { token: "{{fee_details_text}}", label: "Calculated Fees (Text)", description: "Plain-text list of travel and calculated fees", example: "Travel fee: 12 500 Ft" },
       { token: "{{estimated_total}}", label: "Estimated Total", description: "Final calculated estimate with currency", example: "172 500 Ft" },
       { token: "{{currency}}", label: "Currency", description: "Configured pricing currency code", example: "HUF" },
+      { token: "{{property_city}}", label: "Property City", description: "City used for the travel calculation", example: "Szeged" },
+      { token: "{{travel_distance_one_way}}", label: "One-Way Distance", description: "Estimated distance from Hódmezővásárhely to the property city", example: "27 km" },
+      { token: "{{travel_distance_round_trip}}", label: "Round-Trip Distance", description: "Estimated return distance used by the fee calculator", example: "54 km" },
+      { token: "{{estimated_travel_fee}}", label: "Estimated Travel Fee", description: "Calculated kilometer/travel fee with currency", example: "12 500 Ft" },
       { token: "{{contact_email}}", label: "Studio Email", description: "Direct studio contact email", example: "contact@spsstudio.com" },
       { token: "{{contact_phone}}", label: "Studio Phone", description: "Direct studio telephone number", example: "+1 (555) 019-2834" },
       { token: "{{studio_name}}", label: "Studio Name", description: "Studio brand name", example: "SPS Studio" },
@@ -913,6 +931,10 @@ export const DEFAULT_EMAIL_TEMPLATES: Record<string, {
       "fee_details_text": "Travel fee: 12 500 Ft",
       "estimated_total": "172 500 Ft",
       "currency": "HUF",
+      "property_city": "Szeged",
+      "travel_distance_one_way": "27 km",
+      "travel_distance_round_trip": "54 km",
+      "estimated_travel_fee": "12 500 Ft",
       "contact_email": "contact@spsstudio.com",
       "contact_phone": "+1 (555) 019-2834",
       "studio_name": "SPS Studio"
@@ -2677,6 +2699,9 @@ export async function sendInquiryAlerts(submission: {
   email: string;
   phone?: string;
   property_address?: string;
+  property_city?: string;
+  travel_distance_one_way_km?: number;
+  travel_distance_round_trip_km?: number;
   availability_start?: string;
   availability_end?: string;
   subject?: string;
@@ -2719,12 +2744,16 @@ export async function sendInquiryAlerts(submission: {
   };
   const extras = parseItems(submission.extra_services);
   const fees = parseItems(submission.fee_details);
+  const travelFeeItem = fees.find((item) =>
+    item.destination_city || item.round_trip_km !== undefined || item.one_way_km !== undefined
+  );
+  const otherFees = travelFeeItem ? fees.filter((item) => item !== travelFeeItem) : fees;
   const selectedItemsHtml = extras.map((item) => `
     <tr><td style="padding:7px 0;color:#475569;">${escapeHtml(item.quantity || 1)}× ${escapeHtml(item.title || "Additional service")}</td><td style="padding:7px 0;text-align:right;font-weight:600;color:#0f172a;">${escapeHtml(formatMoney(item.subtotal ?? item.price))}</td></tr>`).join("");
-  const feeDetailsHtml = fees.map((item) => `
+  const feeDetailsHtml = otherFees.map((item) => `
     <tr><td style="padding:7px 0;color:#475569;">${escapeHtml(item.name || "Additional fee")}${item.explanation ? `<div style="font-size:11px;color:#94a3b8;">${escapeHtml(item.explanation)}</div>` : ""}</td><td style="padding:7px 0;text-align:right;font-weight:600;color:#0f172a;">${Number(item.amount) === 0 ? "FREE" : escapeHtml(formatMoney(item.amount))}</td></tr>`).join("");
   const selectedItemsText = extras.map((item) => `${item.quantity || 1}x ${item.title || "Additional service"}: ${formatMoney(item.subtotal ?? item.price)}`).join("\n");
-  const feeDetailsText = fees.map((item) => `${item.name || "Additional fee"}: ${Number(item.amount) === 0 ? "FREE" : formatMoney(item.amount)}${item.explanation ? ` (${item.explanation})` : ""}`).join("\n");
+  const feeDetailsText = otherFees.map((item) => `${item.name || "Additional fee"}: ${Number(item.amount) === 0 ? "FREE" : formatMoney(item.amount)}${item.explanation ? ` (${item.explanation})` : ""}`).join("\n");
   const pricingTokens = {
     pricing_plan: submission.plan_name || "",
     plan_price: submission.plan_price ? formatMoney(submission.plan_price) : "",
@@ -2734,6 +2763,14 @@ export async function sendInquiryAlerts(submission: {
     fee_details_text: feeDetailsText,
     estimated_total: submission.estimated_total ? formatMoney(submission.estimated_total) : "",
     currency,
+    property_city: submission.property_city || travelFeeItem?.destination_city || "",
+    travel_distance_one_way: submission.travel_distance_one_way_km || travelFeeItem?.one_way_km
+      ? `${submission.travel_distance_one_way_km || travelFeeItem?.one_way_km} km`
+      : "",
+    travel_distance_round_trip: submission.travel_distance_round_trip_km || travelFeeItem?.round_trip_km
+      ? `${submission.travel_distance_round_trip_km || travelFeeItem?.round_trip_km} km`
+      : "",
+    estimated_travel_fee: travelFeeItem ? (Number(travelFeeItem.amount) === 0 ? "FREE" : formatMoney(travelFeeItem.amount)) : "",
   };
 
   let availabilityWindowStr = "";

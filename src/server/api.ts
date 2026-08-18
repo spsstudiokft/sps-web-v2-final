@@ -1319,7 +1319,7 @@ router.get("/public/info-bar", async (req, res) => {
 
 router.post("/public/contact", async (req, res) => {
   try {
-    const { name, email, phone, message, subject, property_address, availability_start, availability_end, plan_id, plan_name } = req.body;
+    const { name, email, phone, message, subject, property_address, property_city, availability_start, availability_end, plan_id, plan_name } = req.body;
 
     if (req.body.cookie_consent !== true) {
       return res.status(403).json({ error: "Cookie consent is required before submitting the contact form" });
@@ -1413,6 +1413,9 @@ router.post("/public/contact", async (req, res) => {
     const id = crypto.randomUUID();
     const cleanSubject = subject && typeof subject === "string" ? subject.trim() : "";
     const cleanAddress = property_address && typeof property_address === "string" ? property_address.trim() : "";
+    const cleanPropertyCity = property_city && typeof property_city === "string" ? property_city.trim() : "";
+    const cleanTravelOneWayKm = Number.isFinite(Number(req.body.travel_distance_one_way_km)) ? Math.max(0, Number(req.body.travel_distance_one_way_km)) : 0;
+    const cleanTravelRoundTripKm = Number.isFinite(Number(req.body.travel_distance_round_trip_km)) ? Math.max(0, Number(req.body.travel_distance_round_trip_km)) : 0;
     const cleanPlanId = plan_id && typeof plan_id === "string" ? plan_id.trim() : null;
     const cleanPlanName = plan_name && typeof plan_name === "string" ? plan_name.trim() : "";
     const cleanExtraServices = typeof req.body.extra_services === "string" ? req.body.extra_services : JSON.stringify(req.body.extra_services || []);
@@ -1481,6 +1484,9 @@ router.post("/public/contact", async (req, res) => {
       phone: trimmedPhone,
       subject: cleanSubject,
       property_address: cleanAddress,
+      property_city: cleanPropertyCity,
+      travel_distance_one_way_km: cleanTravelOneWayKm,
+      travel_distance_round_trip_km: cleanTravelRoundTripKm,
       availability_start: isAvailabilityShown ? cleanStart : "",
       availability_end: isAvailabilityShown ? cleanEnd : "",
       message: message.trim(),
