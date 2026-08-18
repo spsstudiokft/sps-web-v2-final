@@ -1073,12 +1073,70 @@ router.get("/public/services", async (req, res) => {
 
 router.get("/public/pricing", async (req, res) => {
   try {
+    res.set("Cache-Control", "no-store, no-cache, must-revalidate");
     const result = await db.execute(`
-      SELECT * FROM pricing_plans 
-      WHERE is_enabled = 1 
+      SELECT * FROM pricing_plans
       ORDER BY sort_order ASC, created_at ASC
     `);
-    res.json(result.rows);
+
+    // Bundles store a snapshot of their components for backwards compatibility,
+    // but referenced tiers must always be rendered from the current catalog.
+    // Resolve against every tier (including a disabled one referenced by an
+    // enabled bundle), then only expose enabled plans as top-level cards.
+    const allPlans = result.rows as any[];
+    const tiersById = new Map(
+      allPlans
+        .filter((plan) => plan.type === "tier")
+        .map((plan) => [String(plan.id), plan])
+    );
+
+    const publicPlans = allPlans
+      .filter((plan) => Boolean(plan.is_enabled))
+      .map((plan) => {
+        if (plan.type !== "bundle") return plan;
+
+        let bundleItems: any[] = [];
+        try {
+          const parsed = typeof plan.bundle_services === "string"
+            ? JSON.parse(plan.bundle_services || "[]")
+            : plan.bundle_services;
+          bundleItems = Array.isArray(parsed) ? parsed : [];
+        } catch {
+          return plan;
+        }
+
+        const resolvedItems = bundleItems.map((item) => {
+          if (!item?.tier_id) return item;
+          const tier = tiersById.get(String(item.tier_id));
+          if (!tier) return { ...item, is_missing: true };
+
+          let tierFeatures: any[] = [];
+          let tierIncludedItems: any[] = [];
+          try {
+            const parsed = typeof tier.features === "string" ? JSON.parse(tier.features || "[]") : tier.features;
+            tierFeatures = Array.isArray(parsed) ? parsed : [];
+          } catch {}
+          try {
+            const parsed = typeof tier.included_items === "string" ? JSON.parse(tier.included_items || "[]") : tier.included_items;
+            tierIncludedItems = Array.isArray(parsed) ? parsed : [];
+          } catch {}
+
+          return {
+            ...item,
+            item_type: "tier",
+            service_title: tier.title,
+            service_name: tier.title,
+            original_price: Number(tier.price) || 0,
+            features: [...new Set([...tierFeatures, ...tierIncludedItems])],
+            is_disabled: !Boolean(tier.is_enabled),
+            is_missing: false,
+          };
+        });
+
+        return { ...plan, bundle_services: JSON.stringify(resolvedItems) };
+      });
+
+    res.json(publicPlans);
   } catch (error) {
     console.error("Pricing fetch error:", error);
     res.json([]);
@@ -1087,6 +1145,7 @@ router.get("/public/pricing", async (req, res) => {
 
 router.get("/public/extra-services", async (req, res) => {
   try {
+    res.set("Cache-Control", "no-store, no-cache, must-revalidate");
     const result = await db.execute(`
       SELECT * FROM pricing_extra_services 
       WHERE is_enabled = 1 AND (show_on_pricing_page IS NULL OR show_on_pricing_page = 1)

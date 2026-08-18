@@ -410,6 +410,40 @@ export default function SettingsPage() {
         <Card className="border-border hover:border-primary/40 transition-colors flex flex-col justify-between">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
+              <div className="w-10 h-10 rounded-xl bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 flex items-center justify-center">
+                <Sparkles className="w-5 h-5" aria-hidden="true" />
+              </div>
+              <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-surface border border-border text-muted-text">
+                {tUi("admin.settings.tab_content", currentLanguage) || "Content"}
+              </span>
+            </div>
+            <CardTitle className="text-lg mt-3">{tUi("admin.settings.card_vision_title", currentLanguage) || "Our Vision"}</CardTitle>
+            <CardDescription className="line-clamp-2">
+              {tUi("admin.settings.card_vision_desc", currentLanguage) || "Edit the public vision headline and supporting studio statement in every enabled language."}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4 pt-0">
+            <div className="p-3 bg-surface rounded-xl border border-border space-y-1.5">
+              <div className="text-xs text-muted-text">{tUi("admin.settings.vision_headline", currentLanguage) || "Vision Headline"}</div>
+              <div className="font-semibold text-text text-sm line-clamp-2">
+                {settings.vision_headline ? (tUi("admin.settings.multilingual_content_configured", currentLanguage) || "Multilingual content configured") : (tUi("admin.settings.using_default_copy", currentLanguage) || "Using default website copy")}
+              </div>
+            </div>
+            <Button
+              variant="secondary"
+              className="w-full text-xs font-medium justify-between group"
+              onClick={() => handleOpenModal("content")}
+            >
+              <span>{tUi("admin.settings.edit_vision", currentLanguage) || "Edit Vision Section"}</span>
+              <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Card 4: SEO & Metadata */}
+        <Card className="border-border hover:border-primary/40 transition-colors flex flex-col justify-between">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
               <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center">
                 <Search className="w-5 h-5" aria-hidden="true" />
               </div>

@@ -7,6 +7,7 @@ import { BrandingManager } from "./BrandingManager";
 import { SeoSettingsManager } from "./SeoSettingsManager";
 import { TranslationsManager } from "./TranslationsManager";
 import { EmailSettingsManager } from "./EmailSettingsManager";
+import { SectionMediaManager } from "./SectionMediaManager";
 import { Button } from "../ui/Button";
 import { Input } from "../ui/Input";
 import { Label } from "../ui/Label";
@@ -936,6 +937,8 @@ export function SiteSettingsModal({
           {/* TAB 4: Content & Copywriting */}
           {activeTab === "content" && (
             <div className="space-y-6">
+              <SectionMediaManager settings={settings} onChange={handleChange} />
+
               {/* Hero Section */}
               <div className="p-5 rounded-2xl bg-surface border border-border space-y-4">
                 <div className="flex items-center gap-2 text-text font-bold text-sm">
@@ -956,6 +959,32 @@ export function SiteSettingsModal({
                   siteLanguages={siteLangs}
                   isTextarea
                   placeholder="e.g. Delivering high-impact visual media for luxury properties."
+                />
+              </div>
+
+              {/* Vision Section */}
+              <div className="p-5 rounded-2xl bg-surface border border-border space-y-4">
+                <div className="flex items-center gap-2 text-text font-bold text-sm">
+                  <Sparkles className="w-4 h-4 text-primary" aria-hidden="true" />
+                  <span>{tUi("admin.settings.section_vision_copy", currentLanguage) || "Our Vision Section"}</span>
+                </div>
+                <p className="text-xs text-muted-text leading-relaxed">
+                  {tUi("admin.settings.section_vision_description", currentLanguage) || "Edit the centered headline and supporting statement displayed between the hero and the studio introduction."}
+                </p>
+                <TranslatableInput
+                  label={tUi("admin.settings.vision_headline", currentLanguage) || "Vision Headline"}
+                  value={settings.vision_headline || ""}
+                  onChange={(val) => handleChange("vision_headline", val)}
+                  siteLanguages={siteLangs}
+                  placeholder="e.g. We believe every space deserves to be seen at its best."
+                />
+                <TranslatableInput
+                  label={tUi("admin.settings.vision_statement", currentLanguage) || "Vision Statement"}
+                  value={settings.vision_statement || ""}
+                  onChange={(val) => handleChange("vision_statement", val)}
+                  siteLanguages={siteLangs}
+                  isTextarea
+                  placeholder="Describe the studio's visual philosophy and the value it creates for clients."
                 />
               </div>
 

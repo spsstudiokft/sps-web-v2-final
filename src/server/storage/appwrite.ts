@@ -198,7 +198,9 @@ export async function uploadToAppwrite(file: Express.Multer.File) {
 export async function deleteFromAppwrite(fileId: string, bucketId: string) {
   const { endpoint, projectId, apiKey } = await getAppwriteConfig();
 
-  if (!endpoint || !projectId || !apiKey) return;
+  if (!endpoint || !projectId || !apiKey) {
+    throw new Error("Appwrite storage is not fully configured; refusing to report the file as deleted.");
+  }
 
   const client = new Client()
     .setEndpoint(endpoint)
@@ -210,6 +212,8 @@ export async function deleteFromAppwrite(fileId: string, bucketId: string) {
   try {
     await storage.deleteFile(bucketId, fileId);
   } catch (err: any) {
+    if (Number(err?.code) === 404) return;
     console.warn(`Failed to delete file ${fileId} from Appwrite bucket ${bucketId}:`, err.message);
+    throw err;
   }
 }

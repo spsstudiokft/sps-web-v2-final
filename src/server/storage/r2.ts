@@ -168,7 +168,9 @@ export async function uploadToR2(file: Express.Multer.File) {
 export async function deleteFromR2(fileKey: string, bucketName: string) {
     const { accountId, accessKeyId, secretAccessKey } = await getR2Config();
 
-    if (!accountId || !accessKeyId || !secretAccessKey) return;
+    if (!accountId || !accessKeyId || !secretAccessKey) {
+      throw new Error("R2 storage is not fully configured; refusing to report the object as deleted.");
+    }
 
     const s3 = new S3Client({
       region: "auto",
@@ -188,5 +190,6 @@ export async function deleteFromR2(fileKey: string, bucketName: string) {
       );
     } catch (err: any) {
       console.warn(`Failed to delete file ${fileKey} from R2 bucket ${bucketName}:`, err.message);
+      throw err;
     }
 }

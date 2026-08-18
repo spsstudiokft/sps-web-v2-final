@@ -27,7 +27,7 @@ interface BrandingManagerProps {
   token?: string | null;
 }
 
-interface ImageUploadCardProps {
+export interface ImageUploadCardProps {
   id: string;
   title: string;
   description: string;
@@ -45,7 +45,7 @@ interface ImageUploadCardProps {
   currentLang: string;
 }
 
-function ImageUploadCard({
+export function ImageUploadCard({
   id,
   title,
   description,
@@ -111,7 +111,7 @@ function ImageUploadCard({
       const formData = new FormData();
       formData.append("file", file);
 
-      const token = props.token || localStorage.getItem("admin_token") || localStorage.getItem("token") || sessionStorage.getItem("token");
+      const token = localStorage.getItem("admin_token") || localStorage.getItem("token") || sessionStorage.getItem("token");
       const res = await fetch("/api/admin/branding/upload", {
         method: "POST",
         headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -392,6 +392,8 @@ export function BrandingManager({ settings, onChange, token }: BrandingManagerPr
   const faviconUrl = settings.favicon_url || "";
   const logoAltText = settings.logo_alt_text || "";
   const studioName = settings.studio_name || "SPS Studio";
+  const headerBrandDisplay = settings.header_brand_display || "logo_only";
+  const footerBrandDisplay = settings.footer_brand_display || "logo_only";
 
   // Active logo computed for preview
   const activePreviewHeaderLogo = previewTheme === "dark" 
@@ -516,17 +518,15 @@ export function BrandingManager({ settings, onChange, token }: BrandingManagerPr
             }`}>
               {/* Brand Logo in Header */}
               <div className="flex items-center gap-2.5">
-                {activePreviewHeaderLogo ? (
+                {headerBrandDisplay !== "name_only" && activePreviewHeaderLogo ? (
                   <img 
                     src={activePreviewHeaderLogo} 
                     alt={logoAltText || studioName} 
                     className="h-8 max-w-[160px] object-contain"
                   />
-                ) : (
-                  <div className="flex items-center gap-2">
-                    <Camera className="w-5 h-5 text-primary" />
-                    <span className="font-bold tracking-tight text-base">{studioName}</span>
-                  </div>
+                ) : null}
+                {(headerBrandDisplay === "name_only" || headerBrandDisplay === "logo_and_name" || !activePreviewHeaderLogo) && (
+                  <span className="font-bold tracking-tight text-base">{studioName}</span>
                 )}
               </div>
 
@@ -553,13 +553,18 @@ export function BrandingManager({ settings, onChange, token }: BrandingManagerPr
             <div className={`max-w-4xl mx-auto rounded-xl p-5 border text-center space-y-2.5 ${
               previewTheme === "dark" ? "bg-[#141b2d]/50 border-slate-800/60" : "bg-slate-100 border-slate-200"
             }`}>
-              {activePreviewFooterLogo ? (
+              <div className="flex items-center justify-center gap-2.5">
+              {footerBrandDisplay !== "name_only" && activePreviewFooterLogo ? (
                 <img 
                   src={activePreviewFooterLogo} 
                   alt="Footer Logo" 
                   className="h-6 max-w-[140px] object-contain mx-auto"
                 />
               ) : null}
+              {(footerBrandDisplay === "name_only" || footerBrandDisplay === "logo_and_name" || !activePreviewFooterLogo) && (
+                <span className="font-bold tracking-tight text-sm">{studioName}</span>
+              )}
+              </div>
               <p className="text-[11px] opacity-70">
                 &copy; {new Date().getFullYear()} {studioName}. All rights reserved.
               </p>
@@ -570,6 +575,26 @@ export function BrandingManager({ settings, onChange, token }: BrandingManagerPr
 
       {/* Asset Upload & Management Grid */}
       <div className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 rounded-2xl border border-border bg-surface/60 p-4 md:p-5">
+          {([
+            ["header_brand_display", headerBrandDisplay, tUi("admin.branding.header_display") || "Header brand display"],
+            ["footer_brand_display", footerBrandDisplay, tUi("admin.branding.footer_display") || "Footer brand display"],
+          ] as const).map(([key, value, label]) => (
+            <label key={key} className="space-y-2 text-sm font-semibold text-text">
+              <span>{label}</span>
+              <select
+                value={value}
+                onChange={(event) => onChange(key, event.target.value)}
+                className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-text outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+              >
+                <option value="logo_only">{tUi("admin.branding.display_logo_only") || "Logo only"}</option>
+                <option value="logo_and_name">{tUi("admin.branding.display_logo_and_name") || "Logo and studio name"}</option>
+                <option value="name_only">{tUi("admin.branding.display_name_only") || "Studio name only"}</option>
+              </select>
+            </label>
+          ))}
+        </div>
+
         <h4 className="text-sm font-bold text-text uppercase tracking-wider">
           Brand Assets & Logos
         </h4>

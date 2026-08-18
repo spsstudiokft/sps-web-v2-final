@@ -136,9 +136,9 @@ export function resolveBundleItemsForAdmin(
         ? Number(raw.override_price)
         : (matchedTier ? Number(matchedTier.price) : Number(raw.original_price) || 0);
 
-      const features = Array.isArray(raw.features) && raw.features.length > 0
-        ? raw.features
-        : (matchedTier ? parseJsonArray(matchedTier.features) : []);
+      const features = matchedTier
+        ? [...new Set([...parseJsonArray(matchedTier.features), ...parseJsonArray(matchedTier.included_items)])]
+        : (Array.isArray(raw.features) ? raw.features : []);
 
       let status: "active" | "inactive" | "missing" = "active";
       if (isTier && raw.tier_id && !matchedTier && allPlans.length > 0) {
@@ -174,7 +174,9 @@ export function resolveBundleItemsForAdmin(
       unitPrice: matchedTier ? Number(matchedTier.price) : 0,
       itemType: matchedTier ? "tier" : "service",
       status: matchedTier ? (Boolean(matchedTier.is_enabled) ? "active" : "inactive") : "active",
-      features: matchedTier ? parseJsonArray(matchedTier.features) : [],
+      features: matchedTier
+        ? [...new Set([...parseJsonArray(matchedTier.features), ...parseJsonArray(matchedTier.included_items)])]
+        : [],
     };
   });
 }

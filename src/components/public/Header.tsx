@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { SiteSettings } from "../../lib/types";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faCamera, faBars, faXmark, faHouse, faUser } from "@fortawesome/free-solid-svg-icons";
+import { faBars, faXmark, faHouse, faUser } from "@fortawesome/free-solid-svg-icons";
 import { LanguageSelector } from "./LanguageSelector";
 import { ThemeToggle } from "../common/ThemeToggle";
 import { useLanguage } from "../../contexts/LanguageContext";
@@ -90,6 +90,9 @@ export function Header({ settings, hasServices = true, hasPortfolio = true }: { 
 
   const studioNameText = t(settings.studio_name, currentLang, defaultLang) || "SPS Studio";
   const altText = settings.logo_alt_text || studioNameText;
+  const brandDisplay = settings.header_brand_display || "logo_only";
+  const showLogo = brandDisplay !== "name_only" && Boolean(activeLogo) && !logoLoadFailed;
+  const showStudioName = brandDisplay === "name_only" || brandDisplay === "logo_and_name" || !showLogo;
 
   // Reset logo load failure if logo URL changes
   useEffect(() => {
@@ -186,18 +189,16 @@ export function Header({ settings, hasServices = true, hasPortfolio = true }: { 
           className="flex items-center gap-2.5 hover:opacity-85 transition-opacity outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-lg py-1 px-1 cursor-pointer"
           aria-label={studioNameText}
         >
-          {activeLogo && !logoLoadFailed ? (
+          {showLogo && (
             <img 
               src={activeLogo} 
               alt={altText}
               className="h-8 md:h-10 max-w-[180px] md:max-w-[240px] w-auto object-contain transition-all duration-200"
               onError={() => setLogoLoadFailed(true)}
             />
-          ) : (
-            <>
-              <FontAwesomeIcon icon={faCamera} className="w-6 h-6 text-primary" aria-hidden="true" />
-              <span className="font-bold tracking-tight text-base sm:text-xl text-text whitespace-nowrap">{studioNameText}</span>
-            </>
+          )}
+          {showStudioName && (
+            <span className="font-bold tracking-tight text-base sm:text-xl text-text whitespace-nowrap">{studioNameText}</span>
           )}
         </button>
         

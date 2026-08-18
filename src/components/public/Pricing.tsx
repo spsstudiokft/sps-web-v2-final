@@ -76,8 +76,8 @@ export function Pricing({
   useEffect(() => {
     let isMounted = true;
     Promise.all([
-      fetch("/api/public/pricing").then((r) => (r.ok ? r.json() : [])).catch(() => []),
-      fetch("/api/public/extra-services").then((r) => (r.ok ? r.json() : [])).catch(() => []),
+      fetch("/api/public/pricing", { cache: "no-store" }).then((r) => (r.ok ? r.json() : [])).catch(() => []),
+      fetch("/api/public/extra-services", { cache: "no-store" }).then((r) => (r.ok ? r.json() : [])).catch(() => []),
       fetch("/api/public/fee-rules").then((r) => (r.ok ? r.json() : [])).catch(() => []),
     ])
       .then(([pData, extraData, feeData]) => {
@@ -144,9 +144,12 @@ export function Pricing({
             if (item.override_price === null || item.override_price === undefined) {
               unitPrice = Number(foundTier.price) || 0;
             }
-            if (!features || features.length === 0) {
-              features = parseJsonArray(foundTier.features);
-            }
+            // A tier reference is live: always render its current complete
+            // content instead of the snapshot stored when the bundle was made.
+            features = [...new Set([
+              ...parseJsonArray(foundTier.features),
+              ...parseJsonArray(foundTier.included_items),
+            ])];
           }
         } else if (isExtra && item.service_id) {
           const foundExtra = extraServices.find((e) => e.id === item.service_id);
@@ -552,7 +555,7 @@ export function Pricing({
                                   {(isExpanded ? item.features : item.features.slice(0, 2)).map((feat, fIdx) => (
                                     <div key={fIdx} className="flex items-center gap-1.5 text-[11px] text-muted-text">
                                       <Check className="w-3 h-3 text-emerald-500 flex-shrink-0" />
-                                      <span className="line-clamp-1">{feat}</span>
+                                      <span className={isExpanded ? "whitespace-normal break-words" : "line-clamp-1"}>{feat}</span>
                                     </div>
                                   ))}
                                   {!isExpanded && item.features.length > 2 && (

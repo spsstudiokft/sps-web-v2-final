@@ -4,6 +4,7 @@
 
 ### Public website and AERO/GLOW visual consistency
 
+- Added independent header and footer brand-display controls for logo only, logo with the studio name, or studio name only, including live branding previews and localized admin labels.
 - Extended the frosted-glass AERO/GLOW theme to the information bar, incident widget, contact information cards, pricing elements, authentication menus, and dark-mode dropdowns.
 - Added and corrected reusable shine effects on contact cards and pricing cards while constraining animation overflow and card-radius clipping.
 - Corrected desktop hero-image positioning, including the dark-mode composition.
@@ -16,6 +17,7 @@
 
 ### Contact form, pricing estimate, and travel calculation
 
+- Bundle cards now resolve referenced tiers from the current pricing catalog instead of stale embedded snapshots; expanding a tier shows its complete current feature and included-item content without text truncation, and pricing endpoints bypass stale browser/CDN caches.
 - Reordered the inquiry journey to collect identity, property city/address, and preferred photography time before package selection, add-ons, estimate, message, and submission.
 - Property city is now required before package/add-on interaction and is clearly identified as an input for the travel and final-price calculation; property address remains optional.
 - Added automatic round-trip travel-distance calculation from Hódmezővásárhely and integrated distance fee rules into the live package estimate.
@@ -55,6 +57,7 @@
 
 ### Portfolio and media storage performance
 
+- Portfolio gallery deletion now removes every tracked original, thumbnail, poster, preview, and optimized asset from Appwrite, R2, or local storage before deleting database records; failed storage cleanup prevents a false-success gallery deletion.
 - Reduced portfolio memory pressure by preventing all videos from autoplaying while keeping motion-rich portfolio rows and hover playback.
 - Added direct browser-to-Appwrite upload sessions for large/chunked media so Vercel does not buffer files or write to its read-only deployment filesystem.
 - Added Appwrite upload registration, public URL construction, bucket diagnostics, and alphanumeric upload-label handling independent of Appwrite user authentication.
@@ -63,6 +66,7 @@
 
 ### Finance, invoices, budgets, and payment requests
 
+- Removed automatic demo budget-entry and payment-request seeding, and added narrowly matched legacy-demo cleanup so deleted sample finance data cannot reappear while genuine records remain untouched.
 - Corrected invoice-to-client association and portal visibility using normalized email matching.
 - Added paid-invoice behavior that disables repeat payment requests and replaces the action with manual archival.
 - Updated downloadable/printable invoices to use a print-safe version of the email visual language.

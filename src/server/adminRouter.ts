@@ -1050,6 +1050,69 @@ adminRouter.get("/portfolio", async (req, res) => {
   }
 });
 
+const collectPortfolioMediaUrls = (row: any): string[] => {
+  const urls = new Set<string>();
+  const addUrl = (value: unknown) => {
+    if (typeof value === "string" && value.trim()) urls.add(value.trim());
+  };
+  addUrl(row.media_url);
+  addUrl(row.thumbnail_url);
+
+  let galleryItems: any = row.image_urls;
+  if (typeof galleryItems === "string") {
+    try { galleryItems = JSON.parse(galleryItems); } catch { galleryItems = []; }
+  }
+  if (typeof galleryItems === "string") {
+    try { galleryItems = JSON.parse(galleryItems); } catch { galleryItems = []; }
+  }
+  if (Array.isArray(galleryItems)) {
+    for (const item of galleryItems) {
+      if (typeof item === "string") {
+        addUrl(item);
+        continue;
+      }
+      if (!item || typeof item !== "object") continue;
+      for (const key of ["url", "media_url", "thumbnail_url", "poster_url", "compressed_url", "preview_url"]) {
+        addUrl(item[key]);
+      }
+    }
+  }
+  return [...urls];
+};
+
+async function deletePortfolioMediaFiles(rows: any[]) {
+  const urls = [...new Set(rows.flatMap(collectPortfolioMediaUrls))];
+  if (urls.length === 0) return { deletedFiles: 0, untrackedUrls: 0 };
+
+  const trackedUploads: any[] = [];
+  for (let offset = 0; offset < urls.length; offset += 100) {
+    const batch = urls.slice(offset, offset + 100);
+    const placeholders = batch.map(() => "?").join(",");
+    const result = await db.execute({
+      sql: `SELECT id, provider, bucket, file_key, public_url FROM media_uploads WHERE public_url IN (${placeholders})`,
+      args: batch,
+    });
+    trackedUploads.push(...result.rows);
+  }
+
+  const failures: string[] = [];
+  for (const upload of trackedUploads) {
+    try {
+      await deleteMedia(String(upload.file_key), String(upload.bucket), String(upload.provider));
+    } catch (error: any) {
+      failures.push(`${String(upload.public_url)}: ${error?.message || "storage deletion failed"}`);
+    }
+  }
+  if (failures.length > 0) {
+    throw new Error(`Portfolio media cleanup failed for ${failures.length} object(s): ${failures.join(" | ")}`);
+  }
+
+  for (const upload of trackedUploads) {
+    await db.execute({ sql: "DELETE FROM media_uploads WHERE id = ?", args: [upload.id] });
+  }
+  return { deletedFiles: trackedUploads.length, untrackedUrls: urls.length - trackedUploads.length };
+}
+
 // Create portfolio item
 adminRouter.post("/portfolio", async (req, res) => {
   try {
@@ -1146,10 +1209,20 @@ adminRouter.post("/portfolio/bulk", async (req, res) => {
     const placeholders = ids.map(() => "?").join(",");
     
     if (action === "delete") {
+      const portfolioRows = await db.execute({
+        sql: `SELECT id, media_url, thumbnail_url, image_urls FROM portfolio_items WHERE id IN (${placeholders})`,
+        args: ids,
+      });
+      const cleanup = await deletePortfolioMediaFiles(portfolioRows.rows as any[]);
+      await db.execute({
+        sql: `DELETE FROM project_portfolio_items WHERE portfolio_item_id IN (${placeholders})`,
+        args: ids,
+      });
       await db.execute({
         sql: `DELETE FROM portfolio_items WHERE id IN (${placeholders})`,
         args: ids
       });
+      return res.json({ success: true, deletedGalleries: portfolioRows.rows.length, ...cleanup });
     } else if (action === "category") {
       await db.execute({
         sql: `UPDATE portfolio_items SET category_id = ? WHERE id IN (${placeholders})`,
@@ -1176,20 +1249,36 @@ adminRouter.post("/portfolio/bulk", async (req, res) => {
     }
     res.json({ success: true });
   } catch (error) {
-    res.status(500).json({ error: "Bulk action failed" });
+    console.error("Portfolio bulk action failed", error);
+    res.status(500).json({
+      error: "Bulk action failed",
+      details: error instanceof Error ? error.message : undefined,
+    });
   }
 });
 
 // Delete portfolio item
 adminRouter.delete("/portfolio/:id", async (req, res) => {
   try {
+    const portfolioResult = await db.execute({
+      sql: "SELECT id, media_url, thumbnail_url, image_urls FROM portfolio_items WHERE id = ? LIMIT 1",
+      args: [req.params.id],
+    });
+    if (portfolioResult.rows.length === 0) return res.status(404).json({ error: "Portfolio gallery not found" });
+
+    const cleanup = await deletePortfolioMediaFiles(portfolioResult.rows as any[]);
+    await db.execute({
+      sql: "DELETE FROM project_portfolio_items WHERE portfolio_item_id = ?",
+      args: [req.params.id],
+    });
     await db.execute({
       sql: "DELETE FROM portfolio_items WHERE id = ?",
       args: [req.params.id]
     });
-    res.json({ success: true });
-  } catch (error) {
-    res.status(500).json({ error: "Failed to delete portfolio item" });
+    res.json({ success: true, deletedGalleries: 1, ...cleanup });
+  } catch (error: any) {
+    console.error("Failed to delete portfolio gallery and its media", error);
+    res.status(500).json({ error: "Failed to delete portfolio gallery and all stored media", details: error?.message });
   }
 });
 
@@ -1334,6 +1423,7 @@ adminRouter.delete("/services/:id", async (req, res) => {
 // Get all pricing plans and bundles
 adminRouter.get("/pricing", async (req, res) => {
   try {
+    res.set("Cache-Control", "no-store, no-cache, must-revalidate");
     const result = await db.execute("SELECT * FROM pricing_plans ORDER BY sort_order ASC, created_at ASC");
     res.json(result.rows);
   } catch (error) {
@@ -1520,6 +1610,58 @@ adminRouter.put("/pricing/:id", async (req, res) => {
         req.params.id
       ]
     });
+
+    // Keep the compatibility snapshots inside existing bundles synchronized.
+    // The tier_id remains the source of truth, while this prevents older or
+    // non-React consumers from showing stale tier content after an update.
+    if ((type || "tier") === "tier") {
+      let currentFeatures: any[] = [];
+      let currentIncludedItems: any[] = [];
+      try {
+        const value = typeof features === "string" ? JSON.parse(features || "[]") : features;
+        currentFeatures = Array.isArray(value) ? value : [];
+      } catch {}
+      try {
+        const value = typeof included_items === "string" ? JSON.parse(included_items || "[]") : included_items;
+        currentIncludedItems = Array.isArray(value) ? value : [];
+      } catch {}
+
+      const bundles = await db.execute("SELECT id, bundle_services FROM pricing_plans WHERE type = 'bundle'");
+      for (const bundle of bundles.rows as any[]) {
+        let items: any[] = [];
+        try {
+          const value = typeof bundle.bundle_services === "string"
+            ? JSON.parse(bundle.bundle_services || "[]")
+            : bundle.bundle_services;
+          items = Array.isArray(value) ? value : [];
+        } catch {
+          continue;
+        }
+
+        let changed = false;
+        const synchronizedItems = items.map((item) => {
+          if (String(item?.tier_id || "") !== String(req.params.id)) return item;
+          changed = true;
+          return {
+            ...item,
+            item_type: "tier",
+            service_title: title,
+            service_name: title,
+            original_price: Number(price) || 0,
+            features: [...new Set([...currentFeatures, ...currentIncludedItems])],
+            is_disabled: !Boolean(is_enabled),
+            is_missing: false,
+          };
+        });
+
+        if (changed) {
+          await db.execute({
+            sql: "UPDATE pricing_plans SET bundle_services = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+            args: [JSON.stringify(synchronizedItems), bundle.id],
+          });
+        }
+      }
+    }
 
     res.json({ success: true });
   } catch (error: any) {

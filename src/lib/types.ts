@@ -10,9 +10,14 @@ export type Language = {
 export type SiteSettings = {
   [key: string]: string | undefined;
   studio_name?: string;
+  header_brand_display?: "logo_only" | "logo_and_name" | "name_only";
+  footer_brand_display?: "logo_only" | "logo_and_name" | "name_only";
   hero_headline?: string;
   hero_subheadline?: string;
+  vision_headline?: string;
+  vision_statement?: string;
   about_text?: string;
+  section_media?: string; // JSON map of public section background/image configuration
   contact_title?: string;
   contact_description?: string;
   contact_email?: string;

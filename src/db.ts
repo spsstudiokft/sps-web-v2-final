@@ -3464,165 +3464,61 @@ export const setupDatabase = async () => {
     await client.execute("CREATE INDEX IF NOT EXISTS idx_payment_requests_created ON payment_requests(created_at)");
   } catch (e) {}
 
-  // Seed sample starter budget entries if empty and at least one user exists
+  // Remove legacy starter/demo data. New installations intentionally start
+  // with an empty budget ledger; real entries are never auto-generated.
   try {
-    const budgetCountRes = await client.execute("SELECT COUNT(*) as count FROM budget_entries");
-    const budgetCount = Number(budgetCountRes.rows[0]?.count || 0);
-
-    if (budgetCount === 0) {
-      const usersRes = await client.execute("SELECT id, email, name, role FROM users WHERE role IN ('admin', 'editor', 'viewer', 'superadmin') LIMIT 5");
-      if (usersRes.rows.length > 0) {
-        const primaryAdmin = usersRes.rows[0];
-        const secondAdmin = usersRes.rows.length > 1 ? usersRes.rows[1] : null;
-
-        const starterEntries = [
-          {
-            id: crypto.randomUUID(),
-            owner_admin_id: primaryAdmin.id,
-            type: "income",
-            amount: 1450,
-            currency: "USD",
-            date: new Date(Date.now() - 2 * 86400000).toISOString().split("T")[0],
-            category: "Client Invoices",
-            status: "confirmed",
-            description: "Luxury Penthouse 3D Tour & Sunset Aerial Shoot",
-            color_code: "#10B981"
-          },
-          {
-            id: crypto.randomUUID(),
-            owner_admin_id: primaryAdmin.id,
-            type: "income",
-            amount: 980,
-            currency: "USD",
-            date: new Date(Date.now() - 5 * 86400000).toISOString().split("T")[0],
-            category: "Shooting Fees",
-            status: "confirmed",
-            description: "Commercial Real Estate Staging Package - Downtown",
-            color_code: "#06B6D4"
-          },
-          {
-            id: crypto.randomUUID(),
-            owner_admin_id: primaryAdmin.id,
-            type: "income",
-            amount: 620,
-            currency: "USD",
-            date: new Date(Date.now() + 3 * 86400000).toISOString().split("T")[0],
-            category: "Client Invoices",
-            status: "planned",
-            description: "Scheduled Residential Listing Photoshoot (Suburban Estate)",
-            color_code: "#3B82F6"
-          },
-          {
-            id: crypto.randomUUID(),
-            owner_admin_id: primaryAdmin.id,
-            type: "outcome",
-            amount: 249.99,
-            currency: "USD",
-            date: new Date(Date.now() - 3 * 86400000).toISOString().split("T")[0],
-            category: "Software & Subscriptions",
-            status: "confirmed",
-            description: "Matterport Pro & Adobe Creative Cloud monthly licenses",
-            color_code: "#EF4444"
-          },
-          {
-            id: crypto.randomUUID(),
-            owner_admin_id: primaryAdmin.id,
-            type: "outcome",
-            amount: 320,
-            currency: "USD",
-            date: new Date(Date.now() - 7 * 86400000).toISOString().split("T")[0],
-            category: "Equipment & Gear",
-            status: "confirmed",
-            description: "Gimbal Stabilizer Battery Packs & High-Speed SD Cards",
-            color_code: "#F59E0B"
-          },
-          {
-            id: crypto.randomUUID(),
-            owner_admin_id: primaryAdmin.id,
-            type: "outcome",
-            amount: 150,
-            currency: "USD",
-            date: new Date(Date.now() + 4 * 86400000).toISOString().split("T")[0],
-            category: "Travel & Transport",
-            status: "planned",
-            description: "Highway tolls & fuel allocation for upstate estate shoot",
-            color_code: "#8B5CF6"
-          }
-        ];
-
-        if (secondAdmin) {
-          starterEntries.push(
-            {
-              id: crypto.randomUUID(),
-              owner_admin_id: secondAdmin.id,
-              type: "income",
-              amount: 1200,
-              currency: "USD",
-              date: new Date(Date.now() - 4 * 86400000).toISOString().split("T")[0],
-              category: "Shooting Fees",
-              status: "confirmed",
-              description: "Architectural Interior Portfolio Shoot",
-              color_code: "#EC4899"
-            },
-            {
-              id: crypto.randomUUID(),
-              owner_admin_id: secondAdmin.id,
-              type: "outcome",
-              amount: 280,
-              currency: "USD",
-              date: new Date(Date.now() - 6 * 86400000).toISOString().split("T")[0],
-              category: "Equipment & Gear",
-              status: "confirmed",
-              description: "Wireless Lavalier Microphone System Kit",
-              color_code: "#F97316"
-            }
-          );
-        }
-
-        for (const entry of starterEntries) {
-          await client.execute({
-            sql: `INSERT INTO budget_entries (id, owner_admin_id, type, amount, currency, date, category, status, description, color_code, created_at, updated_at)
-                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
-            args: [
-              entry.id,
-              entry.owner_admin_id,
-              entry.type,
-              entry.amount,
-              entry.currency,
-              entry.date,
-              entry.category,
-              entry.status,
-              entry.description,
-              entry.color_code
-            ]
-          });
-
-          await client.execute({
-            sql: `INSERT INTO budget_audit_logs (id, entry_id, action, performed_by_id, performed_by_name, performed_by_email, details, created_at)
-                  VALUES (?, ?, 'create', ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
-            args: [
-              crypto.randomUUID(),
-              entry.id,
-              entry.owner_admin_id,
-              (primaryAdmin.name as string) || "System Admin",
-              (primaryAdmin.email as string) || "admin@spsstudio.com",
-              JSON.stringify({ note: "Initial starter budget entry provisioned", amount: entry.amount, type: entry.type, description: entry.description })
-            ]
-          });
-        }
-
-        // Initialize admin budget settings
-        await client.execute({
-          sql: `INSERT OR IGNORE INTO budget_admin_settings (id, admin_id, default_color, default_currency, monthly_target_income, monthly_budget_cap, period_status, period_notes, created_at, updated_at)
-                VALUES (?, ?, '#3B82F6', 'USD', 5000, 2000, 'on_track', 'Q3 Photography & Visual Production Operations', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
-          args: [crypto.randomUUID(), primaryAdmin.id]
-        });
-
-        console.log(`[DB Setup] Seeded ${starterEntries.length} starter budget entries and settings.`);
-      }
+    const demoDescriptions = [
+      "Luxury Penthouse 3D Tour & Sunset Aerial Shoot",
+      "Commercial Real Estate Staging Package - Downtown",
+      "Scheduled Residential Listing Photoshoot (Suburban Estate)",
+      "Matterport Pro & Adobe Creative Cloud monthly licenses",
+      "Gimbal Stabilizer Battery Packs & High-Speed SD Cards",
+      "Highway tolls & fuel allocation for upstate estate shoot",
+      "Architectural Interior Portfolio Shoot",
+      "Wireless Lavalier Microphone System Kit",
+    ];
+    const placeholders = demoDescriptions.map(() => "?").join(",");
+    const demoEntries = await client.execute({
+      sql: `SELECT id FROM budget_entries
+            WHERE description IN (${placeholders})
+               OR id IN (
+                 SELECT entry_id FROM budget_audit_logs
+                 WHERE details LIKE '%Initial starter budget entry provisioned%'
+               )`,
+      args: demoDescriptions,
+    });
+    const demoIds = demoEntries.rows.map((row) => String(row.id));
+    if (demoIds.length > 0) {
+      const idPlaceholders = demoIds.map(() => "?").join(",");
+      await client.execute({
+        sql: `UPDATE payment_requests SET linked_budget_entry_id = NULL
+              WHERE linked_budget_entry_id IN (${idPlaceholders})`,
+        args: demoIds,
+      });
+      await client.execute({
+        sql: `UPDATE invoices SET budget_entry_id = NULL
+              WHERE budget_entry_id IN (${idPlaceholders})`,
+        args: demoIds,
+      });
+      await client.execute({
+        sql: `DELETE FROM budget_audit_logs WHERE entry_id IN (${idPlaceholders})`,
+        args: demoIds,
+      });
+      await client.execute({
+        sql: `DELETE FROM budget_entries WHERE id IN (${idPlaceholders})`,
+        args: demoIds,
+      });
+      console.log(`[DB Setup] Removed ${demoIds.length} legacy demo budget entries.`);
     }
-  } catch (seedErr) {
-    console.warn("[DB Setup] Budget seed note:", seedErr);
+    await client.execute(`
+      DELETE FROM budget_admin_settings
+      WHERE period_notes = 'Q3 Photography & Visual Production Operations'
+        AND default_currency = 'USD'
+        AND monthly_target_income = 5000
+        AND monthly_budget_cap = 2000
+    `);
+  } catch (cleanupErr) {
+    console.warn("[DB Setup] Legacy budget demo cleanup note:", cleanupErr);
   }
 
   // =========================================================================

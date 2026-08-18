@@ -19,6 +19,7 @@ import { usePageTitle } from "../hooks/usePageTitle";
 import { useSeo } from "../hooks/useSeo";
 import { LanguageProvider, useLanguage } from "../contexts/LanguageContext";
 import { t } from "../lib/i18n";
+import { parseSectionMedia } from "../lib/sectionMedia";
 
 export default function PublicHome() {
   const [settings, setSettings] = useState<SiteSettings>({});
@@ -57,6 +58,20 @@ function PublicHomeContent({ settings, portfolio, services, loading }: { setting
   const [activeSection, setActiveSection] = useState("Home");
   const [isSocialPopupOpen, setIsSocialPopupOpen] = useState(false);
   const { currentLang, defaultLang } = useLanguage();
+  const sectionMedia = parseSectionMedia(settings.section_media);
+  const sectionBackgroundCss = Object.entries(sectionMedia)
+    .filter(([, media]) => Boolean(media.backgroundUrl))
+    .map(([id, media]) => {
+      const safeId = id.replace(/[^a-z0-9_-]/gi, "");
+      const safeUrl = encodeURI(String(media.backgroundUrl || ""))
+        .replace(/["'()\\]/g, (character) => encodeURIComponent(character));
+      const position = ["center", "top", "bottom", "left", "right"].includes(media.backgroundPosition || "")
+        ? media.backgroundPosition
+        : "center";
+      const opacity = Math.min(0.9, Math.max(0, Number(media.overlayOpacity ?? 0.45)));
+      return `#${safeId}{background-image:linear-gradient(rgba(0,0,0,${opacity}),rgba(0,0,0,${opacity})),url("${safeUrl}")!important;background-size:cover!important;background-position:${position}!important;background-repeat:no-repeat!important}`;
+    })
+    .join("\n");
 
   const activeSectionKey = activeSection.toLowerCase().replace(/\s+/g, "");
   const pageKeyMap: Record<string, string> = {
@@ -113,6 +128,7 @@ function PublicHomeContent({ settings, portfolio, services, loading }: { setting
       </div>
 
       <div className="relative z-10">
+        {sectionBackgroundCss && <style>{sectionBackgroundCss}</style>}
         <Header settings={settings} hasServices={services.length > 0} hasPortfolio={portfolio.length > 0} />
         <FloatingNav
           hasServices={services.length > 0}

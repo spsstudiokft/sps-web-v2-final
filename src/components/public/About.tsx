@@ -2,9 +2,12 @@ import { SiteSettings } from "../../lib/types";
 import { useLanguage } from "../../contexts/LanguageContext";
 import { t, tUi } from "../../lib/i18n";
 import { motion } from "motion/react";
+import { parseSectionMedia } from "../../lib/sectionMedia";
 
 export function About({ settings }: { settings: SiteSettings }) {
   const { currentLang, defaultLang } = useLanguage();
+  const aboutImage = parseSectionMedia(settings.section_media).about?.contentImageUrl
+    || "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&q=80&w=1000";
   return (
     <motion.section 
       id="about" 
@@ -23,7 +26,7 @@ export function About({ settings }: { settings: SiteSettings }) {
         </div>
         <div className="aero-media-frame aspect-[4/5] md:aspect-square overflow-hidden relative">
           <img
-            src="https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&q=80&w=1000"
+            src={aboutImage}
             alt={tUi("about.title", currentLang, undefined, defaultLang)}
             className="w-full h-full object-cover object-center transition-[filter] duration-500 hover:brightness-105"
           />

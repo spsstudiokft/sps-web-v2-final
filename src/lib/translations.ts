@@ -3,6 +3,8 @@ import { financialTranslations } from "./financialTranslations.js";
 import { clientPortalTranslations } from "./clientPortalTranslations.js";
 import { contactTravelTranslations } from "./contactTravelTranslations.js";
 
+export type TranslationDictionary = Record<string, string>;
+
 export const enTranslations: Record<string, string> = {
   "About": "About",
   "Admin Panel": "Studio Admin",

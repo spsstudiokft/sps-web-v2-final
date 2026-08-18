@@ -76,9 +76,10 @@ export async function deleteMedia(fileKey: string, bucket: string, provider: str
         fs.unlinkSync(localPath);
       } catch (err) {
         console.warn(`Failed to delete local media file: ${localPath}`, err);
+        throw err;
       }
     }
   } else {
-    console.warn(`Unknown provider ${provider} when attempting to delete media.`);
+    throw new Error(`Unknown media provider '${provider}'; file deletion was not performed.`);
   }
 }

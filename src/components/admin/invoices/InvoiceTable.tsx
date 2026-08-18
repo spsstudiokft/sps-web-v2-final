@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { createPortal } from "react-dom";
 import { 
   FileText, 
   Send, 
@@ -58,6 +59,27 @@ export function InvoiceTable({
   showToast
 }: InvoiceTableProps) {
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
+  const [menuPosition, setMenuPosition] = useState<{ top?: number; bottom?: number; right: number } | null>(null);
+
+  const toggleInvoiceMenu = (invoiceId: string, button: HTMLButtonElement) => {
+    if (activeMenuId === invoiceId) {
+      setActiveMenuId(null);
+      setMenuPosition(null);
+      return;
+    }
+    const rect = button.getBoundingClientRect();
+    const openUpward = window.innerHeight - rect.bottom < 350 && rect.top > 350;
+    setMenuPosition({
+      ...(openUpward ? { bottom: Math.max(8, window.innerHeight - rect.top + 4) } : { top: Math.max(8, rect.bottom + 4) }),
+      right: Math.max(8, window.innerWidth - rect.right),
+    });
+    setActiveMenuId(invoiceId);
+  };
+
+  const closeInvoiceMenu = () => {
+    setActiveMenuId(null);
+    setMenuPosition(null);
+  };
 
   const handleSendInvoice = (inv: Invoice) => {
     if (typeof onSend === "function") {
@@ -317,20 +339,27 @@ export function InvoiceTable({
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            setActiveMenuId(isMenuOpen ? null : inv.id);
+                            toggleInvoiceMenu(inv.id, e.currentTarget);
                           }}
                           className="p-1.5 rounded-lg text-muted-text hover:text-text hover:bg-surface-hover transition-colors"
                         >
                           <MoreVertical className="w-3.5 h-3.5" />
                         </button>
 
-                        {isMenuOpen && (
+                        {isMenuOpen && menuPosition && createPortal(
                           <>
                             <div 
-                              className="fixed inset-0 z-20"
-                              onClick={() => setActiveMenuId(null)}
+                              className="fixed inset-0 z-[9998]"
+                              onClick={closeInvoiceMenu}
                             />
-                            <div className="absolute right-0 top-full mt-1 w-48 bg-surface border border-border rounded-xl shadow-lg z-30 py-1 text-left">
+                            <div
+                              className="fixed w-52 max-h-[calc(100vh-1rem)] overflow-y-auto bg-surface border border-border rounded-xl shadow-2xl z-[9999] py-1 text-left"
+                              style={{
+                                right: menuPosition.right,
+                                ...(menuPosition.top !== undefined ? { top: menuPosition.top } : {}),
+                                ...(menuPosition.bottom !== undefined ? { bottom: menuPosition.bottom } : {}),
+                              }}
+                            >
                               <button
                                 onClick={() => {
                                   setActiveMenuId(null);
@@ -453,7 +482,8 @@ export function InvoiceTable({
                                 Delete Invoice
                               </button>
                             </div>
-                          </>
+                          </>,
+                          document.body
                         )}
                       </div>
                     </div>

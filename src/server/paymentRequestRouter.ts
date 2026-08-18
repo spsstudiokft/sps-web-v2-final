@@ -16,7 +16,8 @@ import { getAppUrl } from "./appUrl.js";
 
 export const paymentRequestRouter = Router();
 
-// Ensure payment_requests table exists on every request safely and seed starter data if empty
+// Ensure the payment-request schema exists. Demo requests are deliberately not
+// generated: an empty table must remain empty until an administrator adds data.
 let tableInitialized = false;
 async function ensurePaymentRequestsTable() {
   if (tableInitialized) return;
@@ -92,11 +93,28 @@ async function ensurePaymentRequestsTable() {
       WHERE category IS NOT NULL AND TRIM(category) != ''
     `);
 
-    // Check if table is empty, seed realistic pending, approved, denied, and on-hold requests
+    // Remove the legacy demo rows created by older releases. Matching both the
+    // fixed request number and title avoids touching genuine requests.
+    const legacyDemoRequests = [
+      ["PR-2025-001", "DJI Matrice 300 RTK High-Capacity Battery Pack Set"],
+      ["PR-2025-002", "Matterport Pro3 Monthly Enterprise Cloud Processing License"],
+      ["PR-2025-003", "Luxury Staging Props & Furniture Rental (Unitemized Receipt)"],
+      ["PR-2025-004", "Contractor Retainer: Second Camera Operator (Weekend Estate Shoot)"],
+    ];
+    for (const [requestNumber, title] of legacyDemoRequests) {
+      await db.execute({
+        sql: "DELETE FROM payment_requests WHERE request_number = ? AND title = ?",
+        args: [requestNumber, title],
+      });
+    }
+
+    // Kept only as historical fixture documentation. Production seeding is
+    // permanently disabled so deleted requests cannot reappear.
     const countCheck = await db.execute("SELECT COUNT(*) as count FROM payment_requests");
     const count = Number(countCheck.rows[0]?.count || 0);
+    const shouldSeedDemoPaymentRequests = false;
 
-    if (count === 0) {
+    if (shouldSeedDemoPaymentRequests && count === 0) {
       // Find primary admin/user to assign as requester / reviewer
       const usersRes = await db.execute("SELECT id, name, email, role FROM users LIMIT 2");
       const primaryUser = usersRes.rows[0] as any || {

@@ -24,6 +24,9 @@ export function Footer({ settings }: { settings: SiteSettings }) {
 
   const studioName = t(settings.studio_name, currentLang, defaultLang) || "SPS Studio";
   const altText = settings.logo_alt_text || studioName;
+  const brandDisplay = settings.footer_brand_display || "logo_only";
+  const showLogo = brandDisplay !== "name_only" && Boolean(footerLogo) && !logoLoadFailed;
+  const showStudioName = brandDisplay === "name_only" || brandDisplay === "logo_and_name" || !showLogo;
 
   useEffect(() => {
     setLogoLoadFailed(false);
@@ -70,16 +73,17 @@ export function Footer({ settings }: { settings: SiteSettings }) {
   return (
     <footer className="aero-footer text-white/80 py-14 px-4 transition-colors">
       <div className="max-w-7xl mx-auto flex flex-col items-center justify-center gap-4 text-center">
-        {footerLogo && !logoLoadFailed && (
-          <div className="mb-2">
-            <img
-              src={footerLogo}
-              alt={altText}
-              className="h-8 md:h-10 max-w-[220px] w-auto object-contain mx-auto brightness-0 invert opacity-90 hover:opacity-100 transition-opacity"
-              onError={() => setLogoLoadFailed(true)}
-            />
-          </div>
-        )}
+        <div className="mb-2 flex flex-wrap items-center justify-center gap-3">
+          {showLogo && (
+              <img
+                src={footerLogo}
+                alt={altText}
+                className="h-8 md:h-10 max-w-[220px] w-auto object-contain brightness-0 invert opacity-90 hover:opacity-100 transition-opacity"
+                onError={() => setLogoLoadFailed(true)}
+              />
+          )}
+          {showStudioName && <span className="text-lg md:text-xl font-bold tracking-tight text-white">{studioName}</span>}
+        </div>
         <p className="text-sm text-background/70 font-medium">
           &copy; {new Date().getFullYear()} {studioName}. {tUi("All rights reserved.", currentLang)}
         </p>

@@ -124,13 +124,13 @@ export function PricingModal({
     setCatalogError(null);
     try {
       const [tiersRes, servicesRes, extrasRes] = await Promise.all([
-        fetch("/api/admin/pricing")
+        fetch("/api/admin/pricing", { cache: "no-store" })
           .then((r) => (r.ok ? r.json() : fetch("/api/public/pricing").then((p) => (p.ok ? p.json() : []))))
           .catch(() => fetch("/api/public/pricing").then((p) => (p.ok ? p.json() : []))),
-        fetch("/api/services")
+        fetch("/api/services", { cache: "no-store" })
           .then((r) => (r.ok ? r.json() : fetch("/api/public/services").then((p) => (p.ok ? p.json() : []))))
           .catch(() => fetch("/api/public/services").then((p) => (p.ok ? p.json() : []))),
-        fetch("/api/admin/extra-services")
+        fetch("/api/admin/extra-services", { cache: "no-store" })
           .then((r) => (r.ok ? r.json() : fetch("/api/public/extra-services").then((p) => (p.ok ? p.json() : []))))
           .catch(() => fetch("/api/public/extra-services").then((p) => (p.ok ? p.json() : []))),
       ]);
@@ -559,6 +559,25 @@ export function PricingModal({
 
     const cleanFeatures = featuresList.map((f) => f.trim()).filter(Boolean);
     const cleanIncluded = includedList.map((i) => i.trim()).filter(Boolean);
+    const synchronizedBundleItems = bundleItems.map((item) => {
+      if (!item.tier_id) return item;
+      const currentTier = availableTiers.find((tier) => tier.id === item.tier_id);
+      if (!currentTier) return item;
+      const currentTitle = getDisplayString(currentTier.title) || item.service_title || item.service_name || "Pricing Tier";
+      return {
+        ...item,
+        item_type: "tier" as const,
+        service_title: currentTitle,
+        service_name: currentTitle,
+        original_price: Number(currentTier.price) || 0,
+        features: [...new Set([
+          ...parseJsonArray(currentTier.features),
+          ...parseJsonArray(currentTier.included_items),
+        ])],
+        is_disabled: !Boolean(currentTier.is_enabled),
+        is_missing: false,
+      };
+    });
 
     try {
       setIsSubmitting(true);
@@ -566,7 +585,7 @@ export function PricingModal({
         ...formData,
         features: JSON.stringify(cleanFeatures),
         included_items: JSON.stringify(cleanIncluded),
-        bundle_services: JSON.stringify(bundleItems),
+        bundle_services: JSON.stringify(synchronizedBundleItems),
         price: Number(formData.price) || 0,
         original_price: formData.original_price !== null && formData.original_price !== undefined && formData.original_price !== ("" as any) ? Number(formData.original_price) : null,
         message_template_en: templateEn,
@@ -1160,7 +1179,12 @@ export function PricingModal({
                           (matchedExtra && !Boolean(matchedExtra.is_enabled))
                         );
 
-                        const itemFeatures = item.features || (matchedTier ? parseJsonArray(matchedTier.features) : []);
+                        const itemFeatures = matchedTier
+                          ? [...new Set([...parseJsonArray(matchedTier.features), ...parseJsonArray(matchedTier.included_items)])]
+                          : (item.features || []);
+                        const displayItemTitle = matchedTier
+                          ? (getDisplayString(matchedTier.title) || item.service_title || item.service_name || "Pricing Tier")
+                          : (item.service_title || item.service_name || "Component");
 
                         return (
                           <div
@@ -1189,7 +1213,7 @@ export function PricingModal({
                                   </span>
 
                                   <span className="text-sm font-bold text-text truncate">
-                                    {item.service_title || item.service_name || "Component"}
+                                    {displayItemTitle}
                                   </span>
 
                                   {/* Status Badges */}
