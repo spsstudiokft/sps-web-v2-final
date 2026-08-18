@@ -50,7 +50,10 @@ export function PortfolioForm({ formData, setFormData, categories, onSubmit, onC
     
     const fileArray = Array.from(files);
     
-    await Promise.all(fileArray.map(async (file, index) => {
+    // Keep gallery uploads sequential. Starting every file at once causes a
+    // burst of init/sign/register calls that can trip Vercel/storage limits.
+    for (let index = 0; index < fileArray.length; index++) {
+      const file = fileArray[index];
       try {
         const result = await uploadMediaFile(file, { token });
         if (result.url) {
@@ -63,7 +66,7 @@ export function PortfolioForm({ formData, setFormData, categories, onSubmit, onC
       } catch (err) {
         console.error("Upload failed for", file.name, err);
       }
-    }));
+    }
     
     if (newImages.length > 0) {
       setFormData({

@@ -41,6 +41,27 @@ const MAX_RETRIES_PER_CHUNK = 4;
 
 const delay = (ms: number) => new Promise((res) => setTimeout(res, ms));
 
+async function fetchWithRateLimitRetry(
+  input: RequestInfo | URL,
+  init?: RequestInit,
+  maxAttempts = 5,
+): Promise<Response> {
+  let response: Response | null = null;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    response = await fetch(input, init);
+    if (response.status !== 429) return response;
+    if (attempt === maxAttempts) return response;
+
+    const retryAfter = response.headers.get("Retry-After");
+    const retrySeconds = retryAfter ? Number(retryAfter) : NaN;
+    const backoffMs = Number.isFinite(retrySeconds)
+      ? Math.max(1000, retrySeconds * 1000)
+      : Math.min(12_000, 1000 * 2 ** (attempt - 1));
+    await delay(backoffMs + Math.floor(Math.random() * 350));
+  }
+  return response!;
+}
+
 export async function uploadMediaFile(
   file: File,
   options: UploadOptions = {}
@@ -49,6 +70,12 @@ export async function uploadMediaFile(
   const onProgress = options.onProgress;
   const chunkSize = options.chunkSize || DEFAULT_CHUNK_SIZE;
   const totalSize = file.size;
+
+  // On Vercel the file bytes must not pass through the serverless function.
+  // R2 and Appwrite both support browser-to-storage uploads; use that path for
+  // small gallery images as well as large media.
+  const storageDirectResult = await uploadDirectToConfiguredStorage(file, token, onProgress);
+  if (storageDirectResult) return storageDirectResult;
 
   // For smaller files (<= 2.5 MB), direct upload is faster, but chunked is used for everything else
   const totalChunks = Math.ceil(totalSize / chunkSize);
@@ -165,9 +192,6 @@ async function uploadChunked(
   onProgress?: UploadProgressCallback,
   options?: UploadOptions
 ): Promise<UploadResult> {
-  const directResult = await uploadDirectMultipartToR2(file, token, onProgress);
-  if (directResult) return directResult;
-
   const uploadId = `upl_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
   let uploadedBytes = 0;
 
@@ -206,7 +230,7 @@ async function uploadChunked(
 
   for (let attempt = 1; attempt <= 3; attempt++) {
     try {
-      const completeRes = await fetch("/api/admin/media/upload/chunk-complete", {
+      const completeRes = await fetchWithRateLimitRetry("/api/admin/media/upload/chunk-complete", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -253,13 +277,13 @@ async function uploadChunked(
   };
 }
 
-async function uploadDirectMultipartToR2(
+async function uploadDirectToConfiguredStorage(
   file: File,
   token?: string | null,
   onProgress?: UploadProgressCallback,
 ): Promise<UploadResult | null> {
   const headers = { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) };
-  const initResponse = await fetch("/api/admin/media/upload/direct/init", {
+  const initResponse = await fetchWithRateLimitRetry("/api/admin/media/upload/direct/init", {
     method: "POST",
     headers,
     body: JSON.stringify({ fileName: file.name, mimeType: file.type || "application/octet-stream", fileSize: file.size }),
@@ -290,7 +314,7 @@ async function uploadDirectMultipartToR2(
 
       for (let attempt = 1; attempt <= MAX_RETRIES_PER_CHUNK; attempt++) {
         try {
-          const signResponse = await fetch("/api/admin/media/upload/direct/sign-part", {
+          const signResponse = await fetchWithRateLimitRetry("/api/admin/media/upload/direct/sign-part", {
             method: "POST",
             headers,
             body: JSON.stringify({ fileKey: initData.fileKey, uploadId: initData.uploadId, partNumber }),
@@ -313,7 +337,7 @@ async function uploadDirectMultipartToR2(
       onProgress?.(Math.min(99, Math.round((uploadedBytes / file.size) * 100)), uploadedBytes, file.size);
     }
 
-    const completeResponse = await fetch("/api/admin/media/upload/direct/complete", {
+    const completeResponse = await fetchWithRateLimitRetry("/api/admin/media/upload/direct/complete", {
       method: "POST",
       headers,
       body: JSON.stringify({ fileKey: initData.fileKey, uploadId: initData.uploadId, parts: completedParts, fileName: file.name, fileSize: file.size }),
@@ -338,7 +362,7 @@ async function uploadDirectlyToAppwrite(
   onProgress?: UploadProgressCallback,
 ): Promise<UploadResult> {
   const authHeaders = { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) };
-  const sessionResponse = await fetch("/api/admin/media/upload/appwrite/session", { method: "POST", headers: authHeaders });
+  const sessionResponse = await fetchWithRateLimitRetry("/api/admin/media/upload/appwrite/session", { method: "POST", headers: authHeaders });
   const sessionData = await sessionResponse.json().catch(() => ({}));
   if (!sessionResponse.ok) throw new Error(sessionData.error || "Could not authorize direct Appwrite upload.");
 
@@ -366,7 +390,7 @@ async function uploadDirectlyToAppwrite(
     });
     uploadedFileId = uploaded.$id;
 
-    const registerResponse = await fetch("/api/admin/media/upload/appwrite/register", {
+    const registerResponse = await fetchWithRateLimitRetry("/api/admin/media/upload/appwrite/register", {
       method: "POST",
       headers: authHeaders,
       body: JSON.stringify({ fileId: uploaded.$id, fileName: file.name, fileSize: file.size }),
