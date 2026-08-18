@@ -57,7 +57,7 @@ function createContinuousWatermark(width: number, height: number): Buffer {
   `);
 }
 
-export async function prepareGalleryFile(item: DownloadableGalleryItem, index: number, unlocked: boolean) {
+export async function prepareGalleryFile(item: DownloadableGalleryItem, index: number, unlocked: boolean, forceJpeg = false) {
   const source = await downloadOrReadMediaBuffer(item.url);
   let buffer = source.buffer;
   let mimeType = source.mimeType;
@@ -67,6 +67,9 @@ export async function prepareGalleryFile(item: DownloadableGalleryItem, index: n
     const height = metadata.height || Math.round(width * .67);
     const svg = createContinuousWatermark(width, height);
     buffer = await sharp(buffer).composite([{ input: svg, gravity: "center" }]).jpeg({ quality: 90 }).toBuffer();
+    mimeType = "image/jpeg";
+  } else if (forceJpeg && item.type === "image" && mimeType.split(";")[0].toLowerCase() !== "image/jpeg") {
+    buffer = await sharp(buffer).jpeg({ quality: 90, mozjpeg: true }).toBuffer();
     mimeType = "image/jpeg";
   }
   const base = (item.title || `media-${String(index + 1).padStart(3, "0")}`).replace(/[^a-z0-9_-]+/gi, "-").replace(/^-|-$/g, "") || `media-${index + 1}`;

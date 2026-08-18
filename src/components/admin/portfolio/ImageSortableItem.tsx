@@ -92,7 +92,7 @@ export function ImageSortableItem({
   );
   const isVideo = resolvedItemType === "drone_video" || resolvedItemType === "interior_video" || image.type === "video" || isVideoMedia(image);
   const parsedVideo = isVideo ? parseVideoUrl(image.url) : null;
-  const coverImage = image.thumbnail_url || (parsedVideo?.thumbnailUrl) || (isVideo ? "" : image.url);
+  const coverImage = image.compressed_url || image.thumbnail_url || (parsedVideo?.thumbnailUrl) || (isVideo ? "" : image.url);
 
   // Derive initial filename if missing
   const defaultFilename = useMemo(() => {

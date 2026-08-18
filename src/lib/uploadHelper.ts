@@ -86,8 +86,40 @@ export async function uploadMediaFile(
   // R2 and Appwrite both support browser-to-storage uploads; use that path for
   // small gallery images as well as large media.
   const storageFile = options.useStructuredName ? createStructuredUploadFile(file, options) : file;
-  const storageDirectResult = await uploadDirectToConfiguredStorage(storageFile, token, onProgress, file.name);
-  if (storageDirectResult) return storageDirectResult;
+  const storageDirectResult = await uploadDirectToConfiguredStorage(
+    storageFile,
+    token,
+    (percent, loaded, total) => onProgress?.(Math.round(percent * 0.82), loaded, total),
+    file.name,
+  );
+  if (storageDirectResult) {
+    const optimizedFile = await createOptimizedImageFile(storageFile);
+    if (optimizedFile) {
+      try {
+        const optimizedResult = await uploadDirectToConfiguredStorage(
+          optimizedFile,
+          token,
+          (percent) => onProgress?.(82 + Math.round(percent * 0.18), file.size, file.size),
+          file.name,
+        );
+        if (optimizedResult) {
+          onProgress?.(100, file.size, file.size);
+          return {
+            ...storageDirectResult,
+            compressedUrl: optimizedResult.url,
+            compressedFilename: optimizedFile.name,
+            compressedSize: optimizedFile.size,
+          };
+        }
+      } catch (error) {
+        // The original is already safely stored. Keep it usable as a fallback
+        // if optimization upload fails, without losing the gallery item.
+        console.warn(`[Image Optimization] Could not upload optimized variant for "${file.name}":`, error);
+      }
+    }
+    onProgress?.(100, file.size, file.size);
+    return storageDirectResult;
+  }
 
   // For smaller files (<= 2.5 MB), direct upload is faster, but chunked is used for everything else
   const totalChunks = Math.ceil(totalSize / chunkSize);
@@ -117,6 +149,52 @@ function createStructuredUploadFile(file: File, options: UploadOptions): File {
   const itemNumber = String(options.itemNumber ?? Date.now()).padStart(3, "0");
   const structuredName = `${project}_${category}_${type}_${itemNumber}.${extension}`;
   return new File([file], structuredName, { type: file.type, lastModified: file.lastModified });
+}
+
+async function createOptimizedImageFile(file: File): Promise<File | null> {
+  if (!file.type.startsWith("image/") || /image\/(gif|svg\+xml)/i.test(file.type)) return null;
+  try {
+    const bitmap = await createImageBitmap(file);
+    const maxDimension = 2200;
+    const scale = Math.min(1, maxDimension / Math.max(bitmap.width, bitmap.height));
+    const width = Math.max(1, Math.round(bitmap.width * scale));
+    const height = Math.max(1, Math.round(bitmap.height * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const context = canvas.getContext("2d", { alpha: false });
+    if (!context) {
+      bitmap.close();
+      return null;
+    }
+    context.fillStyle = "#ffffff";
+    context.fillRect(0, 0, width, height);
+    context.drawImage(bitmap, 0, 0, width, height);
+    bitmap.close();
+
+    const outputType = "image/jpeg";
+    const maxOptimizedBytes = 10 * 1024 * 1024 - 64 * 1024;
+    let blob: Blob | null = null;
+
+    // Preserve as much detail as possible: start at premium JPEG quality and
+    // only step down when the encoded file would exceed the strict 10 MB cap.
+    for (const quality of [0.92, 0.89, 0.86, 0.82, 0.78, 0.72, 0.66]) {
+      blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, outputType, quality));
+      if (blob && blob.size <= maxOptimizedBytes) break;
+    }
+    if (!blob || blob.size > maxOptimizedBytes) return null;
+
+    // When the source is already a smaller JPEG, keep its bytes instead of
+    // making a larger derivative, while still registering an optimized asset.
+    if (/image\/jpeg/i.test(file.type) && file.size <= maxOptimizedBytes && file.size < blob.size) {
+      blob = file;
+    }
+    const baseName = file.name.replace(/\.[^.]+$/, "");
+    return new File([blob], `${baseName}_optimized.jpg`, { type: outputType, lastModified: Date.now() });
+  } catch (error) {
+    console.warn(`[Image Optimization] Browser could not optimize "${file.name}":`, error);
+    return null;
+  }
 }
 
 async function uploadDirectWithRetry(

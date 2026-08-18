@@ -325,8 +325,9 @@ export function PortfolioModal({
           id: `img-${Date.now()}-${i}-${Math.random().toString(36).slice(2, 6)}`,
           url: result.url,
           filename: result.filename,
-          compressed_url: result.compressed_url,
-          compressed_filename: result.compressed_filename,
+          compressed_url: result.compressedUrl,
+          compressed_filename: result.compressedFilename,
+          compressed_size: result.compressedSize,
           item_number: formatItemNumber(seqNumber),
           project_name: sanitizeNameForFilename(projName),
           category_name: "photos",
@@ -419,7 +420,7 @@ export function PortfolioModal({
         setUploadProgressText(`Uploading thumbnail "${file.name}": ${percent}%`);
         setUploadProgress({ fileName: file.name, kind: "image", currentFile: 1, totalFiles: 1, filePercent: percent, overallPercent: percent, loaded, total });
       });
-      return res.compressed_url || res.url;
+      return res.compressedUrl || res.url;
     } finally {
       setIsUploading(false);
       setUploadProgressText("");
@@ -447,7 +448,7 @@ export function PortfolioModal({
       });
       setFormData((prev) => ({
         ...prev,
-        thumbnail_url: result.compressed_url || result.url,
+        thumbnail_url: result.compressedUrl || result.url,
       }));
     } catch (err: any) {
       setErrorMessage(err.message || "Failed to upload cover image.");

@@ -3,6 +3,8 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { PortfolioItem } from "../../../lib/types";
 import { getNormalizedGallery, parseVideoUrl, isVideoMedia, getGalleryCoverThumbnail } from "../../../lib/mediaUtils";
+import { useLanguage } from "../../../contexts/LanguageContext";
+import { t as translateContent } from "../../../lib/i18n";
 import { Card, CardContent } from "../../ui/Card";
 import { Button } from "../../ui/Button";
 import { Input } from "../../ui/Input";
@@ -33,8 +35,13 @@ interface Props {
 }
 
 export function PortfolioSortableItem({ item, isSelected, onSelect, onEdit, onDelete, onQuickSave }: Props) {
+  const { currentLanguage, defaultLanguage, tUi } = useLanguage();
+  const displayTitle = translateContent(item.title, currentLanguage, defaultLanguage) || "Untitled portfolio";
+  const localizedCategory = translateContent(item.category_name, currentLanguage, defaultLanguage) || item.category_name || "";
+  const displayCategory = localizedCategory ? (tUi(localizedCategory, currentLanguage) || localizedCategory) : "Uncategorized";
+  const displayDescription = translateContent(item.description, currentLanguage, defaultLanguage) || item.description || "";
   const [isQuickEditing, setIsQuickEditing] = useState(false);
-  const [quickEditTitle, setQuickEditTitle] = useState(item.title);
+  const [quickEditTitle, setQuickEditTitle] = useState(displayTitle);
 
   const {
     attributes,
@@ -84,7 +91,14 @@ export function PortfolioSortableItem({ item, isSelected, onSelect, onEdit, onDe
 
   const handleSave = () => {
     if (onQuickSave) {
-      onQuickSave({ ...item, title: quickEditTitle });
+      let nextTitle = quickEditTitle;
+      try {
+        const parsed = JSON.parse(item.title);
+        if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+          nextTitle = JSON.stringify({ ...parsed, [currentLanguage]: quickEditTitle });
+        }
+      } catch {}
+      onQuickSave({ ...item, title: nextTitle });
     }
     setIsQuickEditing(false);
   };
@@ -154,7 +168,7 @@ export function PortfolioSortableItem({ item, isSelected, onSelect, onEdit, onDe
           <div className="w-full h-44 bg-surface relative overflow-hidden cursor-pointer" onClick={() => !isQuickEditing && onSelect(item.id)}>
             <img 
               src={coverImage} 
-              alt={item.title} 
+              alt={displayTitle}
               loading="lazy"
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
             />
@@ -190,25 +204,25 @@ export function PortfolioSortableItem({ item, isSelected, onSelect, onEdit, onDe
             ) : (
               <h3 
                 className="font-semibold text-sm text-text line-clamp-1 cursor-text hover:text-primary transition-colors mb-1"
-                onClick={() => { setIsQuickEditing(true); setQuickEditTitle(item.title); }}
+                onClick={() => { setIsQuickEditing(true); setQuickEditTitle(displayTitle); }}
                 title="Click to quick-edit title"
               >
-                {item.title}
+                {displayTitle}
               </h3>
             )}
             
             <div className="flex items-center justify-between text-xs text-muted-text mb-2">
               <span className="font-medium truncate max-w-[150px]">
-                {item.category_name || "Uncategorized"}
+                {displayCategory}
               </span>
               <span className="font-mono text-[11px]">
                 #{item.sort_order ?? 0}
               </span>
             </div>
 
-            {item.description && (
+            {displayDescription && (
               <p className="text-xs text-muted-text line-clamp-1 mb-2 font-normal">
-                {item.description}
+                {displayDescription}
               </p>
             )}
           </div>

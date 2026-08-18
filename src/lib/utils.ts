@@ -1,6 +1,6 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
-import { getNormalizedGallery, parseVideoUrl } from "./mediaUtils";
+import { getNormalizedGallery, getOptimizedMediaUrl, parseVideoUrl } from "./mediaUtils";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -31,6 +31,8 @@ export function getFirstImageUrl(jsonStr: string | null | undefined): string | n
   const items = getNormalizedGallery(jsonStr);
   if (items.length === 0) return null;
   const first = items[0];
+  const optimized = getOptimizedMediaUrl(first);
+  if (optimized) return optimized;
   if (first.thumbnail_url && first.thumbnail_url.trim()) return first.thumbnail_url.trim();
   if (first.type === "image" && first.url) return first.url;
   if (first.type === "video") {
@@ -198,4 +200,3 @@ export function interpolatePricingMessageTemplate(
   }
   return result;
 }
-

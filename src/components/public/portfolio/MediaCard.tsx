@@ -170,7 +170,7 @@ export function MediaCard({ card, onClick, priority = false }: MediaCardProps) {
   // For image items derive image preview. For video items, use dedicated 360p video poster (never project cover art).
   const youtubePreviewIndex = (Array.from(card.id).reduce((sum, char) => sum + char.charCodeAt(0), 0) % 3) + 1;
   const previewImageUrl = !isVideoCard
-    ? (media.url || media.thumbnail_url || item.thumbnail_url || "")
+    ? (media.compressed_url || media.thumbnail_url || item.thumbnail_url || media.url || "")
     : (media.thumbnail_url || (parsedVideo?.type === "youtube" ? `https://img.youtube.com/vi/${parsedVideo.videoId}/${youtubePreviewIndex}.jpg` : ""));
 
   const projectTitle = t(item.title, currentLang, defaultLang) || item.title;

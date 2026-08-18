@@ -416,6 +416,15 @@ export function getNormalizedGallery(jsonStrOrArray: any): GalleryMediaItem[] {
   return parsed.map((item, index) => normalizeGalleryMediaItem(item, index));
 }
 
+/** Returns the lightweight display asset while keeping `url` as the original download source. */
+export function getOptimizedMediaUrl(item: GalleryMediaItem | null | undefined): string {
+  if (!item) return "";
+  if (item.type === "video" || isVideoMedia(item)) {
+    return item.thumbnail_url || "";
+  }
+  return item.compressed_url || item.thumbnail_url || item.url || "";
+}
+
 /**
  * Returns the primary cover thumbnail for a portfolio item or gallery.
  */
@@ -424,10 +433,11 @@ export function getGalleryCoverThumbnail(
   mediaUrl: string | null | undefined,
   galleryItems: GalleryMediaItem[]
 ): string | null {
-  if (thumbnailUrl && thumbnailUrl.trim()) return thumbnailUrl.trim();
-
   if (galleryItems && galleryItems.length > 0) {
     const first = galleryItems[0];
+    if (first.type === "image" && first.compressed_url?.trim()) {
+      return first.compressed_url.trim();
+    }
     if (first.thumbnail_url && first.thumbnail_url.trim()) {
       return first.thumbnail_url.trim();
     }
@@ -439,6 +449,8 @@ export function getGalleryCoverThumbnail(
       if (parsed.thumbnailUrl) return parsed.thumbnailUrl;
     }
   }
+
+  if (thumbnailUrl && thumbnailUrl.trim()) return thumbnailUrl.trim();
 
   if (mediaUrl) {
     const parsed = parseVideoUrl(mediaUrl);

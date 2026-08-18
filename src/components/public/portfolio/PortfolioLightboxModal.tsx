@@ -229,8 +229,8 @@ export function PortfolioLightboxModal({ item, initialIndex = 0, onClose }: Port
               ) : (
                 /* Photo Slide */
                 <img
-                  key={currentMedia.url}
-                  src={currentMedia.url}
+                  key={currentMedia.compressed_url || currentMedia.url}
+                  src={currentMedia.compressed_url || currentMedia.thumbnail_url || currentMedia.url}
                   alt={currentMedia.alt || currentMedia.title || title}
                   className="max-h-[56vh] w-auto max-w-full rounded-xl shadow-2xl object-contain transition-all duration-300 animate-in fade-in zoom-in-95 duration-200"
                 />
@@ -287,7 +287,7 @@ export function PortfolioLightboxModal({ item, initialIndex = 0, onClose }: Port
             {mediaItems.map((media, idx) => {
               const isVid = media.type === "video" || isVideoMedia(media);
               const vidInfo = isVid ? parseVideoUrl(media.url) : null;
-              const thumb = media.thumbnail_url || (vidInfo?.thumbnailUrl) || (isVid ? "" : media.url);
+              const thumb = media.compressed_url || media.thumbnail_url || (vidInfo?.thumbnailUrl) || (isVid ? "" : media.url);
 
               return (
                 <button

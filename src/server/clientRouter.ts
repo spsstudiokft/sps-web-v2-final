@@ -292,7 +292,7 @@ clientRouter.post("/projects/:projectId/galleries/:galleryId/download", async (r
       return res.status(403).json({ error: "Enter the download PIN before downloading video files", code: "PIN_REQUIRED_FOR_VIDEO" });
     }
     const files = [];
-    for (const { item, index } of selected) files.push(await prepareGalleryFile(item, index, unlocked));
+    for (const { item, index } of selected) files.push(await prepareGalleryFile(item, index, unlocked, variant === "optimized"));
     const zip = createZip(files);
     const safeTitle = String(gallery.title || "gallery").replace(/[^a-z0-9_-]+/gi, "-").replace(/^-|-$/g, "") || "gallery";
     res.setHeader("Content-Type", "application/zip");
