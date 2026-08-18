@@ -6,7 +6,8 @@ import path from "path";
 import bcrypt from "bcryptjs";
 import { db } from "../db.js";
 import { uploadMedia, deleteMedia } from "./storage/index.js";
-import { diagnoseAppwriteStorage } from "./storage/appwrite.js";
+import { diagnoseAppwriteStorage, createAppwriteUploadSession, getAppwriteConfig, getAppwritePublicUrl } from "./storage/appwrite.js";
+import { initiateR2MultipartUpload, signR2MultipartPart, completeR2MultipartUpload, abortR2MultipartUpload } from "./storage/r2.js";
 import { translationService } from "./services/translationService.js";
 import { getAllLegalDocuments, saveLegalDocument } from "./services/legalDocumentService.js";
 import { scheduleGoogleReviewCampaign } from "./services/googleReviewService.js";
@@ -83,11 +84,110 @@ const upload = multer({
 
 const adminRouter = Router();
 
+function validateMultipartReference(fileKey: unknown, uploadId: unknown) {
+  const key = String(fileKey || "");
+  const id = String(uploadId || "");
+  if (!key || key.length > 500 || key.includes("..") || key.startsWith("/") || !id || id.length > 1000) {
+    throw new Error("Invalid multipart upload reference.");
+  }
+  return { key, id };
+}
+
 // Mount Budget Manager sub-router
 adminRouter.use("/budgets", budgetRouter);
 adminRouter.use("/invoices", invoiceRouter);
 adminRouter.use("/payment-requests", paymentRequestRouter);
 adminRouter.use("/referrals", referralRouter);
+
+// Vercel-safe R2 multipart upload. File bytes travel from the browser directly
+// to R2; the serverless function only signs and finalizes the upload.
+adminRouter.post("/media/upload/direct/init", async (req, res) => {
+  try {
+    const providerResult = await db.execute("SELECT value FROM settings WHERE key = 'media_provider'");
+    const provider = String(providerResult.rows[0]?.value || process.env.MEDIA_PROVIDER || "r2").toLowerCase();
+    if (provider !== "r2") return res.json({ directUpload: false, provider });
+    const fileName = String(req.body.fileName || "").trim();
+    if (!fileName || fileName.length > 500) return res.status(400).json({ error: "A valid file name is required." });
+    const upload = await initiateR2MultipartUpload(fileName, String(req.body.mimeType || "application/octet-stream"));
+    res.json({ directUpload: true, ...upload });
+  } catch (error: any) {
+    console.error("Failed to initialize direct R2 upload:", error);
+    res.status(500).json({ error: error.message || "Failed to initialize direct upload." });
+  }
+});
+
+adminRouter.post("/media/upload/direct/sign-part", async (req, res) => {
+  try {
+    const { key, id } = validateMultipartReference(req.body.fileKey, req.body.uploadId);
+    const partNumber = Number(req.body.partNumber);
+    if (!Number.isInteger(partNumber) || partNumber < 1 || partNumber > 10000) return res.status(400).json({ error: "Invalid part number." });
+    const url = await signR2MultipartPart(key, id, partNumber);
+    res.json({ url });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message || "Failed to sign upload part." });
+  }
+});
+
+adminRouter.post("/media/upload/direct/complete", async (req, res) => {
+  try {
+    const { key, id: uploadId } = validateMultipartReference(req.body.fileKey, req.body.uploadId);
+    const parts = Array.isArray(req.body.parts) ? req.body.parts.map((part: any) => ({ ETag: String(part.ETag || ""), PartNumber: Number(part.PartNumber) })) : [];
+    if (!parts.length || parts.some((part: any) => !part.ETag || !Number.isInteger(part.PartNumber))) return res.status(400).json({ error: "Valid uploaded parts are required." });
+    const mediaResult = await completeR2MultipartUpload(key, uploadId, parts);
+    const mediaId = crypto.randomUUID();
+    const originalName = String(req.body.fileName || key);
+    await db.execute({
+      sql: `INSERT INTO media_uploads (id, provider, bucket, file_key, public_url, original_name) VALUES (?, ?, ?, ?, ?, ?)`,
+      args: [mediaId, mediaResult.provider, mediaResult.bucket, mediaResult.file_key, mediaResult.public_url, originalName],
+    });
+    res.json({ success: true, url: mediaResult.public_url, id: mediaId, provider: mediaResult.provider, original_name: originalName, file_size: Number(req.body.fileSize || 0) });
+  } catch (error: any) {
+    console.error("Failed to complete direct R2 upload:", error);
+    res.status(500).json({ error: error.message || "Failed to complete direct upload." });
+  }
+});
+
+adminRouter.post("/media/upload/direct/abort", async (req, res) => {
+  try {
+    const { key, id } = validateMultipartReference(req.body.fileKey, req.body.uploadId);
+    await abortR2MultipartUpload(key, id);
+    res.json({ success: true });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message || "Failed to abort direct upload." });
+  }
+});
+
+// Short-lived Appwrite identity bridge for the browser SDK. The Appwrite API
+// key stays server-side; file bytes never pass through Vercel.
+adminRouter.post("/media/upload/appwrite/session", async (req: any, res) => {
+  try {
+    const session = await createAppwriteUploadSession({ id: req.user.id, email: req.user.email, name: req.user.name });
+    res.json(session);
+  } catch (error: any) {
+    console.error("Failed to create Appwrite upload session:", error);
+    res.status(500).json({ error: error.message || "Failed to authorize direct Appwrite upload." });
+  }
+});
+
+adminRouter.post("/media/upload/appwrite/register", async (req, res) => {
+  try {
+    const config = await getAppwriteConfig();
+    if (!config.endpoint || !config.projectId || !config.bucketId) throw new Error("Appwrite settings are incomplete.");
+    const fileId = String(req.body.fileId || "");
+    const originalName = String(req.body.fileName || "");
+    if (!/^[a-zA-Z0-9][a-zA-Z0-9._-]{0,35}$/.test(fileId) || !originalName) return res.status(400).json({ error: "Invalid Appwrite file metadata." });
+    const publicUrl = getAppwritePublicUrl(config.endpoint, config.projectId, config.bucketId, fileId);
+    const mediaId = crypto.randomUUID();
+    await db.execute({
+      sql: `INSERT INTO media_uploads (id, provider, bucket, file_key, public_url, original_name) VALUES (?, 'appwrite', ?, ?, ?, ?)`,
+      args: [mediaId, config.bucketId, fileId, publicUrl, originalName],
+    });
+    res.json({ success: true, id: mediaId, url: publicUrl, provider: "appwrite", file_size: Number(req.body.fileSize || 0), original_name: originalName });
+  } catch (error: any) {
+    console.error("Failed to register direct Appwrite upload:", error);
+    res.status(500).json({ error: error.message || "Failed to register Appwrite upload." });
+  }
+});
 
 // Multer for chunk uploads (small slices e.g. 2.5MB to 20MB)
 const chunkUpload = multer({

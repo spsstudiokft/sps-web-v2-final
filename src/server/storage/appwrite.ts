@@ -1,9 +1,10 @@
-import { Client, Storage, ID, Permission, Role, AppwriteException } from "node-appwrite";
+import { Client, Storage, Users, ID, Permission, Role, AppwriteException } from "node-appwrite";
 import { InputFile } from "node-appwrite/file";
 import fs from "fs";
+import crypto from "crypto";
 import { db } from "../../db.js";
 
-async function getAppwriteConfig() {
+export async function getAppwriteConfig() {
   let endpoint = process.env.APPWRITE_ENDPOINT;
   let projectId = process.env.APPWRITE_PROJECT_ID;
   let apiKey = process.env.APPWRITE_API_KEY;
@@ -28,6 +29,45 @@ async function getAppwriteConfig() {
   }
 
   return { endpoint, projectId, apiKey, bucketId };
+}
+
+export async function createAppwriteUploadSession(appUser: { id: string; email?: string; name?: string }) {
+  const config = await getAppwriteConfig();
+  if (!config.endpoint || !config.projectId || !config.apiKey || !config.bucketId) {
+    throw new Error("Appwrite settings are incomplete (endpoint, project ID, API key, or bucket ID is missing).");
+  }
+
+  const client = new Client().setEndpoint(config.endpoint).setProject(config.projectId).setKey(config.apiKey);
+  const users = new Users(client);
+  const appwriteUserId = `sps_${crypto.createHash("sha256").update(String(appUser.id)).digest("hex").slice(0, 30)}`;
+  let user: any;
+  try {
+    user = await users.get({ userId: appwriteUserId });
+  } catch (error: any) {
+    if (Number(error?.code || error?.status) !== 404) throw error;
+    user = await users.create({
+      userId: appwriteUserId,
+      email: appUser.email || undefined,
+      name: String(appUser.name || appUser.email || "SPS uploader").slice(0, 128),
+    });
+  }
+
+  const labels = Array.isArray(user.labels) ? user.labels : [];
+  if (!labels.includes("storageuploader")) {
+    await users.updateLabels({ userId: appwriteUserId, labels: [...labels, "storageuploader"] });
+  }
+  const token = await users.createToken({ userId: appwriteUserId, length: 64, expire: 15 * 60 });
+  return {
+    endpoint: config.endpoint.replace(/\/+$/, ""),
+    projectId: config.projectId,
+    bucketId: config.bucketId,
+    userId: appwriteUserId,
+    secret: token.secret,
+  };
+}
+
+export function getAppwritePublicUrl(endpoint: string, projectId: string, bucketId: string, fileId: string) {
+  return `${endpoint.replace(/\/+$/, "")}/storage/buckets/${encodeURIComponent(bucketId)}/files/${encodeURIComponent(fileId)}/view?project=${encodeURIComponent(projectId)}`;
 }
 
 export async function diagnoseAppwriteStorage() {

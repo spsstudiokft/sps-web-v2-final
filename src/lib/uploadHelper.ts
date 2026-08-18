@@ -165,6 +165,9 @@ async function uploadChunked(
   onProgress?: UploadProgressCallback,
   options?: UploadOptions
 ): Promise<UploadResult> {
+  const directResult = await uploadDirectMultipartToR2(file, token, onProgress);
+  if (directResult) return directResult;
+
   const uploadId = `upl_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
   let uploadedBytes = 0;
 
@@ -248,6 +251,161 @@ async function uploadChunked(
     provider: completeData.provider,
     originalName: file.name
   };
+}
+
+async function uploadDirectMultipartToR2(
+  file: File,
+  token?: string | null,
+  onProgress?: UploadProgressCallback,
+): Promise<UploadResult | null> {
+  const headers = { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) };
+  const initResponse = await fetch("/api/admin/media/upload/direct/init", {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ fileName: file.name, mimeType: file.type || "application/octet-stream", fileSize: file.size }),
+  });
+
+  // Older/local deployments or a non-R2 provider keep using the legacy path.
+  if (initResponse.status === 404) return null;
+  const initData = await initResponse.json().catch(() => ({}));
+  if (!initResponse.ok) throw new Error(initData.error || "Could not initialize direct bucket upload.");
+  if (!initData.directUpload) {
+    if (String(initData.provider).toLowerCase() === "appwrite") {
+      return uploadDirectlyToAppwrite(file, token, onProgress);
+    }
+    return null;
+  }
+
+  const partSize = 10 * 1024 * 1024; // R2/S3 requires every non-final multipart part to be at least 5 MB.
+  const totalParts = Math.ceil(file.size / partSize);
+  const completedParts: Array<{ ETag: string; PartNumber: number }> = [];
+  let uploadedBytes = 0;
+
+  try {
+    for (let partNumber = 1; partNumber <= totalParts; partNumber++) {
+      const start = (partNumber - 1) * partSize;
+      const end = Math.min(start + partSize, file.size);
+      const blob = file.slice(start, end);
+      let lastError: Error | null = null;
+
+      for (let attempt = 1; attempt <= MAX_RETRIES_PER_CHUNK; attempt++) {
+        try {
+          const signResponse = await fetch("/api/admin/media/upload/direct/sign-part", {
+            method: "POST",
+            headers,
+            body: JSON.stringify({ fileKey: initData.fileKey, uploadId: initData.uploadId, partNumber }),
+          });
+          const signData = await signResponse.json().catch(() => ({}));
+          if (!signResponse.ok || !signData.url) throw new Error(signData.error || "Could not sign upload part.");
+          const etag = await putBlobToSignedUrl(signData.url, blob, (loaded) => {
+            onProgress?.(Math.min(99, Math.round(((uploadedBytes + loaded) / file.size) * 100)), uploadedBytes + loaded, file.size);
+          });
+          completedParts.push({ ETag: etag, PartNumber: partNumber });
+          lastError = null;
+          break;
+        } catch (error: any) {
+          lastError = error;
+          if (attempt < MAX_RETRIES_PER_CHUNK) await delay(Math.min(3000, 500 * 2 ** (attempt - 1)));
+        }
+      }
+      if (lastError) throw lastError;
+      uploadedBytes += blob.size;
+      onProgress?.(Math.min(99, Math.round((uploadedBytes / file.size) * 100)), uploadedBytes, file.size);
+    }
+
+    const completeResponse = await fetch("/api/admin/media/upload/direct/complete", {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ fileKey: initData.fileKey, uploadId: initData.uploadId, parts: completedParts, fileName: file.name, fileSize: file.size }),
+    });
+    const completeData = await completeResponse.json().catch(() => ({}));
+    if (!completeResponse.ok || !completeData.url) throw new Error(completeData.error || "Could not finalize direct bucket upload.");
+    onProgress?.(100, file.size, file.size);
+    return { url: completeData.url, id: completeData.id, provider: completeData.provider, originalName: file.name, fileSize: file.size };
+  } catch (error) {
+    fetch("/api/admin/media/upload/direct/abort", {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ fileKey: initData.fileKey, uploadId: initData.uploadId }),
+    }).catch(() => undefined);
+    throw error;
+  }
+}
+
+async function uploadDirectlyToAppwrite(
+  file: File,
+  token?: string | null,
+  onProgress?: UploadProgressCallback,
+): Promise<UploadResult> {
+  const authHeaders = { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) };
+  const sessionResponse = await fetch("/api/admin/media/upload/appwrite/session", { method: "POST", headers: authHeaders });
+  const sessionData = await sessionResponse.json().catch(() => ({}));
+  if (!sessionResponse.ok) throw new Error(sessionData.error || "Could not authorize direct Appwrite upload.");
+
+  const { Client, Account, Storage, ID, Permission, Role } = await import("appwrite");
+  const client = new Client().setEndpoint(sessionData.endpoint).setProject(sessionData.projectId);
+  const account = new Account(client);
+  const storage = new Storage(client);
+  let sessionCreated = false;
+  let uploadedFileId: string | null = null;
+
+  try {
+    const session = await account.createSession({ userId: sessionData.userId, secret: sessionData.secret });
+    sessionCreated = true;
+    if ((session as any).secret) client.setSession((session as any).secret);
+
+    const uploaded = await storage.createFile({
+      bucketId: sessionData.bucketId,
+      fileId: ID.unique(),
+      file,
+      permissions: [Permission.read(Role.any()), Permission.delete(Role.user(sessionData.userId))],
+      onProgress: (progress) => {
+        const loaded = Number(progress.sizeUploaded || 0);
+        onProgress?.(Math.min(99, Math.round(Number(progress.progress || 0))), loaded, file.size);
+      },
+    });
+    uploadedFileId = uploaded.$id;
+
+    const registerResponse = await fetch("/api/admin/media/upload/appwrite/register", {
+      method: "POST",
+      headers: authHeaders,
+      body: JSON.stringify({ fileId: uploaded.$id, fileName: file.name, fileSize: file.size }),
+    });
+    const registered = await registerResponse.json().catch(() => ({}));
+    if (!registerResponse.ok || !registered.url) throw new Error(registered.error || "The Appwrite file was uploaded but could not be registered.");
+    onProgress?.(100, file.size, file.size);
+    return { url: registered.url, id: registered.id, provider: "appwrite", originalName: file.name, fileSize: file.size };
+  } catch (error: any) {
+    if (uploadedFileId) {
+      await storage.deleteFile({ bucketId: sessionData.bucketId, fileId: uploadedFileId }).catch(() => undefined);
+    }
+    if (Number(error?.code) === 401 || Number(error?.code) === 403) {
+      throw new Error(`${error.message} Check that the bucket grants CREATE permission to label:storageuploader and that the domain is registered as an Appwrite Web platform.`);
+    }
+    throw error;
+  } finally {
+    if (sessionCreated) {
+      await account.deleteSession({ sessionId: "current" }).catch(() => undefined);
+    }
+  }
+}
+
+function putBlobToSignedUrl(url: string, blob: Blob, onProgress?: (loaded: number) => void): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("PUT", url, true);
+    xhr.timeout = 10 * 60 * 1000;
+    xhr.upload.onprogress = (event) => { if (event.lengthComputable) onProgress?.(event.loaded); };
+    xhr.onload = () => {
+      if (xhr.status < 200 || xhr.status >= 300) return reject(new Error(`R2 rejected upload part with HTTP ${xhr.status}.`));
+      const etag = xhr.getResponseHeader("ETag");
+      if (!etag) return reject(new Error("R2 did not expose the ETag response header. Add ETag to the bucket CORS ExposeHeaders setting."));
+      resolve(etag);
+    };
+    xhr.onerror = () => reject(new Error("Direct connection to the R2 bucket failed. Check the bucket CORS configuration."));
+    xhr.ontimeout = () => reject(new Error("Direct R2 upload part timed out."));
+    xhr.send(blob);
+  });
 }
 
 /**

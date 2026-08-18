@@ -1,10 +1,18 @@
-import { S3Client, DeleteObjectCommand } from "@aws-sdk/client-s3";
+import {
+  S3Client,
+  DeleteObjectCommand,
+  CreateMultipartUploadCommand,
+  UploadPartCommand,
+  CompleteMultipartUploadCommand,
+  AbortMultipartUploadCommand,
+} from "@aws-sdk/client-s3";
 import { Upload } from "@aws-sdk/lib-storage";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import crypto from "crypto";
 import fs from "fs";
 import { db } from "../../db.js";
 
-async function getR2Config() {
+export async function getR2Config() {
   let accountId = process.env.R2_ACCOUNT_ID;
   let accessKeyId = process.env.R2_ACCESS_KEY_ID;
   let secretAccessKey = process.env.R2_SECRET_ACCESS_KEY;
@@ -31,6 +39,67 @@ async function getR2Config() {
   }
 
   return { accountId, accessKeyId, secretAccessKey, bucketName, publicDomain };
+}
+
+function createR2Client(config: Awaited<ReturnType<typeof getR2Config>>) {
+  if (!config.accountId || !config.accessKeyId || !config.secretAccessKey || !config.bucketName) {
+    throw new Error("R2 settings are incomplete (missing account ID, access key, secret key, or bucket name).");
+  }
+  return new S3Client({
+    region: "auto",
+    endpoint: `https://${config.accountId}.r2.cloudflarestorage.com`,
+    credentials: { accessKeyId: config.accessKeyId, secretAccessKey: config.secretAccessKey },
+  });
+}
+
+function buildPublicUrl(config: Awaited<ReturnType<typeof getR2Config>>, fileKey: string) {
+  const domain = String(config.publicDomain || "").replace(/\/+$/, "");
+  return domain
+    ? `${/^https?:\/\//i.test(domain) ? domain : `https://${domain}`}/${fileKey}`
+    : `https://${config.accountId}.r2.cloudflarestorage.com/${config.bucketName}/${fileKey}`;
+}
+
+export async function initiateR2MultipartUpload(originalName: string, contentType: string) {
+  const config = await getR2Config();
+  const client = createR2Client(config);
+  const safeName = originalName.replace(/[^a-zA-Z0-9.\-_]/g, "_");
+  const fileKey = `${crypto.randomUUID()}-${safeName}`;
+  const result = await client.send(new CreateMultipartUploadCommand({
+    Bucket: config.bucketName,
+    Key: fileKey,
+    ContentType: contentType || "application/octet-stream",
+  }));
+  if (!result.UploadId) throw new Error("R2 did not return a multipart upload ID.");
+  return { uploadId: result.UploadId, fileKey, bucket: config.bucketName!, publicUrl: buildPublicUrl(config, fileKey) };
+}
+
+export async function signR2MultipartPart(fileKey: string, uploadId: string, partNumber: number) {
+  const config = await getR2Config();
+  const client = createR2Client(config);
+  return getSignedUrl(client, new UploadPartCommand({
+    Bucket: config.bucketName,
+    Key: fileKey,
+    UploadId: uploadId,
+    PartNumber: partNumber,
+  }), { expiresIn: 15 * 60 });
+}
+
+export async function completeR2MultipartUpload(fileKey: string, uploadId: string, parts: Array<{ ETag: string; PartNumber: number }>) {
+  const config = await getR2Config();
+  const client = createR2Client(config);
+  await client.send(new CompleteMultipartUploadCommand({
+    Bucket: config.bucketName,
+    Key: fileKey,
+    UploadId: uploadId,
+    MultipartUpload: { Parts: parts.sort((a, b) => a.PartNumber - b.PartNumber) },
+  }));
+  return { provider: "r2", bucket: config.bucketName!, file_key: fileKey, public_url: buildPublicUrl(config, fileKey) };
+}
+
+export async function abortR2MultipartUpload(fileKey: string, uploadId: string) {
+  const config = await getR2Config();
+  const client = createR2Client(config);
+  await client.send(new AbortMultipartUploadCommand({ Bucket: config.bucketName, Key: fileKey, UploadId: uploadId }));
 }
 
 export async function uploadToR2(file: Express.Multer.File) {
@@ -85,9 +154,7 @@ export async function uploadToR2(file: Express.Multer.File) {
     }
   }
 
-  const publicUrl = publicDomain 
-    ? `https://${publicDomain}/${fileKey}` 
-    : `https://${accountId}.r2.cloudflarestorage.com/${bucketName}/${fileKey}`;
+  const publicUrl = buildPublicUrl({ accountId, accessKeyId, secretAccessKey, bucketName, publicDomain }, fileKey);
 
   return {
     provider: "r2",
