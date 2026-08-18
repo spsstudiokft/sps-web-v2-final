@@ -1,0 +1,276 @@
+import React, { useState, useEffect, useMemo } from "react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faChevronDown, faTag, faLayerGroup } from "@fortawesome/free-solid-svg-icons";
+import { cn } from "../../lib/utils";
+import { useLanguage } from "../../contexts/LanguageContext";
+import { tUi, t } from "../../lib/i18n";
+import { SiteSettings, FAQItem, FAQCategory } from "../../lib/types";
+import { motion, AnimatePresence } from "motion/react";
+
+const DEFAULT_FAQS: Array<Partial<FAQItem>> = [
+  {
+    id: "default-1",
+    question: "What is your typical turnaround time?",
+    answer: "We understand that speed is crucial in real estate. Our standard turnaround time for photography and floor plans is 24 to 48 hours after the shoot is completed. Video tours and virtual staging may require an additional day.",
+    category: "Turnaround & Delivery",
+    sort_order: 1
+  },
+  {
+    id: "default-2",
+    question: "How should the property be prepared before the shoot?",
+    answer: "The property should be perfectly clean, decluttered, and staged as you want it to appear. We recommend removing personal items, turning on all interior and exterior lights, opening all blinds, and moving vehicles out of the driveway.",
+    category: "Preparation",
+    sort_order: 2
+  },
+  {
+    id: "default-3",
+    question: "Are you licensed and insured for drone photography?",
+    answer: "Yes, our drone operators are fully licensed and insured. We adhere to all local aviation regulations and safety guidelines to capture stunning aerial perspectives of your property.",
+    category: "Licensing & Safety",
+    sort_order: 3
+  },
+  {
+    id: "default-4",
+    question: "Do you offer virtual staging for empty rooms?",
+    answer: "Absolutely. We provide high-quality, realistic virtual staging for vacant properties to help potential buyers visualize themselves in the space and understand the room's scale.",
+    category: "Services",
+    sort_order: 4
+  },
+  {
+    id: "default-5",
+    question: "How will I receive the final files?",
+    answer: "Once editing is complete, you will receive an email with a secure link to an online gallery. From there, you can view, share, and download the high-resolution files directly to your device.",
+    category: "Turnaround & Delivery",
+    sort_order: 5
+  }
+];
+
+export function FAQ({ 
+  settings, 
+  initialFaqs 
+}: { 
+  settings?: SiteSettings;
+  initialFaqs?: FAQItem[];
+}) {
+  const [faqs, setFaqs] = useState<Array<FAQItem | Partial<FAQItem>>>(
+    initialFaqs && initialFaqs.length > 0 ? initialFaqs : DEFAULT_FAQS
+  );
+  const [dbCategories, setDbCategories] = useState<FAQCategory[]>([]);
+  const [openIndex, setOpenIndex] = useState<number | null>(0);
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const { currentLang, defaultLang } = useLanguage();
+
+  useEffect(() => {
+    let isMounted = true;
+    Promise.all([
+      fetch("/api/public/faqs").then((res) => (res.ok ? res.json() : [])),
+      fetch("/api/public/faq-categories").then((res) => (res.ok ? res.json() : [])),
+    ])
+      .then(([faqsData, catsData]) => {
+        if (isMounted) {
+          if (Array.isArray(faqsData) && faqsData.length > 0) {
+            setFaqs(faqsData);
+          }
+          if (Array.isArray(catsData)) {
+            setDbCategories(catsData);
+          }
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to load public faqs or categories:", err);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const resolveText = (val: string | null | undefined, fallbackKey = ""): string => {
+    if (!val) return fallbackKey ? tUi(fallbackKey, currentLang) : "";
+    const translated = t(val, currentLang, defaultLang);
+    return translated || (fallbackKey ? tUi(fallbackKey, currentLang) : val);
+  };
+
+  // Build sorted category tabs from database categories or unique FAQ categories
+  const categoriesList = useMemo(() => {
+    if (dbCategories.length > 0) {
+      // Return DB categories that have FAQs or are published
+      return dbCategories.map((c) => ({
+        id: c.id,
+        name: resolveText(c.name, c.name),
+        slug: c.slug,
+        description: resolveText(c.description, ""),
+      }));
+    }
+
+    const uniqueCats = new Set<string>();
+    faqs.forEach((f) => {
+      if (f.category && f.category.trim() && f.category.trim().toLowerCase() !== "general") {
+        uniqueCats.add(f.category.trim());
+      }
+    });
+
+    return Array.from(uniqueCats).map((catName) => ({
+      id: catName,
+      name: resolveText(catName, catName),
+      slug: catName.toLowerCase().replace(/\s+/g, "-"),
+      description: "",
+    }));
+  }, [dbCategories, faqs, currentLang, defaultLang]);
+
+  // Selected category info
+  const currentCategoryInfo = useMemo(() => {
+    if (selectedCategory === "all") return null;
+    return categoriesList.find(
+      (c) => c.name === selectedCategory || c.id === selectedCategory || c.slug === selectedCategory
+    );
+  }, [selectedCategory, categoriesList]);
+
+  // Filtered faqs
+  const visibleFaqs = useMemo(() => {
+    if (selectedCategory === "all") return faqs;
+    return faqs.filter((f) => {
+      const catName = f.category || "General";
+      const catId = f.category_id;
+      return (
+        catName === selectedCategory ||
+        catId === selectedCategory ||
+        resolveText(f.category_name, catName) === selectedCategory
+      );
+    });
+  }, [faqs, selectedCategory, currentLang, defaultLang]);
+
+  const toggleFaq = (index: number) => {
+    setOpenIndex(openIndex === index ? null : index);
+  };
+
+  return (
+    <section 
+      id="faq" 
+      className="aero-faq aero-image-section scroll-mt-20 py-24 md:py-32 px-6"
+    >
+      <motion.div
+        initial={{ y: 20 }}
+        whileInView={{ y: 0 }}
+        viewport={{ once: true, margin: "-50px" }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
+        className="max-w-3xl mx-auto"
+      >
+        <div className="text-center mb-10">
+          <h2 className="text-4xl font-bold tracking-tight text-text mb-4">
+            {t(settings?.faq_headline, currentLang, defaultLang) || tUi("Frequently Asked Questions", currentLang)}
+          </h2>
+          <p className="text-lg text-muted-text max-w-2xl mx-auto">
+            {t(settings?.faq_description, currentLang, defaultLang) ||
+              tUi("Everything you need to know about our services, process, and deliverables.", currentLang)}
+          </p>
+        </div>
+
+        {/* Category Filter Pills */}
+        {categoriesList.length > 0 && (
+          <div className="flex items-center justify-center gap-2 overflow-x-auto pb-4 mb-4 flex-wrap">
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedCategory("all");
+                setOpenIndex(null);
+              }}
+              className={cn(
+                "px-4 py-2 rounded-full text-xs font-semibold transition-all duration-200 cursor-pointer",
+                selectedCategory === "all"
+                  ? "bg-primary text-primary-foreground shadow-sm scale-105"
+                  : "bg-background text-muted-text hover:text-text border border-border"
+              )}
+            >
+              {tUi("All", currentLang) || "All"}
+            </button>
+            {categoriesList.map((cat) => (
+              <button
+                key={cat.id}
+                type="button"
+                onClick={() => {
+                  setSelectedCategory(cat.name);
+                  setOpenIndex(null);
+                }}
+                className={cn(
+                  "px-4 py-2 rounded-full text-xs font-semibold transition-all duration-200 cursor-pointer",
+                  selectedCategory === cat.name
+                    ? "bg-primary text-primary-foreground shadow-sm scale-105"
+                    : "bg-background text-muted-text hover:text-text border border-border"
+                )}
+              >
+                {cat.name}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Optional Category Description Banner */}
+        {currentCategoryInfo && currentCategoryInfo.description && (
+          <div className="text-center text-sm text-muted-text max-w-xl mx-auto mb-8 bg-background/60 border border-border px-4 py-2.5 rounded-xl">
+            {currentCategoryInfo.description}
+          </div>
+        )}
+
+        {/* Questions Accordion */}
+        <div className="space-y-4">
+          <AnimatePresence initial={false}>
+            {visibleFaqs.map((faq, index) => {
+              const isOpen = openIndex === index;
+              const question = resolveText(faq.question, faq.question || "");
+              const answer = resolveText(faq.answer, faq.answer || "");
+              const category = faq.category && faq.category !== "General" ? faq.category : null;
+
+              return (
+                <motion.div 
+                  key={faq.id || index}
+                  layout
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.98 }}
+                  transition={{ duration: 0.25 }}
+                  className="bg-background border border-border rounded-2xl overflow-hidden transition-all duration-200 ease-in-out shadow-xs hover:border-primary/30"
+                >
+                  <button
+                    type="button"
+                    aria-expanded={isOpen}
+                    onClick={() => toggleFaq(index)}
+                    className="w-full flex items-center justify-between p-6 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset"
+                  >
+                    <div className="pr-6">
+                      {category && selectedCategory === "all" && (
+                        <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-primary/10 text-primary text-[11px] font-semibold mb-1.5">
+                          <FontAwesomeIcon icon={faTag} className="text-[9px]" />
+                          <span>{tUi(category, currentLang) || category}</span>
+                        </div>
+                      )}
+                      <div className="text-lg font-semibold text-text leading-snug">
+                        {question}
+                      </div>
+                    </div>
+                    <div className={cn(
+                      "w-8 h-8 rounded-full bg-surface border border-border/50 flex items-center justify-center text-muted-text transition-transform duration-300 shrink-0",
+                      isOpen && "transform rotate-180 bg-primary/10 text-primary border-primary/20"
+                    )}>
+                      <FontAwesomeIcon icon={faChevronDown} aria-hidden="true" />
+                    </div>
+                  </button>
+                  <div 
+                    className={cn(
+                      "px-6 pb-6 text-muted-text leading-relaxed",
+                      !isOpen && "hidden"
+                    )}
+                  >
+                    <div className="pt-3 border-t border-border/70 text-[15px]">
+                      {answer}
+                    </div>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </AnimatePresence>
+        </div>
+      </motion.div>
+    </section>
+  );
+}

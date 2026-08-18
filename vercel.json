@@ -1,0 +1,14 @@
+{
+  "framework": "vite",
+  "rewrites": [
+    {
+      "source": "/api/:match*",
+      "destination": "/api/index.ts"
+    },
+    {
+      "source": "/((?!api/|api$).*)",
+      "destination": "/index.html"
+    }
+  ]
+}
+

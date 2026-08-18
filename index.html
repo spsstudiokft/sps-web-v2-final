@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en" class="scroll-smooth">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SPS Studio</title>
+    <script>
+      (function() {
+        try {
+          var stored = localStorage.getItem('theme') || localStorage.getItem('admin-theme-mode');
+          var mode = 'dark';
+          if (stored === 'light' || stored === 'dark') {
+            mode = stored;
+          } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+            mode = 'light';
+          } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            mode = 'dark';
+          }
+          var root = document.documentElement;
+          root.classList.remove('light', 'dark');
+          root.classList.add(mode);
+          root.setAttribute('data-theme', mode);
+          root.style.colorScheme = mode;
+        } catch (e) {
+          document.documentElement.classList.add('dark');
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+

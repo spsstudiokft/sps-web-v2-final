@@ -1,0 +1,6 @@
+{
+  "name": "SPS Studio",
+  "description": "Premium real estate photography studio with full-featured admin dashboard, Resend email integration with admin-configurable sender, branded transactional templates, password recovery, services manager, portfolio manager, invoice payments, and tiered VIP referral & invite reward system with client and admin portals.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
