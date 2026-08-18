@@ -174,9 +174,11 @@ export function MediaCard({ card, onClick, priority = false }: MediaCardProps) {
     : (media.thumbnail_url || (parsedVideo?.type === "youtube" ? `https://img.youtube.com/vi/${parsedVideo.videoId}/${youtubePreviewIndex}.jpg` : ""));
 
   const projectTitle = t(item.title, currentLang, defaultLang) || item.title;
-  const mediaTitle = media.title ? (t(media.title, currentLang, defaultLang) || media.title) : "";
-  const displayTitle = mediaTitle && mediaTitle !== projectTitle ? mediaTitle : projectTitle;
-  const displaySubtitle = mediaTitle && mediaTitle !== projectTitle ? projectTitle : (item.category_name ? t(item.category_name, currentLang, defaultLang) : "");
+  // The public portfolio cards identify the project, not the uploaded file.
+  // Media titles often contain filenames and remain available in the admin
+  // editor without leaking into the homepage showcase.
+  const displayTitle = projectTitle;
+  const displaySubtitle = item.category_name ? t(item.category_name, currentLang, defaultLang) : "";
   
   const rawCaption = media.caption || item.description || "";
   const caption = t(rawCaption, currentLang, defaultLang) || rawCaption;

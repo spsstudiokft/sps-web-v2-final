@@ -643,7 +643,7 @@ export function Pricing({
                 return (
                   <div
                     key={extra.id}
-                    className="aero-pricing-shine p-5 rounded-2xl bg-background border border-border shadow-xs hover:border-primary/40 hover:shadow-md transition-all flex flex-col justify-between"
+                    className="aero-pricing-shine relative overflow-hidden p-5 rounded-2xl bg-background border border-border shadow-xs hover:border-primary/40 hover:shadow-md transition-all flex flex-col justify-between"
                   >
                     <div>
                       <div className="flex items-start justify-between gap-3 mb-2">
