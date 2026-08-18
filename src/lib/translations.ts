@@ -1,7 +1,7 @@
-import { newKeysTranslations } from "./newKeysTranslations";
-import { financialTranslations } from "./financialTranslations";
-import { clientPortalTranslations } from "./clientPortalTranslations";
-import { contactTravelTranslations } from "./contactTravelTranslations";
+import { newKeysTranslations } from "./newKeysTranslations.js";
+import { financialTranslations } from "./financialTranslations.js";
+import { clientPortalTranslations } from "./clientPortalTranslations.js";
+import { contactTravelTranslations } from "./contactTravelTranslations.js";
 
 export const enTranslations: Record<string, string> = {
   "About": "About",
