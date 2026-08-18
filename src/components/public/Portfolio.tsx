@@ -62,6 +62,12 @@ export function Portfolio({ items }: PortfolioProps) {
 
       if (totalGallery > 0) {
         gallery.forEach((media, idx) => {
+          // The interactive homepage showcase must never fetch the full-size
+          // original when an optimized derivative exists. The original URL
+          // remains stored on the portfolio item for protected downloads.
+          const displayMedia: GalleryMediaItem = media.type === "image" && media.compressed_url
+            ? { ...media, url: media.compressed_url, thumbnail_url: media.compressed_url }
+            : media;
           let resolvedType: "image" | "drone_video" | "interior_video" = "image";
 
           if (media.item_type === "drone_video") {
@@ -86,7 +92,7 @@ export function Portfolio({ items }: PortfolioProps) {
           const cardItem: ShowcaseMediaCardItem = {
             id: `${item.id}-${media.id || idx}-${idx}`,
             item,
-            media,
+            media: displayMedia,
             mediaIndex: idx,
             totalInGallery: totalGallery,
             itemType: resolvedType,
