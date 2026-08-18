@@ -1476,9 +1476,10 @@ router.post("/public/contact", async (req, res) => {
       console.warn("Auto-unarchive on new client message failed:", unarchiveErr);
     }
     
-    // Asynchronously dispatch Admin Alert & Customer Confirmation via Resend
+    // Wait for both Resend requests before returning. A serverless function may
+    // terminate work left running after the HTTP response has been sent.
     const appOrigin = getAppUrl(req);
-    sendInquiryAlerts({
+    const emailDelivery = await sendInquiryAlerts({
       name: name.trim(),
       email: email.trim(),
       phone: trimmedPhone,
@@ -1497,9 +1498,25 @@ router.post("/public/contact", async (req, res) => {
       fee_details: cleanFeeDetails,
       estimated_total: cleanEstimatedTotal,
       currency: cleanCurrency,
-    }, appOrigin).catch(e => console.error("Inquiry email notification dispatch failed:", e));
+    }, appOrigin);
 
-    res.json({ success: true, id });
+    if (!emailDelivery.success) {
+      console.error("Inquiry saved, but email delivery was not accepted:", emailDelivery.errors);
+      return res.status(502).json({
+        success: false,
+        submission_saved: true,
+        id,
+        error: "Your inquiry was saved, but the confirmation emails could not be sent. The studio has been notified in the system; please do not submit the form again.",
+      });
+    }
+
+    res.json({
+      success: true,
+      id,
+      email_status: "accepted",
+      admin_email_id: emailDelivery.admin?.messageId,
+      customer_email_id: emailDelivery.customer?.messageId,
+    });
   } catch (error: any) {
     console.error("Public contact submission error:", error);
     res.status(500).json({ error: "Submission failed. Please try again later." });

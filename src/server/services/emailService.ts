@@ -2713,7 +2713,12 @@ export async function sendInquiryAlerts(submission: {
   fee_details?: string | Array<Record<string, any>>;
   estimated_total?: number;
   currency?: string;
-}, appOrigin: string) {
+}, appOrigin: string): Promise<{
+  success: boolean;
+  admin: Awaited<ReturnType<typeof sendTransactionalEmail>> | null;
+  customer: Awaited<ReturnType<typeof sendTransactionalEmail>> | null;
+  errors: string[];
+}> {
   const config = await getEmailSenderConfig();
 
   const parseItems = (value: unknown): Array<Record<string, any>> => {
@@ -2805,9 +2810,8 @@ export async function sendInquiryAlerts(submission: {
     }
   }
 
-  // 1. Send Admin Alert Email
-  if (config.adminNotificationEmail) {
-    await sendTransactionalEmail({
+  const adminSend = config.adminNotificationEmail
+    ? sendTransactionalEmail({
       to: config.adminNotificationEmail,
       templateId: "inquiry_received",
       templateData: {
@@ -2826,12 +2830,11 @@ export async function sendInquiryAlerts(submission: {
         actionUrl: `${appOrigin}/admin/contacts`,
         actionText: "Open Inquiries Dashboard"
       }
-    });
-  }
+    })
+    : Promise.resolve(null);
 
-  // 2. Send Customer Confirmation Auto-Reply
-  if (submission.email) {
-    await sendTransactionalEmail({
+  const customerSend = submission.email
+    ? sendTransactionalEmail({
       to: submission.email,
       templateId: "inquiry_confirmation",
       templateData: {
@@ -2842,8 +2845,28 @@ export async function sendInquiryAlerts(submission: {
         ...pricingTokens,
         contact_email: config.replyToEmail || "contact@spsstudio.com"
       }
-    });
+    })
+    : Promise.resolve(null);
+
+  const [admin, customer] = await Promise.all([adminSend, customerSend]);
+  const errors: string[] = [];
+
+  if (!config.adminNotificationEmail) {
+    errors.push("Admin notification email is not configured.");
+  } else if (!admin || admin.status !== "sent" || !admin.success) {
+    errors.push(admin?.error || "Admin notification email was not accepted by Resend.");
   }
+
+  if (!customer || customer.status !== "sent" || !customer.success) {
+    errors.push(customer?.error || "Customer confirmation email was not accepted by Resend.");
+  }
+
+  return {
+    success: errors.length === 0,
+    admin,
+    customer,
+    errors,
+  };
 }
 
 /**
