@@ -215,7 +215,7 @@ const chunkUpload = multer({
 
 // Single Chunk Upload endpoint with explicit multer error trap and resilient filesystem writes
 adminRouter.post("/media/upload/chunk", (req, res, next) => {
-  chunkUpload.single("chunk")(req, res, (err: any) => {
+  (chunkUpload.single("chunk") as any)(req, res, (err: any) => {
     if (err) {
       console.error("[Chunk Upload] Multer processing error:", err);
       return res.status(400).json({ error: err.message || "Failed to process multipart chunk." });
@@ -362,7 +362,7 @@ adminRouter.post("/media/upload", (req, res, next) => {
   // Prevent socket/request timeout on long-running large file uploads
   req.setTimeout(0);
   
-  upload.single("file")(req, res, (err: any) => {
+  (upload.single("file") as any)(req, res, (err: any) => {
     if (err) {
       if (err instanceof multer.MulterError && err.code === "LIMIT_FILE_SIZE") {
         return res.status(413).json({ error: "File exceeds the maximum allowed limit of 10 GB." });
@@ -551,7 +551,7 @@ adminRouter.post("/media/restructure-item", async (req, res) => {
 // Upload structured media directly (explicit endpoint)
 adminRouter.post("/media/upload-structured", (req, res, next) => {
   req.setTimeout(0);
-  upload.single("file")(req, res, (err: any) => {
+  (upload.single("file") as any)(req, res, (err: any) => {
     if (err) {
       if (err instanceof multer.MulterError && err.code === "LIMIT_FILE_SIZE") {
         return res.status(413).json({ error: "File exceeds the maximum allowed limit of 10 GB." });

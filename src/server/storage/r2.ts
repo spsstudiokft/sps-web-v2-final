@@ -64,7 +64,7 @@ export async function initiateR2MultipartUpload(originalName: string, contentTyp
   const client = createR2Client(config);
   const safeName = originalName.replace(/[^a-zA-Z0-9.\-_]/g, "_");
   const fileKey = `${crypto.randomUUID()}-${safeName}`;
-  const result = await client.send(new CreateMultipartUploadCommand({
+  const result = await (client as any).send(new CreateMultipartUploadCommand({
     Bucket: config.bucketName,
     Key: fileKey,
     ContentType: contentType || "application/octet-stream",
@@ -87,7 +87,7 @@ export async function signR2MultipartPart(fileKey: string, uploadId: string, par
 export async function completeR2MultipartUpload(fileKey: string, uploadId: string, parts: Array<{ ETag: string; PartNumber: number }>) {
   const config = await getR2Config();
   const client = createR2Client(config);
-  await client.send(new CompleteMultipartUploadCommand({
+  await (client as any).send(new CompleteMultipartUploadCommand({
     Bucket: config.bucketName,
     Key: fileKey,
     UploadId: uploadId,
@@ -99,7 +99,7 @@ export async function completeR2MultipartUpload(fileKey: string, uploadId: strin
 export async function abortR2MultipartUpload(fileKey: string, uploadId: string) {
   const config = await getR2Config();
   const client = createR2Client(config);
-  await client.send(new AbortMultipartUploadCommand({ Bucket: config.bucketName, Key: fileKey, UploadId: uploadId }));
+  await (client as any).send(new AbortMultipartUploadCommand({ Bucket: config.bucketName, Key: fileKey, UploadId: uploadId }));
 }
 
 export async function uploadToR2(file: Express.Multer.File) {
@@ -180,7 +180,7 @@ export async function deleteFromR2(fileKey: string, bucketName: string) {
     });
 
     try {
-      await s3.send(
+      await (s3 as any).send(
         new DeleteObjectCommand({
           Bucket: bucketName,
           Key: fileKey,

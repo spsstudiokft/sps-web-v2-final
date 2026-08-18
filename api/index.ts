@@ -72,12 +72,12 @@ app.use("/api", apiRouter);
 app.use(apiRouter);
 
 // Explicit 404 handler
-app.use((req: express.Request, res: express.Response) => {
+app.use((req: any, res: any) => {
   res.status(404).json({ error: "Not Found", path: req.path });
 });
 
 // Explicit error handler to prevent crashing
-app.use((err: any, req: express.Request, res: express.Response, _next: express.NextFunction) => {
+app.use((err: any, _req: any, res: any, _next: any) => {
   console.error("Unhandled Server Error:", err);
   res.status(500).json({ error: "Internal Server Error", message: err.message });
 });
