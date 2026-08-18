@@ -181,6 +181,7 @@ export const setupDatabase = async () => {
   await client.execute(`INSERT OR IGNORE INTO teams (id, name, description, color) VALUES ('team-main-studio', 'Main Studio', 'Primary studio team', '#3B82F6')`);
   try { await client.execute(`UPDATE users SET team_id = 'team-main-studio' WHERE role IN ('superadmin','admin','editor','viewer') AND (team_id IS NULL OR team_id = '') AND COALESCE(workspace, 'Main Studio') = 'Main Studio'`); } catch {}
   try { await client.execute(`UPDATE invitations SET team_id = 'team-main-studio' WHERE (team_id IS NULL OR team_id = '') AND COALESCE(workspace, 'Main Studio') = 'Main Studio'`); } catch {}
+  try { await client.execute("ALTER TABLE email_templates ADD COLUMN token_defaults TEXT NOT NULL DEFAULT '{}'"); } catch {}
 
   // Fast check: If database is already initialized up to v8, return immediately
   try {
@@ -2186,6 +2187,7 @@ export const setupDatabase = async () => {
       body_text TEXT NOT NULL,
       available_tokens TEXT NOT NULL,
       sample_data TEXT NOT NULL,
+      token_defaults TEXT NOT NULL DEFAULT '{}',
       version INTEGER DEFAULT 1,
       is_customized BOOLEAN DEFAULT 0,
       last_updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,

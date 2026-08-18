@@ -45,6 +45,7 @@ export function EmailTemplateEditorModal({
   const [bodyHtml, setBodyHtml] = useState(template.body_html);
   const [bodyText, setBodyText] = useState(template.body_text);
   const [sampleData, setSampleData] = useState<Record<string, any>>(template.sample_data || {});
+  const [tokenDefaults, setTokenDefaults] = useState<Record<string, string>>(template.token_defaults || {});
   const [activeTab, setActiveTab] = useState<"editor" | "preview" | "test">("editor");
   const [bodyFormat, setBodyFormat] = useState<"html" | "text">("html");
   const [deviceView, setDeviceView] = useState<"desktop" | "mobile" | "plaintext">("desktop");
@@ -78,6 +79,7 @@ export function EmailTemplateEditorModal({
       setBodyHtml(template.body_html);
       setBodyText(template.body_text);
       setSampleData(template.sample_data || {});
+      setTokenDefaults(template.token_defaults || {});
       setTestStatus(null);
       setFeedback(null);
     }
@@ -101,7 +103,8 @@ export function EmailTemplateEditorModal({
             subject,
             bodyHtml,
             bodyText,
-            sampleData
+            sampleData,
+            tokenDefaults
           })
         });
 
@@ -124,7 +127,7 @@ export function EmailTemplateEditorModal({
       active = false;
       clearTimeout(timer);
     };
-  }, [template.template_key, subject, bodyHtml, bodyText, sampleData]);
+  }, [template.template_key, subject, bodyHtml, bodyText, sampleData, tokenDefaults]);
 
   // Insert token at cursor in the last focused field
   const handleInsertToken = (tokenStr: string) => {
@@ -190,6 +193,7 @@ export function EmailTemplateEditorModal({
           subject,
           body_html: bodyHtml,
           body_text: bodyText
+          ,token_defaults: tokenDefaults
         })
       });
 
@@ -267,7 +271,8 @@ export function EmailTemplateEditorModal({
           subject,
           bodyHtml,
           bodyText,
-          sampleData
+          sampleData,
+          tokenDefaults
         })
       });
 
@@ -628,9 +633,43 @@ export function EmailTemplateEditorModal({
                           <div className="text-[10px] text-muted-text font-mono mt-1 opacity-80">
                             Example: <span className="text-text">{t.example}</span>
                           </div>
+                          <label className="block mt-2 text-[10px] font-semibold text-muted-text" onClick={(e) => e.stopPropagation()}>
+                            Default text
+                            <input
+                              type="text"
+                              value={tokenDefaults[t.token.replace(/^{{|}}$/g, "")] ?? ""}
+                              onChange={(e) => { const key = t.token.replace(/^{{|}}$/g, ""); setTokenDefaults(prev => ({ ...prev, [key]: e.target.value })); }}
+                              onClick={(e) => e.stopPropagation()}
+                              placeholder={String(sampleData[t.token.replace(/^{{|}}$/g, "")] ?? t.example ?? "")}
+                              className="mt-1 w-full px-2 py-1.5 rounded-md border border-border bg-surface text-[11px] text-text font-normal focus:outline-none focus:ring-1 focus:ring-primary"
+                            />
+                          </label>
                         </div>
                       ))
                     )}
+                  </div>
+
+                  {/* Per-template master layout copy */}
+                  <div className="mt-3 pt-3 border-t border-border space-y-2">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-muted-text">Header & Footer Text</div>
+                    {[
+                      ["header_title", "Header title", "Configured studio name"],
+                      ["header_subtitle", "Header subtitle", "Visual Marketing & Photography"],
+                      ["footer_text", "Footer notice", "Configured email footer text"],
+                      ["footer_service_text", "Footer service line", "Sent securely via Resend Email Service · © {{current_year}} {{studio_name}}"]
+                    ].map(([key, label, placeholder]) => (
+                      <label key={key} className="block text-[10px] font-semibold text-muted-text">
+                        {label}
+                        <input
+                          type="text"
+                          value={tokenDefaults[key] ?? ""}
+                          onChange={(e) => setTokenDefaults(prev => ({ ...prev, [key]: e.target.value }))}
+                          placeholder={placeholder}
+                          className="mt-1 w-full px-2 py-1.5 rounded-md border border-border bg-background text-[11px] text-text font-normal focus:outline-none focus:ring-1 focus:ring-primary"
+                        />
+                      </label>
+                    ))}
+                    <p className="text-[10px] text-muted-text">Empty fields inherit the global email settings. Template tokens can be used in these fields.</p>
                   </div>
 
                   {/* Global Auto Tokens */}
@@ -638,16 +677,12 @@ export function EmailTemplateEditorModal({
                     <div className="text-[10px] font-bold uppercase tracking-wider text-muted-text mb-1.5">
                       Global Tokens (Always Available)
                     </div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {["{{studio_name}}", "{{current_year}}", "{{footer_text}}", "{{from_email}}", "{{timestamp}}"].map((gt) => (
-                        <button
-                          key={gt}
-                          type="button"
-                          onClick={() => handleInsertToken(gt)}
-                          className="px-2 py-0.5 rounded-md text-[10px] font-mono bg-background border border-border text-muted-text hover:text-primary hover:border-primary/40 transition-colors"
-                        >
-                          {gt}
-                        </button>
+                    <div className="space-y-1.5">
+                      {["{{studio_name}}", "{{current_year}}", "{{from_email}}", "{{timestamp}}"].map((gt) => (
+                        <div key={gt} className="flex items-center gap-1.5">
+                          <button type="button" onClick={() => handleInsertToken(gt)} className="shrink-0 px-2 py-1 rounded-md text-[10px] font-mono bg-background border border-border text-muted-text hover:text-primary hover:border-primary/40 transition-colors">{gt}</button>
+                          <input type="text" value={tokenDefaults[gt.replace(/^{{|}}$/g, "")] ?? ""} onChange={(e) => { const key = gt.replace(/^{{|}}$/g, ""); setTokenDefaults(prev => ({ ...prev, [key]: e.target.value })); }} placeholder="System value" className="min-w-0 flex-1 px-2 py-1 rounded-md border border-border bg-background text-[10px] text-text focus:outline-none focus:ring-1 focus:ring-primary" />
+                        </div>
                       ))}
                     </div>
                   </div>

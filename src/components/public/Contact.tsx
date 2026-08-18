@@ -54,6 +54,7 @@ export function Contact({ settings }: { settings: SiteSettings }) {
     email: "", 
     phone: "", 
     property_address: "",
+    property_city: "",
     availability_start: "",
     availability_end: "",
     message: "" 
@@ -71,6 +72,9 @@ export function Contact({ settings }: { settings: SiteSettings }) {
   const [selectedExtras, setSelectedExtras] = useState<Record<string, number>>({});
   const [feeRules, setFeeRules] = useState<PricingFeeRule[]>([]);
   const [travelDistance, setTravelDistance] = useState<number>(0);
+  const [travelEstimate, setTravelEstimate] = useState<{ oneWayKm: number; roundTripKm: number; destination: string } | null>(null);
+  const [travelEstimateStatus, setTravelEstimateStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [travelEstimateError, setTravelEstimateError] = useState("");
   const [showPricingDetails, setShowPricingDetails] = useState<boolean>(true);
 
   // Track whether message was manually customized by user
@@ -88,6 +92,25 @@ export function Contact({ settings }: { settings: SiteSettings }) {
       if (Array.isArray(feeData)) setFeeRules(feeData);
     });
   }, []);
+
+  useEffect(() => {
+    const city = contactForm.property_city.trim();
+    if (city.length < 2) { setTravelEstimate(null); setTravelDistance(0); setTravelEstimateStatus("idle"); return; }
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      setTravelEstimateStatus("loading"); setTravelEstimateError("");
+      try {
+        const response = await fetch(`/api/public/travel-distance?city=${encodeURIComponent(city)}`, { signal: controller.signal });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Distance calculation failed.");
+        setTravelEstimate(data); setTravelDistance(Number(data.roundTripKm) || 0); setTravelEstimateStatus("success");
+      } catch (error: any) {
+        if (error.name === "AbortError") return;
+        setTravelEstimate(null); setTravelDistance(0); setTravelEstimateStatus("error"); setTravelEstimateError(error.message || "Distance calculation failed.");
+      }
+    }, 750);
+    return () => { clearTimeout(timer); controller.abort(); };
+  }, [contactForm.property_city]);
 
   // Helper to extract translated title of a plan
   const getPlanTitle = (p: PricingPlan): string => {
@@ -383,6 +406,14 @@ export function Contact({ settings }: { settings: SiteSettings }) {
           name: t(f.rule.name, currentLang, defaultLang) || f.rule.name,
           amount: f.cost,
           explanation: f.explanation,
+          ...(f.rule.fee_type === "distance" || f.rule.fee_type === "distance_tiered"
+            ? {
+                origin_city: "Hódmezővásárhely",
+                destination_city: contactForm.property_city.trim(),
+                one_way_km: travelEstimate?.oneWayKm,
+                round_trip_km: travelEstimate?.roundTripKm,
+              }
+            : {}),
         }))
       : [];
 
@@ -395,7 +426,10 @@ export function Contact({ settings }: { settings: SiteSettings }) {
           name: contactForm.name,
           email: contactForm.email,
           phone: contactForm.phone,
-          property_address: contactForm.property_address,
+          property_address: [contactForm.property_city.trim(), contactForm.property_address.trim()].filter(Boolean).join(", "),
+          property_city: contactForm.property_city,
+          travel_distance_one_way_km: travelEstimate?.oneWayKm,
+          travel_distance_round_trip_km: travelEstimate?.roundTripKm,
           availability_start: showAvailability ? contactForm.availability_start : undefined,
           availability_end: showAvailability ? contactForm.availability_end : undefined,
           message: contactForm.message,
@@ -416,6 +450,7 @@ export function Contact({ settings }: { settings: SiteSettings }) {
           email: "", 
           phone: "", 
           property_address: "", 
+          property_city: "",
           availability_start: "",
           availability_end: "",
           message: "" 
@@ -764,31 +799,33 @@ export function Contact({ settings }: { settings: SiteSettings }) {
 
                       {showPricingDetails && (
                         <div className="pt-3 border-t border-border/80 space-y-3 text-xs">
-                          {/* Travel Distance Input (if distance fee rule exists) */}
+                          {/* Automatically calculated travel distance (if a distance fee rule exists) */}
                           {feeRules.some((r) => r.fee_type === "distance" || r.fee_type === "distance_tiered") && (
                             <div className="p-3 rounded-xl bg-background border border-border flex items-center justify-between gap-3">
                               <div className="flex items-center gap-2">
                                 <Car className="w-4 h-4 text-primary" />
                                 <div>
                                   <span className="font-semibold text-text block">
-                                    {tUi("contact.travel_distance_label", currentLang, undefined, defaultLang) || "Estimated Travel Distance (km):"}
+                                    {tUi("contact.travel_auto_label", currentLang, undefined, defaultLang) || "Calculated travel distance"}
                                   </span>
                                   <span className="text-[11px] text-muted-text">
-                                    {tUi("contact.travel_distance_desc", currentLang, undefined, defaultLang) || "Distance from studio headquarters"}
+                                    {tUi("contact.travel_auto_desc", currentLang, undefined, defaultLang) || "Round trip from Hódmezővásárhely"}
                                   </span>
                                 </div>
                               </div>
-                              <div className="flex items-center gap-1.5">
-                                <input
-                                  type="number"
-                                  min="0"
-                                  max="500"
-                                  value={travelDistance || ""}
-                                  onChange={(e) => setTravelDistance(Math.max(0, Number(e.target.value) || 0))}
-                                  placeholder="0"
-                                  className="w-20 px-2.5 py-1.5 text-right font-bold bg-surface border border-border rounded-lg text-text focus:ring-1 focus:ring-primary focus:outline-none"
-                                />
-                                <span className="text-muted-text font-medium">km</span>
+                              <div className="min-w-24 text-right">
+                                <div className="font-bold text-text">
+                                  {travelEstimateStatus === "loading"
+                                    ? (tUi("contact.travel_calculating", currentLang, undefined, defaultLang) || "Calculating…")
+                                    : travelEstimate
+                                      ? `${travelEstimate.roundTripKm} km`
+                                      : "—"}
+                                </div>
+                                {travelEstimate && (
+                                  <div className="text-[10px] text-muted-text">
+                                    {tUi("contact.round_trip", currentLang, undefined, defaultLang) || "round trip"}
+                                  </div>
+                                )}
                               </div>
                             </div>
                           )}
@@ -905,19 +942,32 @@ export function Contact({ settings }: { settings: SiteSettings }) {
                 </div>
               )}
 
-              {/* Conditional Property Address Field */}
-              {showAddress && (
-                <div>
-                  <label className="block text-sm font-semibold text-text mb-1.5">
-                    {tUi("contact.property_address", currentLang, undefined, defaultLang) || "Property Address (Optional)"}
-                  </label>
-                  <input
-                    type="text"
-                    placeholder={tUi("contact.property_address_placeholder", currentLang, undefined, defaultLang) || "e.g. 124 Ocean Drive, Miami, FL"}
-                    className="aero-input w-full px-4 py-3 bg-surface border border-border rounded-xl focus:outline-none text-text placeholder:text-muted-text/60 text-sm"
-                    value={contactForm.property_address}
-                    onChange={(e) => setContactForm({ ...contactForm, property_address: e.target.value })}
-                  />
+              {/* Property city is also needed when an automatic distance fee is active. */}
+              {(showAddress || feeRules.some((rule) => rule.fee_type === "distance" || rule.fee_type === "distance_tiered")) && (
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-sm font-semibold text-text mb-1.5">{tUi("contact.property_city", currentLang, undefined, defaultLang) || "Property city"}</label>
+                    <div className="relative">
+                      <input type="text" autoComplete="address-level2" placeholder={tUi("contact.property_city_placeholder", currentLang, undefined, defaultLang) || "e.g. Szeged"} className="aero-input w-full px-4 py-3 pr-10 bg-surface border border-border rounded-xl focus:outline-none text-text placeholder:text-muted-text/60 text-sm" value={contactForm.property_city} onChange={(e) => setContactForm({ ...contactForm, property_city: e.target.value })}/>
+                      <div className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-text">{travelEstimateStatus === "loading" ? <span className="block w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"/> : <FontAwesomeIcon icon={faMapLocationDot} className="w-4 h-4"/>}</div>
+                    </div>
+                    {travelEstimateStatus === "success" && travelEstimate && <p className="text-xs text-emerald-600 mt-1.5 font-medium">{tUi("contact.travel_route_found", { oneWay: travelEstimate.oneWayKm, roundTrip: travelEstimate.roundTripKm })}</p>}
+                    {travelEstimateStatus === "error" && <p className="text-xs text-red-500 mt-1.5">{travelEstimateError}</p>}
+                  </div>
+                  {showAddress && (
+                    <div>
+                      <label className="block text-sm font-semibold text-text mb-1.5">
+                        {tUi("contact.property_address", currentLang, undefined, defaultLang) || "Property Address (Optional)"}
+                      </label>
+                      <input
+                        type="text"
+                        placeholder={tUi("contact.property_address_placeholder", currentLang, undefined, defaultLang) || "e.g. 124 Ocean Drive, Miami, FL"}
+                        className="aero-input w-full px-4 py-3 bg-surface border border-border rounded-xl focus:outline-none text-text placeholder:text-muted-text/60 text-sm"
+                        value={contactForm.property_address}
+                        onChange={(e) => setContactForm({ ...contactForm, property_address: e.target.value })}
+                      />
+                    </div>
+                  )}
                 </div>
               )}
 

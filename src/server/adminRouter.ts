@@ -5691,7 +5691,7 @@ adminRouter.post("/email/templates/marketing/:key/send", requireMarketingWrite, 
     const config = await getEmailSenderConfig();
     const tokens = { ...template.sample_data, recipient_name: recipient.split("@")[0], ...(req.body.tokens || {}) };
     const subject = interpolateTemplateTokens(template.subject, tokens, config);
-    const html = wrapInEmailLayout(interpolateTemplateTokens(template.body_html, tokens, config), template.name, config);
+    const html = wrapInEmailLayout(interpolateTemplateTokens(template.body_html, tokens, config), template.name, config, tokens);
     const text = interpolateTemplateTokens(template.body_text, tokens, config);
     const result = await sendTransactionalEmail({ to: recipient, subject, templateId: template.template_key, customHtml: html, customText: text, templateData: tokens });
     if (!result.success) return res.status(400).json({ error: result.error || "Email dispatch failed.", status: result.status });
@@ -5716,7 +5716,7 @@ adminRouter.get("/email/templates/:key", async (req, res) => {
 // Save customized email template
 adminRouter.put("/email/templates/:key", async (req, res) => {
   try {
-    const { subject, body_html, body_text } = req.body;
+    const { subject, body_html, body_text, token_defaults } = req.body;
     if (!subject || typeof subject !== "string" || !subject.trim()) {
       return res.status(400).json({ error: "A template subject line is required." });
     }
@@ -5728,6 +5728,7 @@ adminRouter.put("/email/templates/:key", async (req, res) => {
       subject,
       body_html,
       body_text: body_text || "",
+      token_defaults: token_defaults || {},
       updated_by: (req as any).user?.email || "admin"
     });
 
@@ -5765,7 +5766,8 @@ adminRouter.post("/email/templates/preview", async (req, res) => {
       subject, 
       bodyHtml, 
       bodyText, 
-      sampleData = {} 
+      sampleData = {},
+      tokenDefaults = {}
     } = req.body;
 
     const config = await getEmailSenderConfig();
@@ -5779,14 +5781,16 @@ adminRouter.post("/email/templates/preview", async (req, res) => {
     // Merge provided sample data with template default sample data
     const mergedTokens = {
       ...(template?.sample_data || {}),
-      ...sampleData
+      ...sampleData,
+      ...(template?.token_defaults || {}),
+      ...tokenDefaults
     };
 
     const renderedSubject = interpolateTemplateTokens(activeSubjectTemplate, mergedTokens, config);
     const renderedInnerHtml = interpolateTemplateTokens(activeHtmlTemplate, mergedTokens, config);
     const renderedText = interpolateTemplateTokens(activeTextTemplate, mergedTokens, config);
 
-    const fullHtml = wrapInEmailLayout(renderedInnerHtml, title, config);
+    const fullHtml = wrapInEmailLayout(renderedInnerHtml, title, config, mergedTokens);
 
     res.json({
       html: fullHtml,
@@ -5809,7 +5813,8 @@ adminRouter.post("/email/templates/send-test", async (req, res) => {
       subject, 
       bodyHtml, 
       bodyText, 
-      sampleData = {} 
+      sampleData = {},
+      tokenDefaults = {}
     } = req.body;
 
     if (!recipient || typeof recipient !== "string" || !recipient.includes("@")) {
@@ -5826,14 +5831,16 @@ adminRouter.post("/email/templates/send-test", async (req, res) => {
 
     const mergedTokens = {
       ...(template?.sample_data || {}),
-      recipient_name: recipient.split("@")[0],
-      ...sampleData
+      ...sampleData,
+      ...(template?.token_defaults || {}),
+      ...tokenDefaults,
+      recipient_name: recipient.split("@")[0]
     };
 
     const renderedSubject = interpolateTemplateTokens(activeSubjectTemplate, mergedTokens, config);
     const renderedInnerHtml = interpolateTemplateTokens(activeHtmlTemplate, mergedTokens, config);
     const renderedText = interpolateTemplateTokens(activeTextTemplate, mergedTokens, config);
-    const fullHtml = wrapInEmailLayout(renderedInnerHtml, title, config);
+    const fullHtml = wrapInEmailLayout(renderedInnerHtml, title, config, mergedTokens);
 
     const result = await sendTransactionalEmail({
       to: recipient.trim(),
@@ -6069,6 +6076,83 @@ adminRouter.get("/team", async (req: any, res) => {
   } catch (error: any) {
     console.error("Failed to fetch team members:", error);
     res.status(500).json({ error: "Failed to fetch team members" });
+  }
+});
+
+async function ensureDirectAccountVerificationTable() {
+  await db.execute(`CREATE TABLE IF NOT EXISTS direct_account_verification_codes (
+    id TEXT PRIMARY KEY, email TEXT NOT NULL, code_hash TEXT NOT NULL,
+    expires_at DATETIME NOT NULL, attempts INTEGER DEFAULT 0,
+    used_at DATETIME, requested_by TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )`);
+  await db.execute(`CREATE INDEX IF NOT EXISTS idx_direct_account_code_email ON direct_account_verification_codes(email, created_at)`);
+}
+
+adminRouter.post("/team/verification-code", async (req: any, res) => {
+  try {
+    if (req.user?.role === "viewer") return res.status(403).json({ error: "View-only accounts cannot create team members." });
+    const email = String(req.body.email || "").trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ error: "A valid email address is required." });
+    const existing = await db.execute({ sql: "SELECT id FROM users WHERE LOWER(TRIM(email)) = ?", args: [email] });
+    if (existing.rows.length) return res.status(409).json({ error: "This email address already belongs to an account." });
+    await ensureDirectAccountVerificationTable();
+    const recent = await db.execute({ sql: "SELECT created_at FROM direct_account_verification_codes WHERE email = ? ORDER BY created_at DESC LIMIT 1", args: [email] });
+    if (recent.rows.length && Date.now() - new Date(String(recent.rows[0].created_at) + "Z").getTime() < 60_000) return res.status(429).json({ error: "Please wait one minute before requesting another code." });
+    const code = crypto.randomInt(100000, 1000000).toString();
+    const codeHash = crypto.createHash("sha256").update(code).digest("hex");
+    const expiresAt = new Date(Date.now() + 15 * 60_000).toISOString();
+    await db.execute({ sql: "UPDATE direct_account_verification_codes SET used_at = CURRENT_TIMESTAMP WHERE email = ? AND used_at IS NULL", args: [email] });
+    const id = crypto.randomUUID();
+    await db.execute({ sql: "INSERT INTO direct_account_verification_codes (id, email, code_hash, expires_at, requested_by) VALUES (?, ?, ?, ?, ?)", args: [id, email, codeHash, expiresAt, req.user?.id || null] });
+    const mail = await sendTransactionalEmail({
+      to: email,
+      templateId: "admin_account_verification_code",
+      templateData: { recipient_name: email.split("@")[0], verification_code: code, expires_in_minutes: "15" }
+    });
+    if (!mail.success) { await db.execute({ sql: "UPDATE direct_account_verification_codes SET used_at = CURRENT_TIMESTAMP WHERE id = ?", args: [id] }); return res.status(502).json({ error: mail.error || "Failed to send verification code." }); }
+    res.json({ success: true, expiresInMinutes: 15, simulated: mail.simulated });
+  } catch (error: any) { console.error("Failed to send direct account verification code:", error); res.status(500).json({ error: error.message || "Failed to send verification code." }); }
+});
+
+// Create an active admin-panel account directly with a verified password flow.
+adminRouter.post("/team", async (req: any, res) => {
+  try {
+    if (req.user?.role === "viewer") return res.status(403).json({ error: "View-only accounts cannot create team members." });
+    const email = String(req.body.email || "").trim().toLowerCase();
+    const password = String(req.body.password || "");
+    const verificationCode = String(req.body.verification_code || "").trim();
+    const name = String(req.body.name || "").trim();
+    const role = ["admin", "editor", "viewer"].includes(req.body.role) ? req.body.role : "editor";
+    let teamId = req.body.team_id ? String(req.body.team_id) : null;
+    let workspace = String(req.body.workspace || "Main Studio").trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ error: "A valid email address is required." });
+    if (password.length < 8 || !/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/\d/.test(password) || !/[^A-Za-z0-9]/.test(password)) return res.status(400).json({ error: "Password must be at least 8 characters and include uppercase, lowercase, a number, and a special character." });
+    const existing = await db.execute({ sql: "SELECT id FROM users WHERE LOWER(TRIM(email)) = ?", args: [email] });
+    if (existing.rows.length) return res.status(409).json({ error: "This email address already belongs to an account." });
+    if (!/^\d{6}$/.test(verificationCode)) return res.status(400).json({ error: "A valid six-digit email verification code is required." });
+    await ensureDirectAccountVerificationTable();
+    const codeResult = await db.execute({ sql: "SELECT * FROM direct_account_verification_codes WHERE email = ? AND used_at IS NULL ORDER BY created_at DESC LIMIT 1", args: [email] });
+    if (!codeResult.rows.length) return res.status(400).json({ error: "Request a new email verification code first." });
+    const codeRow: any = codeResult.rows[0];
+    if (Number(codeRow.attempts || 0) >= 5) return res.status(429).json({ error: "Too many invalid attempts. Request a new code." });
+    if (new Date(codeRow.expires_at).getTime() < Date.now()) return res.status(400).json({ error: "The verification code has expired. Request a new one." });
+    const suppliedHash = crypto.createHash("sha256").update(verificationCode).digest("hex");
+    const matches = crypto.timingSafeEqual(Buffer.from(suppliedHash, "hex"), Buffer.from(String(codeRow.code_hash), "hex"));
+    if (!matches) { await db.execute({ sql: "UPDATE direct_account_verification_codes SET attempts = attempts + 1 WHERE id = ?", args: [codeRow.id] }); return res.status(400).json({ error: "The email verification code is incorrect." }); }
+    if (teamId) {
+      const team = await db.execute({ sql: "SELECT name FROM teams WHERE id = ? AND is_active = 1", args: [teamId] });
+      if (!team.rows.length) return res.status(400).json({ error: "Selected team does not exist or is inactive." });
+      workspace = String(team.rows[0].name);
+    }
+    const id = crypto.randomUUID();
+    const hash = await bcrypt.hash(password, 12);
+    await db.execute({ sql: `INSERT INTO users (id, email, password_hash, role, is_active, name, workspace, team_id, created_at, updated_at) VALUES (?, ?, ?, ?, 1, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`, args: [id, email, hash, role, name, workspace, teamId] });
+    await db.execute({ sql: "UPDATE direct_account_verification_codes SET used_at = CURRENT_TIMESTAMP WHERE id = ?", args: [codeRow.id] });
+    await db.execute({ sql: "UPDATE invitations SET status = 'revoked', revoked_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE LOWER(TRIM(email)) = ? AND status = 'pending'", args: [email] });
+    res.status(201).json({ success: true, user: { id, email, name, role, workspace, team_id: teamId, is_active: 1 } });
+  } catch (error: any) {
+    console.error("Failed to create team member directly:", error);
+    res.status(500).json({ error: error.message || "Failed to create team member." });
   }
 });
 

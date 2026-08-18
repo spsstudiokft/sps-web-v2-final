@@ -36,6 +36,7 @@ import {
   Shield,
   Edit2,
   Calendar
+  ,Lock
 } from "lucide-react";
 
 interface Invitation {
@@ -123,6 +124,12 @@ export default function TeamManagementPage() {
   const [inviteSendEmail, setInviteSendEmail] = useState(true);
   const [submittingInvite, setSubmittingInvite] = useState(false);
   const [inviteError, setInviteError] = useState("");
+  const [accountCreationMode, setAccountCreationMode] = useState<"invite" | "password">("invite");
+  const [directPassword, setDirectPassword] = useState("");
+  const [directPasswordConfirm, setDirectPasswordConfirm] = useState("");
+  const [verificationCode, setVerificationCode] = useState("");
+  const [verificationCodeSent, setVerificationCodeSent] = useState(false);
+  const [sendingVerificationCode, setSendingVerificationCode] = useState(false);
 
   // Edit Member Form State
   const [editName, setEditName] = useState("");
@@ -267,11 +274,13 @@ export default function TeamManagementPage() {
       setInviteError("Please provide a valid email address.");
       return;
     }
+    if (accountCreationMode === "password" && directPassword !== directPasswordConfirm) { setInviteError("The passwords do not match."); return; }
+    if (accountCreationMode === "password" && !/^\d{6}$/.test(verificationCode)) { setInviteError("Enter the six-digit code sent to the account email address."); return; }
 
     setSubmittingInvite(true);
 
     try {
-      const res = await fetch("/api/admin/invitations", {
+      const res = await fetch(accountCreationMode === "password" ? "/api/admin/team" : "/api/admin/invitations", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -284,7 +293,9 @@ export default function TeamManagementPage() {
           workspace: inviteWorkspace.trim() || "Main Studio",
           team_id: inviteTeamId || null,
           custom_message: inviteCustomMessage.trim(),
-          send_email: inviteSendEmail
+          send_email: inviteSendEmail,
+          password: accountCreationMode === "password" ? directPassword : undefined,
+          verification_code: accountCreationMode === "password" ? verificationCode : undefined
         })
       });
 
@@ -294,12 +305,7 @@ export default function TeamManagementPage() {
         setInviteError(data.error || "Failed to create invitation.");
       } else {
         // Success
-        setActionSuccessData({
-          email: data.invitation.email,
-          accept_link: data.invitation.accept_link,
-          role: data.invitation.role,
-          dispatched: inviteSendEmail && data.emailResult?.success
-        });
+        if (accountCreationMode === "invite") setActionSuccessData({ email: data.invitation.email, accept_link: data.invitation.accept_link, role: data.invitation.role, dispatched: inviteSendEmail && data.emailResult?.success });
         setIsInviteModalOpen(false);
         // Reset form
         setInviteEmail("");
@@ -308,13 +314,29 @@ export default function TeamManagementPage() {
         setInviteWorkspace("Main Studio");
         setInviteTeamId("team-main-studio");
         setInviteRole("editor");
+        setDirectPassword(""); setDirectPasswordConfirm(""); setVerificationCode(""); setVerificationCodeSent(false);
         fetchInvitations();
+        fetchTeamMembers();
       }
     } catch (e: any) {
       setInviteError("Network error while creating invitation.");
     } finally {
       setSubmittingInvite(false);
     }
+  };
+
+  const handleSendVerificationCode = async () => {
+    setInviteError("");
+    if (!inviteEmail.trim() || !inviteEmail.includes("@")) { setInviteError("Enter the account email address before requesting a code."); return; }
+    setSendingVerificationCode(true);
+    try {
+      const res = await fetch("/api/admin/team/verification-code", { method: "POST", headers: { "Content-Type": "application/json", ...authHeaders }, body: JSON.stringify({ email: inviteEmail.trim() }) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to send verification code.");
+      setVerificationCodeSent(true);
+      if (data.simulated) setInviteError("Email delivery is currently simulated. Configure Resend before using direct account creation.");
+    } catch (error: any) { setInviteError(error.message || "Failed to send verification code."); }
+    finally { setSendingVerificationCode(false); }
   };
 
   // Resend / Re-issue Invitation
@@ -1310,7 +1332,7 @@ export default function TeamManagementPage() {
                   Invite Team Member
                 </CardTitle>
                 <CardDescription className="text-xs mt-0.5">
-                  Generate a secure, single-use invitation token with designated role privileges.
+                  {accountCreationMode === "invite" ? "Generate a secure, single-use invitation token with designated role privileges." : "Create an active admin-panel account immediately with an email address and password."}
                 </CardDescription>
               </div>
               <button
@@ -1323,6 +1345,7 @@ export default function TeamManagementPage() {
 
             <form onSubmit={handleCreateInvite}>
               <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-1 rounded-xl bg-muted/50 border border-border p-1 text-xs"><button type="button" onClick={()=>{setAccountCreationMode("invite");setInviteError("");}} className={`rounded-lg px-3 py-2 ${accountCreationMode === "invite" ? "bg-background shadow-sm font-semibold" : "text-muted-foreground"}`}><Send className="inline w-3.5 h-3.5 mr-1.5"/>Invitation</button><button type="button" onClick={()=>{setAccountCreationMode("password");setInviteError("");}} className={`rounded-lg px-3 py-2 ${accountCreationMode === "password" ? "bg-background shadow-sm font-semibold" : "text-muted-foreground"}`}><Lock className="inline w-3.5 h-3.5 mr-1.5"/>Direct password</button></div>
                 {inviteError && (
                   <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 text-xs font-medium flex items-center gap-2">
                     <AlertCircle className="w-4 h-4 shrink-0" />
@@ -1342,7 +1365,7 @@ export default function TeamManagementPage() {
                       type="email"
                       placeholder="e.g. colleague@spsstudio.hu"
                       value={inviteEmail}
-                      onChange={(e) => setInviteEmail(e.target.value)}
+                      onChange={(e) => { setInviteEmail(e.target.value); setVerificationCodeSent(false); setVerificationCode(""); }}
                       required
                       className="pl-9"
                       autoFocus
@@ -1435,7 +1458,7 @@ export default function TeamManagementPage() {
                 </div>
 
                 {/* Custom Personal Note */}
-                <div className="space-y-1.5">
+                {accountCreationMode === "invite" && <div className="space-y-1.5">
                   <Label htmlFor="customMsg" className="text-xs font-semibold">
                     Personal Message <span className="text-muted-foreground text-[11px] font-normal">(Optional)</span>
                   </Label>
@@ -1447,10 +1470,14 @@ export default function TeamManagementPage() {
                     onChange={(e) => setInviteCustomMessage(e.target.value)}
                     className="w-full p-2.5 text-xs rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                   />
-                </div>
+                </div>}
+
+                {accountCreationMode === "password" && <div className="grid grid-cols-2 gap-3"><div className="space-y-1.5"><Label htmlFor="directPassword" className="text-xs font-semibold">Password *</Label><Input id="directPassword" type="password" required value={directPassword} onChange={e=>setDirectPassword(e.target.value)}/></div><div className="space-y-1.5"><Label htmlFor="directPasswordConfirm" className="text-xs font-semibold">Confirm password *</Label><Input id="directPasswordConfirm" type="password" required value={directPasswordConfirm} onChange={e=>setDirectPasswordConfirm(e.target.value)}/></div><p className="col-span-2 text-[11px] text-muted-foreground">At least 8 characters with uppercase, lowercase, number, and special character.</p></div>}
+
+                {accountCreationMode === "password" && <div className="p-3.5 rounded-xl border border-primary/20 bg-primary/5 space-y-2"><Label htmlFor="directVerificationCode" className="text-xs font-semibold">Email verification code *</Label><div className="flex gap-2"><Input id="directVerificationCode" inputMode="numeric" maxLength={6} value={verificationCode} onChange={e=>setVerificationCode(e.target.value.replace(/\D/g, "").slice(0,6))} placeholder="000000" className="font-mono tracking-[0.3em] text-center"/><Button type="button" variant="secondary" size="sm" disabled={sendingVerificationCode || !inviteEmail.includes("@") || verificationCodeSent} onClick={handleSendVerificationCode}>{sendingVerificationCode ? <Loader2 className="w-4 h-4 animate-spin"/> : verificationCodeSent ? "Code sent" : "Send code"}</Button></div><p className="text-[11px] text-muted-foreground">The one-time code is sent to the new member and expires after 15 minutes. Ask them for the code before creating the account.</p></div>}
 
                 {/* Checkbox: Dispatch Email */}
-                <div className="flex items-center gap-2 pt-1">
+                {accountCreationMode === "invite" && <div className="flex items-center gap-2 pt-1">
                   <input
                     type="checkbox"
                     id="sendMailCheck"
@@ -1461,7 +1488,7 @@ export default function TeamManagementPage() {
                   <label htmlFor="sendMailCheck" className="text-xs font-medium text-foreground cursor-pointer">
                     Automatically dispatch invitation email via Resend
                   </label>
-                </div>
+                </div>}
               </CardContent>
 
               <div className="p-4 bg-muted/40 border-t border-border flex items-center justify-end gap-2.5">
@@ -1475,19 +1502,19 @@ export default function TeamManagementPage() {
                 </Button>
                 <Button
                   type="submit"
-                  disabled={submittingInvite}
+                  disabled={submittingInvite || (accountCreationMode === "password" && (!verificationCodeSent || verificationCode.length !== 6))}
                   size="sm"
                   className="font-semibold shadow-md"
                 >
                   {submittingInvite ? (
                     <>
                       <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />
-                      Creating Invitation...
+                      {accountCreationMode === "invite" ? "Creating Invitation..." : "Creating Account..."}
                     </>
                   ) : (
                     <>
-                      <Send className="w-3.5 h-3.5 mr-1.5" />
-                      Dispatch Invitation
+                      {accountCreationMode === "invite" ? <Send className="w-3.5 h-3.5 mr-1.5" /> : <Lock className="w-3.5 h-3.5 mr-1.5" />}
+                      {accountCreationMode === "invite" ? "Dispatch Invitation" : "Create Account"}
                     </>
                   )}
                 </Button>

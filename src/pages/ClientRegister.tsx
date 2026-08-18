@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
 import { useLanguage } from "../contexts/LanguageContext";
 import { usePageTitle } from "../hooks/usePageTitle";
 import { Button } from "../components/ui/Button";
@@ -22,6 +23,7 @@ import {
   Gift,
   Tag,
   Check
+  ,Lock
 } from "lucide-react";
 
 interface PropertyInputItem {
@@ -32,10 +34,15 @@ interface PropertyInputItem {
 
 export default function ClientRegister() {
   const { tUi } = useLanguage();
+  const { login } = useAuth();
+  const navigate = useNavigate();
   usePageTitle(tUi("auth.client_register.title") || "Register for Client Portal | SPS Studio");
   const [searchParams] = useSearchParams();
 
   const [email, setEmail] = useState("");
+  const [registrationMethod, setRegistrationMethod] = useState<"password" | "magic_link">("password");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [referralCode, setReferralCode] = useState(
     searchParams.get("ref") || searchParams.get("referral") || searchParams.get("referral_code") || ""
   );
@@ -124,6 +131,13 @@ export default function ClientRegister() {
       setError("Please enter a valid email address.");
       return;
     }
+    if (registrationMethod === "password") {
+      if (password.length < 8 || !/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/\d/.test(password) || !/[^A-Za-z0-9]/.test(password)) {
+        setError("A jelszó legalább 8 karakteres legyen, és tartalmazzon kis- és nagybetűt, számot és speciális karaktert.");
+        return;
+      }
+      if (password !== confirmPassword) { setError("A két jelszó nem egyezik."); return; }
+    }
 
     const validProps = properties
       .map(p => ({
@@ -141,12 +155,12 @@ export default function ClientRegister() {
     setError("");
 
     try {
-      const res = await fetch("/api/auth/magic-link", {
+      const res = await fetch(registrationMethod === "password" ? "/api/auth/register" : "/api/auth/magic-link", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
           email: email.trim(), 
-          type: "signup",
+          type: "signup", password: registrationMethod === "password" ? password : undefined,
           property_address: validProps.length > 0 ? validProps[0].address : undefined,
           properties: validProps.length > 0 ? validProps : undefined,
           referral_code: referralCode.trim() || undefined
@@ -155,9 +169,10 @@ export default function ClientRegister() {
 
       const data = await res.json();
 
-      if (res.ok && data.success) {
-        setSentSuccess(true);
-        setCooldown(60); // 60s cooldown for resending
+      if (res.ok && (data.success || data.token)) {
+        if (registrationMethod === "password" && data.token) {
+          login(data.token, data.user); navigate("/client", { replace: true });
+        } else { setSentSuccess(true); setCooldown(60); }
       } else {
         setError(data.error || "Failed to send registration link. Please try again.");
       }
@@ -219,6 +234,10 @@ export default function ClientRegister() {
           <CardDescription>
             {tUi("auth.client_register.subtitle") || "Access your property photos, media delivery, and downloads."}
           </CardDescription>
+          <div className="grid grid-cols-2 gap-1 rounded-xl bg-muted/50 border border-border p-1 text-xs">
+            <button type="button" onClick={() => { setRegistrationMethod("password"); setError(""); }} className={`rounded-lg px-3 py-2 transition ${registrationMethod === "password" ? "bg-background text-text shadow-sm font-semibold" : "text-muted-text"}`}><Lock className="inline w-3.5 h-3.5 mr-1.5"/>Jelszóval</button>
+            <button type="button" onClick={() => { setRegistrationMethod("magic_link"); setError(""); }} className={`rounded-lg px-3 py-2 transition ${registrationMethod === "magic_link" ? "bg-background text-text shadow-sm font-semibold" : "text-muted-text"}`}><Sparkles className="inline w-3.5 h-3.5 mr-1.5"/>Magic linkkel</button>
+          </div>
 
           {/* Referral Welcome Banner if valid code */}
           {referralInfo?.valid && (
@@ -336,10 +355,10 @@ export default function ClientRegister() {
                   />
                   <Mail className="w-4 h-4 text-muted-text absolute left-3 top-2.5" />
                 </div>
-                <p className="text-[11px] text-muted-text">
-                  No password required. We'll send you a passwordless magic link to verify and sign in instantly.
-                </p>
+                <p className="text-[11px] text-muted-text">{registrationMethod === "password" ? "Ezzel az email-címmel és jelszóval később közvetlenül bejelentkezhetsz." : "Jelszó nélkül egy egyszer használható belépési linket küldünk emailben."}</p>
               </div>
+
+              {registrationMethod === "password" && <div className="grid sm:grid-cols-2 gap-3"><div className="space-y-1.5"><Label htmlFor="register-password" className="text-xs font-medium">Jelszó *</Label><div className="relative"><Input id="register-password" type="password" required value={password} onChange={e=>setPassword(e.target.value)} className="pl-9"/><Lock className="w-4 h-4 text-muted-text absolute left-3 top-2.5"/></div></div><div className="space-y-1.5"><Label htmlFor="register-password-confirm" className="text-xs font-medium">Jelszó ismétlése *</Label><div className="relative"><Input id="register-password-confirm" type="password" required value={confirmPassword} onChange={e=>setConfirmPassword(e.target.value)} className="pl-9"/><Lock className="w-4 h-4 text-muted-text absolute left-3 top-2.5"/></div></div><p className="sm:col-span-2 text-[11px] text-muted-text">Legalább 8 karakter, kis- és nagybetű, szám és speciális karakter szükséges.</p></div>}
 
               {/* Referral Code input toggle */}
               <div className="space-y-1.5">
@@ -457,7 +476,7 @@ export default function ClientRegister() {
               <div className="p-3 rounded-lg bg-muted/30 border border-border/40 flex items-start gap-2.5 text-xs text-muted-text">
                 <ShieldCheck className="w-4 h-4 text-primary shrink-0 mt-0.5" />
                 <span>
-                  Single-use, time-limited magic links ensure fast and secure access without password vulnerabilities.
+                  {registrationMethod === "password" ? "A jelszót biztonságos bcrypt hash formájában tároljuk; az eredeti jelszó nem kerül az adatbázisba." : "Az egyszer használható, időkorlátos magic link gyors és biztonságos hozzáférést biztosít."}
                 </span>
               </div>
             </CardContent>
@@ -471,12 +490,12 @@ export default function ClientRegister() {
                 {loading ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Sending Magic Link...</span>
+                    <span>{registrationMethod === "password" ? "Fiók létrehozása..." : "Magic link küldése..."}</span>
                   </>
                 ) : (
                   <>
-                    <Sparkles className="w-4 h-4" />
-                    <span>Send Magic Sign-Up Link</span>
+                    {registrationMethod === "password" ? <Lock className="w-4 h-4" /> : <Sparkles className="w-4 h-4" />}
+                    <span>{registrationMethod === "password" ? "Regisztráció jelszóval" : "Regisztrációs magic link küldése"}</span>
                   </>
                 )}
               </Button>

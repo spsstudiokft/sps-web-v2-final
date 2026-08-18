@@ -504,6 +504,7 @@ export interface EmailTemplate {
   body_text: string;
   available_tokens: EmailTemplateToken[];
   sample_data: Record<string, any>;
+  token_defaults?: Record<string, string>;
   version: number;
   is_customized: boolean;
   last_updated_at: string;
@@ -700,4 +701,3 @@ export interface AdminReferralStats {
   totalReferredRevenue: number;
   activeReferrersCount: number;
 }
-

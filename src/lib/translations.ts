@@ -1,6 +1,7 @@
 import { newKeysTranslations } from "./newKeysTranslations";
 import { financialTranslations } from "./financialTranslations";
 import { clientPortalTranslations } from "./clientPortalTranslations";
+import { contactTravelTranslations } from "./contactTravelTranslations";
 
 export const enTranslations: Record<string, string> = {
   "About": "About",
@@ -8567,4 +8568,5 @@ Object.assign(enTranslations, clientPortalTranslations.en);
 for (const locale of ["en", "hu", "de", "es", "fr"] as const) {
   if (defaultLocales[locale]) Object.assign(defaultLocales[locale], clientPortalTranslations[locale]);
   if (defaultLocales[locale]) Object.assign(defaultLocales[locale], financialTranslations[locale]);
+  if (defaultLocales[locale]) Object.assign(defaultLocales[locale], contactTravelTranslations[locale]);
 }

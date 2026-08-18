@@ -672,6 +672,10 @@ router.post("/auth/register", async (req, res) => {
       });
     }
 
+    if (typeof password !== "string" || password.length < 8 || !/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/\d/.test(password) || !/[^A-Za-z0-9]/.test(password)) {
+      return res.status(400).json({ error: "Password must be at least 8 characters and include uppercase, lowercase, a number, and a special character." });
+    }
+
     const existing = await db.execute({
       sql: "SELECT id FROM users WHERE email = ?",
       args: [cleanEmail]
@@ -1209,6 +1213,41 @@ router.get("/public/fee-rules", async (req, res) => {
   } catch (error) {
     console.error("Fee rules fetch error:", error);
     res.json([]);
+  }
+});
+
+const travelDistanceCache = new Map<string, { expires: number; data: any }>();
+const travelRateLimit = new Map<string, number>();
+router.get("/public/travel-distance", async (req, res) => {
+  try {
+    const city = String(req.query.city || "").trim().replace(/\s+/g, " ");
+    if (city.length < 2 || city.length > 100) return res.status(400).json({ error: "Enter a valid city name." });
+    const cacheKey = city.toLocaleLowerCase("hu-HU");
+    const cached = travelDistanceCache.get(cacheKey);
+    if (cached && cached.expires > Date.now()) return res.json(cached.data);
+    const ip = String((req.headers["x-forwarded-for"] as string)?.split(",")[0] || req.socket.remoteAddress || "unknown");
+    const lastRequest = travelRateLimit.get(ip) || 0;
+    if (Date.now() - lastRequest < 1200) return res.status(429).json({ error: "Please wait before calculating another city." });
+    travelRateLimit.set(ip, Date.now());
+    const userAgent = `SPSStudioTravelCalculator/1.0 (${process.env.CONTACT_EMAIL || "contact@spsstudio.hu"})`;
+    const geoResponse = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=hu&city=${encodeURIComponent(city)}`, { headers: { "User-Agent": userAgent, "Accept-Language": "hu,en" }, signal: AbortSignal.timeout(8000) });
+    if (!geoResponse.ok) throw new Error(`Geocoding service returned ${geoResponse.status}`);
+    const places: any[] = await geoResponse.json();
+    if (!places.length) return res.status(404).json({ error: "The city could not be found in Hungary." });
+    const destination = { lat: Number(places[0].lat), lon: Number(places[0].lon) };
+    const studio = { lat: 46.4167, lon: 20.3333 };
+    const routeResponse = await fetch(`https://router.project-osrm.org/route/v1/driving/${studio.lon},${studio.lat};${destination.lon},${destination.lat}?overview=false&alternatives=false&steps=false`, { headers: { "User-Agent": userAgent }, signal: AbortSignal.timeout(10000) });
+    if (!routeResponse.ok) throw new Error(`Routing service returned ${routeResponse.status}`);
+    const routeData: any = await routeResponse.json();
+    const meters = Number(routeData?.routes?.[0]?.distance);
+    if (!Number.isFinite(meters)) return res.status(502).json({ error: "No driving route was found for this city." });
+    const oneWayKm = Math.round((meters / 1000) * 10) / 10;
+    const data = { origin: "Hódmezővásárhely", destination: places[0].display_name, city, oneWayKm, roundTripKm: Math.round(oneWayKm * 2 * 10) / 10 };
+    travelDistanceCache.set(cacheKey, { expires: Date.now() + 24 * 60 * 60 * 1000, data });
+    res.json(data);
+  } catch (error: any) {
+    console.error("Travel distance calculation failed:", error);
+    res.status(502).json({ error: "The route distance is temporarily unavailable. Please try again." });
   }
 });
 

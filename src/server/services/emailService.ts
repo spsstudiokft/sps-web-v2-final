@@ -861,6 +861,39 @@ export const DEFAULT_EMAIL_TEMPLATES: Record<string, {
     }
   },
 
+  admin_account_verification_code: {
+    template_key: "admin_account_verification_code",
+    name: "Admin Account Verification Code",
+    category: "auth",
+    description: "Sent to a prospective admin-panel team member when direct password account creation requires email verification.",
+    subject: "Your {{studio_name}} admin account verification code",
+    body_html: `
+<p style="color:#1e293b;font-size:15px;line-height:1.6;margin:0 0 16px">
+  Hello <strong>{{recipient_name}}</strong>,
+</p>
+<p style="color:#334155;font-size:15px;line-height:1.6;margin:0 0 20px">
+  An administrator has started creating a direct password account for you in the <strong>{{studio_name}}</strong> management portal.
+</p>
+<div style="background:#f8fafc;border:1px solid #cbd5e1;border-radius:12px;padding:22px;margin:24px 0;text-align:center">
+  <div style="font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:#64748b;font-weight:700;margin-bottom:10px">One-time verification code</div>
+  <div style="font-size:34px;line-height:1;font-weight:800;letter-spacing:9px;color:#0f172a;font-family:monospace">{{verification_code}}</div>
+</div>
+<p style="color:#475569;font-size:14px;line-height:1.6;margin:0 0 18px">
+  Give this code only to the administrator completing your account registration. It expires in <strong>{{expires_in_minutes}} minutes</strong> and can be used once.
+</p>
+<div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:14px;margin-top:20px;color:#9a3412;font-size:13px;line-height:1.5">
+  <strong>Security notice:</strong> If you did not expect this invitation, do not share the code. No account can be created through this flow without it.
+</div>`.trim(),
+    body_text: `Hello {{recipient_name}},\n\nYour {{studio_name}} admin account verification code is: {{verification_code}}\n\nIt expires in {{expires_in_minutes}} minutes and can be used once. If you did not expect this invitation, do not share the code.`.trim(),
+    available_tokens: [
+      { token: "{{recipient_name}}", label: "Recipient Name", description: "Name inferred from the recipient email", example: "Alex" },
+      { token: "{{verification_code}}", label: "Verification Code", description: "Random one-time six-digit security code", example: "482731" },
+      { token: "{{expires_in_minutes}}", label: "Expiration Minutes", description: "Number of minutes before the code expires", example: "15" },
+      { token: "{{studio_name}}", label: "Studio Name", description: "Configured studio or brand name", example: "SPS Studio" }
+    ],
+    sample_data: { recipient_name: "Alex", verification_code: "482731", expires_in_minutes: "15", studio_name: "SPS Studio" }
+  },
+
   test_email: {
     template_key: "test_email",
     name: "Deliverability & Integration Test",
@@ -1848,7 +1881,8 @@ export function interpolateTemplateTokens(
 export function wrapInEmailLayout(
   bodyHtml: string,
   title: string,
-  config: EmailSenderConfig
+  config: EmailSenderConfig,
+  layoutText: Record<string, any> = {}
 ): string {
   // If the user already provided a full HTML document, return sanitized version
   if (/<!DOCTYPE\s+html/i.test(bodyHtml) || /<html\b[^>]*>/i.test(bodyHtml)) {
@@ -1857,7 +1891,12 @@ export function wrapInEmailLayout(
 
   const currentYear = new Date().getFullYear();
   const studioName = config.studioName || "SPS Studio";
-  const footerNotice = config.footerText || `${studioName} · All rights reserved.`;
+  const escapeLayoutText = (value: any) => String(value ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  const renderLayoutText = (value: any) => escapeLayoutText(interpolateTemplateTokens(String(value ?? ""), layoutText, config));
+  const headerTitle = renderLayoutText(layoutText.header_title || studioName);
+  const headerSubtitle = renderLayoutText(layoutText.header_subtitle || "Visual Marketing & Photography");
+  const footerNotice = renderLayoutText(layoutText.footer_text || config.footerText || `${studioName} · All rights reserved.`);
+  const footerServiceText = renderLayoutText(layoutText.footer_service_text || `Sent securely via Resend Email Service · © ${currentYear} ${studioName}`);
 
   const brandDark = "#0f172a";
   const brandAccent = "#3b82f6";
@@ -1875,7 +1914,7 @@ export function wrapInEmailLayout(
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="color-scheme" content="light only">
   <meta name="supported-color-schemes" content="light only">
-  <title>${title}</title>
+  <title>${studioName}</title>
   <style>
     body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
     table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
@@ -1905,10 +1944,10 @@ export function wrapInEmailLayout(
                 <tr>
                   <td align="center">
                     <div style="color: #ffffff; font-size: 22px; font-weight: 700; letter-spacing: -0.02em; text-transform: uppercase;">
-                      ${studioName}
+                      ${headerTitle}
                     </div>
                     <div style="color: #94a3b8; font-size: 11px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; margin-top: 4px;">
-                      Visual Marketing & Photography
+                      ${headerSubtitle}
                     </div>
                   </td>
                 </tr>
@@ -1919,9 +1958,6 @@ export function wrapInEmailLayout(
           <!-- Main Content -->
           <tr>
             <td class="email-content" style="padding: 36px 32px 32px 32px;">
-              <h1 style="color: ${textDark}; font-size: 20px; font-weight: 700; margin: 0 0 20px 0; letter-spacing: -0.01em;">
-                ${title}
-              </h1>
               ${bodyHtml}
             </td>
           </tr>
@@ -1933,7 +1969,7 @@ export function wrapInEmailLayout(
                 ${footerNotice}
               </p>
               <p style="color: #94a3b8; font-size: 11px; margin: 0;">
-                Sent securely via Resend Email Service · © ${currentYear} ${studioName}
+                ${footerServiceText}
               </p>
             </td>
           </tr>
@@ -1976,6 +2012,8 @@ export async function getAllEmailTemplates(): Promise<EmailTemplate[]> {
       try {
         if (custom.sample_data) parsedSample = JSON.parse(custom.sample_data);
       } catch {}
+      let parsedDefaults: Record<string, string> = {};
+      try { if (custom.token_defaults) parsedDefaults = JSON.parse(custom.token_defaults); } catch {}
 
       resultList.push({
         id: custom.id,
@@ -1988,6 +2026,7 @@ export async function getAllEmailTemplates(): Promise<EmailTemplate[]> {
         body_text: custom.body_text || defaultDef.body_text,
         available_tokens: parsedTokens,
         sample_data: parsedSample,
+        token_defaults: parsedDefaults,
         version: Number(custom.version) || 1,
         is_customized: Boolean(custom.is_customized),
         last_updated_at: custom.last_updated_at || new Date().toISOString(),
@@ -2025,8 +2064,10 @@ export async function getAllEmailTemplates(): Promise<EmailTemplate[]> {
     if (DEFAULT_EMAIL_TEMPLATES[key] || custom.category !== "marketing") continue;
     let parsedTokens: EmailTemplateToken[] = [];
     let parsedSample: Record<string, any> = {};
+    let parsedDefaults: Record<string, string> = {};
     try { parsedTokens = JSON.parse((custom.available_tokens as string) || "[]"); } catch {}
     try { parsedSample = JSON.parse((custom.sample_data as string) || "{}"); } catch {}
+    try { parsedDefaults = JSON.parse((custom.token_defaults as string) || "{}"); } catch {}
     resultList.push({
       id: custom.id as string,
       template_key: key,
@@ -2038,6 +2079,7 @@ export async function getAllEmailTemplates(): Promise<EmailTemplate[]> {
       body_text: (custom.body_text as string) || "",
       available_tokens: parsedTokens,
       sample_data: parsedSample,
+      token_defaults: parsedDefaults,
       version: Number(custom.version) || 1,
       is_customized: true,
       last_updated_at: (custom.last_updated_at as string) || new Date().toISOString(),
@@ -2073,6 +2115,8 @@ export async function getEmailTemplateByKey(key: string): Promise<EmailTemplate 
       try {
         if (row.sample_data) parsedSample = JSON.parse(row.sample_data as string);
       } catch {}
+      let parsedDefaults: Record<string, string> = {};
+      try { if (row.token_defaults) parsedDefaults = JSON.parse(row.token_defaults as string); } catch {}
 
       return {
         id: row.id as string,
@@ -2085,6 +2129,7 @@ export async function getEmailTemplateByKey(key: string): Promise<EmailTemplate 
         body_text: (row.body_text as string) || defaultDef?.body_text || "",
         available_tokens: parsedTokens,
         sample_data: parsedSample,
+        token_defaults: parsedDefaults,
         version: Number(row.version) || 1,
         is_customized: Boolean(row.is_customized),
         last_updated_at: (row.last_updated_at as string) || new Date().toISOString(),
@@ -2130,6 +2175,7 @@ export async function saveCustomEmailTemplate(
     subject: string;
     body_html: string;
     body_text: string;
+    token_defaults?: Record<string, string>;
     updated_by?: string;
   }
 ): Promise<EmailTemplate> {
@@ -2141,6 +2187,8 @@ export async function saveCustomEmailTemplate(
   const cleanText = data.body_text.trim();
   const updatedBy = data.updated_by || "admin";
   const now = new Date().toISOString();
+  try { await db.execute("ALTER TABLE email_templates ADD COLUMN token_defaults TEXT NOT NULL DEFAULT '{}'"); } catch {}
+  const cleanTokenDefaults = Object.fromEntries(Object.entries(data.token_defaults || {}).filter(([key, value]) => key && typeof value === "string").map(([key, value]) => [key, value.slice(0, 10000)]));
 
   // Check existing
   const existing = await db.execute({
@@ -2161,15 +2209,15 @@ export async function saveCustomEmailTemplate(
     currentVersion = (Number(existing.rows[0].version) || 1) + 1;
     await db.execute({
       sql: `UPDATE email_templates 
-            SET subject = ?, body_html = ?, body_text = ?, version = ?, is_customized = 1, last_updated_at = ?, updated_by = ?
+            SET subject = ?, body_html = ?, body_text = ?, token_defaults = ?, version = ?, is_customized = 1, last_updated_at = ?, updated_by = ?
             WHERE template_key = ?`,
-      args: [cleanSubject, cleanHtml, cleanText, currentVersion, now, updatedBy, normalizedKey]
+      args: [cleanSubject, cleanHtml, cleanText, JSON.stringify(cleanTokenDefaults), currentVersion, now, updatedBy, normalizedKey]
     });
   } else {
     await db.execute({
       sql: `INSERT INTO email_templates 
-            (id, template_key, name, category, description, subject, body_html, body_text, available_tokens, sample_data, version, is_customized, last_updated_at, updated_by)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 1, ?, ?)`,
+            (id, template_key, name, category, description, subject, body_html, body_text, available_tokens, sample_data, token_defaults, version, is_customized, last_updated_at, updated_by)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 1, ?, ?)`,
       args: [
         templateId,
         normalizedKey,
@@ -2181,6 +2229,7 @@ export async function saveCustomEmailTemplate(
         cleanText,
         JSON.stringify(defaultDef!.available_tokens),
         JSON.stringify(defaultDef!.sample_data),
+        JSON.stringify(cleanTokenDefaults),
         now,
         updatedBy
       ]
@@ -2230,11 +2279,12 @@ export async function generateEmailFromTemplate(
   const bodyTextTemplate = template?.body_text || defaultDef.body_text;
   const title = template?.name || defaultDef.name;
 
-  const renderedSubject = interpolateTemplateTokens(subjectTemplate, tokens, config);
-  const renderedInnerHtml = interpolateTemplateTokens(bodyHtmlTemplate, tokens, config);
-  const renderedText = interpolateTemplateTokens(bodyTextTemplate, tokens, config);
+  const resolvedTokens = { ...(template?.token_defaults || {}), ...tokens };
+  const renderedSubject = interpolateTemplateTokens(subjectTemplate, resolvedTokens, config);
+  const renderedInnerHtml = interpolateTemplateTokens(bodyHtmlTemplate, resolvedTokens, config);
+  const renderedText = interpolateTemplateTokens(bodyTextTemplate, resolvedTokens, config);
 
-  const fullHtml = wrapInEmailLayout(renderedInnerHtml, title, config);
+  const fullHtml = wrapInEmailLayout(renderedInnerHtml, title, config, resolvedTokens);
 
   return {
     html: fullHtml,
