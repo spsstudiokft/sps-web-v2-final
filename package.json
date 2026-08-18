@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx server.ts",
-    "build": "vite build && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs",
+    "build": "vite build && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --minify --legal-comments=none --sourcemap --outfile=dist/server.cjs",
     "start": "node dist/server.cjs",
     "migrate:translations": "tsx scripts/migrate-translations.ts",
     "audit:i18n": "tsx scripts/audit-i18n.ts"
