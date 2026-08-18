@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 import crypto from "crypto";
 import sharp from "sharp";
+import os from "node:os";
 import { uploadMedia, deleteMedia } from "../storage/index.js";
 import { db } from "../../db.js";
 
@@ -220,8 +221,8 @@ export async function processStructuredMediaUpload({
   itemNumber?: number | string;
   mediaProvider?: string;
 }): Promise<ProcessedMediaResult> {
-  const UPLOADS_TEMP_DIR = path.join(process.cwd(), "uploads", "temp");
-  const UPLOADS_DIR = path.join(process.cwd(), "uploads");
+  const UPLOADS_TEMP_DIR = process.env.VERCEL === "1" ? path.join(os.tmpdir(), "sps-upload-temp") : path.join(process.cwd(), "uploads", "temp");
+  const UPLOADS_DIR = process.env.VERCEL === "1" ? path.join(os.tmpdir(), "sps-uploads") : path.join(process.cwd(), "uploads");
 
   if (!fs.existsSync(UPLOADS_TEMP_DIR)) {
     fs.mkdirSync(UPLOADS_TEMP_DIR, { recursive: true });
@@ -469,7 +470,7 @@ export async function restructureSingleMediaItem({
   compressedCreated: boolean;
   error?: string;
 }> {
-  const UPLOADS_TEMP_DIR = path.join(process.cwd(), "uploads", "temp");
+  const UPLOADS_TEMP_DIR = process.env.VERCEL === "1" ? path.join(os.tmpdir(), "sps-upload-temp") : path.join(process.cwd(), "uploads", "temp");
   if (!fs.existsSync(UPLOADS_TEMP_DIR)) {
     fs.mkdirSync(UPLOADS_TEMP_DIR, { recursive: true });
   }

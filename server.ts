@@ -2,6 +2,7 @@ import "dotenv/config";
 import express from "express";
 import path from "path";
 import fs from "fs";
+import os from "node:os";
 import { createServer as createViteServer } from "vite";
 import { setupDatabase } from "./src/db.js";
 import apiRouter from "./src/server/api.js";
@@ -17,7 +18,7 @@ async function startServer() {
   app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 
   // Ensure uploads directory exists and serve static uploaded media files with byte-range streaming & caching
-  const uploadsDir = path.join(process.cwd(), "uploads");
+  const uploadsDir = process.env.VERCEL === "1" ? path.join(os.tmpdir(), "sps-uploads") : path.join(process.cwd(), "uploads");
   if (!fs.existsSync(uploadsDir)) {
     fs.mkdirSync(uploadsDir, { recursive: true });
   }

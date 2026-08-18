@@ -1,10 +1,12 @@
 import fs from "fs";
 import path from "path";
 import crypto from "crypto";
+import os from "node:os";
 import { uploadToR2, deleteFromR2 } from "./r2.js";
 import { uploadToAppwrite, deleteFromAppwrite } from "./appwrite.js";
 
-const UPLOADS_DIR = path.join(process.cwd(), "uploads");
+const IS_SERVERLESS = process.env.VERCEL === "1";
+const UPLOADS_DIR = IS_SERVERLESS ? path.join(os.tmpdir(), "sps-uploads") : path.join(process.cwd(), "uploads");
 if (!fs.existsSync(UPLOADS_DIR)) {
   fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 }
@@ -14,6 +16,7 @@ export async function uploadMedia(file: Express.Multer.File, provider: string) {
     try {
       return await uploadToAppwrite(file);
     } catch (err: any) {
+      if (IS_SERVERLESS) throw err;
       console.warn("Appwrite upload failed or unconfigured, falling back to local disk storage:", err.message);
       return saveToLocalStorage(file);
     }
@@ -21,10 +24,12 @@ export async function uploadMedia(file: Express.Multer.File, provider: string) {
     try {
       return await uploadToR2(file);
     } catch (err: any) {
+      if (IS_SERVERLESS) throw err;
       console.warn("R2 upload failed or unconfigured, falling back to local disk storage:", err.message);
       return saveToLocalStorage(file);
     }
   } else {
+    if (IS_SERVERLESS) throw new Error("Local media storage is unavailable on Vercel. Configure Appwrite or R2.");
     return saveToLocalStorage(file);
   }
 }
@@ -77,4 +82,3 @@ export async function deleteMedia(fileKey: string, bucket: string, provider: str
     console.warn(`Unknown provider ${provider} when attempting to delete media.`);
   }
 }
-

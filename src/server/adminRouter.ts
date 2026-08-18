@@ -3,6 +3,7 @@ import crypto from "crypto";
 import multer from "multer";
 import fs from "fs";
 import path from "path";
+import os from "node:os";
 import bcrypt from "bcryptjs";
 import { db } from "../db.js";
 import { uploadMedia, deleteMedia } from "./storage/index.js";
@@ -55,7 +56,9 @@ function isValidUrl(urlStr?: string | null): boolean {
 }
 
 // Prepare disk storage for temp upload streams (supports up to 10GB uploads without crashing RAM)
-const UPLOAD_TEMP_DIR = path.join(process.cwd(), "uploads", "temp");
+const UPLOAD_TEMP_DIR = process.env.VERCEL === "1"
+  ? path.join(os.tmpdir(), "sps-upload-temp")
+  : path.join(process.cwd(), "uploads", "temp");
 if (!fs.existsSync(UPLOAD_TEMP_DIR)) {
   fs.mkdirSync(UPLOAD_TEMP_DIR, { recursive: true });
 }

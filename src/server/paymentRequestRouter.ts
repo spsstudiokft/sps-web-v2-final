@@ -3,6 +3,7 @@ import crypto from "crypto";
 import path from "path";
 import fs from "fs";
 import multer from "multer";
+import os from "node:os";
 import { db } from "../db.js";
 import {
   sendPaymentRequestCreatedEmail,
@@ -367,7 +368,9 @@ paymentRequestRouter.use(async (_req, _res, next) => {
 });
 
 // Prepare disk storage for payment request receipt/document uploads
-const UPLOAD_DIR = path.join(process.cwd(), "uploads", "payment-requests");
+const UPLOAD_DIR = process.env.VERCEL === "1"
+  ? path.join(os.tmpdir(), "sps-payment-requests")
+  : path.join(process.cwd(), "uploads", "payment-requests");
 if (!fs.existsSync(UPLOAD_DIR)) {
   fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 }
