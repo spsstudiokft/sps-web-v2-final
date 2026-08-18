@@ -5,7 +5,7 @@ import fs from "fs";
 import os from "node:os";
 import { createServer as createViteServer } from "vite";
 import { setupDatabase } from "./src/db.js";
-import apiRouter from "./src/server/api.js";
+import apiRouter from "./src/server/fullApiRouter.js";
 import { processDueGoogleReviewCampaigns } from "./src/server/services/googleReviewService.js";
 
 const PORT = Number.parseInt(process.env.PORT || "3000", 10);

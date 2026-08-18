@@ -13,10 +13,6 @@ import { translationService } from "./services/translationService.js";
 import { getAllLegalDocuments, saveLegalDocument } from "./services/legalDocumentService.js";
 import { scheduleGoogleReviewCampaign } from "./services/googleReviewService.js";
 import { getAppUrl } from "./appUrl.js";
-import budgetRouter from "./budgetRouter.js";
-import { invoiceRouter } from "./invoiceRouter.js";
-import { paymentRequestRouter } from "./paymentRequestRouter.js";
-import { referralRouter } from "./referralRouter.js";
 import { 
   processStructuredMediaUpload,
   validateStructuredFilename,
@@ -96,12 +92,6 @@ function validateMultipartReference(fileKey: unknown, uploadId: unknown) {
   }
   return { key, id };
 }
-
-// Mount Budget Manager sub-router
-adminRouter.use("/budgets", budgetRouter);
-adminRouter.use("/invoices", invoiceRouter);
-adminRouter.use("/payment-requests", paymentRequestRouter);
-adminRouter.use("/referrals", referralRouter);
 
 // Vercel-safe R2 multipart upload. File bytes travel from the browser directly
 // to R2; the serverless function only signs and finalizes the upload.

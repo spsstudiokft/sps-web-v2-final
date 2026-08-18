@@ -3,8 +3,6 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import { db } from "../db.js";
-import adminRouter from "./adminRouter.js";
-import clientRouter from "./clientRouter.js";
 import { publicInvoiceRouter } from "./invoiceRouter.js";
 import { publicReferralRouter } from "./referralRouter.js";
 import { 
@@ -22,6 +20,7 @@ import {
   sendMagicLinkEmail,
   getEmailSenderConfig 
 } from "./services/emailService.js";
+export { requireAuth, requireAdmin, requireClient } from "./authMiddleware.js";
 
 const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET || "supersecretjwtstring";
@@ -37,109 +36,6 @@ router.get("/public/google-review/:token", async (req, res) => {
     return res.redirect(302, "/");
   }
 });
-
-// Middleware to protect admin and authenticated routes
-export const requireAuth = (req: any, res: any, next: any) => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || typeof authHeader !== "string") {
-    return res.status(401).json({ error: "Unauthorized: No token provided" });
-  }
-
-  const parts = authHeader.trim().split(/\s+/);
-  let token = "";
-  if (parts.length >= 2 && parts[0].toLowerCase() === "bearer") {
-    token = parts[1].trim();
-  } else if (parts.length === 1 && parts[0] && !parts[0].toLowerCase().startsWith("bearer")) {
-    token = parts[0].trim();
-  }
-
-  if (
-    !token ||
-    token === "null" ||
-    token === "undefined" ||
-    token === "false" ||
-    token === "[object Object]"
-  ) {
-    return res.status(401).json({ error: "Unauthorized: No token provided" });
-  }
-
-  // A valid JWT must consist of three period-separated base64url segments
-  const segments = token.split(".");
-  if (segments.length !== 3 || !segments[0] || !segments[1] || !segments[2]) {
-    return res.status(401).json({ error: "Unauthorized: Invalid token format" });
-  }
-
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET);
-    req.user = decoded;
-    next();
-  } catch (error: any) {
-    if (error.name === "TokenExpiredError") {
-      return res.status(401).json({ error: "Unauthorized: Session expired. Please log in again." });
-    }
-    return res.status(401).json({ error: "Unauthorized: Invalid or expired token" });
-  }
-};
-
-
-export const requireAdmin = (req: any, res: any, next: any) => {
-  requireAuth(req, res, async () => {
-    if (req.user.role !== 'admin' && req.user.role !== 'editor' && req.user.role !== 'viewer' && req.user.role !== 'superadmin') {
-      return res.status(403).json({ error: "Forbidden: Admin access required" });
-    }
-    // Verify user is active in DB and has valid admin privileges
-    try {
-      const userCheck = await db.execute({
-        sql: "SELECT is_active, role FROM users WHERE id = ?",
-        args: [req.user.id]
-      });
-      if (userCheck.rows.length === 0 || userCheck.rows[0].is_active === 0) {
-        return res.status(403).json({ error: "Forbidden: Account is disabled" });
-      }
-      const dbRole = (userCheck.rows[0].role as string) || req.user.role;
-      if (dbRole !== 'admin' && dbRole !== 'editor' && dbRole !== 'viewer' && dbRole !== 'superadmin') {
-        return res.status(403).json({ error: "Forbidden: Admin access required" });
-      }
-    } catch (e) {}
-    next();
-  });
-};
-
-
-export const requireClient = (req: any, res: any, next: any) => {
-  requireAuth(req, res, async () => {
-    if (req.user.role !== 'client' && req.user.role !== 'admin') {
-      return res.status(403).json({ error: "Forbidden: Client access required" });
-    }
-
-    // Verify client user is active in DB and associated customer is not inactive
-    try {
-      const userCheck = await db.execute({
-        sql: "SELECT is_active, email FROM users WHERE id = ?",
-        args: [req.user.id]
-      });
-      if (userCheck.rows.length === 0 || userCheck.rows[0].is_active === 0) {
-        return res.status(403).json({ error: "Portal access disabled: Account has been deactivated." });
-      }
-
-      // Check linked customer status
-      const userEmail = (userCheck.rows[0].email as string)?.trim().toLowerCase();
-      if (userEmail) {
-        const crmCheck = await db.execute({
-          sql: "SELECT status FROM crm_records WHERE LOWER(TRIM(email)) = ? AND type = 'customer' LIMIT 1",
-          args: [userEmail]
-        });
-        if (crmCheck.rows.length > 0 && crmCheck.rows[0].status === 'inactive') {
-          return res.status(403).json({ error: "Portal access disabled: Customer account is marked inactive." });
-        }
-      }
-    } catch (dbErr) {
-      console.warn("Client active verification warning:", dbErr);
-    }
-
-    next();
-  });
-};
 
 router.get("/health", (req, res) => {
   res.json({ status: "ok" });
@@ -1586,7 +1482,4 @@ router.post("/public/contact", async (req, res) => {
 
 router.use("/public/invoices", publicInvoiceRouter);
 router.use("/public/referrals", publicReferralRouter);
-router.use("/admin", requireAdmin, adminRouter);
-router.use("/client", requireClient, clientRouter);
-
 export default router;
