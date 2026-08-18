@@ -447,14 +447,14 @@ async function getReusableAppwriteSession(authHeaders: Record<string, string>) {
     const sessionData = await sessionResponse.json().catch(() => ({}));
     if (!sessionResponse.ok) throw new Error(sessionData.error || "Could not authorize direct Appwrite upload.");
 
-    const { Client, Account, Storage } = await import("appwrite");
+    const { Client, Storage } = await import("appwrite");
     const client = new Client().setEndpoint(sessionData.endpoint).setProject(sessionData.projectId);
-    const account = new Account(client);
     const storage = new Storage(client);
-    const session = await account.createSession({ userId: sessionData.userId, secret: sessionData.secret });
-    if ((session as any).secret) client.setSession((session as any).secret);
+    // The Server SDK already created this session with the API key. Setting its
+    // secret avoids the rate-limited browser Account.createSession endpoint.
+    client.setSession(sessionData.secret);
 
-    appwriteSessionCache = { client, account, storage, sessionData, expiresAt: Date.now() + APPWRITE_SESSION_REUSE_MS, authKey };
+    appwriteSessionCache = { client, account: null, storage, sessionData, expiresAt: Date.now() + APPWRITE_SESSION_REUSE_MS, authKey };
     return appwriteSessionCache;
   })();
 

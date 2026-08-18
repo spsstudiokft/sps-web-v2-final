@@ -56,15 +56,30 @@ export async function createAppwriteUploadSession(appUser: { id: string; email?:
   if (!labels.includes("storageuploader")) {
     await users.updateLabels({ userId: appwriteUserId, labels: [...labels, "storageuploader"] });
   }
-  // The browser reuses the resulting upload session for a gallery batch. A
-  // one-hour token also leaves enough time for very large videos on slow links.
-  const token = await users.createToken({ userId: appwriteUserId, length: 64, expire: 60 * 60 });
+  // Create the usable session through the API-key authenticated Server SDK.
+  // The browser-side account.createSession endpoint is limited to 10 attempts
+  // per hour for an IP + user pair, which breaks multi-file gallery uploads.
+  let session: any;
+  try {
+    session = await users.createSession({ userId: appwriteUserId });
+  } catch (error: any) {
+    // The uploader account is dedicated to storage. Recover from sessions left
+    // behind by older deployments only when Appwrite reports the session cap.
+    const message = String(error?.message || "").toLowerCase();
+    if (Number(error?.code || error?.status) === 409 || message.includes("session") && message.includes("limit")) {
+      await users.deleteSessions({ userId: appwriteUserId });
+      session = await users.createSession({ userId: appwriteUserId });
+    } else {
+      throw error;
+    }
+  }
   return {
     endpoint: config.endpoint.replace(/\/+$/, ""),
     projectId: config.projectId,
     bucketId: config.bucketId,
     userId: appwriteUserId,
-    secret: token.secret,
+    secret: session.secret,
+    sessionId: session.$id,
   };
 }
 
