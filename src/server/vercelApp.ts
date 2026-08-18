@@ -1,11 +1,15 @@
-import express, { type Application } from "express";
+import express from "express";
 import { setupDatabase } from "../db.js";
 
 let isDbSetup = false;
 let dbSetupPromise: Promise<void> | null = null;
 
-export function createVercelApp(configureRoutes: (app: Application) => void): Application {
-  const app = express();
+// The installed Express declaration resolves express() to core.Express instead
+// of core.Application, even though the runtime value is the full application.
+// Keep this boundary untyped so Vercel's per-function typecheck sees the real
+// callable Express handler without losing app.use().
+export function createVercelApp(configureRoutes: (app: any) => void): any {
+  const app: any = express();
 
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ extended: true, limit: "50mb" }));
