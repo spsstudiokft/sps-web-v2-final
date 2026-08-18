@@ -10,6 +10,7 @@ import {
 } from "./services/referralService.js";
 import { sendTransactionalEmail, getEmailSenderConfig } from "./services/emailService.js";
 import sharp from "sharp";
+import { getAppUrl } from "./appUrl.js";
 
 const clientRouter = Router();
 const JWT_SECRET = process.env.JWT_SECRET || "supersecretjwtstring";
@@ -192,7 +193,7 @@ clientRouter.post("/projects/:projectId/gallery-pin/resend", async (req, res) =>
               pin_email_sent_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP`,
       args: [project.id, pinHash],
     });
-    const origin = `${req.protocol}://${req.get("host")}`;
+    const origin = getAppUrl(req);
     const recipientName = String(project.client_name || project.email).split("@")[0];
     const emailResult = await sendTransactionalEmail({
       to: String(project.email), templateId: "gallery_pin_recovery",
@@ -680,7 +681,7 @@ clientRouter.get("/referrals/profile", async (req, res) => {
       return res.status(401).json({ error: "Unauthorized" });
     }
 
-    const origin = `${req.protocol}://${req.get("host")}`;
+    const origin = getAppUrl(req);
     const profile = await getClientReferralProfile(user.id, origin);
     res.json(profile);
   } catch (error: any) {
@@ -707,7 +708,7 @@ clientRouter.post("/referrals/invite-email", async (req, res) => {
       return res.status(400).json({ error: "You cannot invite yourself" });
     }
 
-    const origin = `${req.protocol}://${req.get("host")}`;
+    const origin = getAppUrl(req);
     const code = await ensureUserReferralCode(user.id, user.email);
     const inviteUrl = `${origin}/client/register?ref=${code}`;
     const config = await getEmailSenderConfig();

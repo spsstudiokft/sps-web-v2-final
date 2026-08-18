@@ -14,6 +14,7 @@ import {
 import { translationService } from "./services/translationService.js";
 import { getAllLegalDocuments } from "./services/legalDocumentService.js";
 import { markGoogleReviewClicked } from "./services/googleReviewService.js";
+import { getAppUrl } from "./appUrl.js";
 import { 
   sendPasswordResetToken, 
   sendInquiryAlerts, 
@@ -354,7 +355,7 @@ router.post("/auth/magic-link", async (req, res) => {
     const normalizedType: "signup" | "login" = type === "login" ? "login" : "signup";
 
     // 2. Dispatch Magic Link Email
-    const appOrigin = (process.env.APP_URL || `${req.protocol}://${req.get("host")}`).replace(/\/$/, "");
+    const appOrigin = getAppUrl(req);
     const result = await sendMagicLinkEmail(cleanEmail, normalizedType, appOrigin, {
       property_address: typeof property_address === "string" ? property_address.trim() : "",
       advertisement_link: typeof advertisement_link === "string" ? advertisement_link.trim() : "",
@@ -579,7 +580,7 @@ router.post("/auth/verify-magic-link", async (req, res) => {
     // 4e. If magic link was created with a referral code, process referral relationship & welcome reward
     if (magicLink.referral_code && (magicLink.referral_code as string).trim()) {
       try {
-        const appOrigin = `${req.protocol}://${req.get("host")}`;
+        const appOrigin = getAppUrl(req);
         await processRegistrationReferral({
           refereeUserId: userRow.id,
           refereeEmail: userEmail,
@@ -653,7 +654,7 @@ router.post("/auth/register", async (req, res) => {
 
     // If no password provided, initiate the magic link registration flow
     if (!password) {
-      const appOrigin = `${req.protocol}://${req.get("host")}`;
+      const appOrigin = getAppUrl(req);
       const clientIp = (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() || req.socket.remoteAddress || "";
 
       const result = await sendMagicLinkEmail(cleanEmail, "signup", appOrigin, {
@@ -701,7 +702,7 @@ router.post("/auth/register", async (req, res) => {
     // Process referral relationship if referral code was provided
     if (cleanReferralCode) {
       const clientIp = (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() || req.socket.remoteAddress || "";
-      const appOrigin = `${req.protocol}://${req.get("host")}`;
+      const appOrigin = getAppUrl(req);
       await processRegistrationReferral({
         refereeUserId: id,
         refereeEmail: cleanEmail,
@@ -743,7 +744,7 @@ router.post("/auth/register", async (req, res) => {
     }
 
     // Send Branded Welcome / Account Verification Email asynchronously
-    const appOrigin = `${req.protocol}://${req.get("host")}`;
+    const appOrigin = getAppUrl(req);
     sendTransactionalEmail({
       to: cleanEmail,
       subject: "Welcome to SPS Studio Client Portal",
@@ -776,7 +777,7 @@ router.post("/auth/forgot-password", async (req, res) => {
       return res.status(400).json({ error: "A valid email address is required" });
     }
 
-    const appOrigin = `${req.protocol}://${req.get("host")}`;
+    const appOrigin = getAppUrl(req);
     const result = await sendPasswordResetToken(email.trim(), appOrigin);
     
     // Always return success to prevent email enumeration
@@ -1027,7 +1028,7 @@ router.post("/invitations/accept", async (req, res) => {
     } catch {}
 
     // Send Welcome Email asynchronously
-    const appOrigin = `${req.protocol}://${req.get("host")}`;
+    const appOrigin = getAppUrl(req);
     sendTransactionalEmail({
       to: cleanEmail,
       templateId: "account_verification",
@@ -1562,7 +1563,7 @@ router.post("/public/contact", async (req, res) => {
     }
     
     // Asynchronously dispatch Admin Alert & Customer Confirmation via Resend
-    const appOrigin = `${req.protocol}://${req.get("host")}`;
+    const appOrigin = getAppUrl(req);
     sendInquiryAlerts({
       name: name.trim(),
       email: email.trim(),

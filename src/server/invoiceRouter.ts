@@ -6,6 +6,7 @@ import {
   getEmailSenderConfig 
 } from "./services/emailService.js";
 import { processInvoicePaymentReferral } from "./services/referralService.js";
+import { getAppUrl } from "./appUrl.js";
 
 export const invoiceRouter = Router();
 export const publicInvoiceRouter = Router();
@@ -899,7 +900,7 @@ invoiceRouter.post("/:id/send", async (req: any, res) => {
     });
 
     const config = await getEmailSenderConfig();
-    const origin = `${req.protocol}://${req.get("host")}`;
+    const origin = getAppUrl(req);
     const invoiceUrl = `${origin}/invoice/${inv.id}?token=${inv.access_token}`;
     const paymentLink = payment_link_override || inv.payment_link || invoiceUrl;
 
@@ -975,7 +976,7 @@ invoiceRouter.post("/:id/send-reminder", async (req: any, res) => {
         : "Paid invoices cannot receive payment reminders" });
     }
     const config = await getEmailSenderConfig();
-    const origin = `${req.protocol}://${req.get("host")}`;
+    const origin = getAppUrl(req);
     const invoiceUrl = `${origin}/invoice/${inv.id}?token=${inv.access_token}`;
     const amountDue = Math.max(0, Number(inv.total_amount) - Number(inv.amount_paid));
     const formattedAmountDue = formatCurrency(amountDue, inv.currency);
@@ -1109,7 +1110,7 @@ invoiceRouter.post("/:id/payments", async (req: any, res) => {
 
     // Process Referral Program conversion check for referee
     try {
-      const appOrigin = `${req.protocol}://${req.get("host")}`;
+      const appOrigin = getAppUrl(req);
       await processInvoicePaymentReferral({
         invoiceId: id,
         clientUserId: inv.client_id || undefined,
@@ -1125,7 +1126,7 @@ invoiceRouter.post("/:id/payments", async (req: any, res) => {
     if (send_receipt && inv.client_email) {
       try {
         const config = await getEmailSenderConfig();
-        const origin = `${req.protocol}://${req.get("host")}`;
+        const origin = getAppUrl(req);
         const invoiceUrl = `${origin}/invoice/${inv.id}?token=${inv.access_token}`;
         const balanceDue = Math.max(0, Number(inv.total_amount) - newAmountPaid);
 

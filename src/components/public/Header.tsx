@@ -72,7 +72,7 @@ function UserDropdown({ token, logout, currentLang }: { token: string | null, lo
   );
 }
 
-export function Header({ settings }: { settings: SiteSettings }) {
+export function Header({ settings, hasServices = true, hasPortfolio = true }: { settings: SiteSettings; hasServices?: boolean; hasPortfolio?: boolean }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isVisible, setIsVisible] = useState(true);
   const [activeSection, setActiveSection] = useState("");
@@ -134,7 +134,13 @@ export function Header({ settings }: { settings: SiteSettings }) {
       }
 
       // Scroll-spy active section tracking
-      const sections = ["about", "services", "portfolio", "contact", "faq"];
+      const sections = [
+        "about",
+        ...(hasServices ? ["services"] : []),
+        ...(hasPortfolio ? ["portfolio"] : []),
+        "contact",
+        "faq",
+      ];
       let currentSec = "";
       for (const sec of sections) {
         const el = document.getElementById(sec);
@@ -168,7 +174,7 @@ export function Header({ settings }: { settings: SiteSettings }) {
       window.removeEventListener("scroll", handleScroll);
       window.removeEventListener("resize", handleScroll);
     };
-  }, []);
+  }, [hasServices, hasPortfolio]);
 
   const closeMenu = () => setMobileMenuOpen(false);
 
@@ -205,22 +211,22 @@ export function Header({ settings }: { settings: SiteSettings }) {
           >
             {tUi("About", currentLang, undefined, defaultLang) || "About"}
           </a>
-          <a 
+          {hasServices && <a 
             href="#services" 
             className={`transition-colors focus-visible:ring-2 focus-visible:ring-primary rounded-sm outline-none px-1 py-0.5 ${
               activeSection === "services" ? "text-primary font-bold" : "text-text/90 hover:text-text"
             }`}
           >
             {tUi("Services", currentLang, undefined, defaultLang) || "Services"}
-          </a>
-          <a 
+          </a>}
+          {hasPortfolio && <a 
             href="#portfolio" 
             className={`transition-colors focus-visible:ring-2 focus-visible:ring-primary rounded-sm outline-none px-1 py-0.5 ${
               activeSection === "portfolio" ? "text-primary font-bold" : "text-text/90 hover:text-text"
             }`}
           >
             {tUi("Portfolio", currentLang, undefined, defaultLang) || "Portfolio"}
-          </a>
+          </a>}
           <a 
             href="#pricing" 
             className={`transition-colors focus-visible:ring-2 focus-visible:ring-primary rounded-sm outline-none px-1 py-0.5 ${
@@ -299,7 +305,7 @@ export function Header({ settings }: { settings: SiteSettings }) {
             >
               {tUi("About", currentLang, undefined, defaultLang) || "About"}
             </a>
-            <a 
+            {hasServices && <a 
               href="#services" 
               onClick={closeMenu} 
               className={`text-lg font-medium transition-colors focus-visible:ring-2 focus-visible:ring-primary rounded-sm outline-none w-fit ${
@@ -307,8 +313,8 @@ export function Header({ settings }: { settings: SiteSettings }) {
               }`}
             >
               {tUi("Services", currentLang, undefined, defaultLang) || "Services"}
-            </a>
-            <a 
+            </a>}
+            {hasPortfolio && <a 
               href="#portfolio" 
               onClick={closeMenu} 
               className={`text-lg font-medium transition-colors focus-visible:ring-2 focus-visible:ring-primary rounded-sm outline-none w-fit ${
@@ -316,7 +322,7 @@ export function Header({ settings }: { settings: SiteSettings }) {
               }`}
             >
               {tUi("Portfolio", currentLang, undefined, defaultLang) || "Portfolio"}
-            </a>
+            </a>}
             <a 
               href="#pricing" 
               onClick={closeMenu} 

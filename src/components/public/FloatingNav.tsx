@@ -13,7 +13,15 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { SocialPopup } from "./SocialPopup";
 
-export function FloatingNav({ onOpenSocial }: { onOpenSocial?: () => void }) {
+export function FloatingNav({
+  onOpenSocial,
+  hasServices = true,
+  hasPortfolio = true,
+}: {
+  onOpenSocial?: () => void;
+  hasServices?: boolean;
+  hasPortfolio?: boolean;
+}) {
   const [activeSection, setActiveSection] = useState("");
   const [isVisible, setIsVisible] = useState(false);
   const [localSocialOpen, setLocalSocialOpen] = useState(false);
@@ -28,7 +36,14 @@ export function FloatingNav({ onOpenSocial }: { onOpenSocial?: () => void }) {
   };
 
   useEffect(() => {
-    const sections = ["about", "services", "portfolio", "pricing", "contact", "faq"];
+    const sections = [
+      "about",
+      ...(hasServices ? ["services"] : []),
+      ...(hasPortfolio ? ["portfolio"] : []),
+      "pricing",
+      "contact",
+      "faq",
+    ];
     
     const handleScroll = () => {
       let current = "";
@@ -48,12 +63,12 @@ export function FloatingNav({ onOpenSocial }: { onOpenSocial?: () => void }) {
     window.addEventListener("scroll", handleScroll, { passive: true });
     handleScroll();
     return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  }, [hasServices, hasPortfolio]);
 
   const navItems = [
     { id: "about", label: "About", icon: faInfoCircle },
-    { id: "services", label: "Services", icon: faConciergeBell },
-    { id: "portfolio", label: "Portfolio", icon: faImage },
+    ...(hasServices ? [{ id: "services", label: "Services", icon: faConciergeBell }] : []),
+    ...(hasPortfolio ? [{ id: "portfolio", label: "Portfolio", icon: faImage }] : []),
     { id: "pricing", label: "Pricing", icon: faTag },
     { id: "contact", label: "Contact", icon: faEnvelope },
     { id: "faq", label: "FAQ", icon: faQuestionCircle },
@@ -104,4 +119,3 @@ export function FloatingNav({ onOpenSocial }: { onOpenSocial?: () => void }) {
     </>
   );
 }
-

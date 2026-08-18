@@ -12,6 +12,7 @@ import {
   sendPaymentRequestOnHoldEmail,
   sendTransactionalEmail
 } from "./services/emailService.js";
+import { getAppUrl } from "./appUrl.js";
 
 export const paymentRequestRouter = Router();
 
@@ -1161,7 +1162,7 @@ paymentRequestRouter.post("/", async (req: any, res) => {
 
     // Dispatch "Payment request – approval needed" email to Superadmins
     try {
-      const origin = (process.env.APP_URL || `${req.protocol}://${req.get("host")}`).replace(/\/$/, "");
+      const origin = getAppUrl(req);
       
       // Look up linked budget/invoice names if available
       let linkedBudgetTitle = "";
@@ -1363,7 +1364,7 @@ paymentRequestRouter.put("/:id", async (req: any, res) => {
     // If request was resubmitted, alert superadmins again
     if (actionType === "resubmitted") {
       try {
-        const origin = (process.env.APP_URL || `${req.protocol}://${req.get("host")}`).replace(/\/$/, "");
+        const origin = getAppUrl(req);
         sendPaymentRequestCreatedEmail({
           id,
           request_number: row.request_number,
@@ -1556,7 +1557,7 @@ paymentRequestRouter.post("/:id/review", async (req: any, res) => {
     // Dispatch dedicated template email to requester (Approved / Denied / Hold)
     try {
       if (row.requester_email) {
-        const origin = (process.env.APP_URL || `${req.protocol}://${req.get("host")}`).replace(/\/$/, "");
+        const origin = getAppUrl(req);
 
         // Fetch linked budget/invoice titles if any
         let linkedBudgetTitle = "";

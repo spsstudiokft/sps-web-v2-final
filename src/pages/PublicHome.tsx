@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { SiteSettings, PortfolioItem } from "../lib/types";
+import { SiteSettings, PortfolioItem, Service } from "../lib/types";
 import { Header } from "../components/public/Header";
 import { Hero } from "../components/public/Hero";
 import { Vision } from "../components/public/Vision";
@@ -23,16 +23,19 @@ import { t } from "../lib/i18n";
 export default function PublicHome() {
   const [settings, setSettings] = useState<SiteSettings>({});
   const [portfolio, setPortfolio] = useState<PortfolioItem[]>([]);
+  const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     Promise.all([
       fetch("/api/public/settings").then((r) => (r.ok ? r.json() : {})).catch(() => ({})),
       fetch("/api/public/portfolio").then((r) => (r.ok ? r.json() : [])).catch(() => []),
+      fetch("/api/public/services").then((r) => (r.ok ? r.json() : [])).catch(() => []),
     ])
-      .then(([s, p]) => {
+      .then(([s, p, serviceItems]) => {
         setSettings(s);
         setPortfolio(Array.isArray(p) ? p : []);
+        setServices(Array.isArray(serviceItems) ? serviceItems : []);
         setLoading(false);
       })
       .catch((err) => {
@@ -45,12 +48,12 @@ export default function PublicHome() {
 
   return (
     <LanguageProvider settings={settings}>
-      <PublicHomeContent settings={settings} portfolio={portfolio} loading={loading} />
+      <PublicHomeContent settings={settings} portfolio={portfolio} services={services} loading={loading} />
     </LanguageProvider>
   );
 }
 
-function PublicHomeContent({ settings, portfolio, loading }: { settings: SiteSettings, portfolio: PortfolioItem[], loading: boolean }) {
+function PublicHomeContent({ settings, portfolio, services, loading }: { settings: SiteSettings, portfolio: PortfolioItem[], services: Service[], loading: boolean }) {
   const [activeSection, setActiveSection] = useState("Home");
   const [isSocialPopupOpen, setIsSocialPopupOpen] = useState(false);
   const { currentLang, defaultLang } = useLanguage();
@@ -110,12 +113,16 @@ function PublicHomeContent({ settings, portfolio, loading }: { settings: SiteSet
       </div>
 
       <div className="relative z-10">
-        <Header settings={settings} />
-        <FloatingNav onOpenSocial={() => setIsSocialPopupOpen(true)} />
+        <Header settings={settings} hasServices={services.length > 0} hasPortfolio={portfolio.length > 0} />
+        <FloatingNav
+          hasServices={services.length > 0}
+          hasPortfolio={portfolio.length > 0}
+          onOpenSocial={() => setIsSocialPopupOpen(true)}
+        />
         <Hero settings={settings} />
         <Vision settings={settings} />
         <About settings={settings} />
-        <Services settings={settings} />
+        <Services settings={settings} initialServices={services} />
         <Portfolio items={portfolio} />
         <Pricing />
         <Contact settings={settings} />

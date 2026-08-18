@@ -12,6 +12,7 @@ import { initiateR2MultipartUpload, signR2MultipartPart, completeR2MultipartUplo
 import { translationService } from "./services/translationService.js";
 import { getAllLegalDocuments, saveLegalDocument } from "./services/legalDocumentService.js";
 import { scheduleGoogleReviewCampaign } from "./services/googleReviewService.js";
+import { getAppUrl } from "./appUrl.js";
 import budgetRouter from "./budgetRouter.js";
 import { invoiceRouter } from "./invoiceRouter.js";
 import { paymentRequestRouter } from "./paymentRequestRouter.js";
@@ -3455,7 +3456,7 @@ adminRouter.post("/projects/:id/notify-client", async (req, res) => {
       return res.status(400).json({ error: "No client email associated with this project" });
     }
 
-    const appOrigin = `${req.protocol}://${req.get("host")}`;
+    const appOrigin = getAppUrl(req);
     const isGalleryDelivery = String(project.status || "").toLowerCase() === "completed";
     const mediaCounts = isGalleryDelivery ? await db.execute({
       sql: `SELECT
@@ -3549,7 +3550,7 @@ adminRouter.post("/projects/:id/milestones", async (req, res) => {
     });
     let emailResult: any = null;
     if (notify_client) {
-      emailResult = await sendProjectTimelineEmail(req.params.id, { title, message: description || `Milestone status: ${status}`, statusLabel: `Milestone · ${title} · ${status}` }, `${req.protocol}://${req.get("host")}`);
+      emailResult = await sendProjectTimelineEmail(req.params.id, { title, message: description || `Milestone status: ${status}`, statusLabel: `Milestone · ${title} · ${status}` }, getAppUrl(req));
       if (emailResult.success) await db.execute({ sql: "UPDATE project_milestones SET client_notified_at = CURRENT_TIMESTAMP WHERE id = ?", args: [id] });
     }
     const created = await db.execute({ sql: "SELECT * FROM project_milestones WHERE id = ?", args: [id] });
@@ -3571,7 +3572,7 @@ adminRouter.put("/projects/:id/milestones/:milestoneId", async (req, res) => {
     });
     let emailResult: any = null;
     if (notify_client) {
-      emailResult = await sendProjectTimelineEmail(req.params.id, { title, message: description || `Milestone status: ${status}`, statusLabel: `Milestone · ${title} · ${status}` }, `${req.protocol}://${req.get("host")}`);
+      emailResult = await sendProjectTimelineEmail(req.params.id, { title, message: description || `Milestone status: ${status}`, statusLabel: `Milestone · ${title} · ${status}` }, getAppUrl(req));
       if (emailResult.success) await db.execute({ sql: "UPDATE project_milestones SET client_notified_at = CURRENT_TIMESTAMP WHERE id = ?", args: [req.params.milestoneId] });
     }
     const updated = await db.execute({ sql: "SELECT * FROM project_milestones WHERE id = ? AND project_id = ?", args: [req.params.milestoneId, req.params.id] });
@@ -3600,7 +3601,7 @@ adminRouter.post("/projects/:id/updates", async (req, res) => {
     });
     let emailResult: any = null;
     if (notify_client) {
-      emailResult = await sendProjectTimelineEmail(req.params.id, { title, message, statusLabel: status_label || title }, `${req.protocol}://${req.get("host")}`);
+      emailResult = await sendProjectTimelineEmail(req.params.id, { title, message, statusLabel: status_label || title }, getAppUrl(req));
       await db.execute({
         sql: `UPDATE project_updates SET sent_to_client = ?, sent_at = CASE WHEN ? = 1 THEN CURRENT_TIMESTAMP ELSE NULL END,
               email_status = ?, email_error = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
@@ -4872,7 +4873,7 @@ adminRouter.post("/crm/customers/:id/send-portal-invite", async (req, res) => {
       return res.status(400).json({ error: "Customer does not have a valid email address" });
     }
 
-    const appOrigin = `${req.protocol}://${req.get("host")}`;
+    const appOrigin = getAppUrl(req);
     const result = await sendPortalInvitationEmail(
       {
         id: customer.id as string,
@@ -4925,7 +4926,7 @@ adminRouter.post("/crm/customers/bulk-portal-invite", async (req, res) => {
       args: customer_ids
     });
 
-    const appOrigin = `${req.protocol}://${req.get("host")}`;
+    const appOrigin = getAppUrl(req);
     const results: Array<{
       id: string;
       name: string;
@@ -5985,7 +5986,7 @@ adminRouter.post("/email/send-test", async (req, res) => {
     }
 
     const config = await getEmailSenderConfig();
-    const appOrigin = `${req.protocol}://${req.get("host")}`;
+    const appOrigin = getAppUrl(req);
 
     const sampleData: EmailTemplateData = {
       recipientName: "Studio Admin",
@@ -6038,7 +6039,7 @@ adminRouter.post("/email/preview", async (req, res) => {
   try {
     const { templateId = "test_email", customData } = req.body;
     const config = await getEmailSenderConfig();
-    const appOrigin = `${req.protocol}://${req.get("host")}`;
+    const appOrigin = getAppUrl(req);
 
     const sampleData: EmailTemplateData = {
       recipientName: "Valued Client",
@@ -6418,7 +6419,7 @@ adminRouter.get("/invitations", async (req: any, res) => {
     });
 
     // Decorate invitation rows with full accept_url for admin reference / manual link copy
-    const appOrigin = `${req.protocol}://${req.get("host")}`;
+    const appOrigin = getAppUrl(req);
     const formatted = result.rows.map((row: any) => ({
       ...row,
       accept_link: `${appOrigin}/invite/accept?token=${row.token}`,
@@ -6501,7 +6502,7 @@ adminRouter.post("/invitations", async (req: any, res) => {
       ]
     });
 
-    const appOrigin = `${req.protocol}://${req.get("host")}`;
+    const appOrigin = getAppUrl(req);
     const acceptLink = `${appOrigin}/invite/accept?token=${token}`;
 
     let emailResult = null;
@@ -6581,7 +6582,7 @@ adminRouter.post("/invitations/:id/resend", async (req: any, res) => {
       args: [newToken, expiresAt, id]
     });
 
-    const appOrigin = `${req.protocol}://${req.get("host")}`;
+    const appOrigin = getAppUrl(req);
     const inviterEmail = req.user?.email || inv.inviter_email || "admin@spsstudio.com";
     const inviterName = req.user?.name || (inviterEmail ? inviterEmail.split("@")[0] : "Studio Administrator");
 
