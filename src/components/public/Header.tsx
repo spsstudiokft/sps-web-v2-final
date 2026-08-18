@@ -48,7 +48,23 @@ function UserDropdown({ token, logout, currentLang }: { token: string | null, lo
               <button onClick={() => { logout(); setOpen(false); }} className="block w-full text-left px-4 py-2.5 text-sm text-text hover:bg-surface hover:text-primary outline-none focus-visible:bg-surface transition-colors">{tUi("Sign Out", currentLang) || "Sign Out"}</button>
             </>
           ) : (
-            <Link to="/admin/login" className="block px-4 py-2.5 text-sm text-text hover:bg-surface hover:text-primary outline-none focus-visible:bg-surface transition-colors" onClick={() => setOpen(false)}>{tUi("Sign In", currentLang) || "Sign In"}</Link>
+            <>
+              <Link
+                to="/client/login"
+                className="block px-4 py-2.5 text-sm text-text hover:bg-surface hover:text-primary outline-none focus-visible:bg-surface transition-colors"
+                onClick={() => setOpen(false)}
+              >
+                {tUi("auth.client_login.title", currentLang) || "Client Login"}
+              </Link>
+              <div className="mx-3 border-t border-border/70" />
+              <Link
+                to="/admin/login"
+                className="block px-4 py-2.5 text-sm text-text hover:bg-surface hover:text-primary outline-none focus-visible:bg-surface transition-colors"
+                onClick={() => setOpen(false)}
+              >
+                {tUi("auth.admin_login.title", currentLang) || "Admin Login"}
+              </Link>
+            </>
           )}
         </div>
       )}
