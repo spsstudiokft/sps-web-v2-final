@@ -1082,6 +1082,10 @@ const collectPortfolioMediaUrls = (row: any): string[] => {
 
 async function deletePortfolioMediaFiles(rows: any[]) {
   const urls = [...new Set(rows.flatMap(collectPortfolioMediaUrls))];
+  return deletePortfolioMediaUrls(urls);
+}
+
+async function deletePortfolioMediaUrls(urls: string[]) {
   if (urls.length === 0) return { deletedFiles: 0, untrackedUrls: 0 };
 
   const trackedUploads: any[] = [];
@@ -1110,7 +1114,33 @@ async function deletePortfolioMediaFiles(rows: any[]) {
   for (const upload of trackedUploads) {
     await db.execute({ sql: "DELETE FROM media_uploads WHERE id = ?", args: [upload.id] });
   }
-  return { deletedFiles: trackedUploads.length, untrackedUrls: urls.length - trackedUploads.length };
+
+  // Older direct Appwrite uploads may predate media_uploads registration.
+  // Their public URL contains both the bucket and object ID, so they can still
+  // be removed safely without touching arbitrary external URLs.
+  const trackedUrlSet = new Set(trackedUploads.map((upload) => String(upload.public_url)));
+  let inferredDeletedFiles = 0;
+  for (const mediaUrl of urls.filter((url) => !trackedUrlSet.has(url))) {
+    try {
+      const parsed = new URL(mediaUrl);
+      const match = parsed.pathname.match(/\/storage\/buckets\/([^/]+)\/files\/([^/]+)\/(?:view|download|preview)$/i);
+      if (!match) continue;
+      const bucketId = decodeURIComponent(match[1]);
+      const fileId = decodeURIComponent(match[2]);
+      await deleteMedia(fileId, bucketId, "appwrite");
+      inferredDeletedFiles++;
+    } catch (error: any) {
+      failures.push(`${mediaUrl}: ${error?.message || "untracked Appwrite deletion failed"}`);
+    }
+  }
+  if (failures.length > 0) {
+    throw new Error(`Portfolio media cleanup failed for ${failures.length} object(s): ${failures.join(" | ")}`);
+  }
+
+  return {
+    deletedFiles: trackedUploads.length + inferredDeletedFiles,
+    untrackedUrls: Math.max(0, urls.length - trackedUploads.length - inferredDeletedFiles),
+  };
 }
 
 // Create portfolio item
@@ -1153,6 +1183,15 @@ adminRouter.put("/portfolio/:id", async (req, res) => {
     const { title, description, category_id, item_type, media_type, media_url, thumbnail_url, image_urls, target_url, is_featured, is_published, sort_order, keywords } = req.body;
     const resolvedItemType = item_type || (media_type === "video" ? "interior_video" : "image");
     const resolvedMediaType = (resolvedItemType === "drone_video" || resolvedItemType === "interior_video" || media_type === "video") ? "video" : "image";
+    const previousResult = await db.execute({
+      sql: "SELECT media_url, thumbnail_url, image_urls FROM portfolio_items WHERE id = ? LIMIT 1",
+      args: [req.params.id],
+    });
+    if (previousResult.rows.length === 0) return res.status(404).json({ error: "Portfolio gallery not found" });
+    const nextMediaRow = { media_url, thumbnail_url, image_urls };
+    const previousUrls = new Set(collectPortfolioMediaUrls(previousResult.rows[0]));
+    const nextUrls = new Set(collectPortfolioMediaUrls(nextMediaRow));
+    const removedUrls = [...previousUrls].filter((url) => !nextUrls.has(url));
 
     await db.execute({
       sql: "UPDATE portfolio_items SET title = ?, description = ?, category_id = ?, item_type = ?, media_type = ?, media_url = ?, thumbnail_url = ?, image_urls = ?, target_url = ?, is_featured = ?, is_published = ?, sort_order = ?, keywords = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
@@ -1173,7 +1212,10 @@ adminRouter.put("/portfolio/:id", async (req, res) => {
         req.params.id
       ]
     });
-    res.json({ success: true });
+    const cleanup = removedUrls.length > 0
+      ? await deletePortfolioMediaUrls(removedUrls)
+      : { deletedFiles: 0, untrackedUrls: 0 };
+    res.json({ success: true, ...cleanup });
   } catch (error) {
     console.error("Failed to update portfolio item", error);
     res.status(500).json({ error: "Failed to update portfolio item" });

@@ -460,18 +460,17 @@ export function PortfolioModal({
   };
 
   const handleGalleryChange = (newItems: GalleryMediaItem[]) => {
-    // Derive primary thumbnail if none set
-    const firstCover = getGalleryCoverThumbnail(formData.thumbnail_url, formData.media_url, newItems);
-    
     // Check if item contains videos
     const hasVideos = newItems.some((it) => it.type === "video" || isVideoMedia(it));
     const firstVideo = newItems.find((it) => it.type === "video" || isVideoMedia(it));
+    const remainingUrls = new Set(newItems.flatMap((item) => [item.url, item.compressed_url, item.thumbnail_url].filter(Boolean)));
+    const firstCover = getGalleryCoverThumbnail("", "", newItems);
 
     setFormData((prev) => ({
       ...prev,
       image_urls: JSON.stringify(newItems),
-      thumbnail_url: prev.thumbnail_url || firstCover || "",
-      media_url: prev.media_url || (firstVideo ? firstVideo.url : ""),
+      thumbnail_url: prev.thumbnail_url && remainingUrls.has(prev.thumbnail_url) ? prev.thumbnail_url : (firstCover || ""),
+      media_url: prev.media_url && remainingUrls.has(prev.media_url) ? prev.media_url : (firstVideo ? firstVideo.url : ""),
       media_type: hasVideos ? "video" : "image",
       item_type: (newItems[0]?.item_type || newItems[0]?.type || "image") as PortfolioItemType,
     }));
