@@ -9,6 +9,7 @@ import {
   ensureUserReferralCode 
 } from "./services/referralService.js";
 import { sendTransactionalEmail, getEmailSenderConfig } from "./services/emailService.js";
+import sharp from "sharp";
 
 const clientRouter = Router();
 const JWT_SECRET = process.env.JWT_SECRET || "supersecretjwtstring";

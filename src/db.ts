@@ -1,10 +1,11 @@
-import { createClient, Client } from "@libsql/client";
+import { createClient } from "@libsql/client";
+import crypto from "node:crypto";
 
 // In production environments like Vercel or Cloud Run, the filesystem is often read-only except for /tmp.
 const isProd = process.env.NODE_ENV === "production" || process.env.VERCEL === "1";
 const defaultDbUrl = isProd ? "file:/tmp/local.db" : "file:local.db";
 
-let dbInstance: Client | null = null;
+let dbInstance: ReturnType<typeof createClient> | null = null;
 
 function sanitizeString(val: string | undefined): string | undefined {
   if (!val) return undefined;

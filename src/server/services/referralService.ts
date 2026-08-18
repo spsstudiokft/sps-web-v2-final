@@ -275,7 +275,10 @@ export async function updateReferralTier(id: string, tier: Partial<ReferralTier>
 
 // Delete tier
 export async function deleteReferralTier(id: string): Promise<boolean> {
-  const fallbackTier = await db.execute("SELECT id FROM referral_tiers WHERE id != ? ORDER BY sort_order ASC LIMIT 1", [id]);
+  const fallbackTier = await db.execute({
+    sql: "SELECT id FROM referral_tiers WHERE id != ? ORDER BY sort_order ASC LIMIT 1",
+    args: [id]
+  });
   const fallbackId = fallbackTier.rows[0]?.id || "tier-bronze";
 
   // Reassign users currently on this tier to fallback tier
@@ -417,14 +420,15 @@ export async function processRegistrationReferral(options: {
 
   // 5. Get Referrer's current Tier
   const tiers = await getReferralTiers();
-  const referrerTier = tiers.find(t => t.id === referrer.referral_tier_id) || tiers[0] || {
+  const referrerTier = (tiers.find(t => t.id === referrer.referral_tier_id) || tiers[0] || {
+    id: "tier-bronze",
     reward_type: "credit",
     reward_value: 25,
     reward_description: "$25 Studio Credit",
     referee_reward_type: "discount_percent",
     referee_reward_value: 10,
     referee_reward_description: "10% Welcome Discount"
-  };
+  }) as ReferralTier;
 
   const referralId = crypto.randomUUID();
   const shouldConvertImmediately = settings.success_criteria === "registration" && !isFraud;
@@ -592,11 +596,12 @@ export async function processInvoicePaymentReferral(options: {
 
   const referrer = referrerRes.rows[0] as any;
   const tiers = await getReferralTiers();
-  const referrerTier = tiers.find(t => t.id === referrer.referral_tier_id) || tiers[0] || {
+  const referrerTier = (tiers.find(t => t.id === referrer.referral_tier_id) || tiers[0] || {
+    id: "tier-bronze",
     reward_type: "credit",
     reward_value: 25,
     reward_description: "$25 Studio Credit"
-  };
+  }) as ReferralTier;
 
   // Convert referral status
   await db.execute({

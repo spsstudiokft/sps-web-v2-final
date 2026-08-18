@@ -6275,10 +6275,10 @@ adminRouter.put("/team/:id", async (req: any, res) => {
 
     // If changing role away from admin/superadmin or deactivating, ensure at least one other active admin remains
     if ((existingUser.role === "admin" || existingUser.role === "superadmin") && (role !== "admin" && role !== "superadmin" || is_active === 0 || is_active === false)) {
-      const activeAdminsRes = await db.execute(`
-        SELECT COUNT(*) as count FROM users 
-        WHERE role IN ('admin', 'superadmin') AND is_active = 1 AND id != ?
-      `, [id]);
+      const activeAdminsRes = await db.execute({
+        sql: `SELECT COUNT(*) as count FROM users WHERE role IN ('admin', 'superadmin') AND is_active = 1 AND id != ?`,
+        args: [id]
+      });
       const remainingAdmins = Number(activeAdminsRes.rows[0]?.count || 0);
       if (remainingAdmins === 0) {
         return res.status(400).json({ 
@@ -6348,10 +6348,10 @@ adminRouter.delete("/team/:id", async (req: any, res) => {
 
     // If deleting an admin, ensure another active admin remains
     if (existingUser.role === "admin") {
-      const activeAdminsRes = await db.execute(`
-        SELECT COUNT(*) as count FROM users 
-        WHERE role = 'admin' AND is_active = 1 AND id != ?
-      `, [id]);
+      const activeAdminsRes = await db.execute({
+        sql: `SELECT COUNT(*) as count FROM users WHERE role = 'admin' AND is_active = 1 AND id != ?`,
+        args: [id]
+      });
       const remainingAdmins = Number(activeAdminsRes.rows[0]?.count || 0);
       if (remainingAdmins === 0) {
         return res.status(400).json({ 
