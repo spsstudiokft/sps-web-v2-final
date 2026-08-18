@@ -773,6 +773,19 @@ export const DEFAULT_EMAIL_TEMPLATES: Record<string, {
   </tbody>
 </table>
 
+{{#if pricing_plan}}
+<div style="background-color:#f8fafc;border:1px solid #cbd5e1;border-radius:10px;padding:16px;margin:20px 0;">
+  <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#64748b;margin-bottom:10px;">Selected package and estimate</div>
+  <table style="width:100%;border-collapse:collapse;font-size:14px;">
+    <tr><td style="padding:7px 0;color:#475569;">Package</td><td style="padding:7px 0;text-align:right;font-weight:700;color:#0f172a;">{{pricing_plan}}</td></tr>
+    {{#if plan_price}}<tr><td style="padding:7px 0;color:#475569;">Base price</td><td style="padding:7px 0;text-align:right;font-weight:600;color:#0f172a;">{{plan_price}}</td></tr>{{/if}}
+    {{#if selected_items_html}}{{selected_items_html}}{{/if}}
+    {{#if fee_details_html}}{{fee_details_html}}{{/if}}
+    {{#if estimated_total}}<tr style="border-top:1px solid #cbd5e1;"><td style="padding:11px 0 4px;font-weight:700;color:#0f172a;">Estimated total</td><td style="padding:11px 0 4px;text-align:right;font-size:16px;font-weight:800;color:#2563eb;">{{estimated_total}}</td></tr>{{/if}}
+  </table>
+</div>
+{{/if}}
+
 <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin: 20px 0;">
   <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: #64748b; margin-bottom: 6px;">Client Message</div>
   <div style="font-size: 14px; color: #1e293b; line-height: 1.6; white-space: pre-wrap;">{{inquiry_message}}</div>
@@ -784,7 +797,7 @@ export const DEFAULT_EMAIL_TEMPLATES: Record<string, {
   </a>
 </div>
     `.trim(),
-    body_text: `New contact inquiry from {{client_name}} ({{client_email}}):\n\nProperty: {{property_address}}\nPhone: {{client_phone}}\nSubject: {{inquiry_subject}}\nAvailability: {{availability_window}}\n\nMessage:\n{{inquiry_message}}`.trim(),
+    body_text: `New contact inquiry from {{client_name}} ({{client_email}}):\n\nProperty: {{property_address}}\nPhone: {{client_phone}}\nSubject: {{inquiry_subject}}\nAvailability: {{availability_window}}\n\nSelected package: {{pricing_plan}}\nBase price: {{plan_price}}\n{{selected_items_text}}\n{{fee_details_text}}\nEstimated total: {{estimated_total}}\n\nMessage:\n{{inquiry_message}}`.trim(),
     available_tokens: [
       { token: "{{client_name}}", label: "Client Name", description: "Name entered in form", example: "Sophia Laurent" },
       { token: "{{client_email}}", label: "Client Email", description: "Email address entered in form", example: "sophia@luxuryestates.com" },
@@ -795,6 +808,14 @@ export const DEFAULT_EMAIL_TEMPLATES: Record<string, {
       { token: "{{availability_start}}", label: "Availability Start", description: "Start date/time of availability", example: "Aug 20, 2026, 10:00 AM" },
       { token: "{{availability_end}}", label: "Availability End", description: "End date/time of availability", example: "Aug 20, 2026, 2:00 PM" },
       { token: "{{inquiry_message}}", label: "Inquiry Message", description: "Message body text", example: "We have a 6,000 sq ft modern waterfront listing coming onto the market next Tuesday." },
+      { token: "{{pricing_plan}}", label: "Selected Package", description: "Package or offer selected in the calculator", example: "Premium Property Package" },
+      { token: "{{plan_price}}", label: "Package Base Price", description: "Database-verified base price with currency", example: "120 000 Ft" },
+      { token: "{{selected_items_html}}", label: "Selected Items (HTML)", description: "Formatted table rows for selected additional services", example: "2× Drone photography — 40 000 Ft" },
+      { token: "{{selected_items_text}}", label: "Selected Items (Text)", description: "Plain-text list of selected additional services", example: "2x Drone photography: 40 000 Ft" },
+      { token: "{{fee_details_html}}", label: "Calculated Fees (HTML)", description: "Formatted table rows for travel and other calculated fees", example: "Travel fee — 12 500 Ft" },
+      { token: "{{fee_details_text}}", label: "Calculated Fees (Text)", description: "Plain-text list of travel and calculated fees", example: "Travel fee: 12 500 Ft" },
+      { token: "{{estimated_total}}", label: "Estimated Total", description: "Final calculated package estimate with currency", example: "172 500 Ft" },
+      { token: "{{currency}}", label: "Currency", description: "Configured pricing currency code", example: "HUF" },
       { token: "{{timestamp}}", label: "Timestamp", description: "Date and time received", example: "August 15, 2026 10:30 AM" },
       { token: "{{action_url}}", label: "Admin CRM Link", description: "Link to open inquiry in admin", example: "https://spsstudio.com/admin/contacts" },
       { token: "{{studio_name}}", label: "Studio Name", description: "Studio brand name", example: "SPS Studio" }
@@ -809,6 +830,14 @@ export const DEFAULT_EMAIL_TEMPLATES: Record<string, {
       "availability_start": "Aug 20, 2026, 10:00 AM",
       "availability_end": "Aug 20, 2026, 2:00 PM",
       "inquiry_message": "We have a 6,000 sq ft modern waterfront listing coming onto the market next Tuesday. We would love full HDR stills and a sunset drone reel.",
+      "pricing_plan": "Premium Property Package",
+      "plan_price": "120 000 Ft",
+      "selected_items_html": "<tr><td>2× Drone photography</td><td style=\"text-align:right\">40 000 Ft</td></tr>",
+      "selected_items_text": "2x Drone photography: 40 000 Ft",
+      "fee_details_html": "<tr><td>Travel fee</td><td style=\"text-align:right\">12 500 Ft</td></tr>",
+      "fee_details_text": "Travel fee: 12 500 Ft",
+      "estimated_total": "172 500 Ft",
+      "currency": "HUF",
       "timestamp": "August 15, 2026 10:30 AM",
       "action_url": "https://spsstudio.com/admin/contacts",
       "studio_name": "SPS Studio"
@@ -829,6 +858,19 @@ export const DEFAULT_EMAIL_TEMPLATES: Record<string, {
   Thank you for reaching out to <strong>{{studio_name}}</strong>. We have received your inquiry and our production team will review the details and respond to you promptly (typically within 1 business day).
 </p>
 
+{{#if pricing_plan}}
+<div style="background-color:#f8fafc;border:1px solid #cbd5e1;border-radius:10px;padding:16px;margin:24px 0;">
+  <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#64748b;margin-bottom:10px;">Your selected package and estimate</div>
+  <table style="width:100%;border-collapse:collapse;font-size:14px;">
+    <tr><td style="padding:7px 0;color:#475569;">Package</td><td style="padding:7px 0;text-align:right;font-weight:700;color:#0f172a;">{{pricing_plan}}</td></tr>
+    {{#if plan_price}}<tr><td style="padding:7px 0;color:#475569;">Base price</td><td style="padding:7px 0;text-align:right;font-weight:600;color:#0f172a;">{{plan_price}}</td></tr>{{/if}}
+    {{#if selected_items_html}}{{selected_items_html}}{{/if}}
+    {{#if fee_details_html}}{{fee_details_html}}{{/if}}
+    {{#if estimated_total}}<tr style="border-top:1px solid #cbd5e1;"><td style="padding:11px 0 4px;font-weight:700;color:#0f172a;">Estimated total</td><td style="padding:11px 0 4px;text-align:right;font-size:16px;font-weight:800;color:#2563eb;">{{estimated_total}}</td></tr>{{/if}}
+  </table>
+</div>
+{{/if}}
+
 {{#if inquiry_message}}
 <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin: 24px 0;">
   <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: #64748b; margin-bottom: 8px;">Summary of your message:</div>
@@ -842,10 +884,18 @@ export const DEFAULT_EMAIL_TEMPLATES: Record<string, {
   If your photoshoot request is urgent, you can also reach us directly at <a href="mailto:{{contact_email}}" style="color: #3b82f6;">{{contact_email}}</a>.
 </p>
     `.trim(),
-    body_text: `Dear {{client_name}},\n\nThank you for reaching out to {{studio_name}}. We have received your inquiry and will be in touch shortly.\n\nDirect contact: {{contact_email}}`.trim(),
+    body_text: `Dear {{client_name}},\n\nThank you for reaching out to {{studio_name}}. We have received your inquiry and will be in touch shortly.\n\nSelected package: {{pricing_plan}}\nBase price: {{plan_price}}\n{{selected_items_text}}\n{{fee_details_text}}\nEstimated total: {{estimated_total}}\n\nYour message:\n{{inquiry_message}}\n\nDirect contact: {{contact_email}}`.trim(),
     available_tokens: [
       { token: "{{client_name}}", label: "Client Name", description: "Prospect name", example: "Sophia Laurent" },
       { token: "{{inquiry_message}}", label: "Message Summary", description: "Echo of the submitted message", example: "We have a 6,000 sq ft listing coming up." },
+      { token: "{{pricing_plan}}", label: "Selected Package", description: "Package or offer selected by the customer", example: "Premium Property Package" },
+      { token: "{{plan_price}}", label: "Package Base Price", description: "Database-verified base price with currency", example: "120 000 Ft" },
+      { token: "{{selected_items_html}}", label: "Selected Items (HTML)", description: "Formatted table rows for selected additional services", example: "2× Drone photography — 40 000 Ft" },
+      { token: "{{selected_items_text}}", label: "Selected Items (Text)", description: "Plain-text list of selected additional services", example: "2x Drone photography: 40 000 Ft" },
+      { token: "{{fee_details_html}}", label: "Calculated Fees (HTML)", description: "Formatted table rows for travel and calculated fees", example: "Travel fee — 12 500 Ft" },
+      { token: "{{fee_details_text}}", label: "Calculated Fees (Text)", description: "Plain-text list of travel and calculated fees", example: "Travel fee: 12 500 Ft" },
+      { token: "{{estimated_total}}", label: "Estimated Total", description: "Final calculated estimate with currency", example: "172 500 Ft" },
+      { token: "{{currency}}", label: "Currency", description: "Configured pricing currency code", example: "HUF" },
       { token: "{{contact_email}}", label: "Studio Email", description: "Direct studio contact email", example: "contact@spsstudio.com" },
       { token: "{{contact_phone}}", label: "Studio Phone", description: "Direct studio telephone number", example: "+1 (555) 019-2834" },
       { token: "{{studio_name}}", label: "Studio Name", description: "Studio brand name", example: "SPS Studio" },
@@ -855,6 +905,14 @@ export const DEFAULT_EMAIL_TEMPLATES: Record<string, {
       "client_name": "Sophia Laurent",
       "recipient_name": "Sophia Laurent",
       "inquiry_message": "We have a 6,000 sq ft modern waterfront listing coming onto the market next Tuesday.",
+      "pricing_plan": "Premium Property Package",
+      "plan_price": "120 000 Ft",
+      "selected_items_html": "<tr><td>2× Drone photography</td><td style=\"text-align:right\">40 000 Ft</td></tr>",
+      "selected_items_text": "2x Drone photography: 40 000 Ft",
+      "fee_details_html": "<tr><td>Travel fee</td><td style=\"text-align:right\">12 500 Ft</td></tr>",
+      "fee_details_text": "Travel fee: 12 500 Ft",
+      "estimated_total": "172 500 Ft",
+      "currency": "HUF",
       "contact_email": "contact@spsstudio.com",
       "contact_phone": "+1 (555) 019-2834",
       "studio_name": "SPS Studio"
@@ -2005,12 +2063,16 @@ export async function getAllEmailTemplates(): Promise<EmailTemplate[]> {
     if (custom) {
       let parsedTokens: EmailTemplateToken[] = defaultDef.available_tokens;
       try {
-        if (custom.available_tokens) parsedTokens = JSON.parse(custom.available_tokens);
+        if (custom.available_tokens) {
+          const customTokens = JSON.parse(custom.available_tokens) as EmailTemplateToken[];
+          const customTokenNames = new Set(customTokens.map((item) => item.token));
+          parsedTokens = [...customTokens, ...defaultDef.available_tokens.filter((item) => !customTokenNames.has(item.token))];
+        }
       } catch {}
 
       let parsedSample: Record<string, any> = defaultDef.sample_data;
       try {
-        if (custom.sample_data) parsedSample = JSON.parse(custom.sample_data);
+        if (custom.sample_data) parsedSample = { ...defaultDef.sample_data, ...JSON.parse(custom.sample_data) };
       } catch {}
       let parsedDefaults: Record<string, string> = {};
       try { if (custom.token_defaults) parsedDefaults = JSON.parse(custom.token_defaults); } catch {}
@@ -2108,12 +2170,16 @@ export async function getEmailTemplateByKey(key: string): Promise<EmailTemplate 
       if (!defaultDef && row.category !== "marketing") return null;
       let parsedTokens: EmailTemplateToken[] = defaultDef?.available_tokens || [];
       try {
-        if (row.available_tokens) parsedTokens = JSON.parse(row.available_tokens as string);
+        if (row.available_tokens) {
+          const customTokens = JSON.parse(row.available_tokens as string) as EmailTemplateToken[];
+          const customTokenNames = new Set(customTokens.map((item) => item.token));
+          parsedTokens = [...customTokens, ...(defaultDef?.available_tokens || []).filter((item) => !customTokenNames.has(item.token))];
+        }
       } catch {}
 
       let parsedSample: Record<string, any> = defaultDef?.sample_data || {};
       try {
-        if (row.sample_data) parsedSample = JSON.parse(row.sample_data as string);
+        if (row.sample_data) parsedSample = { ...(defaultDef?.sample_data || {}), ...JSON.parse(row.sample_data as string) };
       } catch {}
       let parsedDefaults: Record<string, string> = {};
       try { if (row.token_defaults) parsedDefaults = JSON.parse(row.token_defaults as string); } catch {}
@@ -2617,8 +2683,58 @@ export async function sendInquiryAlerts(submission: {
   message: string;
   plan_id?: string;
   plan_name?: string;
+  plan_price?: number;
+  extra_services?: string | Array<Record<string, any>>;
+  fee_details?: string | Array<Record<string, any>>;
+  estimated_total?: number;
+  currency?: string;
 }, appOrigin: string) {
   const config = await getEmailSenderConfig();
+
+  const parseItems = (value: unknown): Array<Record<string, any>> => {
+    if (Array.isArray(value)) return value.filter((item) => item && typeof item === "object");
+    if (typeof value !== "string" || !value.trim()) return [];
+    try {
+      const parsed = JSON.parse(value);
+      return Array.isArray(parsed) ? parsed.filter((item) => item && typeof item === "object") : [];
+    } catch {
+      return [];
+    }
+  };
+  const escapeHtml = (value: unknown) => String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+  const currency = String(submission.currency || "USD").toUpperCase();
+  const formatMoney = (value: unknown) => {
+    const amount = Number(value);
+    if (!Number.isFinite(amount)) return "";
+    try {
+      return new Intl.NumberFormat("hu-HU", { style: "currency", currency }).format(amount);
+    } catch {
+      return `${amount.toLocaleString("hu-HU")} ${currency}`;
+    }
+  };
+  const extras = parseItems(submission.extra_services);
+  const fees = parseItems(submission.fee_details);
+  const selectedItemsHtml = extras.map((item) => `
+    <tr><td style="padding:7px 0;color:#475569;">${escapeHtml(item.quantity || 1)}× ${escapeHtml(item.title || "Additional service")}</td><td style="padding:7px 0;text-align:right;font-weight:600;color:#0f172a;">${escapeHtml(formatMoney(item.subtotal ?? item.price))}</td></tr>`).join("");
+  const feeDetailsHtml = fees.map((item) => `
+    <tr><td style="padding:7px 0;color:#475569;">${escapeHtml(item.name || "Additional fee")}${item.explanation ? `<div style="font-size:11px;color:#94a3b8;">${escapeHtml(item.explanation)}</div>` : ""}</td><td style="padding:7px 0;text-align:right;font-weight:600;color:#0f172a;">${Number(item.amount) === 0 ? "FREE" : escapeHtml(formatMoney(item.amount))}</td></tr>`).join("");
+  const selectedItemsText = extras.map((item) => `${item.quantity || 1}x ${item.title || "Additional service"}: ${formatMoney(item.subtotal ?? item.price)}`).join("\n");
+  const feeDetailsText = fees.map((item) => `${item.name || "Additional fee"}: ${Number(item.amount) === 0 ? "FREE" : formatMoney(item.amount)}${item.explanation ? ` (${item.explanation})` : ""}`).join("\n");
+  const pricingTokens = {
+    pricing_plan: submission.plan_name || "",
+    plan_price: submission.plan_price ? formatMoney(submission.plan_price) : "",
+    selected_items_html: selectedItemsHtml,
+    selected_items_text: selectedItemsText,
+    fee_details_html: feeDetailsHtml,
+    fee_details_text: feeDetailsText,
+    estimated_total: submission.estimated_total ? formatMoney(submission.estimated_total) : "",
+    currency,
+  };
 
   let availabilityWindowStr = "";
   let formattedStartStr = "";
@@ -2669,6 +2785,7 @@ export async function sendInquiryAlerts(submission: {
         availability_start: formattedStartStr || submission.availability_start || "",
         availability_end: formattedEndStr || submission.availability_end || "",
         inquiry_message: submission.message,
+        ...pricingTokens,
         actionUrl: `${appOrigin}/admin/contacts`,
         actionText: "Open Inquiries Dashboard"
       }
@@ -2685,6 +2802,7 @@ export async function sendInquiryAlerts(submission: {
         recipientName: submission.name,
         inquiry_message: submission.message,
         pricing_plan: submission.plan_name || "",
+        ...pricingTokens,
         contact_email: config.replyToEmail || "contact@spsstudio.com"
       }
     });

@@ -1418,7 +1418,22 @@ router.post("/public/contact", async (req, res) => {
     const cleanExtraServices = typeof req.body.extra_services === "string" ? req.body.extra_services : JSON.stringify(req.body.extra_services || []);
     const cleanFeeDetails = typeof req.body.fee_details === "string" ? req.body.fee_details : JSON.stringify(req.body.fee_details || {});
     const cleanEstimatedTotal = req.body.estimated_total !== undefined && req.body.estimated_total !== null && !isNaN(Number(req.body.estimated_total)) ? Number(req.body.estimated_total) : 0;
-    const cleanCurrency = req.body.currency && typeof req.body.currency === "string" ? req.body.currency.trim() : "USD";
+    let cleanCurrency = req.body.currency && typeof req.body.currency === "string" ? req.body.currency.trim() : "USD";
+    let cleanPlanPrice = 0;
+    if (cleanPlanId) {
+      try {
+        const planResult = await db.execute({
+          sql: "SELECT price, currency FROM pricing_plans WHERE id = ? AND is_enabled = 1 LIMIT 1",
+          args: [cleanPlanId],
+        });
+        if (planResult.rows.length > 0) {
+          cleanPlanPrice = Number(planResult.rows[0].price) || 0;
+          cleanCurrency = String(planResult.rows[0].currency || cleanCurrency);
+        }
+      } catch (error) {
+        console.warn("Unable to resolve selected pricing plan for inquiry email:", error);
+      }
+    }
 
     await db.execute({
       sql: `INSERT INTO contact_submissions 
@@ -1470,7 +1485,12 @@ router.post("/public/contact", async (req, res) => {
       availability_end: isAvailabilityShown ? cleanEnd : "",
       message: message.trim(),
       plan_id: cleanPlanId || undefined,
-      plan_name: cleanPlanName || undefined
+      plan_name: cleanPlanName || undefined,
+      plan_price: cleanPlanPrice,
+      extra_services: cleanExtraServices,
+      fee_details: cleanFeeDetails,
+      estimated_total: cleanEstimatedTotal,
+      currency: cleanCurrency,
     }, appOrigin).catch(e => console.error("Inquiry email notification dispatch failed:", e));
 
     res.json({ success: true, id });
