@@ -290,7 +290,7 @@ export function Contact({ settings }: { settings: SiteSettings }) {
   // Settings evaluation
   const showPhone = settings.contact_form_show_phone !== "0" && settings.contact_form_show_phone !== "false";
   const requirePhone = settings.contact_form_require_phone === "1" || settings.contact_form_require_phone === "true";
-  const showAddress = settings.contact_form_show_address === "1" || settings.contact_form_show_address === "true";
+  const hasPropertyCity = contactForm.property_city.trim().length >= 2;
   
   const showAvailability = settings.contact_form_show_availability !== "0" && settings.contact_form_show_availability !== "false";
   const requireAvailability = settings.contact_form_require_availability === "1" || settings.contact_form_require_availability === "true";
@@ -631,10 +631,23 @@ export function Contact({ settings }: { settings: SiteSettings }) {
                   </div>
                 </div>
               )}
-              <fieldset disabled={!hasAcceptedCookies} className={!hasAcceptedCookies ? "opacity-45 blur-[1px] select-none pointer-events-none space-y-5" : "contents"}>
+              <fieldset
+                disabled={!hasAcceptedCookies}
+                className={`flex flex-col gap-6 ${!hasAcceptedCookies ? "opacity-45 blur-[1px] select-none pointer-events-none" : ""}`}
+              >
+              <div className="order-5 space-y-6">
+              {!hasPropertyCity && (
+                <div className="rounded-2xl border border-primary/25 bg-primary/8 px-4 py-3.5 flex items-start gap-3 text-sm text-text">
+                  <FontAwesomeIcon icon={faMapLocationDot} className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                  <p className="leading-relaxed">
+                    {tUi("contact.city_required_before_calculator", currentLang, undefined, defaultLang) || "Enter the property's city above before selecting a package or additional services. This is required to calculate the travel fee and the correct estimated total."}
+                  </p>
+                </div>
+              )}
+              <div className={`space-y-6 transition-opacity ${!hasPropertyCity ? "pointer-events-none opacity-45 select-none" : ""}`} aria-disabled={!hasPropertyCity}>
               {/* Selected Plan Banner / Selector */}
               {allPlans.length > 0 && (
-                <div className="p-4 rounded-2xl bg-surface/80 border border-border space-y-3 shadow-2xs">
+                <div className="p-5 sm:p-6 rounded-2xl bg-surface/80 border border-border space-y-4 shadow-2xs">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold uppercase tracking-wider text-text flex items-center gap-1.5">
                       <Tag className="w-3.5 h-3.5 text-primary" />
@@ -693,7 +706,7 @@ export function Contact({ settings }: { settings: SiteSettings }) {
                     transition={{ duration: 0.25, ease: "easeOut" }}
                     className="overflow-hidden"
                   >
-                    <div className="p-4 rounded-2xl bg-surface/50 border border-border space-y-3">
+                    <div className="p-5 sm:p-6 rounded-2xl bg-surface/50 border border-border space-y-4">
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-bold uppercase tracking-wider text-text flex items-center gap-1.5">
                           <Sparkles className="w-3.5 h-3.5 text-primary" />
@@ -779,7 +792,7 @@ export function Contact({ settings }: { settings: SiteSettings }) {
                     transition={{ duration: 0.25, ease: "easeOut" }}
                     className="overflow-hidden"
                   >
-                    <div className="p-4 rounded-2xl bg-surface/70 border border-border space-y-3">
+                    <div className="p-5 sm:p-6 rounded-2xl bg-surface/70 border border-border space-y-4">
                       <div 
                         className="flex items-center justify-between cursor-pointer select-none"
                         onClick={() => setShowPricingDetails(!showPricingDetails)}
@@ -871,10 +884,12 @@ export function Contact({ settings }: { settings: SiteSettings }) {
                   </motion.div>
                 )}
               </AnimatePresence>
+              </div>
+              </div>
 
               {/* Name & Email Fields */}
-              <div className="grid sm:grid-cols-2 gap-4">
-                <div>
+              <div className="order-1 grid sm:grid-cols-2 gap-5">
+                <div className="space-y-2">
                   <label className="block text-sm font-semibold text-text mb-1.5">
                     {tUi("Name", currentLang, undefined, defaultLang) || "Name"} <span className="text-primary">*</span>
                   </label>
@@ -888,7 +903,7 @@ export function Contact({ settings }: { settings: SiteSettings }) {
                   />
                 </div>
 
-                <div>
+                <div className="space-y-2">
                   <label className="block text-sm font-semibold text-text mb-1.5">
                     {tUi("Email Address", currentLang, undefined, defaultLang) || "Email Address"} <span className="text-primary">*</span>
                   </label>
@@ -905,7 +920,7 @@ export function Contact({ settings }: { settings: SiteSettings }) {
 
               {/* Conditional Phone Field */}
               {showPhone && (
-                <div>
+                <div className="order-2 space-y-2">
                   <div className="flex items-center justify-between mb-1.5">
                     <label className="block text-sm font-semibold text-text">
                       {requirePhone 
@@ -943,19 +958,24 @@ export function Contact({ settings }: { settings: SiteSettings }) {
               )}
 
               {/* Property city is also needed when an automatic distance fee is active. */}
-              {(showAddress || feeRules.some((rule) => rule.fee_type === "distance" || rule.fee_type === "distance_tiered")) && (
-                <div className="space-y-3">
-                  <div>
-                    <label className="block text-sm font-semibold text-text mb-1.5">{tUi("contact.property_city", currentLang, undefined, defaultLang) || "Property city"}</label>
+              <div className="order-3 p-5 sm:p-6 rounded-2xl bg-surface/55 border border-border space-y-5">
+                  <div className="space-y-2">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5">
+                      <label className="block text-sm font-semibold text-text">
+                        {tUi("contact.property_city", currentLang, undefined, defaultLang) || "Property city"} <span className="text-primary">*</span>
+                      </label>
+                      <span className="text-xs text-primary font-semibold">
+                        {tUi("contact.city_calculator_required", currentLang, undefined, defaultLang) || "Required for package and travel calculation"}
+                      </span>
+                    </div>
                     <div className="relative">
-                      <input type="text" autoComplete="address-level2" placeholder={tUi("contact.property_city_placeholder", currentLang, undefined, defaultLang) || "e.g. Szeged"} className="aero-input w-full px-4 py-3 pr-10 bg-surface border border-border rounded-xl focus:outline-none text-text placeholder:text-muted-text/60 text-sm" value={contactForm.property_city} onChange={(e) => setContactForm({ ...contactForm, property_city: e.target.value })}/>
+                      <input required type="text" autoComplete="address-level2" placeholder={tUi("contact.property_city_placeholder", currentLang, undefined, defaultLang) || "e.g. Szeged"} className="aero-input w-full px-4 py-3 pr-10 bg-background border border-border rounded-xl focus:outline-none text-text placeholder:text-muted-text/60 text-sm" value={contactForm.property_city} onChange={(e) => setContactForm({ ...contactForm, property_city: e.target.value })}/>
                       <div className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-text">{travelEstimateStatus === "loading" ? <span className="block w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"/> : <FontAwesomeIcon icon={faMapLocationDot} className="w-4 h-4"/>}</div>
                     </div>
                     {travelEstimateStatus === "success" && travelEstimate && <p className="text-xs text-emerald-600 mt-1.5 font-medium">{tUi("contact.travel_route_found", { oneWay: travelEstimate.oneWayKm, roundTrip: travelEstimate.roundTripKm })}</p>}
                     {travelEstimateStatus === "error" && <p className="text-xs text-red-500 mt-1.5">{travelEstimateError}</p>}
                   </div>
-                  {showAddress && (
-                    <div>
+                  <div className="space-y-2">
                       <label className="block text-sm font-semibold text-text mb-1.5">
                         {tUi("contact.property_address", currentLang, undefined, defaultLang) || "Property Address (Optional)"}
                       </label>
@@ -966,14 +986,12 @@ export function Contact({ settings }: { settings: SiteSettings }) {
                         value={contactForm.property_address}
                         onChange={(e) => setContactForm({ ...contactForm, property_address: e.target.value })}
                       />
-                    </div>
-                  )}
-                </div>
-              )}
+                  </div>
+              </div>
 
               {/* Availability Date-Time Range Field */}
               {showAvailability && (
-                <div className="p-4 rounded-2xl bg-surface/80 border border-border space-y-3">
+                <div className="order-4 p-5 sm:p-6 rounded-2xl bg-surface/80 border border-border space-y-5">
                   <div className="flex items-center justify-between">
                     <label className="block text-sm font-semibold text-text flex items-center gap-2">
                       <FontAwesomeIcon icon={faCalendarDays} className="text-primary w-3.5 h-3.5" />
@@ -1031,7 +1049,7 @@ export function Contact({ settings }: { settings: SiteSettings }) {
               )}
 
               {/* Message Textarea (Pre-filled, editable) */}
-              <div>
+              <div className="order-6 space-y-2">
                 <div className="flex items-center justify-between mb-1.5">
                   <label className="block text-sm font-semibold text-text">
                     {tUi("contact.message", currentLang, undefined, defaultLang) || "Project Details & Message"} <span className="text-primary">*</span>
@@ -1062,7 +1080,7 @@ export function Contact({ settings }: { settings: SiteSettings }) {
               </div>
 
               {contactStatus === "error" && (
-                <div className="p-3.5 bg-red-500/10 border border-red-500/20 rounded-xl text-red-600 dark:text-red-400 text-sm font-medium">
+                <div className="order-7 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-600 dark:text-red-400 text-sm font-medium">
                   {errorMessage || tUi("Failed to send message. Please try again.", currentLang, undefined, defaultLang)}
                 </div>
               )}
@@ -1070,7 +1088,7 @@ export function Contact({ settings }: { settings: SiteSettings }) {
               <button
                 disabled={contactStatus === "submitting"}
                 type="submit"
-                className="aero-submit-button w-full py-4 bg-primary text-background rounded-xl font-semibold disabled:opacity-70 flex justify-center items-center gap-2 shadow-md cursor-pointer mt-2"
+                className="order-8 aero-submit-button w-full py-4 bg-primary text-background rounded-xl font-semibold disabled:opacity-70 flex justify-center items-center gap-2 shadow-md cursor-pointer mt-1"
               >
                 {contactStatus === "submitting" ? (
                   <>
