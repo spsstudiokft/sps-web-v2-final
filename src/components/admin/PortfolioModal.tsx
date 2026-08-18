@@ -8,6 +8,8 @@ import { Input } from "../ui/Input";
 import { Label } from "../ui/Label";
 import { useApi } from "../../hooks/useApi";
 import { useAuth } from "../../contexts/AuthContext";
+import { useLanguage } from "../../contexts/LanguageContext";
+import { t as translateContent } from "../../lib/i18n";
 import { 
   GalleryMediaItem, 
   getNormalizedGallery, 
@@ -94,7 +96,16 @@ export function PortfolioModal({
 }: PortfolioModalProps) {
   const { fetchApi } = useApi();
   const { token } = useAuth();
+  const { currentLanguage, defaultLanguage, tUi } = useLanguage();
   const coverThumbInputRef = useRef<HTMLInputElement>(null);
+
+  const getCategoryLabel = (category: Category | undefined): string => {
+    if (!category) return "";
+    const localizedName = translateContent(category.name, currentLanguage, defaultLanguage) || category.name || "";
+    // Older seeded categories may store a UI translation key as their name.
+    // Resolve that key, while normal custom category names pass through unchanged.
+    return tUi(localizedName, currentLanguage) || localizedName;
+  };
 
   const [formData, setFormData] = useState({
     title: "",
@@ -114,6 +125,16 @@ export function PortfolioModal({
 
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgressText, setUploadProgressText] = useState("");
+  const [uploadProgress, setUploadProgress] = useState({
+    fileName: "",
+    kind: "image" as "image" | "video",
+    currentFile: 1,
+    totalFiles: 1,
+    filePercent: 0,
+    overallPercent: 0,
+    loaded: 0,
+    total: 0,
+  });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [activeSection, setActiveSection] = useState<"details" | "media" | "seo">("details");
@@ -262,6 +283,8 @@ export function PortfolioModal({
     setErrorMessage("");
     const newItems: GalleryMediaItem[] = [];
     const fileArray = Array.from(files);
+    const batchTotalBytes = fileArray.reduce((sum, file) => sum + file.size, 0);
+    let completedBytes = 0;
     const projName = parseTitleText(formData.title) || "project";
     const existingPhotoCount = parsedGalleryItems.filter(i => (i.item_type || i.type) === "image").length;
 
@@ -270,6 +293,7 @@ export function PortfolioModal({
         const file = fileArray[i];
         const seqNumber = existingPhotoCount + i + 1;
         setUploadProgressText(`Uploading photo ${i + 1} of ${fileArray.length}: ${file.name} (${formatFileSize(file.size)})...`);
+        setUploadProgress({ fileName: file.name, kind: "image", currentFile: i + 1, totalFiles: fileArray.length, filePercent: 0, overallPercent: Math.round((completedBytes / batchTotalBytes) * 100), loaded: 0, total: file.size });
         
         const result = await uploadSingleFile(
           file, 
@@ -283,8 +307,19 @@ export function PortfolioModal({
           },
           (percent, loaded, total) => {
             setUploadProgressText(`Uploading photo ${i + 1} of ${fileArray.length}: ${percent}% (${formatFileSize(loaded)} / ${formatFileSize(total)})`);
+            setUploadProgress({
+              fileName: file.name,
+              kind: "image",
+              currentFile: i + 1,
+              totalFiles: fileArray.length,
+              filePercent: percent,
+              overallPercent: Math.min(100, Math.round(((completedBytes + loaded) / batchTotalBytes) * 100)),
+              loaded,
+              total,
+            });
           }
         );
+        completedBytes += file.size;
 
         newItems.push({
           id: `img-${Date.now()}-${i}-${Math.random().toString(36).slice(2, 6)}`,
@@ -321,6 +356,7 @@ export function PortfolioModal({
   const handleVideoUpload = async (file: File) => {
     setIsUploading(true);
     setUploadProgressText(`Uploading video "${file.name}" (0% of ${formatFileSize(file.size)})...`);
+    setUploadProgress({ fileName: file.name, kind: "video", currentFile: 1, totalFiles: 1, filePercent: 0, overallPercent: 0, loaded: 0, total: file.size });
     setErrorMessage("");
     const projName = parseTitleText(formData.title) || "project";
     const vType: PortfolioItemType = "drone_video";
@@ -341,6 +377,7 @@ export function PortfolioModal({
         },
         (percent, loaded, total) => {
           setUploadProgressText(`Uploading video "${file.name}": ${percent}% (${formatFileSize(loaded)} of ${formatFileSize(total)})`);
+          setUploadProgress({ fileName: file.name, kind: "video", currentFile: 1, totalFiles: 1, filePercent: percent, overallPercent: percent, loaded, total });
         }
       );
 
@@ -374,8 +411,19 @@ export function PortfolioModal({
 
   // Video Poster / Thumbnail upload helper
   const handleUploadThumbnailOnly = async (file: File): Promise<string> => {
-    const res = await uploadSingleFile(file, "image");
-    return res.compressed_url || res.url;
+    setIsUploading(true);
+    setUploadProgressText(`Uploading thumbnail "${file.name}"...`);
+    setUploadProgress({ fileName: file.name, kind: "image", currentFile: 1, totalFiles: 1, filePercent: 0, overallPercent: 0, loaded: 0, total: file.size });
+    try {
+      const res = await uploadSingleFile(file, "image", undefined, (percent, loaded, total) => {
+        setUploadProgressText(`Uploading thumbnail "${file.name}": ${percent}%`);
+        setUploadProgress({ fileName: file.name, kind: "image", currentFile: 1, totalFiles: 1, filePercent: percent, overallPercent: percent, loaded, total });
+      });
+      return res.compressed_url || res.url;
+    } finally {
+      setIsUploading(false);
+      setUploadProgressText("");
+    }
   };
 
   // Cover image upload handler
@@ -385,6 +433,7 @@ export function PortfolioModal({
 
     setIsUploading(true);
     setUploadProgressText(`Uploading cover image "${file.name}" (${formatFileSize(file.size)})...`);
+    setUploadProgress({ fileName: file.name, kind: "image", currentFile: 1, totalFiles: 1, filePercent: 0, overallPercent: 0, loaded: 0, total: file.size });
     setErrorMessage("");
 
     try {
@@ -394,6 +443,7 @@ export function PortfolioModal({
         useStructuredName: true
       }, (percent, loaded, total) => {
         setUploadProgressText(`Uploading cover: ${percent}% (${formatFileSize(loaded)} of ${formatFileSize(total)})`);
+        setUploadProgress({ fileName: file.name, kind: "image", currentFile: 1, totalFiles: 1, filePercent: percent, overallPercent: percent, loaded, total });
       });
       setFormData((prev) => ({
         ...prev,
@@ -577,9 +627,53 @@ export function PortfolioModal({
           )}
 
           {isUploading && (
-            <div className="p-4 rounded-xl bg-primary/10 border border-primary/20 text-primary text-sm flex items-center space-x-3 animate-pulse">
-              <Loader2 className="w-5 h-5 animate-spin" />
-              <span className="font-medium">{uploadProgressText || "Processing media upload..."}</span>
+            <div className="relative overflow-hidden p-5 rounded-2xl bg-background border border-primary/30 shadow-lg shadow-primary/5 text-sm animate-in fade-in slide-in-from-top-2 duration-200">
+              <div className="absolute inset-x-0 top-0 h-1 bg-primary/10">
+                <div className="h-full bg-primary transition-[width] duration-300 ease-out" style={{ width: `${uploadProgress.overallPercent}%` }} />
+              </div>
+
+              <div className="flex items-start gap-4">
+                <div className="relative w-11 h-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                  {uploadProgress.kind === "video" ? <FileVideo className="w-5 h-5" /> : <FileImage className="w-5 h-5" />}
+                  <span className="absolute -right-1 -bottom-1 w-4 h-4 rounded-full bg-background border border-primary/30 flex items-center justify-center">
+                    <Loader2 className="w-2.5 h-2.5 animate-spin" />
+                  </span>
+                </div>
+
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="font-bold text-text truncate" title={uploadProgress.fileName}>
+                        {uploadProgress.fileName || "Média előkészítése..."}
+                      </div>
+                      <div className="text-xs text-muted-text mt-0.5">
+                        {uploadProgress.totalFiles > 1
+                          ? `${uploadProgress.currentFile}. fájl / ${uploadProgress.totalFiles}`
+                          : uploadProgress.kind === "video" ? "Videó feltöltése" : "Kép feltöltése"}
+                      </div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <div className="text-2xl leading-none font-black tabular-nums text-primary">{uploadProgress.overallPercent}%</div>
+                      <div className="text-[10px] uppercase tracking-wider text-muted-text mt-1">összesen</div>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 h-2.5 rounded-full bg-surface border border-border overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-primary via-cyan-400 to-emerald-400 transition-[width] duration-300 ease-out relative"
+                      style={{ width: `${uploadProgress.filePercent}%` }}
+                    >
+                      <span className="absolute inset-0 bg-white/20 animate-pulse" />
+                    </div>
+                  </div>
+
+                  <div className="mt-2 flex items-center justify-between gap-3 text-[11px] text-muted-text tabular-nums">
+                    <span>{uploadProgress.loaded > 0 ? formatFileSize(uploadProgress.loaded) : "0 KB"} / {uploadProgress.total > 0 ? formatFileSize(uploadProgress.total) : "—"}</span>
+                    <span>Aktuális fájl: {uploadProgress.filePercent}%</span>
+                  </div>
+                  <span className="sr-only">{uploadProgressText || "Processing media upload..."}</span>
+                </div>
+              </div>
             </div>
           )}
 
@@ -602,7 +696,7 @@ export function PortfolioModal({
                       <option value="">-- Select Category --</option>
                       {categories.map((c) => (
                         <option key={c.id} value={c.id}>
-                          {c.name} {c.slug ? `(${c.slug})` : ""}
+                          {getCategoryLabel(c)} {c.slug ? `(${c.slug})` : ""}
                         </option>
                       ))}
                     </select>
@@ -736,7 +830,7 @@ export function PortfolioModal({
                 onUploadThumbnail={handleUploadThumbnailOnly}
                 isUploading={isUploading}
                 projectName={parseTitleText(formData.title) || "project"}
-                categoryName={categories.find(c => c.id === formData.category_id)?.name || "photos"}
+                categoryName={getCategoryLabel(categories.find(c => c.id === formData.category_id)) || "photos"}
                 portfolioItemId={formData.id || item?.id}
               />
 

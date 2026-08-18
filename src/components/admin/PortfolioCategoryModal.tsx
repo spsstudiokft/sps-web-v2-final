@@ -4,6 +4,8 @@ import { TranslatableInput } from "./TranslatableInput";
 import { Button } from "../ui/Button";
 import { Input } from "../ui/Input";
 import { Label } from "../ui/Label";
+import { useLanguage } from "../../contexts/LanguageContext";
+import { t as translateContent } from "../../lib/i18n";
 import { 
   X, 
   FolderTree, 
@@ -68,6 +70,7 @@ export function PortfolioCategoryModal({
   onClose,
   onSave,
 }: PortfolioCategoryModalProps) {
+  const { currentLanguage, defaultLanguage, tUi } = useLanguage();
   const [formData, setFormData] = useState<Partial<Category>>({
     name: "",
     slug: "",
@@ -294,7 +297,10 @@ export function PortfolioCategoryModal({
                 <option value="">-- Top-level Category (No Parent) --</option>
                 {availableParents.map((parent) => (
                   <option key={parent.id} value={parent.id}>
-                    {parseText(parent.name)}
+                    {(() => {
+                      const localizedName = translateContent(parent.name, currentLanguage, defaultLanguage) || parseText(parent.name);
+                      return tUi(localizedName, currentLanguage) || localizedName;
+                    })()}
                   </option>
                 ))}
               </select>

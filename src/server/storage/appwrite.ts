@@ -56,7 +56,9 @@ export async function createAppwriteUploadSession(appUser: { id: string; email?:
   if (!labels.includes("storageuploader")) {
     await users.updateLabels({ userId: appwriteUserId, labels: [...labels, "storageuploader"] });
   }
-  const token = await users.createToken({ userId: appwriteUserId, length: 64, expire: 15 * 60 });
+  // The browser reuses the resulting upload session for a gallery batch. A
+  // one-hour token also leaves enough time for very large videos on slow links.
+  const token = await users.createToken({ userId: appwriteUserId, length: 64, expire: 60 * 60 });
   return {
     endpoint: config.endpoint.replace(/\/+$/, ""),
     projectId: config.projectId,

@@ -8,6 +8,7 @@ import { TranslatableInput } from "./TranslatableInput";
 import { KeywordTagInput } from "./KeywordTagInput";
 import { useApi } from "../../hooks/useApi";
 import { useLanguage } from "../../contexts/LanguageContext";
+import { t as translateContent } from "../../lib/i18n";
 import { ImageGalleryManager, GalleryImage } from "./portfolio/ImageGalleryManager";
 import { uploadMediaFile } from "../../lib/uploadHelper";
 import { useAuth } from "../../contexts/AuthContext";
@@ -22,7 +23,7 @@ interface PortfolioFormProps {
 }
 
 export function PortfolioForm({ formData, setFormData, categories, onSubmit, onCancel, siteLanguages }: PortfolioFormProps) {
-  const { tUi } = useLanguage();
+  const { tUi, currentLanguage, defaultLanguage } = useLanguage();
   const { fetchApi } = useApi();
   const { token } = useAuth();
   const [isUploading, setIsUploading] = useState(false);
@@ -121,7 +122,10 @@ export function PortfolioForm({ formData, setFormData, categories, onSubmit, onC
                   onChange={e => setFormData({ ...formData, category_id: e.target.value })}
                 >
                   <option value="">None</option>
-                  {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  {categories.map((c) => {
+                    const localizedName = translateContent(c.name, currentLanguage, defaultLanguage) || c.name;
+                    return <option key={c.id} value={c.id}>{tUi(localizedName, currentLanguage) || localizedName}</option>;
+                  })}
                 </select>
               </div>
               

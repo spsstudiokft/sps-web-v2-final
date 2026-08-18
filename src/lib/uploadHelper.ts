@@ -38,6 +38,17 @@ export interface UploadResult {
 // 2.5 MB per chunk: optimal size that prevents reverse proxy timeouts and HTTP/2 socket drops
 const DEFAULT_CHUNK_SIZE = 2.5 * 1024 * 1024;
 const MAX_RETRIES_PER_CHUNK = 4;
+const APPWRITE_SESSION_REUSE_MS = 12 * 60 * 1000;
+
+let appwriteSessionCache: {
+  client: any;
+  account: any;
+  storage: any;
+  sessionData: any;
+  expiresAt: number;
+  authKey: string;
+} | null = null;
+let appwriteSessionPromise: Promise<NonNullable<typeof appwriteSessionCache>> | null = null;
 
 const delay = (ms: number) => new Promise((res) => setTimeout(res, ms));
 
@@ -74,7 +85,8 @@ export async function uploadMediaFile(
   // On Vercel the file bytes must not pass through the serverless function.
   // R2 and Appwrite both support browser-to-storage uploads; use that path for
   // small gallery images as well as large media.
-  const storageDirectResult = await uploadDirectToConfiguredStorage(file, token, onProgress);
+  const storageFile = options.useStructuredName ? createStructuredUploadFile(file, options) : file;
+  const storageDirectResult = await uploadDirectToConfiguredStorage(storageFile, token, onProgress, file.name);
   if (storageDirectResult) return storageDirectResult;
 
   // For smaller files (<= 2.5 MB), direct upload is faster, but chunked is used for everything else
@@ -85,6 +97,26 @@ export async function uploadMediaFile(
   }
 
   return uploadChunked(file, token, chunkSize, totalChunks, onProgress, options);
+}
+
+function createStructuredUploadFile(file: File, options: UploadOptions): File {
+  const extensionMatch = file.name.match(/\.([a-zA-Z0-9]{1,10})$/);
+  const extension = extensionMatch ? extensionMatch[1].toLowerCase() : "bin";
+  const cleanPart = (value: unknown, fallback: string) => {
+    const normalized = String(value || fallback)
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-zA-Z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .toLowerCase();
+    return normalized || fallback;
+  };
+  const project = cleanPart(options.projectName, "project");
+  const category = cleanPart(options.categoryName, "media");
+  const type = cleanPart(options.itemType, "item");
+  const itemNumber = String(options.itemNumber ?? Date.now()).padStart(3, "0");
+  const structuredName = `${project}_${category}_${type}_${itemNumber}.${extension}`;
+  return new File([file], structuredName, { type: file.type, lastModified: file.lastModified });
 }
 
 async function uploadDirectWithRetry(
@@ -281,6 +313,7 @@ async function uploadDirectToConfiguredStorage(
   file: File,
   token?: string | null,
   onProgress?: UploadProgressCallback,
+  originalFileName?: string,
 ): Promise<UploadResult | null> {
   const headers = { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) };
   const initResponse = await fetchWithRateLimitRetry("/api/admin/media/upload/direct/init", {
@@ -295,7 +328,7 @@ async function uploadDirectToConfiguredStorage(
   if (!initResponse.ok) throw new Error(initData.error || "Could not initialize direct bucket upload.");
   if (!initData.directUpload) {
     if (String(initData.provider).toLowerCase() === "appwrite") {
-      return uploadDirectlyToAppwrite(file, token, onProgress);
+      return uploadDirectlyToAppwrite(file, token, onProgress, originalFileName);
     }
     return null;
   }
@@ -345,7 +378,7 @@ async function uploadDirectToConfiguredStorage(
     const completeData = await completeResponse.json().catch(() => ({}));
     if (!completeResponse.ok || !completeData.url) throw new Error(completeData.error || "Could not finalize direct bucket upload.");
     onProgress?.(100, file.size, file.size);
-    return { url: completeData.url, id: completeData.id, provider: completeData.provider, originalName: file.name, fileSize: file.size };
+    return { url: completeData.url, id: completeData.id, provider: completeData.provider, originalName: originalFileName || file.name, filename: file.name, fileSize: file.size };
   } catch (error) {
     fetch("/api/admin/media/upload/direct/abort", {
       method: "POST",
@@ -360,23 +393,14 @@ async function uploadDirectlyToAppwrite(
   file: File,
   token?: string | null,
   onProgress?: UploadProgressCallback,
+  originalFileName?: string,
 ): Promise<UploadResult> {
   const authHeaders = { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) };
-  const sessionResponse = await fetchWithRateLimitRetry("/api/admin/media/upload/appwrite/session", { method: "POST", headers: authHeaders });
-  const sessionData = await sessionResponse.json().catch(() => ({}));
-  if (!sessionResponse.ok) throw new Error(sessionData.error || "Could not authorize direct Appwrite upload.");
-
-  const { Client, Account, Storage, ID, Permission, Role } = await import("appwrite");
-  const client = new Client().setEndpoint(sessionData.endpoint).setProject(sessionData.projectId);
-  const account = new Account(client);
-  const storage = new Storage(client);
-  let sessionCreated = false;
+  const { ID, Permission, Role } = await import("appwrite");
   let uploadedFileId: string | null = null;
 
   try {
-    const session = await account.createSession({ userId: sessionData.userId, secret: sessionData.secret });
-    sessionCreated = true;
-    if ((session as any).secret) client.setSession((session as any).secret);
+    const { storage, sessionData } = await getReusableAppwriteSession(authHeaders);
 
     const uploaded = await storage.createFile({
       bucketId: sessionData.bucketId,
@@ -393,24 +417,51 @@ async function uploadDirectlyToAppwrite(
     const registerResponse = await fetchWithRateLimitRetry("/api/admin/media/upload/appwrite/register", {
       method: "POST",
       headers: authHeaders,
-      body: JSON.stringify({ fileId: uploaded.$id, fileName: file.name, fileSize: file.size }),
+      body: JSON.stringify({ fileId: uploaded.$id, fileName: originalFileName || file.name, fileSize: file.size, storedFileName: file.name }),
     });
     const registered = await registerResponse.json().catch(() => ({}));
     if (!registerResponse.ok || !registered.url) throw new Error(registered.error || "The Appwrite file was uploaded but could not be registered.");
     onProgress?.(100, file.size, file.size);
-    return { url: registered.url, id: registered.id, provider: "appwrite", originalName: file.name, fileSize: file.size };
+    return { url: registered.url, id: registered.id, provider: "appwrite", originalName: originalFileName || file.name, filename: file.name, fileSize: file.size };
   } catch (error: any) {
     if (uploadedFileId) {
-      await storage.deleteFile({ bucketId: sessionData.bucketId, fileId: uploadedFileId }).catch(() => undefined);
+      const cached = appwriteSessionCache;
+      if (cached) await cached.storage.deleteFile({ bucketId: cached.sessionData.bucketId, fileId: uploadedFileId }).catch(() => undefined);
     }
     if (Number(error?.code) === 401 || Number(error?.code) === 403) {
+      appwriteSessionCache = null;
       throw new Error(`${error.message} Check that the bucket grants CREATE permission to label:storageuploader and that the domain is registered as an Appwrite Web platform.`);
     }
     throw error;
+  }
+}
+
+async function getReusableAppwriteSession(authHeaders: Record<string, string>) {
+  const authKey = authHeaders.Authorization || "anonymous";
+  if (appwriteSessionCache && appwriteSessionCache.authKey === authKey && appwriteSessionCache.expiresAt > Date.now()) return appwriteSessionCache;
+  if (appwriteSessionCache?.authKey !== authKey) appwriteSessionCache = null;
+  if (appwriteSessionPromise) return appwriteSessionPromise;
+
+  appwriteSessionPromise = (async () => {
+    const sessionResponse = await fetchWithRateLimitRetry("/api/admin/media/upload/appwrite/session", { method: "POST", headers: authHeaders });
+    const sessionData = await sessionResponse.json().catch(() => ({}));
+    if (!sessionResponse.ok) throw new Error(sessionData.error || "Could not authorize direct Appwrite upload.");
+
+    const { Client, Account, Storage } = await import("appwrite");
+    const client = new Client().setEndpoint(sessionData.endpoint).setProject(sessionData.projectId);
+    const account = new Account(client);
+    const storage = new Storage(client);
+    const session = await account.createSession({ userId: sessionData.userId, secret: sessionData.secret });
+    if ((session as any).secret) client.setSession((session as any).secret);
+
+    appwriteSessionCache = { client, account, storage, sessionData, expiresAt: Date.now() + APPWRITE_SESSION_REUSE_MS, authKey };
+    return appwriteSessionCache;
+  })();
+
+  try {
+    return await appwriteSessionPromise;
   } finally {
-    if (sessionCreated) {
-      await account.deleteSession({ sessionId: "current" }).catch(() => undefined);
-    }
+    appwriteSessionPromise = null;
   }
 }
 
