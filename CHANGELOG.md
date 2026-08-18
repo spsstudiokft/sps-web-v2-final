@@ -1,5 +1,111 @@
 # Modification Log
 
+## 2026-08-18 — Platform expansion, client delivery, finance, email automation, and Vercel architecture
+
+### Public website and AERO/GLOW visual consistency
+
+- Extended the frosted-glass AERO/GLOW theme to the information bar, incident widget, contact information cards, pricing elements, authentication menus, and dark-mode dropdowns.
+- Added and corrected reusable shine effects on contact cards and pricing cards while constraining animation overflow and card-radius clipping.
+- Corrected desktop hero-image positioning, including the dark-mode composition.
+- Added rounded edge masking to the animated portfolio rows so cards enter and leave without hard rectangular cuts.
+- Portfolio videos now display extracted/random preview frames while idle, start only on hover, and pause the hovered conveyor row without removing continuous row animation.
+- Services and Portfolio navigation entries are now data-aware in the desktop, mobile, and floating navigation; empty unpublished sections no longer produce dead menu links.
+- Added the admin- and client-portal entries to the public account dropdown.
+- Added editable footer social links, website-version badge, AI-generated-code disclosure, and the configurable “Created with React & love in Hungary” attribution.
+- Added the active public design to the branding/theme editor.
+
+### Contact form, pricing estimate, and travel calculation
+
+- Reordered the inquiry journey to collect identity, property city/address, and preferred photography time before package selection, add-ons, estimate, message, and submission.
+- Property city is now required before package/add-on interaction and is clearly identified as an input for the travel and final-price calculation; property address remains optional.
+- Added automatic round-trip travel-distance calculation from Hódmezővásárhely and integrated distance fee rules into the live package estimate.
+- Standardized input-group spacing, responsive gaps, card padding, helper text, and error-state layout throughout the form.
+- Contact submissions persist package, add-on, calculated fee, distance, total, and currency data.
+- Both inquiry email templates now include a structured package summary, database-verified base price, selected items, calculated fees, explanations, currency, and estimated total in HTML and text form.
+- Added editable inquiry-template tokens for package price, selected-item rows/text, calculated-fee rows/text, currency, and final estimate; existing customized templates inherit newly introduced token definitions without being overwritten.
+- Updated the preferred-date label to “When I would like the photography” consistently in the public form and admin interface.
+
+### Cookie consent and legal content
+
+- Added a frosted-glass cookie banner with preference controls, localized text, translation-manager keys, and a direct Cookie Policy action.
+- The contact form remains locked until the required cookie consent has been granted.
+- Added database-backed Privacy Policy, Terms and Conditions, Cookie Policy, and Legal Notice documents.
+- Added full-page WYSIWYG editing with formatting tools in the admin panel and rendered formatted document modals on the public website.
+- Added footer links that open the corresponding public legal-document modals.
+
+### Client authentication, accounts, and project portal
+
+- Added direct password registration and login alongside magic-link authentication for client and admin workflows.
+- Corrected client account creation, magic-link registration/login, invitation handling, and active-account validation.
+- Strengthened direct admin account creation with a random, single-use email verification code and an editable verification-code template.
+- Corrected team invitation template selection, team-member creation, team assignment, invitation resend/revoke, and account verification flows.
+- Fixed project preview images, attached-gallery counts, and invoice/customer matching by normalized email address in the client portal.
+- Archived paid invoices remain visible to clients as paid records while admins can manually archive completed invoices.
+
+### Secure gallery delivery and downloads
+
+- Added project-gallery downloads to the client portal, including individual selection, multi-select, and generated ZIP archives.
+- Added four-digit gallery PIN delivery in the gallery-ready email, PIN verification, forgotten-PIN resend, and automatic PIN rotation on every resend.
+- Locked downloads receive a server-generated continuous “Courtesy of SPS Studio” marketplace-style watermark; unlocked downloads return originals.
+- Added right-click protection and watermarked save behavior for locked previews.
+- Added video frame thumbnails and a large-image/lightbox modal in client galleries.
+- Added a separate optimized-image download category for project images below the configured delivery threshold, using the same PIN and watermark policy.
+- Removed the obsolete gallery-level type selector because media type is managed per gallery item.
+- Corrected structured gallery filenames so restructuring updates both the bucket object name and database metadata.
+
+### Portfolio and media storage performance
+
+- Reduced portfolio memory pressure by preventing all videos from autoplaying while keeping motion-rich portfolio rows and hover playback.
+- Added direct browser-to-Appwrite upload sessions for large/chunked media so Vercel does not buffer files or write to its read-only deployment filesystem.
+- Added Appwrite upload registration, public URL construction, bucket diagnostics, and alphanumeric upload-label handling independent of Appwrite user authentication.
+- Retained R2 multipart support and moved Vercel-only temporary work to the writable system temporary directory.
+- Removed obsolete root-level patch and manual test scripts after verifying they were unreferenced development artifacts.
+
+### Finance, invoices, budgets, and payment requests
+
+- Corrected invoice-to-client association and portal visibility using normalized email matching.
+- Added paid-invoice behavior that disables repeat payment requests and replaces the action with manual archival.
+- Updated downloadable/printable invoices to use a print-safe version of the email visual language.
+- Corrected invoice and payment-email rendering and exposed the relevant templates in the email editor.
+- Added superadmin CRUD management for payment-request categories.
+- Added default-currency configuration and applied it to budget, invoice/payment, and payment-request summary cards.
+- Fixed budget-entry persistence and “Budget entry not found” update failures.
+- Corrected payment email conditionals and beneficiary-account token handling.
+
+### Email system and automation
+
+- Expanded the editable transactional-template catalog with gallery PIN recovery, admin verification, invoice/payment, payment-request status, and Google review templates.
+- Removed internal template names from rendered email bodies.
+- Exposed editable header/footer text and all textual template tokens while preserving token aliases and conditional rendering.
+- Added milestone and project-update email delivery from the admin project timeline.
+- Added Google review campaigns after `gallery_ready`: 1 hour, +3 hours, +1 day, +5 days, and +10 days; clicking the tracked review link cancels remaining reminders.
+- Added reusable, database-backed marketing email templates with manual recipient dispatch from the admin panel.
+- Corrected marketing-template creation and missing admin translation values.
+- All generated email action URLs now use canonical `APP_URL`; the request host is only a local-development fallback.
+
+### Localization and translation management
+
+- Audited public, admin, client-portal, budget, invoice/payment, and payment-request UI strings and repaired missing or invalid translation keys.
+- Added missing database translation records and expanded the translation manager to include client-portal and newly introduced cookie/contact strings.
+- Reorganized localization dropdown groups so editable strings appear under their owning product area.
+- Added English, Hungarian, German, Spanish, and French contact travel/calculator guidance.
+
+### Vercel and server architecture
+
+- Fixed Node/TypeScript build issues across Express response/request types, LibSQL client typing, Node crypto, Sharp imports, AWS S3 clients, referral unions, and ESM translation imports.
+- Removed runtime creation of `/var/task/uploads`; Vercel uses writable temporary storage only for short-lived processing.
+- Split the Vercel API into domain functions: `public`, `auth`, `admin`, `client`, and `billing`, with `index` retained as a compatibility fallback.
+- Added shared Vercel CORS, body parsing, database bootstrap, error handling, and extracted authentication middleware.
+- Routed budgets, invoices, payment requests, and referrals to the isolated billing function and assigned function-specific duration settings.
+- Added canonical application URL resolution and forwarded-host fallback handling.
+- Production frontend, local server, and each Vercel function entry were independently bundled and verified.
+
+### Verification
+
+- Repeated Vite production builds completed successfully after the public UI, contact, localization, and email changes.
+- Server and individual Vercel function bundles completed successfully with ESBuild.
+- Targeted TypeScript checks passed for the Vercel entry points, shared bootstrap, contact API, and email template pipeline.
+
 ## 2026-08-17 — AERO/GLOW design integration for 2.0
 
 ### Visual foundation

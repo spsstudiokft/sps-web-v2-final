@@ -11,9 +11,10 @@ SPS Studio is an all-in-one studio management platform designed for architectura
 ### High-Level Architecture
 - **Frontend SPA**: React 19 single-page app bundled with Vite, styled with Tailwind CSS v4 and Motion animations.
 - **AERO/GLOW Design System**: Responsive blue-white ambient lighting, section-aware imagery, accessible light/dark palettes, frosted-glass cards, modals, navigation, authentication, and client/admin workspaces.
-- **Backend API**: Express RESTful API with modular route handlers (`/api/admin/*`, `/api/client/*`, `/api/*`).
+- **Backend API**: Express REST API with modular public, authentication, admin, client, billing, media, and automation routers.
+- **Vercel Runtime**: Domain-isolated Vercel Functions (`public`, `auth`, `admin`, `client`, and `billing`) with a compatibility fallback, shared database bootstrap, and function-specific duration settings.
 - **Database Layer**: LibSQL / Turso SQLite with local fallback (`local.db`) for lightweight development and edge/serverless scaling in production.
-- **Media Engine**: Modular object storage supporting Cloudflare R2 (S3-compatible via `@aws-sdk/client-s3`) and Appwrite Storage with secure multipart uploads.
+- **Media Engine**: Cloudflare R2 multipart and direct browser-to-Appwrite uploads, structured filenames, image optimization, video thumbnails, watermark rendering, and ZIP delivery.
 - **Email Engine**: Resend API integration with transactional email templates, live multi-device visual previewer, and token interpolation.
 - **AI Services**: Google Gemini (`@google/genai`) for automated multi-language translation and localized content generation.
 
@@ -27,13 +28,17 @@ SPS Studio is an all-in-one studio management platform designed for architectura
 - **Lightbox & Gallery Viewer**: Full-screen high-resolution media previews with responsive touch navigation.
 - **Services & Pricing Showcase**: Dynamic tier cards with package feature lists, pricing models, and instant booking CTAs.
 - **Collapsible FAQs & Social Hub**: Grouped questions with instant search, plus verified studio social media links.
-- **Interactive Contact & Booking**: Lead capture form with automatic admin notifications and client auto-reply confirmations.
+- **Interactive Contact & Booking**: Guided lead capture with required property city, optional address, travel-distance pricing from Hódmezővásárhely, package/add-on calculator, structured estimate persistence, admin alert, and client confirmation.
+- **Consent & Legal Modals**: Cookie-gated inquiry form plus database-backed Privacy Policy, Terms, Cookie Policy, and Legal Notice documents rendered from formatted admin content.
+- **Adaptive Navigation**: Services and Portfolio links disappear automatically when no published content exists.
 
 ### 🔐 Client Portal & Project Management
 - **Passwordless Magic Link & Password Sign-In**: Secure client authentication via email magic link or traditional credentials.
 - **Self-Service Client Registration**: Onboarding flow with client profile setup and welcome emails.
 - **Interactive Project Tracker**: Milestone progression (Booked → Scheduled → Shooting → Editing → Delivered).
-- **Deliverable Galleries & Asset Downloads**: High-resolution image/video galleries with direct full-resolution download links.
+- **PIN-Protected Deliverable Galleries**: Individual and multi-select ZIP downloads with rotating four-digit PINs, forgotten-PIN email recovery, locked-preview watermarking, and right-click-safe delivery.
+- **Original & Optimized Downloads**: Separate full-resolution and optimized-image categories with identical authorization and watermark rules.
+- **Video & Image Previewing**: Generated video frame thumbnails, project preview images, attached-gallery counts, and full-size media modals.
 - **Direct Studio Messaging**: In-portal project inquiries and revision requests linked directly to the studio admin.
 
 ### 🛠️ Admin Management Dashboard
@@ -43,6 +48,16 @@ SPS Studio is an all-in-one studio management platform designed for architectura
 - **FAQ & Knowledge Base Manager**: Organize questions into custom categories with quick reordering.
 - **Inquiry & Lead CRM**: Status tracking (`new`, `contacted`, `converted`, `archived`) with contact details and notes.
 - **Social Media Link Manager**: Manage brand handles across 20+ platforms with FontAwesome and Lucide icons.
+- **Legal Document Editor**: Full-page WYSIWYG editing for all public legal documents with formatted modal rendering.
+- **Team & Invitation Management**: Team grouping, role-aware members, invitation resend/revoke, and verification-code-protected direct admin onboarding.
+- **Marketing Email Workspace**: Create multiple reusable marketing templates and manually dispatch them to chosen recipients.
+
+### 💳 Finance, Invoices & Payment Requests
+- **Budget Manager**: Categorized income/expense entries, audit history, status management, summaries, and shared default-currency configuration.
+- **Client-Linked Invoices**: Email-based client association, public printable invoices, payment confirmation, receipts, and paid-record portal visibility.
+- **Paid Invoice Archival**: Confirmed invoices cannot receive duplicate payment requests and can be archived manually by administrators.
+- **Payment Request Workflow**: Superadmin approval, denial, hold, editable categories, linked budget/invoice records, and status-specific email notifications.
+- **Currency-Aware Dashboards**: Budget, invoice/payment, and payment-request totals use the configured default currency.
 
 ### ✉️ Resend Email Engine & Template Editor
 - **Configurable Sender Profiles**: Set custom `from_name`, `from_email`, `reply_to`, and admin alert addresses.
@@ -53,16 +68,26 @@ SPS Studio is an all-in-one studio management platform designed for architectura
   - Client Welcome & Portal Activation (`account_verification`)
   - Project Milestone & Delivery Updates (`project_update`)
   - Gallery Ready & Media Notification (`gallery_ready`)
+  - Gallery PIN Recovery (`gallery_pin_recovery`)
+  - Google Review Request & Reminders (`google_review_request`)
   - Admin Alert on New Inquiry (`inquiry_received`)
   - Client Inquiry Confirmation Auto-Reply (`inquiry_confirmation`)
+  - Admin Account Verification Code (`admin_account_verification_code`)
+  - Invoice Payment Request & Receipt (`invoice_payment_request`, `invoice_payment_receipt`)
+  - Payment Request Approval/Approved/Denied/Hold templates
   - System Diagnostic & Deliverability Test (`test_email`)
-- **Visual Template Editor**: Dual-format HTML and plain-text editors, token insertion palette (`{{user_name}}`, `{{project_name}}`, `{{studio_name}}`), live responsive preview (Desktop, Mobile 375px, Plain-Text), and direct test email dispatch.
+- **Visual Template Editor**: Full-page HTML and plain-text editing, editable header/footer text and token defaults, token insertion palette, desktop/mobile/plain-text preview, and direct test dispatch.
+- **Inquiry Estimate Tokens**: Contact emails expose package, verified base price, selected items, calculated fees, currency, and estimated total in HTML and text formats.
+- **Canonical Links**: Transactional action URLs are generated from `APP_URL`, not the transient serverless request hostname.
+- **Review Automation**: Review requests are scheduled after gallery delivery and stop automatically after the tracked Google review link is clicked.
 - **Delivery Activity Logs**: Real-time delivery tracking with message IDs and status filters.
 
 ### 🌐 Multi-Language (i18n) & AI Translation
 - **5 Core Languages**: English (`en`), Hungarian (`hu`), German (`de`), Spanish (`es`), French (`fr`).
 - **AI-Powered Translation**: Automated string translation using Google Gemini API.
 - **Custom Overrides**: Granular manual translation management from the admin dashboard.
+- **Coverage Auditing**: Public, admin, finance, email, cookie, and client-portal keys can be audited and synchronized with database translations.
+- **Localization Groups**: Translation-manager entries are grouped by their owning interface for easier editing.
 
 ### 🎨 Branding, Theming & Granular SEO
 - **Adaptive Logo System**: Header and footer logo management with distinct light and dark theme assets.
@@ -80,7 +105,7 @@ SPS Studio is an all-in-one studio management platform designed for architectura
 | **Icons & UI** | Lucide React, FontAwesome SVG Icons, `@dnd-kit` |
 | **Backend & Server** | Express 4, Node.js (ESM / CommonJS bundle) |
 | **Database** | LibSQL (`@libsql/client`), Turso SQLite |
-| **Storage Providers** | AWS S3 SDK (`@aws-sdk/client-s3` for Cloudflare R2), Appwrite (`node-appwrite`) |
+| **Storage Providers** | AWS S3 SDK (Cloudflare R2), Appwrite Web SDK + `node-appwrite` |
 | **Email Service** | Resend (`resend`) |
 | **AI Integration** | Google GenAI SDK (`@google/genai`) |
 | **Security & Auth** | JSON Web Tokens (`jsonwebtoken`), Bcrypt (`bcryptjs`) |
@@ -111,9 +136,9 @@ APP_URL=http://localhost:3000
 # Optional local server port (defaults to 3000)
 PORT=3000
 
-# Turso SQLite Database (use local SQLite for development)
-TURSO_DATABASE_URL=file:local.db
-TURSO_AUTH_TOKEN=
+# Turso SQLite Database (the legacy TURSO_* aliases are also accepted)
+DATABASE_URL=file:local.db
+DATABASE_AUTH_TOKEN=
 
 # JWT Authentication Secret
 JWT_SECRET=your_super_secret_jwt_key_change_in_production
@@ -121,8 +146,16 @@ JWT_SECRET=your_super_secret_jwt_key_change_in_production
 # Google Gemini API (Optional - for AI translations)
 GEMINI_API_KEY=
 
-# Media Storage Configuration (Optional: "r2" or "appwrite")
-MEDIA_PROVIDER=r2
+# Media Storage Configuration: "r2", "appwrite", or "local"
+MEDIA_PROVIDER=appwrite
+
+# Appwrite direct browser upload
+APPWRITE_ENDPOINT=https://cloud.appwrite.io/v1
+APPWRITE_PROJECT_ID=
+APPWRITE_API_KEY=
+APPWRITE_BUCKET_ID=
+
+# R2 alternative
 R2_ACCOUNT_ID=
 R2_ACCESS_KEY_ID=
 R2_SECRET_ACCESS_KEY=
@@ -167,6 +200,21 @@ The server starts on `http://localhost:3000` by default. Set `PORT` when that po
 - Light and dark modes use separate surface and text values to preserve readable WCAG-oriented contrast.
 - Motion is reduced automatically when the operating system requests reduced animation.
 - Source image masters are kept in `png-k/`; web-served copies live in `public/images/`.
+- The information bar, incident widget, contact cards, pricing cards, legal modals, cookie banner, dropdowns, and both authenticated workspaces use the same frosted-glass surface and constrained shine treatment.
+- Portfolio conveyors use rounded edge masks, pause the hovered row, show idle video frames, and start video playback only on hover to reduce memory use.
+
+---
+
+## Gallery Delivery Model
+
+1. An administrator links one or more portfolio galleries to a client project.
+2. The gallery-ready email sends the project link and a random four-digit download PIN.
+3. Before PIN verification, preview and downloaded images are rendered with a continuous “Courtesy of SPS Studio” watermark.
+4. A verified PIN unlocks original and optimized deliverables for the project gallery.
+5. Clients may download one item or select multiple items for server-generated ZIP delivery.
+6. Requesting a forgotten PIN sends the editable recovery template and rotates the PIN immediately.
+
+Large file bytes do not pass through Vercel during normal Appwrite upload. The browser receives a constrained upload session, transfers directly to the configured bucket, and the API registers the completed object and metadata.
 
 ---
 
@@ -183,7 +231,19 @@ npm run start
 1. Create a remote database on [Turso](https://turso.tech) and obtain your `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN`.
 2. Connect your Git repository to Vercel.
 3. Configure the required environment variables (`TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN`, `JWT_SECRET`, `APP_URL`, `RESEND_API_KEY`, etc.).
-4. Deploy — the build script will automatically prepare the static bundle and server entry points.
+4. When using Appwrite, configure the bucket permissions/CORS and the alphanumeric server-upload label expected by the direct-upload session.
+5. Deploy — Vercel uses the routes in `vercel.json` to create separate domain functions.
+
+| Function | Routes | Default maximum duration |
+|---|---|---:|
+| `api/public.ts` | Public content, contact form, travel calculator | 60 s |
+| `api/auth.ts` | Authentication, registration, invitations, setup | 60 s |
+| `api/admin.ts` | Admin CMS, teams, email, media control | 300 s |
+| `api/client.ts` | Client portal, gallery authorization and downloads | 300 s |
+| `api/billing.ts` | Budgets, invoices, payment requests, referrals | 300 s |
+| `api/index.ts` | Compatibility fallback and uncategorized API routes | 300 s |
+
+`APP_URL` must contain the canonical public origin (for example `https://studio.example.com`) without an application path. It is used for magic links, invitations, invoice links, gallery links, review tracking, and all other transactional email actions.
 
 ---
 
@@ -191,8 +251,10 @@ npm run start
 
 - **Stateless Authentication**: Signed JWT tokens stored in browser local storage and validated with server-side middleware.
 - **Password Hashing**: Strong one-way password hashing via `bcryptjs` with salt rounds.
-- **Strict File Upload Verification**: In-memory file buffer processing with allowed MIME-type whitelisting (`image/jpeg`, `image/png`, `image/webp`, `image/svg+xml`, `image/x-icon`).
+- **Direct Object-Storage Uploads**: Large Appwrite and R2 uploads bypass the Vercel request body and read-only deployment filesystem.
+- **Gallery Access Control**: Rotating PINs, attempt tracking, authorization checks, watermarking, and ownership validation protect client deliverables.
 - **Transactional Sanitization**: HTML escaping and script-tag sanitization on customized email templates.
+- **Admin Verification Codes**: Direct password account creation for invited administrators requires a random, expiring, single-use email code.
 
 ---
 
