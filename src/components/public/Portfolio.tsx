@@ -98,7 +98,11 @@ export function Portfolio({ items, isPerformanceLite = false }: PortfolioProps) 
           // original when an optimized derivative exists. The original URL
           // remains stored on the portfolio item for protected downloads.
           const displayMedia: GalleryMediaItem = media.type === "image" && media.compressed_url
-            ? { ...media, url: media.compressed_url, thumbnail_url: media.compressed_url }
+            ? {
+                ...media,
+                url: media.compressed_url,
+                thumbnail_url: media.thumbnail_url || media.compressed_url,
+              }
             : media;
           let resolvedType: "image" | "drone_video" | "interior_video" | "drone_photo" = "image";
 

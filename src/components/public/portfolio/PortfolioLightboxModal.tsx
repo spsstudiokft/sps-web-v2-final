@@ -34,6 +34,7 @@ interface PortfolioLightboxModalProps {
 export function PortfolioLightboxModal({ item, initialIndex = 0, onClose }: PortfolioLightboxModalProps) {
   const { currentLang, defaultLang } = useLanguage();
   const [currentIndex, setCurrentIndex] = useState(initialIndex || 0);
+  const [fullImageLoaded, setFullImageLoaded] = useState(false);
 
   // Normalize all gallery media items
   const mediaItems: GalleryMediaItem[] = useMemo(() => {
@@ -77,6 +78,10 @@ export function PortfolioLightboxModal({ item, initialIndex = 0, onClose }: Port
     }
   }, [item, initialIndex]);
 
+  useEffect(() => {
+    setFullImageLoaded(false);
+  }, [item, currentIndex]);
+
   // Keyboard navigation
   useEffect(() => {
     if (!item) return;
@@ -104,6 +109,9 @@ export function PortfolioLightboxModal({ item, initialIndex = 0, onClose }: Port
   const currentVideoParsed = (isCurrentVideo && currentMedia) ? parseVideoUrl(currentMedia.url) : null;
   const currentImageSource = !isCurrentVideo && currentMedia
     ? (currentMedia.compressed_url || currentMedia.thumbnail_url || currentMedia.url)
+    : "";
+  const blurredPreviewSource = !isCurrentVideo && currentMedia
+    ? (currentMedia.thumbnail_url || item.thumbnail_url || currentImageSource)
     : "";
   const responsiveCurrentImage = getResponsiveImageAttributes(
     currentImageSource,
@@ -238,24 +246,38 @@ export function PortfolioLightboxModal({ item, initialIndex = 0, onClose }: Port
                 </div>
               ) : (
                 /* Photo Slide */
-                <img
-                  key={currentMedia.compressed_url || currentMedia.url}
-                  src={responsiveCurrentImage.src}
-                  srcSet={responsiveCurrentImage.srcSet}
-                  sizes={responsiveCurrentImage.sizes}
-                  alt={currentMedia.alt || currentMedia.title || title}
-                  decoding="async"
-                  onError={(event) => {
-                    const image = event.currentTarget;
-                    if (currentImageSource && image.dataset.originalFallback !== "true") {
-                      image.dataset.originalFallback = "true";
-                      image.removeAttribute("srcset");
-                      image.removeAttribute("sizes");
-                      image.src = currentImageSource;
-                    }
-                  }}
-                  className="max-h-[56vh] w-auto max-w-full rounded-xl shadow-2xl object-contain transition-all duration-300 animate-in fade-in zoom-in-95 duration-200"
-                />
+                <div className="relative w-full h-full max-h-[56vh] flex items-center justify-center overflow-hidden rounded-xl">
+                  {blurredPreviewSource && !fullImageLoaded && (
+                    <img
+                      src={blurredPreviewSource}
+                      alt=""
+                      aria-hidden="true"
+                      decoding="async"
+                      className="absolute inset-0 w-full h-full object-contain scale-[1.03] blur-xl opacity-75"
+                    />
+                  )}
+                  <img
+                    key={currentMedia.compressed_url || currentMedia.url}
+                    src={responsiveCurrentImage.src}
+                    srcSet={responsiveCurrentImage.srcSet}
+                    sizes={responsiveCurrentImage.sizes}
+                    alt={currentMedia.alt || currentMedia.title || title}
+                    decoding="async"
+                    onLoad={() => setFullImageLoaded(true)}
+                    onError={(event) => {
+                      const image = event.currentTarget;
+                      if (currentImageSource && image.dataset.originalFallback !== "true") {
+                        image.dataset.originalFallback = "true";
+                        image.removeAttribute("srcset");
+                        image.removeAttribute("sizes");
+                        image.src = currentImageSource;
+                      }
+                    }}
+                    className={`relative z-10 max-h-[56vh] w-auto max-w-full rounded-xl shadow-2xl object-contain transition-[opacity,filter,transform] duration-500 ease-out ${
+                      fullImageLoaded ? "opacity-100 blur-0 scale-100" : "opacity-0 blur-sm scale-[0.995]"
+                    }`}
+                  />
+                </div>
               )}
 
               {/* Navigation Left / Right Buttons */}

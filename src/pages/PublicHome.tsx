@@ -58,6 +58,29 @@ function cacheBootstrap(data: PublicBootstrapData) {
   }
 }
 
+function preconnectMediaOrigins(data: PublicBootstrapData) {
+  if (typeof document === "undefined") return;
+  const origins = new Set<string>();
+  for (const item of data.portfolio.slice(0, 12)) {
+    const first = getNormalizedGallery(item.image_urls)[0];
+    const candidate = first?.thumbnail_url || first?.compressed_url || item.thumbnail_url;
+    if (!candidate) continue;
+    try {
+      const origin = new URL(candidate, window.location.origin).origin;
+      if (origin !== window.location.origin) origins.add(origin);
+    } catch {}
+  }
+
+  for (const origin of Array.from(origins).slice(0, 3)) {
+    if (document.head.querySelector(`link[rel="preconnect"][href="${origin}"]`)) continue;
+    const link = document.createElement("link");
+    link.rel = "preconnect";
+    link.href = origin;
+    link.crossOrigin = "anonymous";
+    document.head.appendChild(link);
+  }
+}
+
 function preloadCriticalMedia(data: PublicBootstrapData) {
   const urls = new Set<string>();
   const sectionMedia = parseSectionMedia(data.settings.section_media);
@@ -110,6 +133,7 @@ export default function PublicHome() {
       setPortfolio(Array.isArray(cached.portfolio) ? cached.portfolio : []);
       setServices(Array.isArray(cached.services) ? cached.services : []);
       setBootstrap(cached);
+      preconnectMediaOrigins(cached);
       preloadCriticalMedia(cached);
       setLoading(false);
       return;
@@ -126,6 +150,7 @@ export default function PublicHome() {
         setServices(Array.isArray(data.services) ? data.services : []);
         setBootstrap(data);
         cacheBootstrap(data);
+        preconnectMediaOrigins(data);
         preloadCriticalMedia(data);
         setLoading(false);
       })

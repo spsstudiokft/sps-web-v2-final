@@ -172,15 +172,24 @@ export function MediaCard({ card, onClick, priority = false, deferMedia = false 
   // For image items derive image preview. For video items, use dedicated 360p video poster (never project cover art).
   const youtubePreviewIndex = (Array.from(card.id).reduce((sum, char) => sum + char.charCodeAt(0), 0) % 3) + 1;
   const previewImageUrl = !isVideoCard
-    ? (media.compressed_url || media.thumbnail_url || item.thumbnail_url || media.url || "")
+    ? (media.thumbnail_url || item.thumbnail_url || media.compressed_url || media.url || "")
     : (media.thumbnail_url || (parsedVideo?.type === "youtube" ? `https://img.youtube.com/vi/${parsedVideo.videoId}/${youtubePreviewIndex}.jpg` : ""));
   const shouldLoadMedia = priority || isInViewport;
-  const responsivePreview = getResponsiveImageAttributes(
-    previewImageUrl,
-    [320, 480, 640, 840],
-    "(max-width: 639px) 310px, (max-width: 767px) 380px, 420px",
-    82,
+  const hasStoredCardPreview = Boolean(
+    media.thumbnail_url && media.thumbnail_url !== media.compressed_url,
   );
+  const responsivePreview = hasStoredCardPreview
+    ? {
+        src: previewImageUrl,
+        srcSet: undefined,
+        sizes: "(max-width: 639px) 310px, (max-width: 767px) 380px, 420px",
+      }
+    : getResponsiveImageAttributes(
+        previewImageUrl,
+        deferMedia ? [640] : [480, 640, 840],
+        "(max-width: 639px) 310px, (max-width: 767px) 380px, 420px",
+        82,
+      );
   const handleResponsiveImageError = (event: React.SyntheticEvent<HTMLImageElement>) => {
     const image = event.currentTarget;
     if (previewImageUrl && image.dataset.originalFallback !== "true") {

@@ -328,6 +328,7 @@ export function PortfolioModal({
           compressed_url: result.compressedUrl,
           compressed_filename: result.compressedFilename,
           compressed_size: result.compressedSize,
+          thumbnail_url: result.thumbnailUrl || result.compressedUrl || "",
           item_number: formatItemNumber(seqNumber),
           project_name: sanitizeNameForFilename(projName),
           category_name: "photos",
@@ -342,7 +343,7 @@ export function PortfolioModal({
         setFormData((prev) => ({
           ...prev,
           image_urls: JSON.stringify(updated),
-          thumbnail_url: prev.thumbnail_url || newItems[0].compressed_url || newItems[0].url,
+          thumbnail_url: prev.thumbnail_url || newItems[0].thumbnail_url || newItems[0].compressed_url || newItems[0].url,
         }));
       }
     } catch (err: any) {
@@ -448,7 +449,7 @@ export function PortfolioModal({
       });
       setFormData((prev) => ({
         ...prev,
-        thumbnail_url: result.compressedUrl || result.url,
+        thumbnail_url: result.thumbnailUrl || result.compressedUrl || result.url,
       }));
     } catch (err: any) {
       setErrorMessage(err.message || "Failed to upload cover image.");

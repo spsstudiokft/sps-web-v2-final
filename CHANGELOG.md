@@ -50,6 +50,9 @@
 - Added provider-aware responsive image URL generation for Appwrite and Unsplash, including cached Appwrite JPEG preview resizing, quality controls, and screen-aware `srcset`/`sizes` candidates.
 - Applied adaptive image delivery to public portfolio cards, video posters, full lightbox images, and lightbox thumbnails without routing image bytes through Vercel Functions.
 - Corrected missing portfolio-card images caused by Appwrite returning HTTP 500 for WebP preview output; responsive previews now request the verified JPEG format and automatically retry the stored optimized image if any transformation fails.
+- Added a dedicated 840 px JPEG card derivative during new image uploads and stores its URL as the gallery thumbnail, removing runtime proxy generation from newly uploaded portfolio cards.
+- Standardized legacy mobile proxy requests on one 640 px cache key and preconnects the browser to detected media origins before the portfolio approaches the viewport.
+- Added a Facebook-style blur-up placeholder to portfolio lightbox images, using the small stored thumbnail until the larger optimized image finishes loading and decoding.
 - Removed full schema migration/setup work from the read-only Vercel public function cold-start path; admin, authentication, client, billing, and fallback functions retain database initialization.
 - Added dedicated browser and Vercel CDN cache controls for the public bootstrap response, including stale-on-error delivery during temporary database outages.
 - Added one-year immutable caching for fingerprinted Vite assets and revalidation caching for bundled public images.

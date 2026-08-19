@@ -30,6 +30,9 @@ export interface UploadResult {
   compressedUrl?: string;
   compressedFilename?: string;
   compressedSize?: number;
+  thumbnailUrl?: string;
+  thumbnailFilename?: string;
+  thumbnailSize?: number;
   itemNumber?: string;
   projectName?: string;
   categoryName?: string;
@@ -89,7 +92,7 @@ export async function uploadMediaFile(
   const storageDirectResult = await uploadDirectToConfiguredStorage(
     storageFile,
     token,
-    (percent, loaded, total) => onProgress?.(Math.round(percent * 0.82), loaded, total),
+    (percent, loaded, total) => onProgress?.(Math.round(percent * 0.75), loaded, total),
     file.name,
   );
   if (storageDirectResult) {
@@ -99,16 +102,34 @@ export async function uploadMediaFile(
         const optimizedResult = await uploadDirectToConfiguredStorage(
           optimizedFile,
           token,
-          (percent) => onProgress?.(82 + Math.round(percent * 0.18), file.size, file.size),
+          (percent) => onProgress?.(75 + Math.round(percent * 0.17), file.size, file.size),
           file.name,
         );
         if (optimizedResult) {
+          let thumbnailResult: UploadResult | null = null;
+          let thumbnailFile: File | null = null;
+          try {
+            thumbnailFile = await createCardPreviewImageFile(optimizedFile);
+            if (thumbnailFile) {
+              thumbnailResult = await uploadDirectToConfiguredStorage(
+                thumbnailFile,
+                token,
+                (percent) => onProgress?.(92 + Math.round(percent * 0.08), file.size, file.size),
+                file.name,
+              );
+            }
+          } catch (error) {
+            console.warn(`[Card Preview] Could not upload card preview for "${file.name}":`, error);
+          }
           onProgress?.(100, file.size, file.size);
           return {
             ...storageDirectResult,
             compressedUrl: optimizedResult.url,
             compressedFilename: optimizedFile.name,
             compressedSize: optimizedFile.size,
+            thumbnailUrl: thumbnailResult?.url,
+            thumbnailFilename: thumbnailFile?.name,
+            thumbnailSize: thumbnailFile?.size,
           };
         }
       } catch (error) {
@@ -129,6 +150,31 @@ export async function uploadMediaFile(
   }
 
   return uploadChunked(file, token, chunkSize, totalChunks, onProgress, options);
+}
+
+async function createCardPreviewImageFile(file: File): Promise<File | null> {
+  if (!file.type.startsWith("image/")) return null;
+  const bitmap = await createImageBitmap(file);
+  try {
+    const maxDimension = 840;
+    const scale = Math.min(1, maxDimension / Math.max(bitmap.width, bitmap.height));
+    const width = Math.max(1, Math.round(bitmap.width * scale));
+    const height = Math.max(1, Math.round(bitmap.height * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const context = canvas.getContext("2d", { alpha: false });
+    if (!context) return null;
+    context.fillStyle = "#ffffff";
+    context.fillRect(0, 0, width, height);
+    context.drawImage(bitmap, 0, 0, width, height);
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.8));
+    if (!blob) return null;
+    const baseName = file.name.replace(/_optimized\.jpg$/i, "").replace(/\.[^.]+$/, "");
+    return new File([blob], `${baseName}_card.jpg`, { type: "image/jpeg", lastModified: Date.now() });
+  } finally {
+    bitmap.close();
+  }
 }
 
 function createStructuredUploadFile(file: File, options: UploadOptions): File {
@@ -258,6 +304,9 @@ function uploadDirectOnce(
               compressedUrl: data.compressed_url,
               compressedFilename: data.compressed_filename,
               compressedSize: data.compressed_size,
+              thumbnailUrl: data.thumbnail_url,
+              thumbnailFilename: data.thumbnail_filename,
+              thumbnailSize: data.thumbnail_size,
               itemNumber: data.item_number,
               projectName: data.project_name,
               categoryName: data.category_name,
