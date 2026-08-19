@@ -487,9 +487,9 @@ export function Contact({ settings }: { settings: SiteSettings }) {
       viewport={VIEWPORT_CONFIG}
       className="aero-contact scroll-mt-20 bg-primary text-background py-20 md:py-28 overflow-hidden"
     >
-      <div className="max-w-7xl mx-auto px-6 grid lg:grid-cols-12 gap-12 lg:gap-16 items-start">
+      <div className="aero-contact-layout max-w-7xl mx-auto px-6 grid lg:grid-cols-12 gap-12 lg:gap-16 items-start">
         {/* Left Column: Details & Info */}
-        <motion.div variants={fadeInLeft} className="lg:col-span-5 flex flex-col justify-between h-full">
+        <motion.div variants={fadeInLeft} className="aero-contact-info lg:col-span-5 flex flex-col justify-between h-full min-w-0">
           <div>
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight mb-5 leading-tight">{contactTitle}</h2>
             <p className="text-background/80 text-base sm:text-lg mb-10 max-w-lg leading-relaxed">
@@ -581,7 +581,7 @@ export function Contact({ settings }: { settings: SiteSettings }) {
         </motion.div>
 
         {/* Right Column: Inquiry Form Card */}
-        <motion.div variants={fadeInRight} className="lg:col-span-7 bg-background rounded-3xl p-7 sm:p-10 text-text shadow-2xl border border-border">
+        <motion.div variants={fadeInRight} className="aero-contact-form-card lg:col-span-7 min-w-0 bg-background rounded-3xl p-7 sm:p-10 text-text shadow-2xl border border-border">
           <div className="mb-6">
             <h3 className="text-2xl sm:text-3xl font-bold text-text">{tUi("Send an Inquiry", currentLang, undefined, defaultLang) || "Send an Inquiry"}</h3>
             <p className="text-sm text-muted-text mt-1">

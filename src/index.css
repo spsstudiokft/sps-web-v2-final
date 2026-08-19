@@ -556,13 +556,122 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 @media (max-width: 600px) {
-  .aero-hero { width: 100%; margin: 0; border-radius: 0 0 1.4rem 1.4rem; min-height: 900px; padding-inline: 1.1rem; background-position: center center; }
-  .aero-hero-layout { padding-bottom: 1rem; }
-  .aero-cinematic-title { font-size: clamp(2.65rem, 13.5vw, 3.5rem); line-height: .9; letter-spacing: -.055em; }
-  .aero-showreel-card { padding: 1rem; }
-  .aero-hero-footer { align-items: flex-end; }
+  .aero-hero {
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    border-radius: 0 0 1.4rem 1.4rem;
+    min-height: 100svh;
+    padding-inline: 1.1rem;
+    padding-top: 7.75rem;
+    padding-bottom: 1.5rem;
+    background-position: center center;
+  }
+  .aero-hero > .relative,
+  .aero-hero-layout,
+  .aero-hero-copy {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+  .aero-hero-layout { gap: 1.6rem; padding-bottom: 1rem; }
+  .aero-live-pill {
+    max-width: 100%;
+    margin-bottom: 1.45rem;
+    padding: .52rem .75rem;
+    gap: .55rem;
+    font-size: clamp(.58rem, 2.7vw, .68rem);
+    letter-spacing: .13em;
+    white-space: normal;
+  }
+  .aero-cinematic-title {
+    max-width: 100%;
+    margin-bottom: 1.4rem;
+    font-size: clamp(2.2rem, 11.4vw, 3rem);
+    line-height: .92;
+    letter-spacing: -.05em;
+    overflow-wrap: anywhere;
+    word-break: normal;
+    hyphens: auto;
+  }
+  .aero-hero-copy > p { margin-bottom: 1.75rem; }
+  .aero-hero-copy .cinematic-button {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    padding-inline: 1rem;
+    text-align: center;
+  }
+  .aero-showreel-card { width: 100%; max-width: 100%; min-width: 0; padding: 1rem; }
+  .aero-service-line { min-width: 0; }
+  .aero-service-line > .flex-1 { min-width: 0; overflow-wrap: anywhere; }
+  .aero-hero-footer { min-width: 0; align-items: flex-end; }
   .aero-hero-footer > div:first-child { display: none; }
+  .aero-hero-footer > a { margin-left: auto; max-width: 100%; text-align: right; }
   .aero-about { width: calc(100% - 1rem); border-radius: 1.75rem; }
+
+  .aero-contact {
+    width: calc(100% - .75rem);
+    max-width: calc(100% - .75rem);
+    padding-block: 3.5rem;
+  }
+  .aero-contact-layout {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    padding-inline: .75rem;
+    gap: 2rem;
+  }
+  .aero-contact-info,
+  .aero-contact-form-card,
+  .aero-contact-form,
+  .aero-contact-form fieldset {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+  .aero-contact-form-card {
+    padding: 1rem;
+    border-radius: 1.25rem;
+  }
+  .aero-contact-info h2,
+  .aero-contact-form-card h3,
+  .aero-contact-form-card p,
+  .aero-contact-form-card span,
+  .aero-contact-detail > div:last-child {
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+  .aero-contact-detail { min-width: 0; padding: .75rem; gap: .75rem; }
+  .aero-contact-detail-icon { width: 2.5rem; height: 2.5rem; }
+  .aero-contact-form input,
+  .aero-contact-form select,
+  .aero-contact-form textarea,
+  .aero-contact-form button {
+    max-width: 100%;
+    min-width: 0;
+  }
+  .aero-contact-form input[type="datetime-local"] {
+    width: 100%;
+    min-inline-size: 0;
+  }
+  .aero-contact-form [class*="justify-between"] {
+    min-width: 0;
+    flex-wrap: wrap;
+    row-gap: .45rem;
+  }
+  .aero-contact-form [class*="rounded-2xl"][class*="p-5"] {
+    padding: 1rem;
+  }
+  .aero-contact-consent-lock button { width: 100%; }
+}
+
+@media (max-width: 360px) {
+  .aero-hero { padding-inline: .85rem; }
+  .aero-cinematic-title { font-size: clamp(2rem, 11vw, 2.45rem); }
+  .aero-live-pill { letter-spacing: .09em; }
+  .aero-showreel-card { padding: .85rem; }
 }
 
 /* Immersive section backgrounds and dimensional interaction */
