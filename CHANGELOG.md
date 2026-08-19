@@ -10,6 +10,11 @@
 - Added automatic optimized-image creation during upload: each image retains its original master and receives a high-quality JPEG derivative constrained below 10 MB, with adaptive dimensions and quality when needed.
 - Preserved optimized JPEG delivery for client downloads while using derivatives for admin and public previews to prevent large source images from slowing the interface.
 
+### Email branding
+
+- Added an email-header branding selector for uploaded logo only, uploaded logo with studio name, or studio name only.
+- Connected transactional, marketing, preview, and test-email layouts to the uploaded light header logo, with the dark logo as fallback and the public header mode used until an email-specific mode is saved.
+
 ### Portfolio data and media cleanup
 
 - Corrected localized portfolio names and categories in admin cards and category selectors so translated values render instead of serialized objects or translation keys.

@@ -684,6 +684,25 @@ export function EmailSettingsManager({ settings, onChange }: EmailSettingsManage
               </div>
 
               <div>
+                <Label htmlFor="email_brand_display" className="text-xs font-semibold text-text">
+                  Email Header Brand Display
+                </Label>
+                <select
+                  id="email_brand_display"
+                  value={settings.email_brand_display || settings.header_brand_display || "logo_only"}
+                  onChange={(e) => onChange("email_brand_display", e.target.value)}
+                  className="w-full mt-1 h-10 px-3 rounded-xl border border-border bg-background text-sm text-text focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                >
+                  <option value="logo_only">Uploaded logo only</option>
+                  <option value="logo_and_name">Uploaded logo and studio name</option>
+                  <option value="name_only">Studio name only</option>
+                </select>
+                <p className="text-[11px] text-muted-text mt-1">
+                  Uses the uploaded light header logo, with the dark header logo as fallback. Until saved separately, this follows the website header branding mode.
+                </p>
+              </div>
+
+              <div>
                 <Label htmlFor="email_footer_text" className="text-xs font-semibold text-text">
                   Master Email Footer Copyright & Notice
                 </Label>

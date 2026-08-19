@@ -63,6 +63,7 @@ export type SiteSettings = {
   resend_from_name?: string;
   resend_reply_to?: string;
   admin_notification_email?: string;
+  email_brand_display?: "logo_only" | "logo_and_name" | "name_only";
   email_footer_text?: string;
   google_review_url?: string;
   seo_default_title?: string;

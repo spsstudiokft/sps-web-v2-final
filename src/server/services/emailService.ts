@@ -67,6 +67,9 @@ export interface EmailSenderConfig {
   adminNotificationEmail: string;
   footerText: string;
   studioName: string;
+  brandDisplay: "logo_only" | "logo_and_name" | "name_only";
+  logoUrl: string;
+  logoAltText: string;
 }
 
 // Fetch sender configuration from database settings or environment variables
@@ -77,9 +80,14 @@ export async function getEmailSenderConfig(): Promise<EmailSenderConfig> {
   let replyToEmail = process.env.RESEND_REPLY_TO || "contact@spsstudio.com";
   let adminNotificationEmail = "spsstudiokft@gmail.com";
   let footerText = "SPS Studio · Premium Real Estate Visual Marketing · All rights reserved.";
+  let headerBrandDisplay: EmailSenderConfig["brandDisplay"] = "logo_only";
+  let emailBrandDisplay = "";
+  let logoUrl = "";
+  let fallbackLogoUrl = "";
+  let logoAltText = "";
 
   try {
-    const res = await db.execute("SELECT key, value FROM settings WHERE key LIKE 'resend_%' OR key IN ('studio_name', 'admin_notification_email', 'email_footer_text', 'contact_email')");
+    const res = await db.execute("SELECT key, value FROM settings WHERE key LIKE 'resend_%' OR key IN ('studio_name', 'admin_notification_email', 'email_footer_text', 'email_brand_display', 'header_brand_display', 'logo_header_light', 'logo_header_dark', 'logo_alt_text', 'contact_email')");
     for (const row of res.rows) {
       const k = row.key as string;
       const v = row.value as string;
@@ -88,6 +96,11 @@ export async function getEmailSenderConfig(): Promise<EmailSenderConfig> {
       if (k === "resend_reply_to" && v?.trim()) replyToEmail = v.trim();
       if (k === "admin_notification_email" && v?.trim()) adminNotificationEmail = v.trim();
       if (k === "email_footer_text" && v?.trim()) footerText = v.trim();
+      if (k === "email_brand_display" && v?.trim()) emailBrandDisplay = v.trim();
+      if (k === "header_brand_display" && ["logo_only", "logo_and_name", "name_only"].includes(v?.trim())) headerBrandDisplay = v.trim() as EmailSenderConfig["brandDisplay"];
+      if (k === "logo_header_light" && v?.trim()) logoUrl = v.trim();
+      if (k === "logo_header_dark" && v?.trim()) fallbackLogoUrl = v.trim();
+      if (k === "logo_alt_text" && v?.trim()) logoAltText = v.trim();
       if (k === "contact_email" && v?.trim() && !replyToEmail) replyToEmail = v.trim();
       if (k === "studio_name" && v?.trim()) {
         try {
@@ -102,13 +115,25 @@ export async function getEmailSenderConfig(): Promise<EmailSenderConfig> {
     console.warn("Could not load email settings from DB, falling back to defaults", err);
   }
 
+  const requestedBrandDisplay = ["logo_only", "logo_and_name", "name_only"].includes(emailBrandDisplay)
+    ? emailBrandDisplay as EmailSenderConfig["brandDisplay"]
+    : headerBrandDisplay;
+  const configuredLogoUrl = logoUrl || fallbackLogoUrl;
+  const appUrl = String(process.env.APP_URL || "").trim().replace(/\/$/, "");
+  const absoluteLogoUrl = configuredLogoUrl.startsWith("/") && appUrl
+    ? `${appUrl}${configuredLogoUrl}`
+    : configuredLogoUrl;
+
   return {
     fromEmail,
     fromName,
     replyToEmail,
     adminNotificationEmail,
     footerText,
-    studioName
+    studioName,
+    brandDisplay: requestedBrandDisplay,
+    logoUrl: absoluteLogoUrl,
+    logoAltText: logoAltText || studioName,
   };
 }
 
@@ -1977,6 +2002,17 @@ export function wrapInEmailLayout(
   const headerSubtitle = renderLayoutText(layoutText.header_subtitle || "Visual Marketing & Photography");
   const footerNotice = renderLayoutText(layoutText.footer_text || config.footerText || `${studioName} · All rights reserved.`);
   const footerServiceText = renderLayoutText(layoutText.footer_service_text || `Sent securely via Resend Email Service · © ${currentYear} ${studioName}`);
+  const escapeAttribute = (value: any) => escapeLayoutText(value).replace(/'/g, "&#39;");
+  const hasLogo = config.brandDisplay !== "name_only" && Boolean(config.logoUrl);
+  const showBrandName = config.brandDisplay !== "logo_only" || !hasLogo;
+  const emailBrandMarkup = `${hasLogo ? `
+                    <img src="${escapeAttribute(config.logoUrl)}" alt="${escapeAttribute(config.logoAltText || studioName)}" width="180" style="display: block; width: auto; max-width: 180px; max-height: 64px; height: auto; margin: 0 auto; object-fit: contain;" />` : ""}${showBrandName ? `
+                    <div style="color: #ffffff; font-size: 22px; font-weight: 700; letter-spacing: -0.02em; text-transform: uppercase;${hasLogo ? " margin-top: 12px;" : ""}">
+                      ${headerTitle}
+                    </div>` : ""}
+                    <div style="color: #94a3b8; font-size: 11px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; margin-top: 6px;">
+                      ${headerSubtitle}
+                    </div>`;
 
   const brandDark = "#0f172a";
   const brandAccent = "#3b82f6";
@@ -2023,12 +2059,7 @@ export function wrapInEmailLayout(
               <table border="0" cellpadding="0" cellspacing="0" width="100%">
                 <tr>
                   <td align="center">
-                    <div style="color: #ffffff; font-size: 22px; font-weight: 700; letter-spacing: -0.02em; text-transform: uppercase;">
-                      ${headerTitle}
-                    </div>
-                    <div style="color: #94a3b8; font-size: 11px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; margin-top: 4px;">
-                      ${headerSubtitle}
-                    </div>
+                    ${emailBrandMarkup}
                   </td>
                 </tr>
               </table>
