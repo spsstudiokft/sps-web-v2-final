@@ -31,6 +31,25 @@ interface PortfolioProps {
   items: PortfolioItem[];
 }
 
+function shuffleShowcaseCards(cards: ShowcaseMediaCardItem[]): ShowcaseMediaCardItem[] {
+  const remaining = [...cards];
+  const shuffled: ShowcaseMediaCardItem[] = [];
+
+  while (remaining.length > 0) {
+    const previousPortfolioId = shuffled.at(-1)?.item.id;
+    const eligibleIndexes = remaining
+      .map((card, index) => card.item.id !== previousPortfolioId ? index : -1)
+      .filter((index) => index >= 0);
+    const candidates = eligibleIndexes.length > 0
+      ? eligibleIndexes
+      : remaining.map((_, index) => index);
+    const selectedIndex = candidates[Math.floor(Math.random() * candidates.length)];
+    shuffled.push(remaining.splice(selectedIndex, 1)[0]);
+  }
+
+  return shuffled;
+}
+
 export function Portfolio({ items }: PortfolioProps) {
   const { currentLang, defaultLang } = useLanguage();
   const [activeModalItem, setActiveModalItem] = useState<PortfolioItem | null>(null);
@@ -150,9 +169,9 @@ export function Portfolio({ items }: PortfolioProps) {
     });
 
     return {
-      imageCards: imgCards,
-      droneVideoCards: droneCards,
-      interiorVideoCards: interiorCards,
+      imageCards: shuffleShowcaseCards(imgCards),
+      droneVideoCards: shuffleShowcaseCards(droneCards),
+      interiorVideoCards: shuffleShowcaseCards(interiorCards),
     };
   }, [items]);
 
