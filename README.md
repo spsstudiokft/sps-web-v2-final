@@ -102,6 +102,8 @@ SPS Studio is an all-in-one studio management platform designed for architectura
 
 - **Batched Public Bootstrap**: Settings, portfolio, services, pricing, add-ons, fee rules, and FAQs load through one LibSQL/Turso batch instead of repeated component-level queries.
 - **Layered Caching**: Short-lived server memory, Vercel CDN `stale-while-revalidate`, browser HTTP, and session caches reduce repeat database work.
+- **Fast Vercel Cold Starts**: Read-only public functions skip schema migration work during cold starts, while admin and write-capable functions retain full database initialization.
+- **Immutable Build Assets**: Fingerprinted Vite assets receive a one-year immutable cache policy, and public image assets use browser/CDN revalidation windows.
 - **Route-Level Code Splitting**: Admin, finance, authentication, and client-portal pages are loaded only when their routes are opened; public visitors do not download those modules during startup.
 - **Adaptive Low-End Mode**: Low-memory/low-core mobile devices, constrained connections, data-saver mode, and reduced-motion preferences receive static touch-scroll portfolio rows, fewer blur/3D effects, and deferred off-screen rendering.
 - **Critical Media Loading**: The hero background is preloaded while optimized portfolio derivatives are prefetched only when device and connection conditions allow it.

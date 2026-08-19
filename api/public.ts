@@ -4,4 +4,4 @@ import { createVercelApp } from "../src/server/vercelApp.js";
 export default createVercelApp((app) => {
   app.use("/api", coreRouter);
   app.use(coreRouter);
-});
+}, { initializeDatabase: false });

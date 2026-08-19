@@ -1096,7 +1096,8 @@ router.get("/public/translations/:locale", async (req, res) => {
 
 router.get("/public/bootstrap", async (_req, res) => {
   try {
-    res.set("Cache-Control", "public, max-age=30, s-maxage=60, stale-while-revalidate=300");
+    res.set("Cache-Control", "public, max-age=30");
+    res.set("Vercel-CDN-Cache-Control", "public, s-maxage=60, stale-while-revalidate=300, stale-if-error=86400");
     res.json(await loadPublicBootstrap());
   } catch (error) {
     console.error("Public bootstrap fetch error:", error);

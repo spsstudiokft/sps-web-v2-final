@@ -8,7 +8,14 @@ let dbSetupPromise: Promise<void> | null = null;
 // of core.Application, even though the runtime value is the full application.
 // Keep this boundary untyped so Vercel's per-function typecheck sees the real
 // callable Express handler without losing app.use().
-export function createVercelApp(configureRoutes: (app: any) => void): any {
+interface VercelAppOptions {
+  initializeDatabase?: boolean;
+}
+
+export function createVercelApp(
+  configureRoutes: (app: any) => void,
+  options: VercelAppOptions = {},
+): any {
   const app: any = express();
 
   app.use(express.json({ limit: "50mb" }));
@@ -22,27 +29,29 @@ export function createVercelApp(configureRoutes: (app: any) => void): any {
     next();
   });
 
-  app.use(async (_req, res, next) => {
-    if (isDbSetup) return next();
-    try {
-      if (!dbSetupPromise) {
-        dbSetupPromise = setupDatabase()
-          .then(() => { isDbSetup = true; })
-          .catch((error) => {
-            dbSetupPromise = null;
-            throw error;
-          });
+  if (options.initializeDatabase !== false) {
+    app.use(async (_req, res, next) => {
+      if (isDbSetup) return next();
+      try {
+        if (!dbSetupPromise) {
+          dbSetupPromise = setupDatabase()
+            .then(() => { isDbSetup = true; })
+            .catch((error) => {
+              dbSetupPromise = null;
+              throw error;
+            });
+        }
+        await dbSetupPromise;
+        next();
+      } catch (error: any) {
+        console.error("[Vercel API] Database initialization error:", error);
+        res.status(500).json({
+          error: "Database connection failed",
+          message: error?.message || "Unable to reach database",
+        });
       }
-      await dbSetupPromise;
-      next();
-    } catch (error: any) {
-      console.error("[Vercel API] Database initialization error:", error);
-      res.status(500).json({
-        error: "Database connection failed",
-        message: error?.message || "Unable to reach database",
-      });
-    }
-  });
+    });
+  }
 
   configureRoutes(app);
 

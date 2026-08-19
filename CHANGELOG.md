@@ -36,6 +36,9 @@
 
 ### Public loading and low-end device performance
 
+- Removed full schema migration/setup work from the read-only Vercel public function cold-start path; admin, authentication, client, billing, and fallback functions retain database initialization.
+- Added dedicated browser and Vercel CDN cache controls for the public bootstrap response, including stale-on-error delivery during temporary database outages.
+- Added one-year immutable caching for fingerprinted Vite assets and revalidation caching for bundled public images.
 - Added `/api/public/bootstrap`, which returns settings, portfolio, services, pricing, add-ons, fee rules, FAQs, and FAQ categories from one LibSQL/Turso read batch.
 - Removed duplicate component-level startup requests by sharing bootstrap pricing, service, add-on, fee, and FAQ data across the public page.
 - Added request coalescing plus short-lived server-memory, Vercel CDN, browser, and session caching for public datasets.
