@@ -1,9 +1,10 @@
 import React from "react";
 import { SocialPlatformPreset } from "./types";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { IconDefinition } from "@fortawesome/fontawesome-svg-core";
 import {
   faInstagram,
-  faFacebook,
+  faFacebookF,
   faYoutube,
   faTiktok,
   faLinkedin,
@@ -279,101 +280,114 @@ export function SocialIconRenderer({
     .replace(/^fa-/, "")
     .replace(/^fa(?=[a-z])/, "")
     .replace(/_/g, "-");
-  const groupIcons = new Set(["folder", "briefcase", "message-circle", "messages", "layers", "globe", "sparkles", "camera", "video", "building", "star", "compass", "share-2", "share"]);
-  const linkIcons = new Set(["instagram", "facebook", "youtube", "tiktok", "linkedin", "x", "x-twitter", "twitter", "whatsapp", "telegram", "vimeo", "vimeo-v", "pinterest", "threads", "github", "discord", "behance", "dribbble", "email", "envelope", "mail", "phone", "tel", "globe", "website", "camera", "video", "image", "link"]);
-  const normalizedIcon = normalizeIconKey(icon);
-  const normalizedPlatform = normalizeIconKey(platform);
+  const aliases: Record<string, string> = {
+    "facebook-f": "facebook", "facebook-square": "facebook", fb: "facebook", meta: "facebook",
+    "instagram-square": "instagram", "youtube-play": "youtube", "linkedin-in": "linkedin",
+    "twitter-x": "x", "x-com": "x", "whats-app": "whatsapp", "telegram-plane": "telegram",
+    envelope: "email", mail: "email", tel: "phone", website: "globe", "external-link": "link",
+    messages: "message-circle", share: "share-2",
+  };
+  const canonicalize = (key: string) => aliases[key] || key;
+  const groupIcons = new Set(["folder", "briefcase", "message-circle", "layers", "globe", "sparkles", "camera", "video", "building", "star", "compass", "share-2"]);
+  const linkIcons = new Set(["instagram", "facebook", "youtube", "tiktok", "linkedin", "x", "x-twitter", "twitter", "whatsapp", "telegram", "vimeo", "vimeo-v", "pinterest", "threads", "github", "discord", "behance", "dribbble", "email", "phone", "globe", "camera", "video", "image", "link"]);
+  const normalizedIcon = canonicalize(normalizeIconKey(icon));
+  const normalizedPlatform = canonicalize(normalizeIconKey(platform));
   const supportedIcons = type === "group" ? groupIcons : linkIcons;
   const iconKey = supportedIcons.has(normalizedIcon)
     ? normalizedIcon
     : (supportedIcons.has(normalizedPlatform) ? normalizedPlatform : (type === "group" ? "share-2" : "link"));
   const explicitColorStyle = color ? { color } : undefined;
+  const renderIcon = (definition: IconDefinition) => (
+    <span className={`inline-flex shrink-0 items-center justify-center leading-none ${className}`} style={explicitColorStyle} aria-hidden="true" data-social-icon={iconKey}>
+      <FontAwesomeIcon icon={definition} className="block h-full w-full" style={{ width: "100%", height: "100%" }} />
+    </span>
+  );
 
   // 1. Group default or specific icon
   if (type === "group") {
     switch (iconKey) {
       case "folder":
-        return <FontAwesomeIcon icon={faFolder} className={className} style={{ color }} />;
+        return renderIcon(faFolder);
       case "briefcase":
-        return <FontAwesomeIcon icon={faBriefcase} className={className} style={{ color }} />;
+        return renderIcon(faBriefcase);
       case "message-circle":
       case "messages":
-        return <FontAwesomeIcon icon={faComments} className={className} style={explicitColorStyle} />;
+        return renderIcon(faComments);
       case "layers":
-        return <FontAwesomeIcon icon={faLayerGroup} className={className} style={explicitColorStyle} />;
+        return renderIcon(faLayerGroup);
       case "sparkles":
-        return <FontAwesomeIcon icon={faWandMagicSparkles} className={className} style={explicitColorStyle} />;
+        return renderIcon(faWandMagicSparkles);
       case "globe":
-        return <FontAwesomeIcon icon={faGlobe} className={className} style={{ color }} />;
+        return renderIcon(faGlobe);
       case "camera":
-        return <FontAwesomeIcon icon={faCamera} className={className} style={{ color }} />;
+        return renderIcon(faCamera);
       case "video":
-        return <FontAwesomeIcon icon={faVideo} className={className} style={{ color }} />;
+        return renderIcon(faVideo);
       case "building":
-        return <FontAwesomeIcon icon={faBuilding} className={className} style={{ color }} />;
+        return renderIcon(faBuilding);
       case "star":
-        return <FontAwesomeIcon icon={faStar} className={className} style={{ color }} />;
+        return renderIcon(faStar);
       case "compass":
-        return <FontAwesomeIcon icon={faCompass} className={className} style={{ color }} />;
+        return renderIcon(faCompass);
       case "share-2":
       case "share":
       default:
-        return <FontAwesomeIcon icon={faShareNodes} className={className} style={{ color }} />;
+        return renderIcon(faShareNodes);
     }
   }
 
   // 2. Platform brand icons
   switch (iconKey) {
     case "instagram":
-      return <FontAwesomeIcon icon={faInstagram} className={className} style={explicitColorStyle} />;
+      return renderIcon(faInstagram);
     case "facebook":
-      return <FontAwesomeIcon icon={faFacebook} className={className} style={explicitColorStyle} />;
+      return renderIcon(faFacebookF);
     case "youtube":
-      return <FontAwesomeIcon icon={faYoutube} className={className} style={explicitColorStyle} />;
+      return renderIcon(faYoutube);
     case "tiktok":
-      return <FontAwesomeIcon icon={faTiktok} className={className} style={{ color }} />;
+      return renderIcon(faTiktok);
     case "linkedin":
-      return <FontAwesomeIcon icon={faLinkedin} className={className} style={explicitColorStyle} />;
+      return renderIcon(faLinkedin);
     case "x":
     case "x-twitter":
     case "twitter":
-      return <FontAwesomeIcon icon={faXTwitter} className={className} style={{ color }} />;
+      return renderIcon(faXTwitter);
     case "whatsapp":
-      return <FontAwesomeIcon icon={faWhatsapp} className={className} style={explicitColorStyle} />;
+      return renderIcon(faWhatsapp);
     case "telegram":
-      return <FontAwesomeIcon icon={faTelegram} className={className} style={explicitColorStyle} />;
+      return renderIcon(faTelegram);
     case "vimeo":
     case "vimeo-v":
-      return <FontAwesomeIcon icon={faVimeoV} className={className} style={explicitColorStyle} />;
+      return renderIcon(faVimeoV);
     case "pinterest":
-      return <FontAwesomeIcon icon={faPinterest} className={className} style={explicitColorStyle} />;
+      return renderIcon(faPinterest);
     case "threads":
-      return <FontAwesomeIcon icon={faThreads} className={className} style={{ color }} />;
+      return renderIcon(faThreads);
     case "github":
-      return <FontAwesomeIcon icon={faGithub} className={className} style={{ color }} />;
+      return renderIcon(faGithub);
     case "discord":
-      return <FontAwesomeIcon icon={faDiscord} className={className} style={explicitColorStyle} />;
+      return renderIcon(faDiscord);
     case "behance":
-      return <FontAwesomeIcon icon={faBehance} className={className} style={explicitColorStyle} />;
+      return renderIcon(faBehance);
     case "dribbble":
-      return <FontAwesomeIcon icon={faDribbble} className={className} style={explicitColorStyle} />;
+      return renderIcon(faDribbble);
     case "email":
     case "envelope":
     case "mail":
-      return <FontAwesomeIcon icon={faEnvelope} className={className} style={explicitColorStyle} />;
+      return renderIcon(faEnvelope);
     case "phone":
     case "tel":
-      return <FontAwesomeIcon icon={faPhone} className={className} style={explicitColorStyle} />;
+      return renderIcon(faPhone);
     case "globe":
     case "website":
-      return <FontAwesomeIcon icon={faGlobe} className={className} style={explicitColorStyle} />;
+      return renderIcon(faGlobe);
     case "camera":
-      return <FontAwesomeIcon icon={faCamera} className={className} style={{ color }} />;
+      return renderIcon(faCamera);
     case "video":
-      return <FontAwesomeIcon icon={faVideo} className={className} style={{ color }} />;
+      return renderIcon(faVideo);
     case "image":
-      return <FontAwesomeIcon icon={faImage} className={className} style={{ color }} />;
+      return renderIcon(faImage);
     default:
-      return <FontAwesomeIcon icon={faLink} className={className} style={explicitColorStyle} />;
+      return renderIcon(faLink);
   }
 }

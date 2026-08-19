@@ -1,5 +1,11 @@
 # Modification Log
 
+## 2026-08-19 — Social brand icon rendering fix
+
+- Reworked the shared social icon renderer to use a stable square wrapper and explicit SVG sizing across the footer, Coming Soon page, social popup, and admin previews.
+- Switched Facebook to the correct standalone `f` brand glyph so it no longer appears as an incorrectly nested or distorted emblem inside rounded controls.
+- Added compatibility aliases for legacy Font Awesome/platform values such as `facebook-f`, `facebook-square`, `fb`, `linkedin-in`, `youtube-play`, and `telegram-plane`.
+
 ## 2026-08-19 — Admin-controlled Coming Soon mode
 
 - Added a Coming Soon configuration card to Site & System Settings with multilingual title/description, target date, enable switch, footer/social visibility controls, blur strength, and overlay opacity.
