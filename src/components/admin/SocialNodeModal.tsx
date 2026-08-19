@@ -195,15 +195,15 @@ export function SocialNodeModal({
 
   return (
     <div 
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs overflow-y-auto"
+      className="fixed inset-0 z-50 flex h-[100dvh] items-center justify-center overflow-hidden bg-black/60 p-2 backdrop-blur-xs sm:p-4"
       role="dialog"
       aria-modal="true"
     >
-      <div className="bg-background border border-border rounded-3xl w-full max-w-2xl shadow-2xl overflow-hidden my-8 animate-in fade-in zoom-in-95 duration-200">
+      <div className="flex max-h-[calc(100dvh-1rem)] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-2xl animate-in fade-in zoom-in-95 duration-200 sm:max-h-[calc(100dvh-2rem)] sm:rounded-3xl">
         
         {/* Modal Header */}
-        <div className="p-5 sm:p-6 border-b border-border flex items-center justify-between bg-surface/50">
-          <div className="flex items-center gap-3">
+        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border bg-surface/50 p-4 sm:p-5">
+          <div className="flex min-w-0 items-center gap-3">
             <div 
               className="w-10 h-10 rounded-2xl flex items-center justify-center text-white shadow-sm"
               style={{ backgroundColor: formData.color || "#3B82F6" }}
@@ -215,13 +215,13 @@ export function SocialNodeModal({
                 className="w-5 h-5 text-white" 
               />
             </div>
-            <div>
-              <h2 className="text-lg font-bold tracking-tight text-text">
+            <div className="min-w-0">
+              <h2 className="text-base font-bold tracking-tight text-text sm:text-lg">
                 {isEditing
                   ? (formData.type === "group" ? tUi("admin.social.modal_edit_group", currentLanguage) : tUi("admin.social.modal_edit_link", currentLanguage))
                   : (formData.type === "group" ? tUi("admin.social.modal_create_group", currentLanguage) : tUi("admin.social.modal_create_link", currentLanguage))}
               </h2>
-              <p className="text-xs text-muted-text">
+              <p className="mt-0.5 line-clamp-2 text-[11px] leading-snug text-muted-text sm:text-xs">
                 {formData.type === "group" 
                   ? tUi("admin.social.modal_group_subtitle", currentLanguage)
                   : tUi("admin.social.modal_link_subtitle", currentLanguage)}
@@ -230,7 +230,7 @@ export function SocialNodeModal({
           </div>
           <button
             onClick={onClose}
-            className="p-2 text-muted-text hover:text-text rounded-xl hover:bg-surface transition-colors"
+            className="shrink-0 p-2 text-muted-text hover:text-text rounded-xl hover:bg-surface transition-colors"
             aria-label="Close modal"
           >
             <X className="w-5 h-5" />
@@ -238,7 +238,8 @@ export function SocialNodeModal({
         </div>
 
         {/* Modal Form */}
-        <form onSubmit={handleSubmit} className="p-5 sm:p-6 space-y-6">
+        <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+          <div className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain p-4 sm:space-y-6 sm:p-5">
           {errorMessage && (
             <div className="p-3.5 bg-red-500/10 border border-red-500/30 rounded-2xl text-red-600 dark:text-red-400 text-sm flex items-center gap-2">
               <AlertCircle className="w-4 h-4 shrink-0" />
@@ -251,7 +252,7 @@ export function SocialNodeModal({
             <Label className="text-xs font-semibold uppercase tracking-wider text-muted-text">
               {tUi("admin.social.node_type", currentLanguage)}
             </Label>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3">
               <button
                 type="button"
                 onClick={() => handleTypeChange("link")}
@@ -316,7 +317,7 @@ export function SocialNodeModal({
               <Label className="text-xs font-semibold uppercase tracking-wider text-muted-text">
                 {tUi("admin.social.platform_preset", currentLanguage)}
               </Label>
-              <div className="flex flex-wrap gap-2 max-h-36 overflow-y-auto p-2 bg-surface/40 rounded-2xl border border-border">
+              <div className="flex max-h-32 flex-wrap gap-2 overflow-y-auto overscroll-contain rounded-2xl border border-border bg-surface/40 p-2 sm:max-h-36">
                 {SOCIAL_PLATFORMS.map((plat) => {
                   const isSelected = formData.platform === plat.id;
                   return (
@@ -345,7 +346,7 @@ export function SocialNodeModal({
               <Label className="text-xs font-semibold uppercase tracking-wider text-muted-text">
                 {tUi("admin.social.group_icon", currentLanguage)}
               </Label>
-              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                 {GROUP_ICON_OPTIONS.map((opt) => {
                   const isSelected = formData.icon === opt.id;
                   return (
@@ -558,21 +559,23 @@ export function SocialNodeModal({
             )}
           </div>
 
+          </div>
+
           {/* Modal Actions */}
-          <div className="pt-4 border-t border-border flex items-center justify-end gap-3">
+          <div className="flex shrink-0 flex-col-reverse gap-2 border-t border-border bg-background/95 p-3 backdrop-blur-sm sm:flex-row sm:items-center sm:justify-end sm:gap-3 sm:p-4">
             <Button
               type="button"
-              variant="outline"
+              variant="secondary"
               onClick={onClose}
               disabled={isSubmitting}
-              className="rounded-2xl"
+              className="w-full rounded-2xl sm:w-auto"
             >
               {tUi("common.cancel", currentLanguage)}
             </Button>
             <Button
               type="submit"
               disabled={isSubmitting}
-              className="rounded-2xl min-w-28"
+              className="w-full rounded-2xl sm:w-auto sm:min-w-28"
             >
               {isSubmitting 
                 ? tUi("common.saving", currentLanguage)
