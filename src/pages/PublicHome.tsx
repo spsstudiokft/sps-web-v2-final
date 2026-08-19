@@ -21,6 +21,7 @@ import { LanguageProvider, useLanguage } from "../contexts/LanguageContext";
 import { t } from "../lib/i18n";
 import { parseSectionMedia } from "../lib/sectionMedia";
 import { getNormalizedGallery } from "../lib/mediaUtils";
+import { MotionConfig } from "motion/react";
 
 type PublicBootstrapData = {
   settings: SiteSettings;
@@ -63,16 +64,35 @@ function preloadCriticalMedia(data: PublicBootstrapData) {
   const heroBackground = sectionMedia.home?.backgroundUrl;
   if (heroBackground) urls.add(heroBackground);
 
-  for (const item of data.portfolio.slice(0, 4)) {
-    const first = getNormalizedGallery(item.image_urls)[0];
-    const url = first?.compressed_url || first?.thumbnail_url || item.thumbnail_url;
-    if (url) urls.add(url);
+  // Avoid competing with the hero/LCP request on constrained devices. Their
+  // portfolio images remain lazy-loaded as the section approaches the screen.
+  if (!shouldUseLitePerformanceMode()) {
+    for (const item of data.portfolio.slice(0, 4)) {
+      const first = getNormalizedGallery(item.image_urls)[0];
+      const url = first?.compressed_url || first?.thumbnail_url || item.thumbnail_url;
+      if (url) urls.add(url);
+    }
   }
   urls.forEach((url) => {
     const image = new Image();
     image.decoding = "async";
     image.src = url;
   });
+}
+
+function shouldUseLitePerformanceMode() {
+  if (typeof window === "undefined" || typeof navigator === "undefined") return false;
+  const nav = navigator as Navigator & {
+    deviceMemory?: number;
+    connection?: { saveData?: boolean; effectiveType?: string };
+  };
+  const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+  const coarsePointer = window.matchMedia?.("(pointer: coarse)").matches;
+  const lowMemory = typeof nav.deviceMemory === "number" && nav.deviceMemory <= 4;
+  const lowCpu = typeof nav.hardwareConcurrency === "number" && nav.hardwareConcurrency <= 4;
+  const constrainedNetwork = Boolean(nav.connection?.saveData) || ["slow-2g", "2g"].includes(nav.connection?.effectiveType || "");
+  const narrowLowCoreMobile = coarsePointer && window.innerWidth <= 480 && typeof nav.hardwareConcurrency === "number" && nav.hardwareConcurrency <= 6;
+  return Boolean(reducedMotion || lowMemory || lowCpu || constrainedNetwork || narrowLowCoreMobile);
 }
 
 export default function PublicHome() {
@@ -127,6 +147,7 @@ function PublicHomeContent({ settings, portfolio, services, bootstrap, loading }
   const [activeSection, setActiveSection] = useState("Home");
   const [isSocialPopupOpen, setIsSocialPopupOpen] = useState(false);
   const { currentLang, defaultLang } = useLanguage();
+  const [litePerformanceMode, setLitePerformanceMode] = useState(shouldUseLitePerformanceMode);
   const sectionMedia = parseSectionMedia(settings.section_media);
   const sectionBackgroundCss = Object.entries(sectionMedia)
     .filter(([, media]) => Boolean(media.backgroundUrl))
@@ -183,11 +204,24 @@ function PublicHomeContent({ settings, portfolio, services, bootstrap, loading }
     return () => observer.disconnect();
   }, [loading]);
 
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const updateMode = () => setLitePerformanceMode(shouldUseLitePerformanceMode());
+    mediaQuery.addEventListener?.("change", updateMode);
+    window.addEventListener("resize", updateMode, { passive: true });
+    return () => {
+      mediaQuery.removeEventListener?.("change", updateMode);
+      window.removeEventListener("resize", updateMode);
+    };
+  }, []);
+
   return (
     <CookieConsentProvider>
+      <MotionConfig reducedMotion={litePerformanceMode ? "always" : "never"}>
       <div
         className="aero-site font-sans antialiased bg-background text-text transition-colors duration-300 relative overflow-hidden"
         data-ambient={activeSectionKey}
+        data-performance={litePerformanceMode ? "lite" : "full"}
       >
       <div className="aero-ambient-blur" aria-hidden="true">
         <span className="aero-blur-spot aero-blur-left-top" />
@@ -208,7 +242,7 @@ function PublicHomeContent({ settings, portfolio, services, bootstrap, loading }
         <Vision settings={settings} />
         <About settings={settings} />
         <Services settings={settings} initialServices={services} />
-        <Portfolio items={portfolio} />
+        <Portfolio items={portfolio} isPerformanceLite={litePerformanceMode} />
         <Pricing initialPlans={bootstrap?.pricing} initialExtras={bootstrap?.extraServices} initialFeeRules={bootstrap?.feeRules} />
         <Contact settings={settings} initialPlans={bootstrap?.pricing} initialExtras={bootstrap?.extraServices} initialFeeRules={bootstrap?.feeRules} />
         <FAQ settings={settings} initialFaqs={bootstrap?.faqs} initialCategories={bootstrap?.faqCategories} />
@@ -227,6 +261,7 @@ function PublicHomeContent({ settings, portfolio, services, bootstrap, loading }
         />
       </div>
       </div>
+      </MotionConfig>
     </CookieConsentProvider>
   );
 }

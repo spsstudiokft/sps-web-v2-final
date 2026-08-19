@@ -674,6 +674,60 @@ h1, h2, h3, h4, h5, h6 {
   .aero-showreel-card { padding: .85rem; }
 }
 
+/* Lightweight public rendering for low-memory/low-core mobile devices, data
+   saver connections, and visitors who request reduced motion. */
+@media (max-width: 900px) {
+  .aero-site[data-performance="lite"] section:not(#home) {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 760px;
+  }
+  .aero-site[data-performance="lite"] .aero-ambient-blur,
+  .aero-site[data-performance="lite"] .aero-hero-noise,
+  .aero-site[data-performance="lite"] .aero-cookie-shine::after {
+    display: none !important;
+  }
+  .aero-site[data-performance="lite"] .aero-hero::after,
+  .aero-site[data-performance="lite"] .aero-live-dot,
+  .aero-site[data-performance="lite"] .aero-hero-copy,
+  .aero-site[data-performance="lite"] .aero-showreel-card,
+  .aero-site[data-performance="lite"] .aero-card,
+  .aero-site[data-performance="lite"] .aero-contact-form .aero-field,
+  .aero-site[data-performance="lite"] [class*="animate-ping"],
+  .aero-site[data-performance="lite"] [class*="animate-bounce"] {
+    animation: none !important;
+  }
+  .aero-site[data-performance="lite"] .aero-header,
+  .aero-site[data-performance="lite"] .aero-nav,
+  .aero-site[data-performance="lite"] .aero-live-pill,
+  .aero-site[data-performance="lite"] .aero-showreel-card,
+  .aero-site[data-performance="lite"] .aero-card,
+  .aero-site[data-performance="lite"] .aero-contact-detail,
+  .aero-site[data-performance="lite"] .aero-contact-detail-icon,
+  .aero-site[data-performance="lite"] [class*="backdrop-blur"] {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+  .aero-site[data-performance="lite"] .aero-card,
+  .aero-site[data-performance="lite"] .aero-media-frame,
+  .aero-site[data-performance="lite"] .aero-contact form,
+  .aero-site[data-performance="lite"] .aero-contact iframe,
+  .aero-site[data-performance="lite"] .aero-card > * {
+    transform: none !important;
+  }
+  .aero-site[data-performance="lite"] img {
+    image-rendering: auto;
+  }
+}
+
+@media (hover: none) and (pointer: coarse) {
+  .aero-site .aero-card:hover,
+  .aero-site .aero-media-frame:hover,
+  .aero-site .aero-contact-detail:hover,
+  .aero-site .cinematic-button:hover {
+    transform: none;
+  }
+}
+
 /* Immersive section backgrounds and dimensional interaction */
 .aero-image-section {
   position: relative;

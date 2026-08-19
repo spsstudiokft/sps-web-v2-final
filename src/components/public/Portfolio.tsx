@@ -29,6 +29,7 @@ import {
 
 interface PortfolioProps {
   items: PortfolioItem[];
+  isPerformanceLite?: boolean;
 }
 
 function shuffleShowcaseCards(cards: ShowcaseMediaCardItem[]): ShowcaseMediaCardItem[] {
@@ -50,7 +51,7 @@ function shuffleShowcaseCards(cards: ShowcaseMediaCardItem[]): ShowcaseMediaCard
   return shuffled;
 }
 
-export function Portfolio({ items }: PortfolioProps) {
+export function Portfolio({ items, isPerformanceLite = false }: PortfolioProps) {
   const { currentLang, defaultLang } = useLanguage();
   const [activeModalItem, setActiveModalItem] = useState<PortfolioItem | null>(null);
   const [activeModalMediaIndex, setActiveModalMediaIndex] = useState<number>(0);
@@ -58,7 +59,7 @@ export function Portfolio({ items }: PortfolioProps) {
   
   // The showcase always starts as a running conveyor. It only pauses through
   // the explicit control button, so its initial behaviour is deterministic.
-  const isReducedMotion = false;
+  const isReducedMotion = isPerformanceLite;
 
   // Extract individual gallery item previews across all portfolio projects into their designated rows
   const { imageCards, droneVideoCards, interiorVideoCards, dronePhotoCards } = useMemo(() => {
