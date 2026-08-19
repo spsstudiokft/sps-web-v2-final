@@ -222,7 +222,10 @@ export function FAQ({
               const isOpen = openIndex === index;
               const question = resolveText(faq.question, faq.question || "");
               const answer = resolveText(faq.answer, faq.answer || "");
-              const category = faq.category && faq.category !== "General" ? faq.category : null;
+              const categorySource = faq.category_name || faq.category || "";
+              const category = categorySource && categorySource !== "General"
+                ? resolveText(categorySource, "")
+                : null;
 
               return (
                 <motion.div 
@@ -244,7 +247,7 @@ export function FAQ({
                       {category && selectedCategory === "all" && (
                         <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-primary/10 text-primary text-[11px] font-semibold mb-1.5">
                           <FontAwesomeIcon icon={faTag} className="text-[9px]" />
-                          <span>{tUi(category, currentLang) || category}</span>
+                          <span>{category}</span>
                         </div>
                       )}
                       <div className="text-lg font-semibold text-text leading-snug">
