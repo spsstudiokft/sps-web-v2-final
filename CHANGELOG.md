@@ -30,6 +30,8 @@
 ### Public showcase and visual fixes
 
 - Fixed Social Tree group/link creation and editing with null-safe request normalization, validated parent groups, normalized platform/icon identifiers, and explicit create responses.
+- Restored the missing Social Tree header controls by passing them through the supported `PageHeader.action` slot instead of the ignored `actions` prop; Add Group and Add Social Link are now always visible and expand appropriately on mobile.
+- Corrected the Social Tree update route's LibSQL `Value` inference by explicitly normalizing persisted node type and URL values to strings before URL validation, restoring strict TypeScript/Vercel deployment compatibility.
 - Unified social icon rendering across the admin tree, editor preview, public popup, and footer; legacy FontAwesome-style identifiers now resolve correctly, unknown stored icons fall back to the selected platform, missing group icons are supported, and card text colors are no longer overridden by hardcoded inline brand colors.
 - Optimized the mobile Visual Ideas section with contained, non-blurred, transition-free cards and deferred grid painting, reducing main-thread and compositing work while the section is visible.
 - Corrected mobile Portfolio gesture handling so horizontal gallery interaction no longer captures vertical page scrolling; disabled smooth-scroll work, fixed mobile background attachment, and contained each row's paint area.

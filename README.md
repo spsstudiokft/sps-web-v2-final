@@ -61,7 +61,7 @@ SPS Studio is an all-in-one studio management platform designed for architectura
 - **FAQ & Knowledge Base Manager**: Organize questions into custom categories with quick reordering.
 - **Inquiry & Lead CRM**: Status tracking (`new`, `contacted`, `converted`, `archived`) with contact details and notes.
 - **Social Media Link Manager**: Manage brand handles across 20+ platforms with FontAwesome and Lucide icons.
-- **Hierarchical Social Tree**: Create root links and nested groups with validated parent relationships, consistent platform presets, legacy icon compatibility, and identical icon rendering in admin previews, the public popup, and the footer.
+- **Hierarchical Social Tree**: Always-visible Add Group and Add Social Link controls create root links and nested groups with validated parent relationships, consistent platform presets, legacy icon compatibility, and identical icon rendering in admin previews, the public popup, and the footer.
 - **Legal Document Editor**: Full-page WYSIWYG editing for all public legal documents with formatted modal rendering.
 - **Team & Invitation Management**: Team grouping, role-aware members, invitation resend/revoke, and verification-code-protected direct admin onboarding.
 - **Marketing Email Workspace**: Create multiple reusable marketing templates and manually dispatch them to chosen recipients.

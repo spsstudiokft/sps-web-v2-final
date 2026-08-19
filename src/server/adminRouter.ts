@@ -5613,9 +5613,11 @@ adminRouter.put("/social-links/:id", async (req, res) => {
     }
 
     const current = existing.rows[0];
-    const nodeType = type !== undefined ? type : current.type;
+    const nodeType = String(type !== undefined ? type : (current.type || "link"));
 
-    let finalUrl = url !== undefined ? (typeof url === "string" ? url.trim() : "") : current.url;
+    let finalUrl: string = url !== undefined
+      ? (typeof url === "string" ? url.trim() : "")
+      : String(current.url || "").trim();
     if (nodeType === "link") {
       if (finalUrl) {
         const isSpecialScheme = /^(mailto:|tel:|wa\.me|t\.me|https?:\/\/|\/\/)/i.test(finalUrl);

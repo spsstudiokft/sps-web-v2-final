@@ -871,8 +871,8 @@ export function SocialLinksPage() {
           tUi("admin.social.page_desc", currentLanguage) ||
           "Configure hierarchical groups, brand links, icons, and badges displayed in the public interactive social popup."
         }
-        actions={
-          <div className="flex flex-wrap items-center gap-2.5">
+        action={
+          <div className="flex w-full flex-wrap items-center gap-2.5 sm:w-auto sm:justify-end">
             {/* Live Popup Preview */}
             <Button
               variant="outline"
@@ -899,7 +899,7 @@ export function SocialLinksPage() {
             <Button
               variant="outline"
               onClick={handleOpenAddGroup}
-              className="rounded-2xl gap-2 border-border hover:border-primary/40"
+              className="flex-1 rounded-2xl gap-2 border-border hover:border-primary/40 sm:flex-none"
             >
               <FolderTree className="w-4 h-4 text-primary" />
               <span>{tUi("admin.social.add_group_btn", currentLanguage) || "Add Group"}</span>
@@ -908,7 +908,7 @@ export function SocialLinksPage() {
             {/* Add Social Link */}
             <Button
               onClick={handleOpenAddLink}
-              className="rounded-2xl gap-2 shadow-sm"
+              className="flex-1 rounded-2xl gap-2 shadow-sm sm:flex-none"
             >
               <Plus className="w-4 h-4" />
               <span>{tUi("admin.social.add_link_btn", currentLanguage) || "Add Social Link"}</span>
@@ -1326,4 +1326,3 @@ export function SocialLinksPage() {
 }
 
 export default SocialLinksPage;
-
