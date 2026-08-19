@@ -1013,6 +1013,24 @@ html:not(.dark) .aero-portfolio .max-w-7xl.text-muted-text {
 html:not(.dark) .aero-portfolio p {
   color: rgba(244, 250, 255, .84);
 }
+html:not(.dark) .aero-portfolio .aero-section-heading {
+  color: #f7fcff;
+  background: linear-gradient(135deg, rgba(4, 35, 68, .88), rgba(7, 56, 99, .76));
+  border-color: rgba(174, 225, 250, .38);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .16), 0 22px 55px rgba(0, 12, 32, .28);
+}
+html:not(.dark) .aero-portfolio .aero-section-heading h2 {
+  color: #ffffff;
+}
+html:not(.dark) .aero-portfolio .aero-section-heading .text-primary {
+  color: #79ddff;
+}
+html:not(.dark) .aero-portfolio .aero-section-heading .bg-primary\/10 {
+  background-color: rgba(63, 197, 244, .14);
+}
+html:not(.dark) .aero-portfolio .aero-section-heading .border-primary\/20 {
+  border-color: rgba(121, 221, 255, .34);
+}
 html:not(.dark) .aero-faq .bg-background,
 html:not(.dark) .aero-pricing-shine.bg-background,
 html:not(.dark) .aero-contact-form-card {

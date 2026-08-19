@@ -100,10 +100,10 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
 export default function App() {
   return (
-    <ThemeProvider>
-      <AuthProvider>
-        <LanguageProvider>
-          <BrowserRouter>
+    <BrowserRouter>
+      <ThemeProvider>
+        <AuthProvider>
+          <LanguageProvider>
             <IncidentStatusWidget />
             <Suspense fallback={<div className="min-h-screen bg-background" aria-busy="true" />}>
             <Routes>
@@ -175,9 +175,9 @@ export default function App() {
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
             </Suspense>
-          </BrowserRouter>
-        </LanguageProvider>
-      </AuthProvider>
-    </ThemeProvider>
+          </LanguageProvider>
+        </AuthProvider>
+      </ThemeProvider>
+    </BrowserRouter>
   );
 }

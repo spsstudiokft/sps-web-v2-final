@@ -32,6 +32,7 @@ SPS Studio is an all-in-one studio management platform designed for architectura
 - **Consent & Legal Modals**: Cookie-gated inquiry form plus database-backed Privacy Policy, Terms, Cookie Policy, and Legal Notice documents rendered from formatted admin content.
 - **Adaptive Navigation**: Services and Portfolio links disappear automatically when no published content exists.
 - **Mixed Portfolio Conveyor**: Gallery media is randomized across marquee rows and avoids adjacent images from the same portfolio whenever possible.
+- **Four Media Rows**: Separate randomized rows for standard photography, drone video, interior walkthrough video, and drone photography, using an alternating left/right motion pattern.
 
 ### 🔐 Client Portal & Project Management
 - **Passwordless Magic Link & Password Sign-In**: Secure client authentication via email magic link or traditional credentials.
@@ -93,8 +94,18 @@ SPS Studio is an all-in-one studio management platform designed for architectura
 
 ### 🎨 Branding, Theming & Granular SEO
 - **Adaptive Logo System**: Header and footer logo management with distinct light and dark theme assets.
+- **Independent Theme Modes**: The public website/client experience and admin dashboard keep separate light/dark preferences and apply their own theme variables when navigating between areas.
 - **Favicon & Brand Identity**: Custom browser favicon, studio metadata, and copyright configuration.
 - **SEO & Social Share Cards**: Open Graph (OG) tags, Twitter cards, meta descriptions, canonical URLs, and Google Search Console verification.
+
+### ⚡ Public Performance & Accessibility
+
+- **Batched Public Bootstrap**: Settings, portfolio, services, pricing, add-ons, fee rules, and FAQs load through one LibSQL/Turso batch instead of repeated component-level queries.
+- **Layered Caching**: Short-lived server memory, Vercel CDN `stale-while-revalidate`, browser HTTP, and session caches reduce repeat database work.
+- **Route-Level Code Splitting**: Admin, finance, authentication, and client-portal pages are loaded only when their routes are opened; public visitors do not download those modules during startup.
+- **Adaptive Low-End Mode**: Low-memory/low-core mobile devices, constrained connections, data-saver mode, and reduced-motion preferences receive static touch-scroll portfolio rows, fewer blur/3D effects, and deferred off-screen rendering.
+- **Critical Media Loading**: The hero background is preloaded while optimized portfolio derivatives are prefetched only when device and connection conditions allow it.
+- **Accessible Light Theme**: Public light-mode body, muted, primary, accent, placeholder, border, and focus colors use higher-contrast values, including explicit text colors over photographic sections.
 
 ---
 
@@ -204,6 +215,8 @@ The server starts on `http://localhost:3000` by default. Set `PORT` when that po
 - Source image masters are kept in `png-k/`; web-served copies live in `public/images/`.
 - The information bar, incident widget, contact cards, pricing cards, legal modals, cookie banner, dropdowns, and both authenticated workspaces use the same frosted-glass surface and constrained shine treatment.
 - Portfolio conveyors use rounded edge masks, pause the hovered row, show idle video frames, and start video playback only on hover to reduce memory use.
+- Mobile Hero and Contact layouts constrain intrinsic grid/form widths, wrap long localized content, and remain within narrow viewports.
+- FAQ and portfolio category labels resolve localized JSON fields before rendering, so serialized translation objects never appear in the public interface.
 
 ---
 

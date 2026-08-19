@@ -25,6 +25,25 @@
 - Randomized each portfolio marquee row on load and, when possible, prevented media from the same gallery from appearing consecutively.
 - Constrained the Additional Services card shine layer to the card's positioned, rounded bounds so the animation no longer crosses the page.
 - Added admin-managed media/background controls for public website sections.
+- Restored the portfolio marquee direction pattern to left, right, left while retaining randomized card ordering.
+- Added the `drone_photo` media category throughout individual/bulk admin controls, filtering, structured filenames, localized labels, and a randomized fourth public “Drone Photography” row moving right.
+- Corrected mobile Hero intrinsic sizing, long localized headline wrapping, full-width CTA alignment, and narrow-screen production-card layout.
+- Corrected the same intrinsic-width overflow pattern throughout the mobile Contact grid, form card, selectors, date inputs, pricing summaries, and consent controls.
+- Fixed public FAQ category badges so multilingual JSON values resolve to the active-language label instead of rendering serialized objects.
+- Reworked the public light-mode palette with measured high-contrast body, muted, primary, accent, placeholder, border, and focus colors; also corrected secondary text over dark Hero, Portfolio, Contact, and Footer imagery.
+- Corrected the light-theme Portfolio header by replacing the generic pale glass panel with a section-specific dark glass surface and high-contrast white/cyan heading content.
+- Split public and admin light/dark state into independent `public-theme-mode` and `admin-theme-mode` preferences; route-aware theme scope now switches the corresponding mode, configuration, CSS variables, and document color scheme without changing the other area.
+
+### Public loading and low-end device performance
+
+- Added `/api/public/bootstrap`, which returns settings, portfolio, services, pricing, add-ons, fee rules, FAQs, and FAQ categories from one LibSQL/Turso read batch.
+- Removed duplicate component-level startup requests by sharing bootstrap pricing, service, add-on, fee, and FAQ data across the public page.
+- Added request coalescing plus short-lived server-memory, Vercel CDN, browser, and session caching for public datasets.
+- Added composite database indexes for the published/sorted portfolio, service, pricing, add-on, fee-rule, FAQ, and FAQ-category access patterns.
+- Added route-level lazy loading for admin, finance, authentication, invoice, and client-portal modules; the main startup JavaScript decreased from approximately 2.59 MB to 870 KB (about 600 KB to 230 KB gzip).
+- Added hero-image preload and conditional optimized portfolio-image prefetching that respects constrained devices and connections.
+- Added automatic lightweight rendering for low-memory/low-core mobile devices, data-saver or slow connections, and reduced-motion users.
+- In lightweight mode, portfolio marquees become non-duplicated touch-scroll rows, continuous GPU effects and costly blur/3D layers are disabled, Motion animations are reduced, and off-screen public sections use deferred rendering.
 
 ### Pricing bundles
 

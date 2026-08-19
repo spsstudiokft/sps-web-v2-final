@@ -1,12 +1,17 @@
 import React, { useEffect, useState, createContext, useContext, useCallback } from "react";
 import { ThemeConfig, THEME_PRESETS, AVAILABLE_FONTS, getAutoContrastColor } from "../lib/themeTypes";
 import { updateDocumentFavicon } from "../lib/favicon";
+import { useLocation } from "react-router-dom";
 
 type ThemeMode = "light" | "dark";
 
 interface ThemeContextType {
   mode: ThemeMode;
+  publicMode: ThemeMode;
+  adminMode: ThemeMode;
   setMode: (mode: ThemeMode) => void;
+  setPublicMode: (mode: ThemeMode) => void;
+  setAdminMode: (mode: ThemeMode) => void;
   toggleTheme: () => void;
   publicTheme: ThemeConfig;
   adminTheme: ThemeConfig;
@@ -21,17 +26,20 @@ interface ThemeContextType {
 const defaultPublicPreset = THEME_PRESETS[0]; // Modern Minimal
 const defaultAdminPreset = THEME_PRESETS[0];
 
-const STORAGE_KEY_THEME = "theme";
-const STORAGE_KEY_LEGACY = "admin-theme-mode";
+const STORAGE_KEY_PUBLIC_MODE = "public-theme-mode";
+const STORAGE_KEY_ADMIN_MODE = "admin-theme-mode";
+const STORAGE_KEY_LEGACY = "theme";
 
 /**
  * Safely get stored theme or derive from system preference or default
  */
-export function getSavedThemeMode(): ThemeMode {
+export function getSavedThemeMode(scope: "public" | "admin" = "public"): ThemeMode {
   if (typeof window === "undefined") return "dark";
 
   try {
-    const saved = localStorage.getItem(STORAGE_KEY_THEME) || localStorage.getItem(STORAGE_KEY_LEGACY);
+    const saved = scope === "admin"
+      ? localStorage.getItem(STORAGE_KEY_ADMIN_MODE) || localStorage.getItem(STORAGE_KEY_LEGACY)
+      : localStorage.getItem(STORAGE_KEY_PUBLIC_MODE) || localStorage.getItem(STORAGE_KEY_LEGACY) || localStorage.getItem(STORAGE_KEY_ADMIN_MODE);
     if (saved === "light" || saved === "dark") {
       return saved;
     }
@@ -55,10 +63,9 @@ export function getSavedThemeMode(): ThemeMode {
 /**
  * Safely store theme preference to localStorage
  */
-export function saveThemeMode(mode: ThemeMode): void {
+export function saveThemeMode(mode: ThemeMode, scope: "public" | "admin" = "public"): void {
   try {
-    localStorage.setItem(STORAGE_KEY_THEME, mode);
-    localStorage.setItem(STORAGE_KEY_LEGACY, mode);
+    localStorage.setItem(scope === "admin" ? STORAGE_KEY_ADMIN_MODE : STORAGE_KEY_PUBLIC_MODE, mode);
   } catch (e) {
     // In-memory fallback if storage is unavailable
   }
@@ -66,7 +73,11 @@ export function saveThemeMode(mode: ThemeMode): void {
 
 const ThemeContext = createContext<ThemeContextType>({
   mode: "dark",
+  publicMode: "dark",
+  adminMode: "dark",
   setMode: () => {},
+  setPublicMode: () => {},
+  setAdminMode: () => {},
   toggleTheme: () => {},
   publicTheme: defaultPublicPreset,
   adminTheme: defaultAdminPreset,
@@ -153,31 +164,39 @@ function getShadowCss(shadow?: string, isDark: boolean = false): string {
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
+  const location = useLocation();
   const [publicTheme, setPublicThemeState] = useState<ThemeConfig>(defaultPublicPreset);
   const [adminTheme, setAdminThemeState] = useState<ThemeConfig>(defaultAdminPreset);
-  const [mode, setModeState] = useState<ThemeMode>(() => getSavedThemeMode());
+  const [publicMode, setPublicModeState] = useState<ThemeMode>(() => getSavedThemeMode("public"));
+  const [adminMode, setAdminModeState] = useState<ThemeMode>(() => getSavedThemeMode("admin"));
+  const isAdminRoute = location.pathname.startsWith("/admin");
+  const mode = isAdminRoute ? adminMode : publicMode;
+
+  const setPublicMode = useCallback((newMode: ThemeMode) => {
+    setPublicModeState(newMode);
+    saveThemeMode(newMode, "public");
+  }, []);
+
+  const setAdminMode = useCallback((newMode: ThemeMode) => {
+    setAdminModeState(newMode);
+    saveThemeMode(newMode, "admin");
+  }, []);
 
   const setMode = useCallback((newMode: ThemeMode) => {
-    setModeState(newMode);
-    saveThemeMode(newMode);
-  }, []);
+    if (isAdminRoute) setAdminMode(newMode);
+    else setPublicMode(newMode);
+  }, [isAdminRoute, setAdminMode, setPublicMode]);
 
   const toggleTheme = useCallback(() => {
-    setModeState((prev) => {
-      const next = prev === "dark" ? "light" : "dark";
-      saveThemeMode(next);
-      return next;
-    });
-  }, []);
+    setMode(mode === "dark" ? "light" : "dark");
+  }, [mode, setMode]);
 
   // Listen for storage changes across browser tabs & system theme changes
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === STORAGE_KEY_THEME || e.key === STORAGE_KEY_LEGACY) {
-        if (e.newValue === "light" || e.newValue === "dark") {
-          setModeState(e.newValue);
-        }
-      }
+      if (e.newValue !== "light" && e.newValue !== "dark") return;
+      if (e.key === STORAGE_KEY_PUBLIC_MODE) setPublicModeState(e.newValue);
+      if (e.key === STORAGE_KEY_ADMIN_MODE) setAdminModeState(e.newValue);
     };
 
     window.addEventListener("storage", handleStorageChange);
@@ -186,10 +205,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     const mediaQuery = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
     const handleMediaChange = (e: MediaQueryListEvent) => {
       try {
-        const hasStored = localStorage.getItem(STORAGE_KEY_THEME) || localStorage.getItem(STORAGE_KEY_LEGACY);
-        if (!hasStored) {
-          setModeState(e.matches ? "dark" : "light");
-        }
+        const systemMode = e.matches ? "dark" : "light";
+        if (!localStorage.getItem(STORAGE_KEY_PUBLIC_MODE) && !localStorage.getItem(STORAGE_KEY_LEGACY)) setPublicModeState(systemMode);
+        if (!localStorage.getItem(STORAGE_KEY_ADMIN_MODE) && !localStorage.getItem(STORAGE_KEY_LEGACY)) setAdminModeState(systemMode);
       } catch {}
     };
 
@@ -281,8 +299,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    const pathname = window.location.pathname;
-    const isAdminRoute = pathname.startsWith("/admin");
     const activeThemeConfig = isAdminRoute ? adminTheme : publicTheme;
 
     const root = document.documentElement;
@@ -290,6 +306,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     root.classList.remove("light", "dark");
     root.classList.add(mode);
     root.setAttribute("data-theme", mode);
+    root.setAttribute("data-theme-scope", isAdminRoute ? "admin" : "public");
+    root.setAttribute("data-public-theme", publicMode);
+    root.setAttribute("data-admin-theme", adminMode);
 
     // Collect fonts to load
     const fontsToLoad = [
@@ -356,13 +375,17 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     const shadowCss = getShadowCss(activeThemeConfig.uiStyle?.shadows, mode === "dark");
     root.style.setProperty("--theme-shadow", shadowCss);
 
-  }, [publicTheme, adminTheme, mode]);
+  }, [publicTheme, adminTheme, mode, publicMode, adminMode, isAdminRoute, location.pathname]);
 
   return (
     <ThemeContext.Provider
       value={{
         mode,
+        publicMode,
+        adminMode,
         setMode,
+        setPublicMode,
+        setAdminMode,
         toggleTheme,
         publicTheme,
         adminTheme,

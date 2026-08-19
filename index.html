@@ -8,7 +8,9 @@
     <script>
       (function() {
         try {
-          var stored = localStorage.getItem('theme') || localStorage.getItem('admin-theme-mode');
+          var isAdminRoute = window.location.pathname.indexOf('/admin') === 0;
+          var scopedKey = isAdminRoute ? 'admin-theme-mode' : 'public-theme-mode';
+          var stored = localStorage.getItem(scopedKey) || localStorage.getItem('theme');
           var mode = 'dark';
           if (stored === 'light' || stored === 'dark') {
             mode = stored;
