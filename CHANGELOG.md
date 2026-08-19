@@ -17,6 +17,7 @@
 
 ### Portfolio data and media cleanup
 
+- Replaced raw customer security-audit action codes and JSON blobs in the admin detail view with readable event titles, labelled fields, normalized statuses and booleans, wrapped reason text, and a taller responsive history panel; all new audit copy is available in English, Hungarian, German, Spanish, and French and synchronized to the editable translation database.
 - Fixed new client-property creation and editing when legacy or incomplete records contain a `null` property name, address, metadata, or request body; client and admin endpoints now normalize values before trimming and return address validation instead of a runtime exception.
 - Corrected localized portfolio names and categories in admin cards and category selectors so translated values render instead of serialized objects or translation keys.
 - Portfolio updates now compare the previous and saved gallery media sets and delete removed originals, optimized images, thumbnails, posters, and previews from storage.

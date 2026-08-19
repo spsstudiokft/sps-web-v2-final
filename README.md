@@ -55,6 +55,7 @@ SPS Studio is an all-in-one studio management platform designed for architectura
 - **Section Media Management**: Public-section images and backgrounds can be replaced from the admin panel without code changes.
 - **Projects & Client Accounts**: Create client accounts, link projects, update delivery milestones, and upload final deliverables.
 - **Null-Safe Property Records**: Client and admin property creation/editing normalize incomplete legacy values and validate missing addresses without exposing runtime errors.
+- **Readable Customer Audit History**: Customer detail views translate security event codes and stored JSON into labelled event summaries, actors, network information, status transitions, reasons, and affected-account counts; every label is localized across five languages and editable through database-backed translation management.
 - **Services & Pricing Manager**: Manage service offerings, highlight featured tiers, and update pricing schedules.
 - **Visual Ideas Manager**: Edit the pre-pricing section heading, introduction, visibility, localized card copy, ordering, and up to 15 compact cards.
 - **FAQ & Knowledge Base Manager**: Organize questions into custom categories with quick reordering.

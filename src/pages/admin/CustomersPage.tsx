@@ -51,6 +51,88 @@ interface InviteFeedback {
   details?: Array<{ name: string; email: string; success: boolean; simulated?: boolean; error?: string }>;
 }
 
+const AUDIT_ACTION_KEYS: Record<string, string> = {
+  CUSTOMER_CREATED: "admin.customers.audit.action.customer_created",
+  CUSTOMER_DELETED: "admin.customers.audit.action.customer_deleted",
+  CUSTOMER_STATUS_CHANGED: "admin.customers.audit.action.status_changed",
+  PORTAL_ACCESS_DISABLED_INACTIVITY: "admin.customers.audit.action.portal_disabled_automatic",
+  PORTAL_ACCESS_DISABLED_MANUAL: "admin.customers.audit.action.portal_disabled_manual",
+  PORTAL_ACCESS_ENABLED_MANUAL: "admin.customers.audit.action.portal_enabled_manual",
+  PORTAL_ACCESS_ENABLED_REACTIVATION: "admin.customers.audit.action.portal_enabled_reactivation",
+};
+
+const AUDIT_FIELD_KEYS: Record<string, string> = {
+  customer_name: "admin.customers.audit.field.customer",
+  customer_email: "admin.customers.audit.field.email",
+  type: "admin.customers.audit.field.record_type",
+  status: "admin.customers.audit.field.status",
+  previous_status: "admin.customers.audit.field.previous_status",
+  new_status: "admin.customers.audit.field.new_status",
+  reason: "admin.customers.audit.field.reason",
+  is_active: "admin.customers.audit.field.portal_access",
+  users_affected: "admin.customers.audit.field.accounts_affected",
+  portal_accounts_disabled: "admin.customers.audit.field.accounts_disabled",
+  portal_accounts_enabled: "admin.customers.audit.field.accounts_enabled",
+  portal_accounts_reactivated: "admin.customers.audit.field.accounts_restored",
+};
+
+const AUDIT_VALUE_KEYS: Record<string, string> = {
+  active: "admin.customers.audit.value.active",
+  inactive: "admin.customers.audit.value.inactive",
+  customer: "admin.customers.audit.value.customer",
+  lead: "admin.customers.audit.value.lead",
+  enabled: "admin.customers.audit.value.enabled",
+  disabled: "admin.customers.audit.value.disabled",
+};
+
+type AuditTranslator = (key: string) => string;
+
+function getAuditActionLabel(action: string, translate: AuditTranslator) {
+  const translationKey = AUDIT_ACTION_KEYS[action];
+  return translationKey ? translate(translationKey) : action
+    .toLowerCase()
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function formatAuditValue(key: string, value: unknown, translate: AuditTranslator): string {
+  if (key === "is_active") return translate(Number(value) === 1 ? "admin.customers.audit.value.enabled" : "admin.customers.audit.value.disabled");
+  if (typeof value === "boolean") return translate(value ? "admin.customers.audit.value.yes" : "admin.customers.audit.value.no");
+  if (value === null || value === undefined || value === "") return translate("admin.customers.audit.value.not_provided");
+  if (Array.isArray(value)) return value.map((item) => formatAuditValue("", item, translate)).join(", ");
+  if (typeof value === "object") {
+    return Object.entries(value as Record<string, unknown>)
+      .map(([nestedKey, nestedValue]) => `${AUDIT_FIELD_KEYS[nestedKey] ? translate(AUDIT_FIELD_KEYS[nestedKey]) : nestedKey}: ${formatAuditValue(nestedKey, nestedValue, translate)}`)
+      .join("; ");
+  }
+  const text = String(value);
+  const valueKey = AUDIT_VALUE_KEYS[text.toLowerCase()];
+  return valueKey ? translate(valueKey) : text;
+}
+
+function getProcessedAuditDetails(details: string, translate: AuditTranslator): Array<{ key: string; label: string; value: string }> {
+  if (!details) return [];
+  try {
+    const parsed = JSON.parse(details);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return [{ key: "details", label: translate("admin.customers.audit.details"), value: formatAuditValue("", parsed, translate) }];
+    }
+    const entries = Object.entries(parsed as Record<string, unknown>);
+    const meaningfulEntries = entries.filter(([key]) => key !== "customer_id");
+    return (meaningfulEntries.length > 0 ? meaningfulEntries : entries).map(([key, value]) => ({
+      key,
+      label: AUDIT_FIELD_KEYS[key] ? translate(AUDIT_FIELD_KEYS[key]) : key
+        .split("_")
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+        .join(" "),
+      value: formatAuditValue(key, value, translate),
+    }));
+  } catch {
+    return [{ key: "details", label: translate("admin.customers.audit.details"), value: details }];
+  }
+}
+
 export default function CustomersPage() {
   const { currentLanguage, tUi } = useLanguage();
   usePageTitle(tUi("admin.customers.title", currentLanguage));
@@ -965,7 +1047,7 @@ export default function CustomersPage() {
                   <div className="flex items-center gap-2">
                     <History size={15} className="text-muted-text" />
                     <span className="text-xs font-semibold text-text uppercase tracking-wider">
-                      Security & Customer Audit History ({auditLogs.length})
+                      {tUi("admin.customers.audit.title", currentLanguage)} ({auditLogs.length})
                     </span>
                   </div>
                   <Button
@@ -974,40 +1056,52 @@ export default function CustomersPage() {
                     onClick={() => setShowAuditLogs(!showAuditLogs)}
                     className="text-xs h-7 px-2"
                   >
-                    {showAuditLogs ? "Hide History" : "View History"}
+                    {showAuditLogs
+                      ? tUi("admin.customers.audit.hide_history", currentLanguage)
+                      : tUi("admin.customers.audit.view_history", currentLanguage)}
                   </Button>
                 </div>
 
                 {showAuditLogs && (
-                  <div className="space-y-2 pt-2 border-t border-border/50 max-h-48 overflow-y-auto">
+                  <div className="space-y-2 pt-2 pr-1 border-t border-border/50 max-h-96 overflow-y-auto">
                     {loadingAuditLogs && (
                       <div className="flex items-center justify-center py-4 text-muted-text gap-2 text-xs">
                         <Loader2 size={14} className="animate-spin" />
-                        <span>Loading audit logs...</span>
+                        <span>{tUi("admin.customers.audit.loading", currentLanguage)}</span>
                       </div>
                     )}
                     {!loadingAuditLogs && auditLogs.length === 0 && (
                       <p className="text-xs text-muted-text italic py-2 text-center">
-                        No audit events recorded for this customer yet.
+                        {tUi("admin.customers.audit.empty", currentLanguage)}
                       </p>
                     )}
-                    {!loadingAuditLogs && auditLogs.map((log) => (
-                      <div key={log.id} className="p-2.5 rounded-lg bg-surface border border-border/60 text-xs space-y-1">
-                        <div className="flex items-center justify-between gap-2 flex-wrap font-mono">
-                          <span className="font-semibold text-text text-[11px]">{log.action}</span>
+                    {!loadingAuditLogs && auditLogs.map((log) => {
+                      const translateAudit = (key: string) => tUi(key, currentLanguage);
+                      const processedDetails = getProcessedAuditDetails(log.details, translateAudit);
+                      return (
+                      <div key={log.id} className="p-3 rounded-lg bg-surface border border-border/60 text-xs space-y-2.5">
+                        <div className="flex items-center justify-between gap-2 flex-wrap">
+                          <span className="inline-flex items-center rounded-full border border-primary/20 bg-primary/10 px-2 py-1 font-semibold text-primary text-[11px]">
+                            {getAuditActionLabel(log.action, translateAudit)}
+                          </span>
                           <span className="text-[10px] text-muted-text">{new Date(log.created_at).toLocaleString()}</span>
                         </div>
-                        <div className="text-[11px] text-muted-text flex items-center justify-between gap-2">
-                          <span>Actor: <span className="text-text font-medium">{log.actor_email || log.actor_id || "system"}</span></span>
-                          {log.ip_address && <span className="text-[10px] opacity-75 font-mono">IP: {log.ip_address}</span>}
+                        <div className="text-[11px] text-muted-text flex items-center justify-between gap-2 flex-wrap">
+                          <span>{tUi("admin.customers.audit.performed_by", currentLanguage)}: <span className="text-text font-medium">{log.actor_email || log.actor_id || tUi("admin.customers.audit.system", currentLanguage)}</span></span>
+                          {log.ip_address && <span className="text-[10px] opacity-75">{tUi("admin.customers.audit.ip_address", currentLanguage)}: {log.ip_address}</span>}
                         </div>
-                        {log.details && (
-                          <div className="text-[10px] font-mono bg-background/80 p-1.5 rounded border border-border/40 text-muted-text overflow-x-auto">
-                            {log.details}
+                        {processedDetails.length > 0 && (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 bg-background/65 p-2.5 rounded-lg border border-border/40">
+                            {processedDetails.map((detail, index) => (
+                              <div key={`${detail.key}-${index}`} className={cn("min-w-0", detail.key === "reason" && "sm:col-span-2")}>
+                                <div className="text-[9px] font-semibold uppercase tracking-wider text-muted-text/75">{detail.label}</div>
+                                <div className="mt-0.5 text-[11px] leading-relaxed text-text break-words">{detail.value}</div>
+                              </div>
+                            ))}
                           </div>
                         )}
                       </div>
-                    ))}
+                    )})}
                   </div>
                 )}
               </div>
