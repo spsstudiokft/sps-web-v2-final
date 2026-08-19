@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { SiteSettings } from "../../lib/types";
 import { useLanguage } from "../../contexts/LanguageContext";
 import { updateDocumentFavicon } from "../../lib/favicon";
+import { uploadMediaFile } from "../../lib/uploadHelper";
 import { 
   Upload, 
   Trash2, 
@@ -43,6 +44,8 @@ export interface ImageUploadCardProps {
   onClear: () => void;
   tUi: (key: string, ...args: any[]) => string;
   currentLang: string;
+  useMediaPipeline?: boolean;
+  fallbackPreviewUrl?: string;
 }
 
 export function ImageUploadCard({
@@ -61,6 +64,8 @@ export function ImageUploadCard({
   onClear,
   tUi,
   currentLang,
+  useMediaPipeline = false,
+  fallbackPreviewUrl,
 }: ImageUploadCardProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -69,10 +74,11 @@ export function ImageUploadCard({
   const [isUrlModalOpen, setIsUrlModalOpen] = useState(false);
   const [manualUrl, setManualUrl] = useState("");
   const [dimensions, setDimensions] = useState<{ width: number; height: number } | null>(null);
+  const previewUrl = value || fallbackPreviewUrl;
 
   // Inspect image dimensions when value is present
   useEffect(() => {
-    if (!value) {
+    if (!previewUrl) {
       setDimensions(null);
       return;
     }
@@ -83,8 +89,8 @@ export function ImageUploadCard({
     img.onerror = () => {
       setDimensions(null);
     };
-    img.src = value;
-  }, [value]);
+    img.src = previewUrl;
+  }, [previewUrl]);
 
   const handleFile = async (file: File) => {
     setErrorMessage(null);
@@ -108,10 +114,24 @@ export function ImageUploadCard({
 
     setIsUploading(true);
     try {
+      const token = localStorage.getItem("admin_token") || localStorage.getItem("token") || sessionStorage.getItem("token");
+      if (useMediaPipeline) {
+        const uploaded = await uploadMediaFile(file, {
+          token,
+          useStructuredName: true,
+          projectName: "website",
+          categoryName: id.replace(/^section-background-/, "section-"),
+          itemType: "image",
+          itemNumber: 1,
+        });
+        const displayUrl = uploaded.compressedUrl || uploaded.url;
+        if (!displayUrl) throw new Error("A tárhely nem adott vissza használható kép URL-t.");
+        onUpload(displayUrl);
+        return;
+      }
+
       const formData = new FormData();
       formData.append("file", file);
-
-      const token = localStorage.getItem("admin_token") || localStorage.getItem("token") || sessionStorage.getItem("token");
       const res = await fetch("/api/admin/branding/upload", {
         method: "POST",
         headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -119,11 +139,13 @@ export function ImageUploadCard({
       });
 
       if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || "Upload failed");
+        const rawBody = await res.text();
+        let data: any = {};
+        try { data = rawBody ? JSON.parse(rawBody) : {}; } catch {}
+        throw new Error(data.error || (res.status === 413 ? "A kép túl nagy a branding feltöltési végponthoz." : `A feltöltés sikertelen (HTTP ${res.status}).`));
       }
 
-      const data = await res.json();
+      const data = JSON.parse(await res.text());
       if (data.url) {
         onUpload(data.url);
       } else {
@@ -197,7 +219,7 @@ export function ImageUploadCard({
           className={`relative mt-4 mb-3 rounded-lg border-2 border-dashed transition-all flex items-center justify-center p-4 min-h-[120px] ${
             isDragging 
               ? "border-primary bg-primary/5" 
-              : value 
+              : previewUrl
                 ? "border-border/60" 
                 : "border-border hover:border-primary/50"
           } ${
@@ -213,13 +235,13 @@ export function ImageUploadCard({
               <RefreshCw className="w-6 h-6 animate-spin" />
               <span className="text-xs font-medium">{tUi("admin.branding.uploading") || "Uploading asset..."}</span>
             </div>
-          ) : value ? (
+          ) : previewUrl ? (
             <div className="flex flex-col items-center gap-2 w-full">
               <div className="relative group max-w-full flex items-center justify-center">
                 {isFavicon ? (
                   <div className="p-2 bg-white/10 rounded-lg backdrop-blur-xs flex items-center justify-center">
                     <img 
-                      src={value} 
+                      src={previewUrl}
                       alt={title} 
                       className="w-10 h-10 object-contain shadow-xs"
                       onError={() => setErrorMessage("Failed to load image preview from URL")}
@@ -227,7 +249,7 @@ export function ImageUploadCard({
                   </div>
                 ) : (
                   <img 
-                    src={value} 
+                    src={previewUrl}
                     alt={title} 
                     className="max-h-16 max-w-full object-contain drop-shadow-xs transition-transform group-hover:scale-105"
                     onError={() => setErrorMessage("Failed to load image preview from URL")}
@@ -239,6 +261,11 @@ export function ImageUploadCard({
                   previewBg === "dark" ? "text-slate-400 bg-slate-800/80" : "text-slate-500 bg-slate-100"
                 }`}>
                   {dimensions.width} × {dimensions.height} px
+                </div>
+              )}
+              {!value && fallbackPreviewUrl && (
+                <div className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+                  Beépített alapértelmezett kép
                 </div>
               )}
             </div>

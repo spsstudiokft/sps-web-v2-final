@@ -17,6 +17,18 @@ const SECTIONS = [
   ["faq", "GYIK"],
 ] as const;
 
+const DEFAULT_SECTION_BACKGROUNDS: Partial<Record<(typeof SECTIONS)[number][0], string>> = {
+  home: "/images/sps-cinematic-hero.png",
+  about: "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&q=82&w=2000",
+  services: "/images/sps-services-studio.png",
+  portfolio: "/images/sps-portfolio-aerial.png",
+  contact: "/images/sps-contact-studio.png",
+  faq: "/images/sps-contact-studio.png",
+};
+
+const DEFAULT_ABOUT_CONTENT_IMAGE =
+  "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&q=80&w=1000";
+
 export function SectionMediaManager({
   settings,
   onChange,
@@ -64,6 +76,8 @@ export function SectionMediaManager({
               onClear={() => updateSection(id, { backgroundUrl: "" })}
               tUi={(key) => key}
               currentLang="hu"
+              useMediaPipeline
+              fallbackPreviewUrl={DEFAULT_SECTION_BACKGROUNDS[id]}
             />
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -112,6 +126,8 @@ export function SectionMediaManager({
                 onClear={() => updateSection(id, { contentImageUrl: "" })}
                 tUi={(key) => key}
                 currentLang="hu"
+                useMediaPipeline
+                fallbackPreviewUrl={DEFAULT_ABOUT_CONTENT_IMAGE}
               />
             )}
 

@@ -1,5 +1,17 @@
 # Modification Log
 
+## 2026-08-19 — Built-in section image previews
+
+- Section media cards now display their hard-coded public-site background or content image before an admin uploads an override.
+- Built-in previews are clearly labelled and remain separate from saved media, so they do not incorrectly mark a section as configured or expose a clear action.
+
+## 2026-08-19 — Section image upload pipeline fix
+
+- Replaced section background/content-image uploads through the legacy 5 MB branding endpoint with the direct Appwrite/R2 media pipeline.
+- Section images now use the configured storage provider without sending image bytes through the Vercel serverless function and automatically prefer the generated optimized image URL.
+- Resolved the UI/server mismatch where section cards accepted files up to 15 MB but the branding endpoint rejected anything above 5 MB.
+- Improved branding-upload error parsing so non-JSON and HTTP 413 responses no longer collapse into the generic `Upload failed` message.
+
 ## 2026-08-19 — Client property-listing media upload authorization
 
 - Fixed Vercel property-client image uploads returning `Forbidden: Admin access required` from `/api/admin/media/upload/*`.

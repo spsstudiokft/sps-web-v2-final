@@ -66,6 +66,8 @@ SPS Studio is an all-in-one studio management platform designed for architectura
 - **Unified Property Experience**: The public catalog, advertiser login, and authenticated listing manager share the homepage Header/Footer, configured theme-specific logos, public light/dark mode, language selector, mobile navigation, ambient surfaces, and responsive Aero card styling.
 - **Public Property Catalog**: `/properties` lists every enabled sale and rental listing with optimized media, feature badges, price and description; `/properties/:id` provides the full gallery, structured property data, amenities, and direct advertiser contact.
 - **Immediate Listing Publication**: Public property list/detail responses bypass browser and Vercel CDN caches, so enabling or disabling a listing is reflected on `/properties` without waiting for a stale catalog to expire.
+- **Direct Section Media Uploads**: Admin-managed section backgrounds and content images use the configured direct Appwrite/R2 pipeline, generate optimized display media during upload, and avoid Vercel request-body limits.
+- **Built-in Section Media Previews**: The section media editor shows the public site's hard-coded default imagery until an uploaded override is configured.
 - **Menu Publication Control**: Administrators can show or hide the Properties entry in the public desktop and mobile navigation without disabling direct access to the catalog URL.
 - **Direct Studio Messaging**: In-portal project inquiries and revision requests linked directly to the studio admin.
 
