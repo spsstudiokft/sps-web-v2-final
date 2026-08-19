@@ -6,10 +6,8 @@ import {
   Home, Image as ImageIcon, Mail, MapPin, Maximize2, Snowflake, Sparkles, Trees,
 } from "lucide-react";
 import { PropertyListing, SiteSettings } from "../lib/types";
-import { LanguageProvider, useLanguage } from "../contexts/LanguageContext";
-import { ThemeToggle } from "../components/common/ThemeToggle";
-import { LanguageSelector } from "../components/public/LanguageSelector";
-import { Footer } from "../components/public/Footer";
+import { useLanguage } from "../contexts/LanguageContext";
+import { PropertySiteShell } from "../components/property/PropertySiteShell";
 import { usePageTitle } from "../hooks/usePageTitle";
 import { t } from "../lib/i18n";
 
@@ -65,7 +63,7 @@ export default function PropertiesPage() {
     }).catch(error => setError(error instanceof Error ? error.message : "Betöltési hiba.")).finally(() => setLoading(false));
   }, [id]);
 
-  return <LanguageProvider settings={settings}><PropertiesContent settings={settings} items={items} item={item} loading={loading} error={error} detail={Boolean(id)} /></LanguageProvider>;
+  return <PropertySiteShell settings={settings}><PropertiesContent settings={settings} items={items} item={item} loading={loading} error={error} detail={Boolean(id)} /></PropertySiteShell>;
 }
 
 function PropertiesContent({ settings, items, item, loading, error, detail }: { settings: SiteSettings; items: PropertyListing[]; item: PropertyListing | null; loading: boolean; error: string; detail: boolean }) {
@@ -73,33 +71,9 @@ function PropertiesContent({ settings, items, item, loading, error, detail }: { 
   const studioName = t(settings.studio_name, currentLang, defaultLang) || "SPS Studio";
   usePageTitle(item?.title || "Ingatlanok", studioName);
 
-  return <div className="min-h-screen bg-background text-text">
-    <PropertiesHeader settings={settings} studioName={studioName} />
-    <main className="mx-auto min-h-[70vh] max-w-7xl px-4 pb-20 pt-28 sm:px-6 md:pt-32 lg:px-8">
+  return <main className="mx-auto min-h-[78vh] max-w-7xl px-4 pb-20 pt-28 sm:px-6 md:pt-36 lg:px-8">
       {loading ? <LoadingState /> : error ? <ErrorState message={error} /> : detail && item ? <PropertyDetail item={item} /> : <PropertyCatalog items={items} />}
-    </main>
-    <Footer settings={settings} />
-  </div>;
-}
-
-function PropertiesHeader({ settings, studioName }: { settings: SiteSettings; studioName: string }) {
-  const { currentLang, defaultLang } = useLanguage();
-  const activeLogo = settings.logo_header_light || settings.logo_header_dark;
-  const brandDisplay = settings.header_brand_display || "logo_only";
-  return <header className="fixed inset-x-0 top-0 z-50 px-4 pt-4 md:pt-6">
-    <div className="mx-auto flex h-16 max-w-7xl items-center justify-between rounded-2xl border border-border bg-background/90 px-4 shadow-lg backdrop-blur-xl md:h-20 md:px-6">
-      <Link to="/" className="flex min-w-0 items-center gap-2.5 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
-        {brandDisplay !== "name_only" && activeLogo && <img src={activeLogo} alt={settings.logo_alt_text || studioName} className="h-8 max-w-[160px] object-contain md:h-10 md:max-w-[220px]" />}
-        {(brandDisplay === "name_only" || brandDisplay === "logo_and_name" || !activeLogo) && <span className="truncate text-base font-bold sm:text-xl">{studioName}</span>}
-      </Link>
-      <nav className="flex items-center gap-2 sm:gap-3">
-        <Link to="/properties" className="hidden items-center gap-2 rounded-full px-3 py-2 text-sm font-semibold text-primary sm:inline-flex"><Home className="h-4 w-4" />Ingatlanok</Link>
-        <LanguageSelector />
-        <ThemeToggle id="properties-theme-toggle" />
-        <Link to="/#contact" className="hidden rounded-full bg-primary px-4 py-2.5 text-sm font-bold text-background hover:opacity-90 md:inline-flex">{currentLang === "hu" ? "Kapcsolat" : "Contact"}</Link>
-      </nav>
-    </div>
-  </header>;
+    </main>;
 }
 
 function PropertyCatalog({ items }: { items: PropertyListing[] }) {

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { SiteSettings } from "../../lib/types";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faBars, faXmark, faHouse, faUser } from "@fortawesome/free-solid-svg-icons";
@@ -80,6 +80,7 @@ export function Header({ settings, hasServices = true, hasPortfolio = true, hasP
   const { currentLang, defaultLang } = useLanguage();
   const { token, logout } = useAuth();
   const { mode } = useTheme();
+  const location = useLocation();
   const lastScrollY = useRef(0);
   const isHeroInViewRef = useRef(true);
 
@@ -94,6 +95,8 @@ export function Header({ settings, hasServices = true, hasPortfolio = true, hasP
   const showLogo = brandDisplay !== "name_only" && Boolean(activeLogo) && !logoLoadFailed;
   const showStudioName = brandDisplay === "name_only" || brandDisplay === "logo_and_name" || !showLogo;
   const showProperties = settings.property_menu_enabled !== "0" && settings.property_menu_enabled !== "false";
+  const isStandalonePage = location.pathname !== "/";
+  const sectionHref = (section: string) => isStandalonePage ? `/#${section}` : `#${section}`;
 
   // Reset logo load failure if logo URL changes
   useEffect(() => {
@@ -191,8 +194,9 @@ export function Header({ settings, hasServices = true, hasPortfolio = true, hasP
   return (
     <header className={`aero-header fixed w-full top-0 px-4 pt-4 md:pt-6 z-50 transition-transform duration-300 ${isVisible ? "translate-y-0" : "-translate-y-full"} pointer-events-none`}>
       <div className="aero-nav max-w-7xl mx-auto pointer-events-auto h-16 md:h-20 px-4 md:px-6 flex items-center justify-between">
-        <button 
-          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+        <Link
+          to="/"
+          onClick={(event) => { if (!isStandalonePage) { event.preventDefault(); window.scrollTo({ top: 0, behavior: "smooth" }); } }}
           className="flex items-center gap-2.5 hover:opacity-85 transition-opacity outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-lg py-1 px-1 cursor-pointer"
           aria-label={studioNameText}
         >
@@ -207,12 +211,12 @@ export function Header({ settings, hasServices = true, hasPortfolio = true, hasP
           {showStudioName && (
             <span className="font-bold tracking-tight text-base sm:text-xl text-text whitespace-nowrap">{studioNameText}</span>
           )}
-        </button>
+        </Link>
         
         {/* Desktop Nav */}
         <nav className="hidden md:flex gap-6 lg:gap-8 text-sm font-medium items-center">
           <a 
-            href="#about" 
+            href={sectionHref("about")}
             className={`transition-colors focus-visible:ring-2 focus-visible:ring-primary rounded-sm outline-none px-1 py-0.5 ${
               activeSection === "about" ? "text-primary font-bold" : "text-text/90 hover:text-text"
             }`}
@@ -220,7 +224,7 @@ export function Header({ settings, hasServices = true, hasPortfolio = true, hasP
             {tUi("About", currentLang, undefined, defaultLang) || "About"}
           </a>
           {hasServices && <a 
-            href="#services" 
+            href={sectionHref("services")}
             className={`transition-colors focus-visible:ring-2 focus-visible:ring-primary rounded-sm outline-none px-1 py-0.5 ${
               activeSection === "services" ? "text-primary font-bold" : "text-text/90 hover:text-text"
             }`}
@@ -228,7 +232,7 @@ export function Header({ settings, hasServices = true, hasPortfolio = true, hasP
             {tUi("Services", currentLang, undefined, defaultLang) || "Services"}
           </a>}
           {hasPortfolio && <a 
-            href="#portfolio" 
+            href={sectionHref("portfolio")}
             className={`transition-colors focus-visible:ring-2 focus-visible:ring-primary rounded-sm outline-none px-1 py-0.5 ${
               activeSection === "portfolio" ? "text-primary font-bold" : "text-text/90 hover:text-text"
             }`}
@@ -236,7 +240,7 @@ export function Header({ settings, hasServices = true, hasPortfolio = true, hasP
             {tUi("Portfolio", currentLang, undefined, defaultLang) || "Portfolio"}
           </a>}
           {hasPricing && <a 
-            href="#pricing" 
+            href={sectionHref("pricing")}
             className={`transition-colors focus-visible:ring-2 focus-visible:ring-primary rounded-sm outline-none px-1 py-0.5 ${
               activeSection === "pricing" ? "text-primary font-bold" : "text-text/90 hover:text-text"
             }`}
@@ -244,7 +248,7 @@ export function Header({ settings, hasServices = true, hasPortfolio = true, hasP
             {tUi("Pricing", currentLang, undefined, defaultLang) || "Pricing"}
           </a>}
           <a 
-            href="#contact" 
+            href={sectionHref("contact")}
             className={`transition-colors focus-visible:ring-2 focus-visible:ring-primary rounded-sm outline-none px-1 py-0.5 ${
               activeSection === "contact" ? "text-primary font-bold" : "text-text/90 hover:text-text"
             }`}
@@ -252,7 +256,7 @@ export function Header({ settings, hasServices = true, hasPortfolio = true, hasP
             {tUi("Contact", currentLang, undefined, defaultLang) || "Contact"}
           </a>
           {hasFaq && <a 
-            href="#faq" 
+            href={sectionHref("faq")}
             className={`transition-colors focus-visible:ring-2 focus-visible:ring-primary rounded-sm outline-none px-1 py-0.5 ${
               activeSection === "faq" ? "text-primary font-bold" : "text-text/90 hover:text-text"
             }`}
@@ -271,7 +275,7 @@ export function Header({ settings, hasServices = true, hasPortfolio = true, hasP
 
           <UserDropdown token={token} logout={logout} currentLang={currentLang} />
           
-          <a href="#contact" className="bg-primary text-background px-5 py-2.5 rounded-full hover:opacity-90 transition-opacity focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 outline-none font-semibold shadow-sm flex items-center gap-2">
+          <a href={sectionHref("contact")} className="bg-primary text-background px-5 py-2.5 rounded-full hover:opacity-90 transition-opacity focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 outline-none font-semibold shadow-sm flex items-center gap-2">
             {tUi("Make an Inquiry", currentLang, undefined, defaultLang) || "Book Studio"}
           </a>
         </nav>
@@ -305,7 +309,7 @@ export function Header({ settings, hasServices = true, hasPortfolio = true, hasP
         <div className="md:hidden absolute top-[calc(100%+0.5rem)] left-4 right-4 bg-background supports-[backdrop-filter]:bg-background/80 supports-[backdrop-filter]:backdrop-blur-lg border border-border shadow-xl rounded-2xl py-4 px-6 flex flex-col gap-4 pointer-events-auto">
           <div className="flex flex-col gap-4">
             <a 
-              href="#about" 
+              href={sectionHref("about")}
               onClick={closeMenu} 
               className={`text-lg font-medium transition-colors focus-visible:ring-2 focus-visible:ring-primary rounded-sm outline-none w-fit ${
                 activeSection === "about" ? "text-primary font-semibold" : "text-text hover:opacity-80"
@@ -314,7 +318,7 @@ export function Header({ settings, hasServices = true, hasPortfolio = true, hasP
               {tUi("About", currentLang, undefined, defaultLang) || "About"}
             </a>
             {hasServices && <a 
-              href="#services" 
+              href={sectionHref("services")}
               onClick={closeMenu} 
               className={`text-lg font-medium transition-colors focus-visible:ring-2 focus-visible:ring-primary rounded-sm outline-none w-fit ${
                 activeSection === "services" ? "text-primary font-semibold" : "text-text hover:opacity-80"
@@ -323,7 +327,7 @@ export function Header({ settings, hasServices = true, hasPortfolio = true, hasP
               {tUi("Services", currentLang, undefined, defaultLang) || "Services"}
             </a>}
             {hasPortfolio && <a 
-              href="#portfolio" 
+              href={sectionHref("portfolio")}
               onClick={closeMenu} 
               className={`text-lg font-medium transition-colors focus-visible:ring-2 focus-visible:ring-primary rounded-sm outline-none w-fit ${
                 activeSection === "portfolio" ? "text-primary font-semibold" : "text-text hover:opacity-80"
@@ -332,7 +336,7 @@ export function Header({ settings, hasServices = true, hasPortfolio = true, hasP
               {tUi("Portfolio", currentLang, undefined, defaultLang) || "Portfolio"}
             </a>}
             {hasPricing && <a 
-              href="#pricing" 
+              href={sectionHref("pricing")}
               onClick={closeMenu} 
               className={`text-lg font-medium transition-colors focus-visible:ring-2 focus-visible:ring-primary rounded-sm outline-none w-fit ${
                 activeSection === "pricing" ? "text-primary font-semibold" : "text-text hover:opacity-80"
@@ -341,7 +345,7 @@ export function Header({ settings, hasServices = true, hasPortfolio = true, hasP
               {tUi("Pricing", currentLang, undefined, defaultLang) || "Pricing"}
             </a>}
             <a 
-              href="#contact" 
+              href={sectionHref("contact")}
               onClick={closeMenu} 
               className={`text-lg font-medium transition-colors focus-visible:ring-2 focus-visible:ring-primary rounded-sm outline-none w-fit ${
                 activeSection === "contact" ? "text-primary font-semibold" : "text-text hover:opacity-80"
@@ -350,7 +354,7 @@ export function Header({ settings, hasServices = true, hasPortfolio = true, hasP
               {tUi("Contact", currentLang, undefined, defaultLang) || "Contact"}
             </a>
             {hasFaq && <a 
-              href="#faq" 
+              href={sectionHref("faq")}
               onClick={closeMenu} 
               className={`text-lg font-medium transition-colors focus-visible:ring-2 focus-visible:ring-primary rounded-sm outline-none w-fit ${
                 activeSection === "faq" ? "text-primary font-semibold" : "text-text hover:opacity-80"
@@ -371,7 +375,7 @@ export function Header({ settings, hasServices = true, hasPortfolio = true, hasP
                 <FontAwesomeIcon icon={faHouse} aria-hidden="true" className="w-5 h-5" />
                 <span>{tUi("Properties", currentLang, undefined, defaultLang) || "Properties"}</span>
               </Link>}
-              <a href="#contact" onClick={closeMenu} className="bg-primary text-background px-5 py-3 rounded-full hover:opacity-90 transition-opacity focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 outline-none font-semibold shadow-sm flex items-center justify-center gap-2 mt-2">
+              <a href={sectionHref("contact")} onClick={closeMenu} className="bg-primary text-background px-5 py-3 rounded-full hover:opacity-90 transition-opacity focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 outline-none font-semibold shadow-sm flex items-center justify-center gap-2 mt-2">
                 {tUi("Make an Inquiry", currentLang, undefined, defaultLang) || "Make an Inquiry"}
               </a>
             </div>

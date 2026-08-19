@@ -1,5 +1,13 @@
 # Modification Log
 
+## 2026-08-19 — Unified property-site and client-manager design
+
+- Replaced the separate property-page navbar with the same responsive Header component used by the public homepage, including configured light/dark logos, brand display mode, language selector, theme switch, account menu, and mobile drawer.
+- Made homepage section links route correctly from standalone property, login, and manager pages instead of targeting missing local anchors.
+- Added a shared property-site shell with the public ambient background treatment and footer for `/properties`, property login, and the authenticated listing manager.
+- Redesigned the property login as a responsive branded two-panel experience with clearer authentication guidance and mobile-first form controls.
+- Redesigned the client listing manager header, search/status toolbar, loading/empty states, listing cards, publication badges, and actions to match the public Aero visual language in both themes.
+
 ## 2026-08-19 — Immediate public property visibility
 
 - Disabled browser and Vercel CDN caching for the public property list and detail endpoints so newly enabled listings appear immediately instead of leaving a cached empty catalog visible.
