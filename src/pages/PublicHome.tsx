@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { SiteSettings, PortfolioItem, Service } from "../lib/types";
+import { SiteSettings, PortfolioItem, Service, PricingPlan, ExtraService, PricingFeeRule, FAQItem, FAQCategory } from "../lib/types";
 import { Header } from "../components/public/Header";
 import { Hero } from "../components/public/Hero";
 import { Vision } from "../components/public/Vision";
@@ -20,23 +20,92 @@ import { useSeo } from "../hooks/useSeo";
 import { LanguageProvider, useLanguage } from "../contexts/LanguageContext";
 import { t } from "../lib/i18n";
 import { parseSectionMedia } from "../lib/sectionMedia";
+import { getNormalizedGallery } from "../lib/mediaUtils";
+
+type PublicBootstrapData = {
+  settings: SiteSettings;
+  portfolio: PortfolioItem[];
+  services: Service[];
+  pricing: PricingPlan[];
+  extraServices: ExtraService[];
+  feeRules: PricingFeeRule[];
+  faqs: FAQItem[];
+  faqCategories: FAQCategory[];
+  generatedAt?: string;
+};
+
+const PUBLIC_BOOTSTRAP_CACHE_KEY = "sps-public-bootstrap-v1";
+const PUBLIC_BOOTSTRAP_CLIENT_TTL_MS = 30_000;
+
+function readCachedBootstrap(): PublicBootstrapData | null {
+  try {
+    const cached = sessionStorage.getItem(PUBLIC_BOOTSTRAP_CACHE_KEY);
+    if (!cached) return null;
+    const parsed = JSON.parse(cached);
+    if (!parsed?.savedAt || Date.now() - parsed.savedAt > PUBLIC_BOOTSTRAP_CLIENT_TTL_MS) return null;
+    return parsed.data as PublicBootstrapData;
+  } catch {
+    return null;
+  }
+}
+
+function cacheBootstrap(data: PublicBootstrapData) {
+  try {
+    sessionStorage.setItem(PUBLIC_BOOTSTRAP_CACHE_KEY, JSON.stringify({ savedAt: Date.now(), data }));
+  } catch {
+    // Storage can be unavailable or full; HTTP caching still applies.
+  }
+}
+
+function preloadCriticalMedia(data: PublicBootstrapData) {
+  const urls = new Set<string>();
+  const sectionMedia = parseSectionMedia(data.settings.section_media);
+  const heroBackground = sectionMedia.home?.backgroundUrl;
+  if (heroBackground) urls.add(heroBackground);
+
+  for (const item of data.portfolio.slice(0, 4)) {
+    const first = getNormalizedGallery(item.image_urls)[0];
+    const url = first?.compressed_url || first?.thumbnail_url || item.thumbnail_url;
+    if (url) urls.add(url);
+  }
+  urls.forEach((url) => {
+    const image = new Image();
+    image.decoding = "async";
+    image.src = url;
+  });
+}
 
 export default function PublicHome() {
   const [settings, setSettings] = useState<SiteSettings>({});
   const [portfolio, setPortfolio] = useState<PortfolioItem[]>([]);
   const [services, setServices] = useState<Service[]>([]);
+  const [bootstrap, setBootstrap] = useState<PublicBootstrapData | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([
-      fetch("/api/public/settings").then((r) => (r.ok ? r.json() : {})).catch(() => ({})),
-      fetch("/api/public/portfolio").then((r) => (r.ok ? r.json() : [])).catch(() => []),
-      fetch("/api/public/services").then((r) => (r.ok ? r.json() : [])).catch(() => []),
-    ])
-      .then(([s, p, serviceItems]) => {
-        setSettings(s);
-        setPortfolio(Array.isArray(p) ? p : []);
-        setServices(Array.isArray(serviceItems) ? serviceItems : []);
+    const cached = readCachedBootstrap();
+    if (cached) {
+      setSettings(cached.settings || {});
+      setPortfolio(Array.isArray(cached.portfolio) ? cached.portfolio : []);
+      setServices(Array.isArray(cached.services) ? cached.services : []);
+      setBootstrap(cached);
+      preloadCriticalMedia(cached);
+      setLoading(false);
+      return;
+    }
+
+    fetch("/api/public/bootstrap")
+      .then(async (response) => {
+        if (!response.ok) throw new Error(`Public bootstrap failed (${response.status})`);
+        return response.json();
+      })
+      .then((data: PublicBootstrapData) => {
+        setSettings(data.settings || {});
+        setPortfolio(Array.isArray(data.portfolio) ? data.portfolio : []);
+        setServices(Array.isArray(data.services) ? data.services : []);
+        setBootstrap(data);
+        cacheBootstrap(data);
+        preloadCriticalMedia(data);
         setLoading(false);
       })
       .catch((err) => {
@@ -49,12 +118,12 @@ export default function PublicHome() {
 
   return (
     <LanguageProvider settings={settings}>
-      <PublicHomeContent settings={settings} portfolio={portfolio} services={services} loading={loading} />
+      <PublicHomeContent settings={settings} portfolio={portfolio} services={services} bootstrap={bootstrap} loading={loading} />
     </LanguageProvider>
   );
 }
 
-function PublicHomeContent({ settings, portfolio, services, loading }: { settings: SiteSettings, portfolio: PortfolioItem[], services: Service[], loading: boolean }) {
+function PublicHomeContent({ settings, portfolio, services, bootstrap, loading }: { settings: SiteSettings, portfolio: PortfolioItem[], services: Service[], bootstrap: PublicBootstrapData | null, loading: boolean }) {
   const [activeSection, setActiveSection] = useState("Home");
   const [isSocialPopupOpen, setIsSocialPopupOpen] = useState(false);
   const { currentLang, defaultLang } = useLanguage();
@@ -140,9 +209,9 @@ function PublicHomeContent({ settings, portfolio, services, loading }: { setting
         <About settings={settings} />
         <Services settings={settings} initialServices={services} />
         <Portfolio items={portfolio} />
-        <Pricing />
-        <Contact settings={settings} />
-        <FAQ settings={settings} />
+        <Pricing initialPlans={bootstrap?.pricing} initialExtras={bootstrap?.extraServices} initialFeeRules={bootstrap?.feeRules} />
+        <Contact settings={settings} initialPlans={bootstrap?.pricing} initialExtras={bootstrap?.extraServices} initialFeeRules={bootstrap?.feeRules} />
+        <FAQ settings={settings} initialFaqs={bootstrap?.faqs} initialCategories={bootstrap?.faqCategories} />
         <Footer settings={settings} />
 
         {/* Manual Fixed Floating Button in Bottom-Right Corner */}

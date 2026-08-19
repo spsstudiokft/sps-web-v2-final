@@ -59,14 +59,18 @@ export interface ResolvedBundleItem {
 }
 
 export function Pricing({ 
-  initialPlans 
+  initialPlans,
+  initialExtras,
+  initialFeeRules,
 }: { 
   initialPlans?: PricingPlan[];
+  initialExtras?: ExtraService[];
+  initialFeeRules?: PricingFeeRule[];
 }) {
   const { currentLang, defaultLang } = useLanguage();
   const [plans, setPlans] = useState<PricingPlan[]>(initialPlans || []);
-  const [extraServices, setExtraServices] = useState<ExtraService[]>([]);
-  const [feeRules, setFeeRules] = useState<PricingFeeRule[]>([]);
+  const [extraServices, setExtraServices] = useState<ExtraService[]>(initialExtras || []);
+  const [feeRules, setFeeRules] = useState<PricingFeeRule[]>(initialFeeRules || []);
   const [activeFilter, setActiveFilter] = useState<"all" | "tier" | "bundle">("all");
   const [loading, setLoading] = useState(!initialPlans || initialPlans.length === 0);
 
@@ -74,6 +78,10 @@ export function Pricing({
   const [testDistance, setTestDistance] = useState<number>(25);
 
   useEffect(() => {
+    if (initialPlans !== undefined && initialExtras !== undefined && initialFeeRules !== undefined) {
+      setLoading(false);
+      return;
+    }
     let isMounted = true;
     Promise.all([
       fetch("/api/public/pricing", { cache: "no-store" }).then((r) => (r.ok ? r.json() : [])).catch(() => []),
@@ -96,7 +104,7 @@ export function Pricing({
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [initialPlans, initialExtras, initialFeeRules]);
 
   // Filter plans based on active tab
   const filteredPlans = useMemo(() => {

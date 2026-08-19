@@ -45,7 +45,17 @@ interface SelectedExtraItem {
   quantity: number;
 }
 
-export function Contact({ settings }: { settings: SiteSettings }) {
+export function Contact({
+  settings,
+  initialPlans,
+  initialExtras,
+  initialFeeRules,
+}: {
+  settings: SiteSettings;
+  initialPlans?: PricingPlan[];
+  initialExtras?: ExtraService[];
+  initialFeeRules?: PricingFeeRule[];
+}) {
   const { currentLang, defaultLang } = useLanguage();
   const { hasAcceptedCookies, acceptCookies, openPreferences } = useCookieConsent();
 
@@ -66,11 +76,11 @@ export function Contact({ settings }: { settings: SiteSettings }) {
   const [errorMessage, setErrorMessage] = useState("");
 
   // Pricing, Extras & Fees state
-  const [allPlans, setAllPlans] = useState<PricingPlan[]>([]);
+  const [allPlans, setAllPlans] = useState<PricingPlan[]>(initialPlans || []);
   const [selectedPlan, setSelectedPlan] = useState<PricingPlan | null>(null);
-  const [availableExtras, setAvailableExtras] = useState<ExtraService[]>([]);
+  const [availableExtras, setAvailableExtras] = useState<ExtraService[]>(initialExtras || []);
   const [selectedExtras, setSelectedExtras] = useState<Record<string, number>>({});
-  const [feeRules, setFeeRules] = useState<PricingFeeRule[]>([]);
+  const [feeRules, setFeeRules] = useState<PricingFeeRule[]>(initialFeeRules || []);
   const [travelDistance, setTravelDistance] = useState<number>(0);
   const [travelEstimate, setTravelEstimate] = useState<{ oneWayKm: number; roundTripKm: number; destination: string } | null>(null);
   const [travelEstimateStatus, setTravelEstimateStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
@@ -82,6 +92,7 @@ export function Contact({ settings }: { settings: SiteSettings }) {
 
   // Load public pricing, extra services, and fee rules
   useEffect(() => {
+    if (initialPlans !== undefined && initialExtras !== undefined && initialFeeRules !== undefined) return;
     Promise.all([
       fetch("/api/public/pricing").then((r) => (r.ok ? r.json() : [])).catch(() => []),
       fetch("/api/public/extra-services").then((r) => (r.ok ? r.json() : [])).catch(() => []),
@@ -91,7 +102,7 @@ export function Contact({ settings }: { settings: SiteSettings }) {
       if (Array.isArray(extraData)) setAvailableExtras(extraData);
       if (Array.isArray(feeData)) setFeeRules(feeData);
     });
-  }, []);
+  }, [initialPlans, initialExtras, initialFeeRules]);
 
   useEffect(() => {
     const city = contactForm.property_city.trim();

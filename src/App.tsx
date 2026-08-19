@@ -4,45 +4,47 @@
  */
 
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { lazy, Suspense } from "react";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { ThemeProvider } from "./components/ThemeProvider";
 import { LanguageProvider } from "./contexts/LanguageContext";
 import PublicHome from "./pages/PublicHome";
-import AdminLogin from "./pages/AdminLogin";
-import AdminSetup from "./pages/AdminSetup";
-import AdminLayout from "./components/AdminLayout";
-import DashboardHome from "./pages/admin/DashboardHome";
-import SettingsPage from "./pages/admin/SettingsPage";
-import ThemesPage from "./pages/admin/ThemesPage";
-import PortfolioPage from "./pages/admin/PortfolioPage";
-import ContactsPage from "./pages/admin/ContactsPage";
-import ClientsPage from "./pages/admin/ClientsPage";
-import LeadsPage from "./pages/admin/LeadsPage";
-import CustomersPage from "./pages/admin/CustomersPage";
-import ProjectsPage from "./pages/admin/ProjectsPage";
-import ServicesPage from "./pages/admin/ServicesPage";
-import PricingPage from "./pages/admin/PricingPage";
-import SocialLinksPage from "./pages/admin/SocialLinksPage";
-import InfoBarPage from "./pages/admin/InfoBarPage";
-import FaqsPage from "./pages/admin/FaqsPage";
-import FaqCategoriesPage from "./pages/admin/FaqCategoriesPage";
-import TeamManagementPage from "./pages/admin/TeamManagementPage";
-import ReferralsPage from "./pages/admin/ReferralsPage";
-import BudgetPage from "./pages/admin/BudgetPage";
-import MarketingEmailsPage from "./pages/admin/MarketingEmailsPage";
-import AcceptInvitePage from "./pages/AcceptInvitePage";
-import ClientLogin from "./pages/ClientLogin";
-import ClientRegister from "./pages/ClientRegister";
-import ForgotPasswordPage from "./pages/ForgotPasswordPage";
-import ResetPasswordPage from "./pages/ResetPasswordPage";
-import VerifyMagicLinkPage from "./pages/VerifyMagicLinkPage";
-import ClientLayout from "./components/ClientLayout";
-import ClientDashboardHome from "./pages/client/ClientDashboardHome";
-import ClientProjectsPage from "./pages/client/ClientProjectsPage";
-import ClientInvoicesPage from "./pages/client/ClientInvoicesPage";
-import ClientReferralsPage from "./pages/client/ClientReferralsPage";
-import PublicInvoicePage from "./pages/PublicInvoicePage";
 import { IncidentStatusWidget } from "./components/common/IncidentStatusWidget";
+
+const AdminLogin = lazy(() => import("./pages/AdminLogin"));
+const AdminSetup = lazy(() => import("./pages/AdminSetup"));
+const AdminLayout = lazy(() => import("./components/AdminLayout"));
+const DashboardHome = lazy(() => import("./pages/admin/DashboardHome"));
+const SettingsPage = lazy(() => import("./pages/admin/SettingsPage"));
+const ThemesPage = lazy(() => import("./pages/admin/ThemesPage"));
+const PortfolioPage = lazy(() => import("./pages/admin/PortfolioPage"));
+const ContactsPage = lazy(() => import("./pages/admin/ContactsPage"));
+const ClientsPage = lazy(() => import("./pages/admin/ClientsPage"));
+const LeadsPage = lazy(() => import("./pages/admin/LeadsPage"));
+const CustomersPage = lazy(() => import("./pages/admin/CustomersPage"));
+const ProjectsPage = lazy(() => import("./pages/admin/ProjectsPage"));
+const ServicesPage = lazy(() => import("./pages/admin/ServicesPage"));
+const PricingPage = lazy(() => import("./pages/admin/PricingPage"));
+const SocialLinksPage = lazy(() => import("./pages/admin/SocialLinksPage"));
+const InfoBarPage = lazy(() => import("./pages/admin/InfoBarPage"));
+const FaqsPage = lazy(() => import("./pages/admin/FaqsPage"));
+const FaqCategoriesPage = lazy(() => import("./pages/admin/FaqCategoriesPage"));
+const TeamManagementPage = lazy(() => import("./pages/admin/TeamManagementPage"));
+const ReferralsPage = lazy(() => import("./pages/admin/ReferralsPage"));
+const BudgetPage = lazy(() => import("./pages/admin/BudgetPage"));
+const MarketingEmailsPage = lazy(() => import("./pages/admin/MarketingEmailsPage"));
+const AcceptInvitePage = lazy(() => import("./pages/AcceptInvitePage"));
+const ClientLogin = lazy(() => import("./pages/ClientLogin"));
+const ClientRegister = lazy(() => import("./pages/ClientRegister"));
+const ForgotPasswordPage = lazy(() => import("./pages/ForgotPasswordPage"));
+const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"));
+const VerifyMagicLinkPage = lazy(() => import("./pages/VerifyMagicLinkPage"));
+const ClientLayout = lazy(() => import("./components/ClientLayout"));
+const ClientDashboardHome = lazy(() => import("./pages/client/ClientDashboardHome"));
+const ClientProjectsPage = lazy(() => import("./pages/client/ClientProjectsPage"));
+const ClientInvoicesPage = lazy(() => import("./pages/client/ClientInvoicesPage"));
+const ClientReferralsPage = lazy(() => import("./pages/client/ClientReferralsPage"));
+const PublicInvoicePage = lazy(() => import("./pages/PublicInvoicePage"));
 
 const ProtectedClientRoute = ({ children }: { children: React.ReactNode }) => {
   const { token, user } = useAuth();
@@ -103,6 +105,7 @@ export default function App() {
         <LanguageProvider>
           <BrowserRouter>
             <IncidentStatusWidget />
+            <Suspense fallback={<div className="min-h-screen bg-background" aria-busy="true" />}>
             <Routes>
               <Route path="/" element={<PublicHome />} />
               <Route path="/admin/setup" element={<AdminSetup />} />
@@ -171,6 +174,7 @@ export default function App() {
               {/* Catch-all fallback */}
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
+            </Suspense>
           </BrowserRouter>
         </LanguageProvider>
       </AuthProvider>

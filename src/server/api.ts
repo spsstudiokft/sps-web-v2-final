@@ -2,7 +2,7 @@ import { Router } from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
-import { db } from "../db.js";
+import { db, getDb } from "../db.js";
 import { publicInvoiceRouter } from "./invoiceRouter.js";
 import { publicReferralRouter } from "./referralRouter.js";
 import { 
@@ -24,6 +24,95 @@ export { requireAuth, requireAdmin, requireClient } from "./authMiddleware.js";
 
 const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET || "supersecretjwtstring";
+
+const PUBLIC_BOOTSTRAP_TTL_MS = 30_000;
+let publicBootstrapCache: { expiresAt: number; payload: any } | null = null;
+let publicBootstrapPending: Promise<any> | null = null;
+
+function hydratePublicPricing(rows: any[]): any[] {
+  const tiersById = new Map(
+    rows.filter((plan) => plan.type === "tier").map((plan) => [String(plan.id), plan])
+  );
+
+  return rows.filter((plan) => Boolean(plan.is_enabled)).map((plan) => {
+    if (plan.type !== "bundle") return plan;
+    let bundleItems: any[] = [];
+    try {
+      const parsed = typeof plan.bundle_services === "string"
+        ? JSON.parse(plan.bundle_services || "[]")
+        : plan.bundle_services;
+      bundleItems = Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return plan;
+    }
+
+    const resolvedItems = bundleItems.map((item) => {
+      if (!item?.tier_id) return item;
+      const tier = tiersById.get(String(item.tier_id)) as any;
+      if (!tier) return { ...item, is_missing: true };
+      const parseList = (value: any) => {
+        try {
+          const parsed = typeof value === "string" ? JSON.parse(value || "[]") : value;
+          return Array.isArray(parsed) ? parsed : [];
+        } catch {
+          return [];
+        }
+      };
+      return {
+        ...item,
+        item_type: "tier",
+        service_title: tier.title,
+        service_name: tier.title,
+        original_price: Number(tier.price) || 0,
+        features: [...new Set([...parseList(tier.features), ...parseList(tier.included_items)])],
+        is_disabled: !Boolean(tier.is_enabled),
+        is_missing: false,
+      };
+    });
+    return { ...plan, bundle_services: JSON.stringify(resolvedItems) };
+  });
+}
+
+async function loadPublicBootstrap() {
+  const now = Date.now();
+  if (publicBootstrapCache && publicBootstrapCache.expiresAt > now) return publicBootstrapCache.payload;
+  if (publicBootstrapPending) return publicBootstrapPending;
+
+  publicBootstrapPending = (async () => {
+    const results = await getDb().batch([
+      "SELECT key, value FROM settings",
+      `SELECT p.*, c.name as category_name, c.slug as category_slug FROM portfolio_items p LEFT JOIN categories c ON p.category_id = c.id WHERE p.is_published = 1 ORDER BY p.sort_order ASC, p.created_at DESC`,
+      "SELECT * FROM services WHERE is_published = 1 ORDER BY sort_order ASC, created_at ASC",
+      "SELECT * FROM pricing_plans ORDER BY sort_order ASC, created_at ASC",
+      "SELECT * FROM pricing_extra_services WHERE is_enabled = 1 AND (show_on_pricing_page IS NULL OR show_on_pricing_page = 1) ORDER BY sort_order ASC, created_at ASC",
+      "SELECT * FROM pricing_fee_rules WHERE is_enabled = 1 AND (show_on_pricing_page IS NULL OR show_on_pricing_page = 1) ORDER BY sort_order ASC, created_at ASC",
+      `SELECT f.*, fc.name as category_name, fc.slug as category_slug, fc.sort_order as category_sort_order FROM faqs f LEFT JOIN faq_categories fc ON f.category_id = fc.id WHERE f.is_published = 1 AND (fc.is_published = 1 OR fc.is_published IS NULL OR f.category_id IS NULL) ORDER BY COALESCE(fc.sort_order, 999) ASC, f.sort_order ASC, f.created_at ASC`,
+      "SELECT * FROM faq_categories WHERE is_published = 1 ORDER BY sort_order ASC, created_at ASC",
+    ], "read");
+
+    const settings = (results[0]?.rows || []).reduce((acc: any, row: any) => {
+      acc[row.key] = row.value;
+      return acc;
+    }, {});
+    const payload = {
+      settings,
+      portfolio: results[1]?.rows || [],
+      services: results[2]?.rows || [],
+      pricing: hydratePublicPricing((results[3]?.rows || []) as any[]),
+      extraServices: results[4]?.rows || [],
+      feeRules: results[5]?.rows || [],
+      faqs: results[6]?.rows || [],
+      faqCategories: results[7]?.rows || [],
+      generatedAt: new Date().toISOString(),
+    };
+    publicBootstrapCache = { expiresAt: Date.now() + PUBLIC_BOOTSTRAP_TTL_MS, payload };
+    return payload;
+  })().finally(() => {
+    publicBootstrapPending = null;
+  });
+
+  return publicBootstrapPending;
+}
 
 router.get("/public/google-review/:token", async (req, res) => {
   try {
@@ -1005,8 +1094,19 @@ router.get("/public/translations/:locale", async (req, res) => {
   }
 });
 
+router.get("/public/bootstrap", async (_req, res) => {
+  try {
+    res.set("Cache-Control", "public, max-age=30, s-maxage=60, stale-while-revalidate=300");
+    res.json(await loadPublicBootstrap());
+  } catch (error) {
+    console.error("Public bootstrap fetch error:", error);
+    res.status(500).json({ error: "Failed to load public website data" });
+  }
+});
+
 router.get("/public/settings", async (req, res) => {
   try {
+    res.set("Cache-Control", "public, max-age=30, s-maxage=60, stale-while-revalidate=300");
     const result = await db.execute("SELECT * FROM settings");
     const settings = result.rows.reduce((acc: any, row: any) => {
       acc[row.key] = row.value;
@@ -1043,6 +1143,7 @@ router.get("/public/categories", async (req, res) => {
 
 router.get("/public/portfolio", async (req, res) => {
   try {
+    res.set("Cache-Control", "public, max-age=30, s-maxage=60, stale-while-revalidate=300");
     const result = await db.execute(`
       SELECT p.*, c.name as category_name, c.slug as category_slug 
       FROM portfolio_items p 
@@ -1059,6 +1160,7 @@ router.get("/public/portfolio", async (req, res) => {
 
 router.get("/public/services", async (req, res) => {
   try {
+    res.set("Cache-Control", "public, max-age=30, s-maxage=60, stale-while-revalidate=300");
     const result = await db.execute(`
       SELECT * FROM services 
       WHERE is_published = 1 
@@ -1073,7 +1175,7 @@ router.get("/public/services", async (req, res) => {
 
 router.get("/public/pricing", async (req, res) => {
   try {
-    res.set("Cache-Control", "no-store, no-cache, must-revalidate");
+    res.set("Cache-Control", "public, max-age=15, s-maxage=30, stale-while-revalidate=120");
     const result = await db.execute(`
       SELECT * FROM pricing_plans
       ORDER BY sort_order ASC, created_at ASC
@@ -1145,7 +1247,7 @@ router.get("/public/pricing", async (req, res) => {
 
 router.get("/public/extra-services", async (req, res) => {
   try {
-    res.set("Cache-Control", "no-store, no-cache, must-revalidate");
+    res.set("Cache-Control", "public, max-age=15, s-maxage=30, stale-while-revalidate=120");
     const result = await db.execute(`
       SELECT * FROM pricing_extra_services 
       WHERE is_enabled = 1 AND (show_on_pricing_page IS NULL OR show_on_pricing_page = 1)

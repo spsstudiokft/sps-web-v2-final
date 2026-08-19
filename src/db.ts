@@ -184,6 +184,24 @@ export const setupDatabase = async () => {
   try { await client.execute(`UPDATE invitations SET team_id = 'team-main-studio' WHERE (team_id IS NULL OR team_id = '') AND COALESCE(workspace, 'Main Studio') = 'Main Studio'`); } catch {}
   try { await client.execute("ALTER TABLE email_templates ADD COLUMN token_defaults TEXT NOT NULL DEFAULT '{}'"); } catch {}
 
+  // Public landing-page reads repeatedly filter and order by these columns.
+  // Create their indexes in a single remote batch to keep Turso cold starts
+  // from paying one network round-trip per index.
+  try {
+    await client.batch([
+      "CREATE INDEX IF NOT EXISTS idx_portfolio_public_sort ON portfolio_items(is_published, sort_order, created_at)",
+      "CREATE INDEX IF NOT EXISTS idx_services_public_sort ON services(is_published, sort_order, created_at)",
+      "CREATE INDEX IF NOT EXISTS idx_pricing_plans_sort ON pricing_plans(sort_order, created_at)",
+      "CREATE INDEX IF NOT EXISTS idx_extra_services_public_sort ON pricing_extra_services(is_enabled, show_on_pricing_page, sort_order, created_at)",
+      "CREATE INDEX IF NOT EXISTS idx_fee_rules_public_sort ON pricing_fee_rules(is_enabled, show_on_pricing_page, sort_order, created_at)",
+      "CREATE INDEX IF NOT EXISTS idx_faq_public_sort ON faqs(is_published, category_id, sort_order, created_at)",
+      "CREATE INDEX IF NOT EXISTS idx_faq_categories_public_sort ON faq_categories(is_published, sort_order, created_at)",
+    ]);
+  } catch {
+    // On a brand-new database these tables are created below. The idempotent
+    // batch succeeds on the next boot after initialization.
+  }
+
   // Fast check: If database is already initialized up to v8, return immediately
   try {
     const initCheck = await client.execute("SELECT value FROM settings WHERE key = '__db_initialized_v8'");

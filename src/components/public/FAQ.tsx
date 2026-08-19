@@ -47,20 +47,23 @@ const DEFAULT_FAQS: Array<Partial<FAQItem>> = [
 
 export function FAQ({ 
   settings, 
-  initialFaqs 
+  initialFaqs,
+  initialCategories,
 }: { 
   settings?: SiteSettings;
   initialFaqs?: FAQItem[];
+  initialCategories?: FAQCategory[];
 }) {
   const [faqs, setFaqs] = useState<Array<FAQItem | Partial<FAQItem>>>(
     initialFaqs && initialFaqs.length > 0 ? initialFaqs : DEFAULT_FAQS
   );
-  const [dbCategories, setDbCategories] = useState<FAQCategory[]>([]);
+  const [dbCategories, setDbCategories] = useState<FAQCategory[]>(initialCategories || []);
   const [openIndex, setOpenIndex] = useState<number | null>(0);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const { currentLang, defaultLang } = useLanguage();
 
   useEffect(() => {
+    if (initialFaqs !== undefined && initialCategories !== undefined) return;
     let isMounted = true;
     Promise.all([
       fetch("/api/public/faqs").then((res) => (res.ok ? res.json() : [])),
@@ -83,7 +86,7 @@ export function FAQ({
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [initialFaqs, initialCategories]);
 
   const resolveText = (val: string | null | undefined, fallbackKey = ""): string => {
     if (!val) return fallbackKey ? tUi(fallbackKey, currentLang) : "";

@@ -60,10 +60,11 @@ export function Services({
 }) {
   const { currentLang, defaultLang } = useLanguage();
   const [services, setServices] = useState<Service[] | Partial<Service>[]>(
-    initialServices && initialServices.length > 0 ? initialServices : DEFAULT_SERVICES
+    initialServices !== undefined ? initialServices : DEFAULT_SERVICES
   );
 
   useEffect(() => {
+    if (initialServices !== undefined) return;
     let isMounted = true;
     fetch("/api/public/services")
       .then((res) => (res.ok ? res.json() : []))
@@ -79,7 +80,7 @@ export function Services({
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [initialServices]);
 
   const container = {
     hidden: { opacity: 0 },
