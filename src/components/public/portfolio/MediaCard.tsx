@@ -181,6 +181,17 @@ export function MediaCard({ card, onClick, priority = false, deferMedia = false 
     "(max-width: 639px) 310px, (max-width: 767px) 380px, 420px",
     82,
   );
+  const handleResponsiveImageError = (event: React.SyntheticEvent<HTMLImageElement>) => {
+    const image = event.currentTarget;
+    if (previewImageUrl && image.dataset.originalFallback !== "true") {
+      image.dataset.originalFallback = "true";
+      image.removeAttribute("srcset");
+      image.removeAttribute("sizes");
+      image.src = previewImageUrl;
+      return;
+    }
+    setHasError(true);
+  };
 
   const projectTitle = t(item.title, currentLang, defaultLang) || item.title;
   // The public portfolio cards identify the project, not the uploaded file.
@@ -253,6 +264,7 @@ export function MediaCard({ card, onClick, priority = false, deferMedia = false 
                     alt={displayTitle}
                     loading="lazy"
                     decoding="async"
+                    onError={handleResponsiveImageError}
                     className="w-full h-full object-cover opacity-60"
                   />
                 )}
@@ -278,6 +290,7 @@ export function MediaCard({ card, onClick, priority = false, deferMedia = false 
                 alt={displayTitle}
                 loading="lazy"
                 decoding="async"
+                onError={handleResponsiveImageError}
                 className="w-full h-full object-cover opacity-85 group-hover:scale-105 transition-transform duration-700"
               /> : <div className="w-full h-full bg-zinc-950" />
             )
@@ -308,7 +321,7 @@ export function MediaCard({ card, onClick, priority = false, deferMedia = false 
               loading={priority ? "eager" : "lazy"}
               decoding="async"
               onLoad={() => setImageLoaded(true)}
-              onError={() => setHasError(true)}
+              onError={handleResponsiveImageError}
               className={`w-full h-full object-cover group-hover:scale-108 transition-transform duration-700 ${
                 imageLoaded ? "opacity-100" : "opacity-0"
               }`}
@@ -337,7 +350,7 @@ export function MediaCard({ card, onClick, priority = false, deferMedia = false 
               loading={priority ? "eager" : "lazy"}
               decoding="async"
               onLoad={() => setImageLoaded(true)}
-              onError={() => setHasError(true)}
+              onError={handleResponsiveImageError}
               className={`w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-108 ${
                 imageLoaded ? "opacity-100" : "opacity-0"
               }`}

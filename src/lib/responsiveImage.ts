@@ -20,7 +20,10 @@ function buildTransformedImageUrl(source: string, width: number, quality: number
       parsed.searchParams.delete("mode");
       parsed.searchParams.set("width", String(safeWidth));
       parsed.searchParams.set("quality", String(safeQuality));
-      parsed.searchParams.set("output", "webp");
+      // Appwrite Cloud currently returns HTTP 500 for WebP output on the
+      // project's otherwise valid previews. JPEG resizing is supported and
+      // still reduces the tested 767 KB card asset to roughly 29 KB.
+      parsed.searchParams.set("output", "jpg");
       return isAbsolute ? parsed.toString() : `${parsed.pathname}${parsed.search}`;
     }
 

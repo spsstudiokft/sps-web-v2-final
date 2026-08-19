@@ -245,6 +245,15 @@ export function PortfolioLightboxModal({ item, initialIndex = 0, onClose }: Port
                   sizes={responsiveCurrentImage.sizes}
                   alt={currentMedia.alt || currentMedia.title || title}
                   decoding="async"
+                  onError={(event) => {
+                    const image = event.currentTarget;
+                    if (currentImageSource && image.dataset.originalFallback !== "true") {
+                      image.dataset.originalFallback = "true";
+                      image.removeAttribute("srcset");
+                      image.removeAttribute("sizes");
+                      image.src = currentImageSource;
+                    }
+                  }}
                   className="max-h-[56vh] w-auto max-w-full rounded-xl shadow-2xl object-contain transition-all duration-300 animate-in fade-in zoom-in-95 duration-200"
                 />
               )}
@@ -323,6 +332,15 @@ export function PortfolioLightboxModal({ item, initialIndex = 0, onClose }: Port
                       alt=""
                       loading="lazy"
                       decoding="async"
+                      onError={(event) => {
+                        const image = event.currentTarget;
+                        if (thumb && image.dataset.originalFallback !== "true") {
+                          image.dataset.originalFallback = "true";
+                          image.removeAttribute("srcset");
+                          image.removeAttribute("sizes");
+                          image.src = thumb;
+                        }
+                      }}
                       className="w-full h-full object-cover"
                     />
                   ) : (

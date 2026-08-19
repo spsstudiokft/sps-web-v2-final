@@ -41,13 +41,15 @@
 
 ### Public loading and low-end device performance
 
+- Aligned `package.json#packageManager` with the pnpm 10.x generator expected by the version 9 lockfile and supported by Vercel, removing the pnpm 11 lockfile mismatch during deployment.
 - Disabled automatic portfolio marquee animation for every mobile viewport and replaced each row with a single, non-duplicated horizontal touch-scroll track with scroll snapping.
 - Hid the desktop marquee play/pause control on mobile, while preserving the randomized card order and desktop left/right animation pattern.
 - Changed all coarse-pointer mobile viewports to the lightweight public rendering path, disabling unnecessary motion and expensive ambient effects by default.
 - Limited each mobile portfolio row to four initially mounted cards and progressively appends four more only as the visitor scrolls toward the row end.
 - Prevented off-screen mobile gallery images and video posters from receiving a media source until their card approaches the viewport, avoiding simultaneous network and decode bursts when the section appears.
-- Added provider-aware responsive image URL generation for Appwrite and Unsplash, including cached Appwrite preview resizing, WebP output, quality controls, and screen-aware `srcset`/`sizes` candidates.
+- Added provider-aware responsive image URL generation for Appwrite and Unsplash, including cached Appwrite JPEG preview resizing, quality controls, and screen-aware `srcset`/`sizes` candidates.
 - Applied adaptive image delivery to public portfolio cards, video posters, full lightbox images, and lightbox thumbnails without routing image bytes through Vercel Functions.
+- Corrected missing portfolio-card images caused by Appwrite returning HTTP 500 for WebP preview output; responsive previews now request the verified JPEG format and automatically retry the stored optimized image if any transformation fails.
 - Removed full schema migration/setup work from the read-only Vercel public function cold-start path; admin, authentication, client, billing, and fallback functions retain database initialization.
 - Added dedicated browser and Vercel CDN cache controls for the public bootstrap response, including stale-on-error delivery during temporary database outages.
 - Added one-year immutable caching for fingerprinted Vite assets and revalidation caching for bundled public images.

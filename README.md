@@ -108,7 +108,7 @@ SPS Studio is an all-in-one studio management platform designed for architectura
 - **Route-Level Code Splitting**: Admin, finance, authentication, and client-portal pages are loaded only when their routes are opened; public visitors do not download those modules during startup.
 - **Mobile Touch Portfolio**: Mobile portfolio rows are static by default and remain horizontally touch-scrollable, avoiding continuous marquee work and duplicate media cards on handheld devices.
 - **Progressive Mobile Media**: Mobile gallery rows mount cards in small batches and assign image/video-poster sources only near the viewport, preventing decode bursts when the portfolio section enters the screen.
-- **Adaptive Image Delivery**: Public portfolio cards and lightboxes use responsive `srcset` candidates backed by Appwrite's cached preview transformations (with Unsplash URL support), so each screen downloads an appropriately sized WebP display asset without proxying bytes through Vercel.
+- **Adaptive Image Delivery**: Public portfolio cards and lightboxes use responsive `srcset` candidates backed by Appwrite's cached JPEG preview transformations (with Unsplash URL support), so each screen downloads an appropriately sized display asset without proxying bytes through Vercel; failed transformations fall back to the stored optimized image.
 - **Adaptive Low-End Mode**: Low-memory/low-core devices, constrained connections, data-saver mode, and reduced-motion preferences receive fewer blur/3D effects and deferred off-screen rendering.
 - **Critical Media Loading**: The hero background is preloaded while optimized portfolio derivatives are prefetched only when device and connection conditions allow it.
 - **Accessible Light Theme**: Public light-mode body, muted, primary, accent, placeholder, border, and focus colors use higher-contrast values, including explicit text colors over photographic sections.
@@ -136,7 +136,7 @@ SPS Studio is an all-in-one studio management platform designed for architectura
 
 ### 1. Prerequisites
 - **Node.js**: v18.0.0 or higher
-- **npm** or **pnpm** / **yarn**
+- **npm** or **pnpm 10.10.0** (the repository lockfile and Vercel deployment are pinned to this pnpm generation)
 
 ### 2. Clone and Install Dependencies
 ```bash
