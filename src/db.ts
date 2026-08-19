@@ -115,6 +115,9 @@ export const getDb = () => {
 export const db = {
   execute: async (stmt: any) => {
     return getDb().execute(stmt);
+  },
+  batch: async (statements: any[], mode: "read" | "write" = "write") => {
+    return getDb().batch(statements, mode);
   }
 };
 

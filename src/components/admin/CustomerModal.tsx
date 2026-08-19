@@ -245,16 +245,16 @@ export function CustomerModal({
 
     const cleanProperties = properties
       .map(p => ({
-        property_name: p.property_name?.trim() || "Property",
-        address: p.address?.trim() || "",
+        property_name: typeof p.property_name === "string" ? (p.property_name.trim() || "Property") : "Property",
+        address: typeof p.address === "string" ? p.address.trim() : "",
         metadata: p.metadata
       }))
       .filter(p => p.address.length > 0);
 
     const cleanLinks = links
       .map(l => ({
-        label: l.label?.trim() || "Listing Link",
-        url: l.url?.trim() || "",
+        label: typeof l.label === "string" ? (l.label.trim() || "Listing Link") : "Listing Link",
+        url: typeof l.url === "string" ? l.url.trim() : "",
         metadata: l.metadata
       }))
       .filter(l => l.url.length > 0);
@@ -269,15 +269,15 @@ export function CustomerModal({
       const payload = {
         ...formData,
         name: formData.name.trim(),
-        email: formData.email?.trim() || null,
-        phone: formData.phone?.trim() || null,
+        email: typeof formData.email === "string" ? (formData.email.trim() || null) : null,
+        phone: typeof formData.phone === "string" ? (formData.phone.trim() || null) : null,
         property_address: primaryAddress,
         advertisement_link: primaryLink,
         properties: cleanProperties,
         links: cleanLinks,
-        source: formData.source?.trim() || null,
-        owner_id: formData.owner_id?.trim() || null,
-        notes: formData.notes?.trim() || null,
+        source: typeof formData.source === "string" ? (formData.source.trim() || null) : null,
+        owner_id: typeof formData.owner_id === "string" ? (formData.owner_id.trim() || null) : null,
+        notes: typeof formData.notes === "string" ? (formData.notes.trim() || null) : null,
         type: 'customer',
         status: formData.status || 'active',
         re_enable_portal: reEnablePortal,

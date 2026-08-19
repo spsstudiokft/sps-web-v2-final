@@ -4216,7 +4216,7 @@ adminRouter.post("/crm", async (req, res) => {
 
 adminRouter.put("/crm/:id", async (req, res) => {
   try {
-    const { type, name, email, phone, source, status, notes, owner_id, property_address, advertisement_link, re_enable_portal } = req.body;
+    const { type, name, email, phone, source, status, notes, owner_id, property_address, advertisement_link, re_enable_portal, properties, links } = req.body || {};
     if (advertisement_link !== undefined && advertisement_link !== null && !isValidUrl(advertisement_link)) {
       return res.status(400).json({ error: "Advertisement link must be a valid URL starting with http:// or https://" });
     }
@@ -4243,7 +4243,13 @@ adminRouter.put("/crm/:id", async (req, res) => {
     const existing = existingRes.rows[0];
     const prevStatus = existing.status as string;
     const newStatus = status !== undefined ? status : prevStatus;
-    const customerEmail = (email !== undefined ? email : existing.email as string)?.trim().toLowerCase();
+    const cleanName = name === undefined || name === null ? null : String(name).trim();
+    const cleanEmail = email === undefined ? null : (typeof email === "string" ? email.trim() : "");
+    const cleanPhone = phone === undefined ? null : (typeof phone === "string" ? phone.trim() : "");
+    const cleanSource = source === undefined ? null : (typeof source === "string" ? source.trim() : "");
+    const cleanPropertyAddress = typeof property_address === "string" ? property_address.trim() : "";
+    const cleanAdvertisementLink = typeof advertisement_link === "string" ? advertisement_link.trim() : "";
+    const customerEmail = String(email !== undefined ? cleanEmail : (existing.email || "")).trim().toLowerCase();
     const actorUser = (req as any).user || {};
     const clientIp = (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() || req.socket.remoteAddress || "";
 
@@ -4284,21 +4290,88 @@ adminRouter.put("/crm/:id", async (req, res) => {
             WHERE id = ?`,
       args: [
         type || null,
-        name !== undefined ? name.trim() : null,
-        email !== undefined ? email.trim() : null,
-        phone !== undefined ? phone.trim() : null,
-        source !== undefined ? source.trim() : null,
+        cleanName,
+        cleanEmail,
+        cleanPhone,
+        cleanSource,
         status || null,
         notes !== undefined ? notes : null,
         owner_id !== undefined ? owner_id : null,
-        property_address !== undefined && property_address !== null ? property_address.trim() : '',
-        advertisement_link !== undefined && advertisement_link !== null ? advertisement_link.trim() : '',
+        cleanPropertyAddress,
+        cleanAdvertisementLink,
         portalDisabledAt,
         portalDisabledReason,
         portalDisabledBy,
         req.params.id
       ]
     });
+
+    // The customer editor submits the complete property/link collection. Keep
+    // both CRM and portal views in sync atomically, including newly added rows.
+    if (Array.isArray(properties) || Array.isArray(links)) {
+      const canonicalClientId = String(existing.portal_user_id || req.params.id);
+      const relatedClientIds = [req.params.id, existing.portal_user_id]
+        .filter(Boolean)
+        .map(String);
+      const placeholders = relatedClientIds.map(() => "?").join(", ");
+      const statements: any[] = [];
+
+      if (Array.isArray(properties)) {
+        const normalizedProperties = properties.map((property: any, index: number) => {
+          const address = typeof property === "string"
+            ? property.trim()
+            : (typeof property?.address === "string" ? property.address.trim() : "");
+          const propertyName = typeof property === "object" && typeof property?.property_name === "string"
+            ? property.property_name.trim()
+            : "";
+          const metadata = typeof property === "object" && property?.metadata && typeof property.metadata === "object"
+            ? JSON.stringify(property.metadata)
+            : (typeof property?.metadata === "string" ? property.metadata : "{}");
+          return { address, propertyName: propertyName || `Property ${index + 1}`, metadata, index };
+        }).filter((property: any) => property.address);
+
+        statements.push({
+          sql: `DELETE FROM client_properties WHERE client_id IN (${placeholders})`,
+          args: relatedClientIds,
+        });
+        for (const property of normalizedProperties) {
+          statements.push({
+            sql: `INSERT INTO client_properties (id, client_id, property_name, address, metadata, sort_order, created_at, updated_at)
+                  VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+            args: [crypto.randomUUID(), canonicalClientId, property.propertyName, property.address, property.metadata, property.index],
+          });
+        }
+      }
+
+      if (Array.isArray(links)) {
+        const normalizedLinks = links.map((link: any, index: number) => {
+          const url = typeof link === "string"
+            ? link.trim()
+            : (typeof link?.url === "string" ? link.url.trim() : "");
+          const label = typeof link === "object" && typeof link?.label === "string" ? link.label.trim() : "";
+          const metadata = typeof link === "object" && link?.metadata && typeof link.metadata === "object"
+            ? JSON.stringify(link.metadata)
+            : (typeof link?.metadata === "string" ? link.metadata : "{}");
+          return { url, label: label || `Listing Link ${index + 1}`, metadata, index };
+        }).filter((link: any) => link.url);
+        const invalidLink = normalizedLinks.find((link: any) => !isValidUrl(link.url));
+        if (invalidLink) return res.status(400).json({ error: "Listing links must start with http:// or https://" });
+
+        statements.push({
+          sql: `DELETE FROM client_links WHERE client_id IN (${placeholders})`,
+          args: relatedClientIds,
+        });
+        for (const link of normalizedLinks) {
+          statements.push({
+            sql: `INSERT INTO client_links (id, client_id, label, url, metadata, sort_order, created_at, updated_at)
+                  VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+            args: [crypto.randomUUID(), canonicalClientId, link.label, link.url, link.metadata, link.index],
+          });
+        }
+      }
+
+      if (statements.length > 0) await db.batch(statements, "write");
+    }
 
     // 1. AUTOMATICALLY DISABLE PORTAL ACCESS WHEN CUSTOMER IS MARKED INACTIVE
     let portalAccountsAffected = 0;

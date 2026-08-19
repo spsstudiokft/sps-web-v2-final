@@ -17,6 +17,8 @@
 
 ### Portfolio data and media cleanup
 
+- Fixed the admin customer editor's remaining `null.trim()` failure in the full CRM update route by normalizing every optional customer field before persistence.
+- Customer-editor saves now atomically synchronize the complete property and listing-link collections, use the linked portal user as the canonical owner when present, and remove stale duplicate CRM/portal rows so newly added addresses appear in both admin and client views.
 - Replaced raw customer security-audit action codes and JSON blobs in the admin detail view with readable event titles, labelled fields, normalized statuses and booleans, wrapped reason text, and a taller responsive history panel; all new audit copy is available in English, Hungarian, German, Spanish, and French and synchronized to the editable translation database.
 - Fixed new client-property creation and editing when legacy or incomplete records contain a `null` property name, address, metadata, or request body; client and admin endpoints now normalize values before trimming and return address validation instead of a runtime exception.
 - Corrected localized portfolio names and categories in admin cards and category selectors so translated values render instead of serialized objects or translation keys.
