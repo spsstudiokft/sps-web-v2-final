@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { ArrowLeft, Camera, Images, Play, SearchX } from "lucide-react";
+import { ArrowLeft, Camera, Images, LoaderCircle, Play, SearchX } from "lucide-react";
 import { Header } from "../components/public/Header";
 import { Footer } from "../components/public/Footer";
 import { PortfolioLightboxModal } from "../components/public/portfolio/PortfolioLightboxModal";
@@ -61,10 +61,35 @@ export default function PortfolioGalleryPage() {
 function PortfolioGalleryContent({ settings, item, notFound }: { settings: SiteSettings; item: PortfolioItem | null; notFound: boolean }) {
   const { currentLang, defaultLang, tUi } = useLanguage();
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [protectedDownloadIndex, setProtectedDownloadIndex] = useState<number | null>(null);
   const mediaItems = useMemo(() => item ? getNormalizedGallery(item.image_urls) : [], [item]);
   const title = item ? (t(item.title, currentLang, defaultLang) || item.title) : tUi("portfolio.page.not_found_title");
   const description = item ? (t(item.description, currentLang, defaultLang) || item.description || "") : "";
   const category = item?.category_name ? t(item.category_name, currentLang, defaultLang) : "";
+
+  const downloadWatermarkedImage = async (index: number) => {
+    if (!item?.slug || protectedDownloadIndex !== null) return;
+    setProtectedDownloadIndex(index);
+    try {
+      const response = await fetch(`/api/public/portfolio/${encodeURIComponent(item.slug)}/media/${index}/watermarked`);
+      if (!response.ok) throw new Error(`Protected download failed (${response.status})`);
+      const blob = await response.blob();
+      const disposition = response.headers.get("content-disposition") || "";
+      const filename = disposition.match(/filename="([^"]+)"/i)?.[1] || `${item.slug}-${index + 1}-watermarked.jpg`;
+      const objectUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = objectUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 0);
+    } catch (error) {
+      console.error("Failed to download watermarked portfolio image:", error);
+    } finally {
+      setProtectedDownloadIndex(null);
+    }
+  };
 
   useEffect(() => {
     const previousTitle = document.title;
@@ -154,6 +179,10 @@ function PortfolioGalleryContent({ settings, item, notFound }: { settings: SiteS
                     key={media.id || index}
                     type="button"
                     onClick={() => setLightboxIndex(index)}
+                    onContextMenu={(event) => {
+                      event.preventDefault();
+                      if (!isVideo) void downloadWatermarkedImage(index);
+                    }}
                     className="group relative aspect-[4/3] overflow-hidden rounded-2xl border border-border bg-surface text-left shadow-sm transition-transform hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                     aria-label={tUi("portfolio.page.open_media", { index: index + 1 })}
                   >
@@ -165,11 +194,21 @@ function PortfolioGalleryContent({ settings, item, notFound }: { settings: SiteS
                         alt={media.alt || media.title || `${title} – ${index + 1}`}
                         loading={index < 3 ? "eager" : "lazy"}
                         decoding="async"
+                        draggable={false}
+                        onDragStart={(event) => event.preventDefault()}
                         className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
                       />
                     ) : <div className="h-full w-full bg-surface" />}
                     <span className="absolute bottom-3 right-3 rounded-full bg-black/65 px-2.5 py-1 text-xs font-bold text-white backdrop-blur-md">{index + 1} / {mediaItems.length}</span>
                     {isVideo && <span className="absolute inset-0 flex items-center justify-center bg-black/15"><span className="flex h-12 w-12 items-center justify-center rounded-full bg-white/90 text-black shadow-xl"><Play className="ml-0.5 h-5 w-5 fill-current" /></span></span>}
+                    {protectedDownloadIndex === index && (
+                      <span className="absolute inset-0 flex items-center justify-center bg-black/45 text-white backdrop-blur-sm" role="status">
+                        <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-black/75 px-4 py-2 text-xs font-semibold shadow-xl">
+                          <LoaderCircle className="h-4 w-4 animate-spin text-cyan-400" />
+                          {tUi("portfolio.page.preparing_watermarked_download")}
+                        </span>
+                      </span>
+                    )}
                   </button>
                 );
               })}
