@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { PortfolioItem } from "../../lib/types";
 import { InfiniteMarqueeRow } from "./portfolio/InfiniteMarqueeRow";
 import { ShowcaseMediaCardItem } from "./portfolio/MediaCard";
@@ -56,6 +56,17 @@ export function Portfolio({ items, isPerformanceLite = false }: PortfolioProps) 
   const [activeModalItem, setActiveModalItem] = useState<PortfolioItem | null>(null);
   const [activeModalMediaIndex, setActiveModalMediaIndex] = useState<number>(0);
   const [isPaused, setIsPaused] = useState<boolean>(false);
+  const [isMobileViewport, setIsMobileViewport] = useState(() =>
+    typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches
+  );
+
+  useEffect(() => {
+    const mobileQuery = window.matchMedia("(max-width: 767px)");
+    const updateMobileViewport = () => setIsMobileViewport(mobileQuery.matches);
+    updateMobileViewport();
+    mobileQuery.addEventListener("change", updateMobileViewport);
+    return () => mobileQuery.removeEventListener("change", updateMobileViewport);
+  }, []);
   
   // The showcase always starts as a running conveyor. It only pauses through
   // the explicit control button, so its initial behaviour is deterministic.
@@ -241,7 +252,7 @@ export function Portfolio({ items, isPerformanceLite = false }: PortfolioProps) 
 
           {/* Controls: Play/Pause & Motion Toggle */}
           <motion.div variants={fadeInUp} className="flex items-center gap-3 shrink-0 flex-wrap">
-            {!isReducedMotion && (
+            {!isReducedMotion && !isMobileViewport && (
               <button
                 type="button"
                 onClick={() => setIsPaused((prev) => !prev)}
@@ -293,6 +304,7 @@ export function Portfolio({ items, isPerformanceLite = false }: PortfolioProps) 
               isPaused={isPaused}
               onItemClick={handleCardClick}
               isReducedMotion={isReducedMotion}
+              isStaticScroll={isMobileViewport}
             />
           </div>
         )}
@@ -316,6 +328,7 @@ export function Portfolio({ items, isPerformanceLite = false }: PortfolioProps) 
               isPaused={isPaused}
               onItemClick={handleCardClick}
               isReducedMotion={isReducedMotion}
+              isStaticScroll={isMobileViewport}
             />
           </div>
         )}
@@ -339,6 +352,7 @@ export function Portfolio({ items, isPerformanceLite = false }: PortfolioProps) 
               isPaused={isPaused}
               onItemClick={handleCardClick}
               isReducedMotion={isReducedMotion}
+              isStaticScroll={isMobileViewport}
             />
           </div>
         )}
@@ -362,6 +376,7 @@ export function Portfolio({ items, isPerformanceLite = false }: PortfolioProps) 
               isPaused={isPaused}
               onItemClick={handleCardClick}
               isReducedMotion={isReducedMotion}
+              isStaticScroll={isMobileViewport}
             />
           </div>
         )}

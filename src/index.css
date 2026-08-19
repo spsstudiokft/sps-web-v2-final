@@ -953,6 +953,12 @@ html:not(.dark) .aero-site {
   );
 }
 
+.portfolio-touch-scroll {
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+  scrollbar-width: thin;
+}
+
 @media (max-width: 640px) {
   .aero-marquee-viewport {
     --marquee-edge-fade: 2.25rem;

@@ -9,6 +9,7 @@ interface InfiniteMarqueeRowProps {
   isPaused?: boolean;
   onItemClick: (item: PortfolioItem, mediaIndex: number) => void;
   isReducedMotion?: boolean;
+  isStaticScroll?: boolean;
 }
 
 export function InfiniteMarqueeRow({
@@ -18,6 +19,7 @@ export function InfiniteMarqueeRow({
   isPaused = false,
   onItemClick,
   isReducedMotion = false,
+  isStaticScroll = false,
 }: InfiniteMarqueeRowProps) {
   const [isRowHovered, setIsRowHovered] = useState(false);
 
@@ -38,17 +40,23 @@ export function InfiniteMarqueeRow({
 
   if (!items || items.length === 0 || baseSequence.length === 0) return null;
 
-  // Reduced motion: accessible clean scroll container
-  if (isReducedMotion) {
+  // Mobile, performance-lite and reduced-motion views use one non-duplicated
+  // sequence that visitors can move horizontally with touch or a trackpad.
+  if (isReducedMotion || isStaticScroll) {
     return (
-      <div className="w-full overflow-x-auto py-2.5 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent">
-        <div className="flex items-center px-4 w-max">
+      <div
+        className="portfolio-touch-scroll w-full overflow-x-auto overscroll-x-contain touch-pan-x py-2.5 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent snap-x snap-proximity"
+        aria-label="Scrollable portfolio gallery"
+      >
+        <div className="flex items-center px-3 sm:px-4 w-max">
           {items.map((card, idx) => (
-            <MediaCard
-              key={`static-${card.id}-${idx}`}
-              card={card}
-              onClick={onItemClick}
-            />
+            <div key={`static-${card.id}-${idx}`} className="snap-start">
+              <MediaCard
+                card={card}
+                onClick={onItemClick}
+                priority={idx < 2}
+              />
+            </div>
           ))}
         </div>
       </div>
