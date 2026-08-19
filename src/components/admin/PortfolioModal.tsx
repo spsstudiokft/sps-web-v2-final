@@ -20,6 +20,7 @@ import {
   formatItemNumber
 } from "../../lib/mediaUtils";
 import { uploadMediaFile, UploadResult } from "../../lib/uploadHelper";
+import { useBackgroundUploads } from "../../contexts/BackgroundUploadContext";
 import { 
   X, 
   Image as ImageIcon, 
@@ -96,6 +97,7 @@ export function PortfolioModal({
 }: PortfolioModalProps) {
   const { fetchApi } = useApi();
   const { token } = useAuth();
+  const { enqueuePortfolioFiles, isPortfolioUploading } = useBackgroundUploads();
   const { currentLanguage, defaultLanguage, tUi } = useLanguage();
   const coverThumbInputRef = useRef<HTMLInputElement>(null);
 
@@ -278,6 +280,35 @@ export function PortfolioModal({
 
   // Multiple photo upload handler
   const handlePhotosUpload = async (files: FileList) => {
+    if (item?.id) {
+      setErrorMessage("");
+      const fileArray = Array.from(files);
+      const projectName = parseTitleText(formData.title) || "project";
+      const existingPhotoCount = parsedGalleryItems.filter(i => (i.item_type || i.type) === "image").length;
+      try {
+        const newItems = await enqueuePortfolioFiles({
+          portfolioId: String(item.id),
+          portfolioName: projectName,
+          files: fileArray,
+          kind: "image",
+          categoryName: "photos",
+          itemType: "image",
+          startingNumber: existingPhotoCount + 1,
+        });
+        setFormData((prev) => {
+          const current = getNormalizedGallery(prev.image_urls);
+          return {
+            ...prev,
+            image_urls: JSON.stringify([...current, ...newItems]),
+            thumbnail_url: prev.thumbnail_url || newItems[0]?.thumbnail_url || newItems[0]?.compressed_url || newItems[0]?.url || "",
+          };
+        });
+      } catch (err: any) {
+        setErrorMessage(err.message || "Failed to upload images.");
+      }
+      return;
+    }
+
     setIsUploading(true);
     setUploadProgressText("Preparing photos for upload...");
     setErrorMessage("");
@@ -356,6 +387,32 @@ export function PortfolioModal({
 
   // Direct Video file upload handler (supports up to 10 GB MP4, WebM, MOV)
   const handleVideoUpload = async (file: File) => {
+    if (item?.id) {
+      setErrorMessage("");
+      const projectName = parseTitleText(formData.title) || "project";
+      const existingVideoCount = parsedGalleryItems.filter(i => isVideoMedia(i) || i.item_type?.includes("video")).length;
+      try {
+        const newItems = await enqueuePortfolioFiles({
+          portfolioId: String(item.id),
+          portfolioName: projectName,
+          files: [file],
+          kind: "video",
+          categoryName: "drone",
+          itemType: "drone_video",
+          startingNumber: existingVideoCount + 1,
+        });
+        setFormData((prev) => ({
+          ...prev,
+          image_urls: JSON.stringify([...getNormalizedGallery(prev.image_urls), ...newItems]),
+          media_url: prev.media_url || newItems[0]?.url || "",
+          media_type: "video",
+        }));
+      } catch (err: any) {
+        setErrorMessage(err.message || "Failed to upload video.");
+      }
+      return;
+    }
+
     setIsUploading(true);
     setUploadProgressText(`Uploading video "${file.name}" (0% of ${formatFileSize(file.size)})...`);
     setUploadProgress({ fileName: file.name, kind: "video", currentFile: 1, totalFiles: 1, filePercent: 0, overallPercent: 0, loaded: 0, total: file.size });
@@ -485,12 +542,6 @@ export function PortfolioModal({
     if (!titleText) {
       setErrorMessage("Please enter a title for the portfolio item.");
       setActiveSection("details");
-      return;
-    }
-
-    if (parsedGalleryItems.length === 0 && !formData.media_url && !formData.thumbnail_url) {
-      setErrorMessage("Please attach at least one photo or video to this portfolio gallery.");
-      setActiveSection("media");
       return;
     }
 
@@ -829,7 +880,7 @@ export function PortfolioModal({
                 onUpload={handlePhotosUpload}
                 onUploadVideo={handleVideoUpload}
                 onUploadThumbnail={handleUploadThumbnailOnly}
-                isUploading={isUploading}
+                isUploading={isUploading || isPortfolioUploading(item?.id ? String(item.id) : undefined)}
                 projectName={parseTitleText(formData.title) || "project"}
                 categoryName={getCategoryLabel(categories.find(c => c.id === formData.category_id)) || "photos"}
                 portfolioItemId={formData.id || item?.id}

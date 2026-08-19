@@ -177,7 +177,14 @@ function PublicHomeContent({ settings, portfolio, services, bootstrap, loading }
   const { currentLang, defaultLang } = useLanguage();
   const [litePerformanceMode, setLitePerformanceMode] = useState(shouldUseLitePerformanceMode);
   const visibleServices = services.filter((service) => service.is_published !== 0);
-  const visiblePortfolio = portfolio.filter((item) => item.is_published !== 0);
+  const visiblePortfolio = portfolio.filter((item) => {
+    if (item.is_published === 0) return false;
+    return Boolean(
+      item.media_url
+      || item.thumbnail_url
+      || getNormalizedGallery(item.image_urls).length > 0
+    );
+  });
   const visiblePlans = (bootstrap?.pricing || []).filter((plan) => plan.is_enabled !== 0);
   const visibleExtras = (bootstrap?.extraServices || []).filter((extra) => extra.is_enabled !== 0 && extra.show_on_pricing_page !== 0);
   const visibleFaqs = (bootstrap?.faqs || []).filter((faq) => faq.is_published !== 0);

@@ -13,11 +13,13 @@ export const AuthContext = React.createContext<{
   token: string | null;
   user: User | null;
   login: (token: string, user?: User) => void;
+  updateUser: (patch: Partial<User>) => void;
   logout: (expired?: boolean) => void;
 }>({
   token: null,
   user: null,
   login: () => {},
+  updateUser: () => {},
   logout: () => {},
 });
 
@@ -131,8 +133,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setUser(null);
   };
 
+  const updateUser = React.useCallback((patch: Partial<User>) => {
+    setUser((current) => {
+      if (!current) return current;
+      const next = { ...current, ...patch };
+      localStorage.setItem("user_info", JSON.stringify(next));
+      return next;
+    });
+  }, []);
+
   return (
-    <AuthContext.Provider value={{ token, user, login, logout }}>
+    <AuthContext.Provider value={{ token, user, login, updateUser, logout }}>
       {children}
     </AuthContext.Provider>
   );

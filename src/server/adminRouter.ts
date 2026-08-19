@@ -1199,6 +1199,54 @@ adminRouter.post("/portfolio", async (req, res) => {
 });
 
 // Update portfolio item
+// Persist one completed background upload immediately so navigation away from
+// the portfolio editor cannot orphan a successfully uploaded media object.
+adminRouter.post("/portfolio/:id/media", async (req, res) => {
+  try {
+    const portfolioId = String(req.params.id || "").trim();
+    const item = req.body?.item;
+    if (!portfolioId || !item || typeof item !== "object" || !String(item.url || "").trim()) {
+      return res.status(400).json({ error: "A valid portfolio id and uploaded media item are required." });
+    }
+
+    const current = await db.execute({
+      sql: "SELECT image_urls, thumbnail_url, media_url FROM portfolio_items WHERE id = ? LIMIT 1",
+      args: [portfolioId],
+    });
+    if (current.rows.length === 0) return res.status(404).json({ error: "Portfolio gallery not found." });
+
+    let galleryItems: any[] = [];
+    try {
+      const parsed = JSON.parse(String(current.rows[0].image_urls || "[]"));
+      if (Array.isArray(parsed)) galleryItems = parsed;
+    } catch {}
+
+    const itemId = String(item.id || "").trim();
+    const itemUrl = String(item.url || "").trim();
+    const existingIndex = galleryItems.findIndex((entry: any) =>
+      (itemId && String(entry?.id || "") === itemId) || String(entry?.url || "") === itemUrl
+    );
+    if (existingIndex >= 0) galleryItems[existingIndex] = { ...galleryItems[existingIndex], ...item };
+    else galleryItems.push(item);
+
+    const isVideo = item.type === "video" || String(item.item_type || "").includes("video");
+    const currentThumbnail = String(current.rows[0].thumbnail_url || "");
+    const currentMediaUrl = String(current.rows[0].media_url || "");
+    const nextThumbnail = currentThumbnail || String(item.thumbnail_url || item.compressed_url || (!isVideo ? item.url : "") || "");
+    const nextMediaUrl = currentMediaUrl || (isVideo ? itemUrl : "");
+
+    await db.execute({
+      sql: "UPDATE portfolio_items SET image_urls = ?, thumbnail_url = ?, media_url = ?, media_type = CASE WHEN ? = 1 THEN 'video' ELSE media_type END, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+      args: [JSON.stringify(galleryItems), nextThumbnail, nextMediaUrl, isVideo ? 1 : 0, portfolioId],
+    });
+
+    res.json({ success: true, item, total: galleryItems.length });
+  } catch (error: any) {
+    console.error("Failed to attach background upload to portfolio gallery", error);
+    res.status(500).json({ error: error.message || "Failed to attach uploaded media to the portfolio gallery." });
+  }
+});
+
 adminRouter.put("/portfolio/:id", async (req, res) => {
   try {
     const { title, description, category_id, item_type, media_type, media_url, thumbnail_url, image_urls, target_url, is_featured, is_published, sort_order, keywords } = req.body;
@@ -2896,7 +2944,7 @@ adminRouter.get("/clients", async (req, res) => {
   try {
     const search = (req.query.search as string) || '';
     let sql = `
-      SELECT u.id, u.email, u.role, u.is_active, u.property_address, u.advertisement_link, u.created_at,
+      SELECT u.id, u.email, u.name, u.role, u.is_active, u.property_address, u.advertisement_link, u.created_at,
              u.portal_access_disabled_at, u.portal_access_disabled_reason, u.portal_access_disabled_by,
              c.id AS customer_id,
              c.name AS customer_name,
@@ -2913,8 +2961,8 @@ adminRouter.get("/clients", async (req, res) => {
     `;
     let args: any[] = [];
     if (search) {
-      sql += " AND (u.email LIKE ? OR u.property_address LIKE ? OR c.name LIKE ?)";
-      args.push('%' + search + '%', '%' + search + '%', '%' + search + '%');
+      sql += " AND (u.email LIKE ? OR u.name LIKE ? OR u.property_address LIKE ? OR c.name LIKE ?)";
+      args.push('%' + search + '%', '%' + search + '%', '%' + search + '%', '%' + search + '%');
     }
     sql += " ORDER BY u.created_at DESC";
     
@@ -2931,7 +2979,7 @@ adminRouter.get("/clients", async (req, res) => {
     } catch (queryErr) {
       console.warn("Retrying fetch clients with fallback query:", queryErr);
       let fallbackSql = `
-        SELECT u.id, u.email, u.role, u.is_active, u.property_address, u.advertisement_link, u.created_at,
+        SELECT u.id, u.email, u.name, u.role, u.is_active, u.property_address, u.advertisement_link, u.created_at,
                u.portal_access_disabled_at, u.portal_access_disabled_reason, u.portal_access_disabled_by,
                c.id AS customer_id,
                c.name AS customer_name,
@@ -2948,8 +2996,8 @@ adminRouter.get("/clients", async (req, res) => {
       `;
       let fallbackArgs: any[] = [];
       if (search) {
-        fallbackSql += " AND (u.email LIKE ? OR u.property_address LIKE ? OR c.name LIKE ?)";
-        fallbackArgs.push('%' + search + '%', '%' + search + '%', '%' + search + '%');
+        fallbackSql += " AND (u.email LIKE ? OR u.name LIKE ? OR u.property_address LIKE ? OR c.name LIKE ?)";
+        fallbackArgs.push('%' + search + '%', '%' + search + '%', '%' + search + '%', '%' + search + '%');
       }
       fallbackSql += " ORDER BY u.created_at DESC";
       const fallbackResult = await db.execute({ sql: fallbackSql, args: fallbackArgs });
@@ -2968,7 +3016,7 @@ adminRouter.get("/clients", async (req, res) => {
 adminRouter.get("/clients/:id", async (req, res) => {
   try {
     const result = await db.execute({
-      sql: `SELECT u.id, u.email, u.role, u.is_active, u.property_address, u.advertisement_link, u.created_at,
+      sql: `SELECT u.id, u.email, u.name, u.role, u.is_active, u.property_address, u.advertisement_link, u.created_at,
                    u.portal_access_disabled_at, u.portal_access_disabled_reason, u.portal_access_disabled_by,
                    c.id AS customer_id,
                    c.name AS customer_name,

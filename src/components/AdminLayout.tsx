@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useApi } from "../hooks/useApi";
 import { useLanguage } from "../contexts/LanguageContext";
 import { Menu, Globe } from "lucide-react";
+import { BackgroundUploadProvider } from "../contexts/BackgroundUploadContext";
 
 export default function AdminLayout() {
   const { tUi } = useLanguage();
@@ -72,9 +73,11 @@ export default function AdminLayout() {
       />
 
       {/* Main App Content Viewport */}
-      <main className="aero-workspace-main flex-1 overflow-auto text-text">
-        <Outlet />
-      </main>
+      <BackgroundUploadProvider>
+        <main className="aero-workspace-main flex-1 overflow-auto text-text">
+          <Outlet />
+        </main>
+      </BackgroundUploadProvider>
     </div>
   );
 }

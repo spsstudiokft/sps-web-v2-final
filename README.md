@@ -45,7 +45,9 @@ SPS Studio is an all-in-one studio management platform designed for architectura
 
 ### 🔐 Client Portal & Project Management
 - **Passwordless Magic Link & Password Sign-In**: Secure client authentication via email magic link or traditional credentials.
+- **Idempotent Magic-Link Delivery**: Double submits, browser/network retries, and parallel serverless invocations cannot send duplicate signup or login links within the delivery window.
 - **Self-Service Client Registration**: Onboarding flow with client profile setup and welcome emails.
+- **Client Account Settings**: Clients can maintain the display name shown to administrators, change an existing password, or add their first password after magic-link registration; every actual profile/password change sends an editable security-notification email, the admin client list displays creation timestamps consistently in the configured local presentation, and the security area is prepared for future TFA enrollment.
 - **Interactive Project Tracker**: Each authenticated client sees the ordered milestones, live status, due dates, and timestamped update feed for their own projects.
 - **PIN-Protected Deliverable Galleries**: Individual and multi-select ZIP downloads with rotating four-digit PINs, forgotten-PIN email recovery, locked-preview watermarking, and right-click-safe delivery.
 - **Original & Optimized Downloads**: Separate full-resolution and optimized-image categories with identical authorization and watermark rules.
@@ -54,6 +56,8 @@ SPS Studio is an all-in-one studio management platform designed for architectura
 
 ### 🛠️ Admin Management Dashboard
 - **Portfolio & Gallery CMS**: Multi-image uploads, drag-and-drop sorting (`@dnd-kit`), localized names/categories, automatic optimized-media creation, category management, and keyword tagging.
+- **Persistent Background Uploads**: Saved portfolio galleries continue sequential image/video transfers across admin-page navigation, show application-level progress and failures, and attach each completed object to the gallery immediately.
+- **Media-Optional Portfolio Drafting**: Portfolio records may be saved before media is available; empty records stay manageable in admin but do not render on the public site until a gallery element is attached.
 - **Section Media Management**: Public-section images and backgrounds can be replaced from the admin panel without code changes.
 - **Projects & Client Accounts**: Create client accounts, link projects, update delivery milestones, and upload final deliverables.
 - **Null-Safe Property Records**: Client and admin property creation/editing normalize incomplete legacy values and validate missing addresses without exposing runtime errors; full customer-editor saves atomically synchronize every property and listing link with a linked portal account.
@@ -83,6 +87,7 @@ SPS Studio is an all-in-one studio management platform designed for architectura
   - Magic Link Passwordless Sign-In (`magic_link_login`)
   - Magic Link Account Registration (`magic_link_signup`)
   - Client Welcome & Portal Activation (`account_verification`)
+  - Public Client Password Registration Welcome (`client_password_registration`)
   - Project Milestone & Delivery Updates (`project_update`)
   - Gallery Ready & Media Notification (`gallery_ready`)
   - Gallery PIN Recovery (`gallery_pin_recovery`)

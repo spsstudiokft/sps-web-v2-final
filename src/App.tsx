@@ -45,6 +45,7 @@ const ClientDashboardHome = lazy(() => import("./pages/client/ClientDashboardHom
 const ClientProjectsPage = lazy(() => import("./pages/client/ClientProjectsPage"));
 const ClientInvoicesPage = lazy(() => import("./pages/client/ClientInvoicesPage"));
 const ClientReferralsPage = lazy(() => import("./pages/client/ClientReferralsPage"));
+const ClientSettingsPage = lazy(() => import("./pages/client/ClientSettingsPage"));
 const PublicInvoicePage = lazy(() => import("./pages/PublicInvoicePage"));
 const PortfolioGalleryPage = lazy(() => import("./pages/PortfolioGalleryPage"));
 
@@ -141,6 +142,7 @@ export default function App() {
                 <Route path="projects" element={<ClientProjectsPage />} />
                 <Route path="invoices" element={<ClientInvoicesPage />} />
                 <Route path="referrals" element={<ClientReferralsPage />} />
+                <Route path="settings" element={<ClientSettingsPage />} />
               </Route>
 
               <Route

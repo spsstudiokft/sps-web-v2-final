@@ -1,6 +1,6 @@
 import { Outlet, Link, useNavigate, useLocation } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faSignOutAlt, faHome, faFolderOpen, faFileInvoiceDollar, faGift } from "@fortawesome/free-solid-svg-icons";
+import { faSignOutAlt, faHome, faFolderOpen, faFileInvoiceDollar, faGift, faGear } from "@fortawesome/free-solid-svg-icons";
 import { useAuth } from "../contexts/AuthContext";
 import { useLanguage } from "../contexts/LanguageContext";
 import { Button } from "./ui/Button";
@@ -20,6 +20,7 @@ export default function ClientLayout() {
   const isProjectsActive = location.pathname === "/client/projects" || location.pathname.startsWith("/client/projects/");
   const isInvoicesActive = location.pathname === "/client/invoices" || location.pathname.startsWith("/client/invoices/");
   const isReferralsActive = location.pathname === "/client/referrals" || location.pathname.startsWith("/client/referrals/");
+  const isSettingsActive = location.pathname === "/client/settings";
 
   return (
     <div className="aero-workspace aero-client-shell min-h-screen bg-background flex flex-col">
@@ -28,7 +29,7 @@ export default function ClientLayout() {
           <h1 className="text-xl font-semibold tracking-tight text-text hidden sm:block">
             {tUi("client.nav.portal_title")}
           </h1>
-          <nav className="flex items-center gap-2 text-sm font-medium">
+          <nav className="flex max-w-[calc(100vw-7rem)] items-center gap-2 overflow-x-auto text-sm font-medium sm:max-w-none">
             <Link 
               to="/client" 
               aria-current={isHomeActive ? "page" : undefined}
@@ -74,10 +75,17 @@ export default function ClientLayout() {
               <FontAwesomeIcon icon={faGift} className="text-amber-500" /> 
               <span>{tUi("client.nav.rewards")}</span>
             </Link>
+            <Link
+              to="/client/settings"
+              aria-current={isSettingsActive ? "page" : undefined}
+              className={`aero-client-nav-item px-3 py-1.5 rounded-lg flex shrink-0 items-center gap-2 ${isSettingsActive ? "bg-primary text-primary-foreground font-semibold shadow-xs" : "text-muted-text hover:text-text hover:bg-surface"}`}
+            >
+              <FontAwesomeIcon icon={faGear} /> <span>{tUi("client.nav.settings")}</span>
+            </Link>
           </nav>
         </div>
         <div className="flex items-center gap-4">
-          <span className="text-sm text-muted-text hidden md:inline-block">{user?.email}</span>
+          <span className="text-sm text-muted-text hidden md:inline-block">{user?.name || user?.email}</span>
           <Button variant="secondary" size="sm" onClick={handleLogout} className="flex items-center gap-2">
             <FontAwesomeIcon icon={faSignOutAlt} />
             <span className="hidden sm:inline">{tUi("client.nav.logout")}</span>

@@ -11,6 +11,7 @@ import {
 import { sendTransactionalEmail, getEmailSenderConfig } from "./services/emailService.js";
 import sharp from "sharp";
 import { getAppUrl } from "./appUrl.js";
+import bcrypt from "bcryptjs";
 
 const clientRouter = Router();
 const JWT_SECRET = process.env.JWT_SECRET || "supersecretjwtstring";
@@ -48,6 +49,142 @@ function rawGalleryItems(raw: unknown): any[] {
   if (typeof raw !== "string") return [];
   try { const parsed = JSON.parse(raw); return Array.isArray(parsed) ? parsed : []; } catch { return raw.trim() ? [raw.trim()] : []; }
 }
+
+const isStrongPortalPassword = (password: string) =>
+  password.length >= 8
+  && /[A-Z]/.test(password)
+  && /[a-z]/.test(password)
+  && /\d/.test(password)
+  && /[^A-Za-z0-9]/.test(password);
+
+async function sendClientAccountChangeEmail(params: {
+  email: string; name: string; changeType: string; changeDetails: string; req: any;
+}) {
+  try {
+    const emailResult = await sendTransactionalEmail({
+      to: params.email,
+      templateId: "client_account_changed",
+      templateData: {
+        "user.name": params.name || params.email.split("@")[0],
+        "user.email": params.email,
+        change_type: params.changeType,
+        change_details: params.changeDetails,
+        changed_at: new Date().toLocaleString("hu-HU", { timeZone: "Europe/Budapest" }),
+        ip_address: String(params.req.ip || params.req.socket?.remoteAddress || "Unknown"),
+        action_url: `${getAppUrl(params.req)}/client/settings`,
+        action_text: "Review account settings",
+      },
+    });
+    if (!emailResult.success) console.error("Failed to send client account change email:", emailResult.error);
+    return emailResult;
+  } catch (error) {
+    console.error("Client account was updated, but its notification email could not be generated:", error);
+    return { success: false, status: "failed" as const, error: error instanceof Error ? error.message : String(error) };
+  }
+}
+
+clientRouter.get("/settings/profile", async (req, res) => {
+  try {
+    const userId = String((req as any).user?.id || "");
+    const result = await db.execute({
+      sql: `SELECT id, email, name, password_auth_enabled, password_updated_at, tfa_enabled, created_at
+            FROM users WHERE id = ? AND role = 'client' LIMIT 1`,
+      args: [userId],
+    });
+    if (result.rows.length === 0) return res.status(404).json({ error: "Client account not found." });
+    const user = result.rows[0];
+    res.json({
+      id: String(user.id),
+      email: String(user.email || ""),
+      name: String(user.name || ""),
+      hasPassword: Number(user.password_auth_enabled ?? 1) === 1,
+      passwordUpdatedAt: user.password_updated_at || null,
+      tfa: {
+        enabled: Number(user.tfa_enabled || 0) === 1,
+        available: false,
+      },
+      createdAt: user.created_at || null,
+    });
+  } catch (error) {
+    console.error("Failed to load client settings profile", error);
+    res.status(500).json({ error: "Failed to load account settings." });
+  }
+});
+
+clientRouter.patch("/settings/profile", async (req, res) => {
+  try {
+    const userId = String((req as any).user?.id || "");
+    const name = typeof req.body?.name === "string" ? req.body.name.trim().replace(/\s+/g, " ") : "";
+    if (name.length < 2 || name.length > 100) {
+      return res.status(400).json({ error: "Name must contain between 2 and 100 characters." });
+    }
+    const accountResult = await db.execute({
+      sql: "SELECT email, name FROM users WHERE id = ? AND role = 'client' LIMIT 1",
+      args: [userId],
+    });
+    if (accountResult.rows.length === 0) return res.status(404).json({ error: "Client account not found." });
+    const account = accountResult.rows[0];
+    const previousName = String(account.name || "");
+    if (previousName === name) return res.json({ success: true, name, unchanged: true });
+    await db.execute({
+      sql: "UPDATE users SET name = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND role = 'client'",
+      args: [name, userId],
+    });
+    const email = await sendClientAccountChangeEmail({
+      email: String(account.email || ""), name,
+      changeType: "Display name changed",
+      changeDetails: `The account display name was changed from “${previousName || "Not set"}” to “${name}”.`, req,
+    });
+    res.json({ success: true, name, email: { status: email.status } });
+  } catch (error) {
+    console.error("Failed to update client profile", error);
+    res.status(500).json({ error: "Failed to update profile." });
+  }
+});
+
+clientRouter.put("/settings/password", async (req, res) => {
+  try {
+    const userId = String((req as any).user?.id || "");
+    const currentPassword = typeof req.body?.currentPassword === "string" ? req.body.currentPassword : "";
+    const newPassword = typeof req.body?.newPassword === "string" ? req.body.newPassword : "";
+    if (!isStrongPortalPassword(newPassword)) {
+      return res.status(400).json({ error: "Password must be at least 8 characters and include uppercase, lowercase, a number, and a special character." });
+    }
+
+    const result = await db.execute({
+      sql: "SELECT email, name, password_hash, password_auth_enabled FROM users WHERE id = ? AND role = 'client' LIMIT 1",
+      args: [userId],
+    });
+    if (result.rows.length === 0) return res.status(404).json({ error: "Client account not found." });
+    const hasPassword = Number(result.rows[0].password_auth_enabled ?? 1) === 1;
+    if (hasPassword) {
+      if (!currentPassword) return res.status(400).json({ error: "Current password is required." });
+      const matches = await bcrypt.compare(currentPassword, String(result.rows[0].password_hash || ""));
+      if (!matches) return res.status(400).json({ error: "Current password is incorrect." });
+      if (currentPassword === newPassword) return res.status(400).json({ error: "The new password must be different from the current password." });
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, 12);
+    await db.execute({
+      sql: `UPDATE users
+            SET password_hash = ?, password_auth_enabled = 1, password_updated_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+            WHERE id = ? AND role = 'client'`,
+      args: [passwordHash, userId],
+    });
+    const mode = hasPassword ? "changed" : "added";
+    const email = await sendClientAccountChangeEmail({
+      email: String(result.rows[0].email || ""), name: String(result.rows[0].name || ""),
+      changeType: hasPassword ? "Password changed" : "Password sign-in enabled",
+      changeDetails: hasPassword
+        ? "The password for your client portal account was changed."
+        : "A password was added to your magic-link account, so password sign-in is now available.", req,
+    });
+    res.json({ success: true, hasPassword: true, mode, email: { status: email.status } });
+  } catch (error) {
+    console.error("Failed to update client password", error);
+    res.status(500).json({ error: "Failed to update password." });
+  }
+});
 
 clientRouter.get("/dashboard", async (req, res) => {
   try {

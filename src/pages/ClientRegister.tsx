@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { useLanguage } from "../contexts/LanguageContext";
@@ -33,6 +33,7 @@ interface PropertyInputItem {
 }
 
 export default function ClientRegister() {
+  const submittingRef = useRef(false);
   const { tUi } = useLanguage();
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -151,6 +152,8 @@ export default function ClientRegister() {
       return;
     }
 
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     setLoading(true);
     setError("");
 
@@ -179,12 +182,15 @@ export default function ClientRegister() {
     } catch {
       setError(tUi("auth.client_register.error_generic") || "A network error occurred. Please try again.");
     } finally {
+      submittingRef.current = false;
       setLoading(false);
     }
   };
 
   const handleResend = async () => {
     if (cooldown > 0 || loading) return;
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     setLoading(true);
     setError("");
 
@@ -217,6 +223,7 @@ export default function ClientRegister() {
     } catch {
       setError("Network error. Please try again.");
     } finally {
+      submittingRef.current = false;
       setLoading(false);
     }
   };

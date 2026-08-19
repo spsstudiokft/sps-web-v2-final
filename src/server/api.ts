@@ -207,8 +207,8 @@ router.post("/auth/login", async (req, res) => {
       }
     }
 
-    const token = jwt.sign({ id: user.id, email: user.email, role: user.role || 'admin' }, JWT_SECRET, { expiresIn: "1d" });
-    res.json({ token, user: { id: user.id, email: user.email, role: user.role || 'admin' } });
+    const token = jwt.sign({ id: user.id, email: user.email, role: user.role || 'admin', name: user.name || "" }, JWT_SECRET, { expiresIn: "1d" });
+    res.json({ token, user: { id: user.id, email: user.email, role: user.role || 'admin', name: user.name || "" } });
   } catch (error: any) {
     console.error("[Login Error]", error);
     res.status(500).json({ error: "Login failed" });
@@ -301,7 +301,8 @@ router.post("/auth/magic-link", async (req, res) => {
       message: normalizedType === "signup"
         ? "We've sent a magic registration link to your email address."
         : "We've sent a magic login link to your email address.",
-      simulated: result.simulated
+      simulated: result.simulated,
+      deduplicated: result.deduplicated === true
     });
   } catch (error: any) {
     console.error("[Magic Link Request Exception]", error);
@@ -413,8 +414,8 @@ router.post("/auth/verify-magic-link", async (req, res) => {
       const hash = await bcrypt.hash(randomPassword, 10);
 
       await db.execute({
-        sql: `INSERT INTO users (id, email, password_hash, role, is_active, property_address, advertisement_link)
-              VALUES (?, ?, ?, 'client', 1, ?, ?)`,
+        sql: `INSERT INTO users (id, email, password_hash, role, is_active, property_address, advertisement_link, password_auth_enabled)
+              VALUES (?, ?, ?, 'client', 1, ?, ?, 0)`,
         args: [
           newUserId,
           userEmail,
@@ -528,7 +529,7 @@ router.post("/auth/verify-magic-link", async (req, res) => {
     // 6. Generate authenticated JWT Session
     const userRole = userRow.role || "client";
     const sessionToken = jwt.sign(
-      { id: userRow.id, email: userRow.email, role: userRole },
+      { id: userRow.id, email: userRow.email, role: userRole, name: userRow.name || "" },
       JWT_SECRET,
       { expiresIn: "7d" }
     );
@@ -540,6 +541,7 @@ router.post("/auth/verify-magic-link", async (req, res) => {
         id: userRow.id,
         email: userRow.email,
         role: userRole,
+        name: userRow.name || "",
         property_address: userRow.property_address || primaryPropAddr
       }
     });
@@ -616,8 +618,8 @@ router.post("/auth/register", async (req, res) => {
       : (property_address || "");
 
     await db.execute({
-      sql: `INSERT INTO users (id, email, password_hash, role, is_active, property_address, advertisement_link) 
-            VALUES (?, ?, ?, 'client', 1, ?, ?)`,
+      sql: `INSERT INTO users (id, email, password_hash, role, is_active, property_address, advertisement_link, password_auth_enabled, password_updated_at) 
+            VALUES (?, ?, ?, 'client', 1, ?, ?, 1, CURRENT_TIMESTAMP)`,
       args: [id, cleanEmail, hash, primaryAddress, advertisement_link || ""]
     });
 
@@ -668,26 +670,33 @@ router.post("/auth/register", async (req, res) => {
       });
     }
 
-    // Send Branded Welcome / Account Verification Email asynchronously
+    // Await delivery before returning. Vercel may freeze a serverless invocation
+    // as soon as the HTTP response is sent, so fire-and-forget email work is not
+    // reliable here even though account creation itself must remain successful.
     const appOrigin = getAppUrl(req);
-    sendTransactionalEmail({
+    const welcomeEmail = await sendTransactionalEmail({
       to: cleanEmail,
-      subject: "Welcome to SPS Studio Client Portal",
-      templateId: "account_verification",
+      templateId: "client_password_registration",
       templateData: {
         recipientName: cleanEmail.split("@")[0],
-        actionUrl: `${appOrigin}/client/login`,
-        actionText: "Log in to Client Portal",
-        details: {
-          "Registered Email": cleanEmail,
-          "Account Status": "Active Client",
-          "Date": new Date().toLocaleDateString()
-        }
+        userEmail: cleanEmail,
+        actionUrl: `${appOrigin}/client`,
+        actionText: "Open Client Portal",
+        account_role: "Active Client",
+        registration_method: "Email and password",
+        registered_date: new Intl.DateTimeFormat("en", { dateStyle: "long", timeZone: "Europe/Budapest" }).format(new Date()),
       }
-    }).catch(e => console.error("Failed to send welcome email:", e));
+    });
+    if (!welcomeEmail.success) {
+      console.error("Failed to send password-registration welcome email:", welcomeEmail.error);
+    }
 
     const token = jwt.sign({ id, email: cleanEmail, role: 'client' }, JWT_SECRET, { expiresIn: "1d" });
-    res.json({ token, user: { id, email: cleanEmail, role: 'client' } });
+    res.json({
+      token,
+      user: { id, email: cleanEmail, role: 'client' },
+      welcomeEmail: { status: welcomeEmail.status, sent: welcomeEmail.status === "sent" }
+    });
   } catch (error: any) {
     console.error("[Register Error]", error);
     res.status(500).json({ error: "Registration failed" });

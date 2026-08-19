@@ -29,6 +29,44 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
+const ADMIN_DATE_LOCALES: Record<string, string> = {
+  hu: "hu-HU", en: "en-GB", de: "de-DE", fr: "fr-FR", es: "es-ES",
+};
+
+function parseAccountCreatedAt(value: unknown): Date | null {
+  if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
+  if (typeof value === "number") {
+    if (!Number.isFinite(value) || value <= 0) return null;
+    const timestamp = value < 10_000_000_000 ? value * 1000 : value;
+    const date = new Date(timestamp);
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+  if (typeof value !== "string" || !value.trim()) return null;
+  const raw = value.trim();
+  if (/^0+(?:\.0+)?$/.test(raw)) return null;
+  // SQLite CURRENT_TIMESTAMP is UTC but omits the ISO timezone marker.
+  const normalized = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?$/.test(raw)
+    ? `${raw.replace(" ", "T")}Z`
+    : raw;
+  const date = new Date(normalized);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function formatAccountCreatedAt(value: unknown, language: string) {
+  const date = parseAccountCreatedAt(value);
+  if (!date) return null;
+  const locale = ADMIN_DATE_LOCALES[language] || ADMIN_DATE_LOCALES.en;
+  return {
+    date: new Intl.DateTimeFormat(locale, {
+      year: "numeric", month: "2-digit", day: "2-digit", timeZone: "Europe/Budapest",
+    }).format(date),
+    time: new Intl.DateTimeFormat(locale, {
+      hour: "2-digit", minute: "2-digit", timeZone: "Europe/Budapest",
+    }).format(date),
+    iso: date.toISOString(),
+  };
+}
+
 export default function ClientsPage() {
   const { currentLanguage, tUi } = useLanguage();
   usePageTitle(tUi("admin.clients.title", currentLanguage));
@@ -248,10 +286,12 @@ export default function ClientsPage() {
                 {clients.map((client) => {
                   const propCount = client.properties_count || (client.property_address ? 1 : 0);
                   const linkCount = client.links_count || (client.advertisement_link ? 1 : 0);
+                  const createdAt = formatAccountCreatedAt(client.created_at, currentLanguage);
 
                   return (
                     <tr key={client.id} className="hover:bg-background/50 transition-colors">
                       <td className="p-4">
+                        {client.name && <div className="font-semibold text-text">{client.name}</div>}
                         <div className="font-medium text-text">{client.email}</div>
                         {client.customer_name && (
                           <div className="text-xs text-muted-text mt-0.5">CRM: {client.customer_name}</div>
@@ -325,7 +365,14 @@ export default function ClientsPage() {
                         {client.project_count || 0}
                       </td>
                       <td className="p-4 whitespace-nowrap text-sm text-muted-text">
-                        {new Date(client.created_at).toLocaleDateString()}
+                        {createdAt ? (
+                          <time dateTime={createdAt.iso} title={createdAt.iso} className="inline-flex flex-col leading-tight">
+                            <span className="font-medium text-text tabular-nums">{createdAt.date}</span>
+                            <span className="mt-1 text-xs text-muted-text tabular-nums">{createdAt.time}</span>
+                          </time>
+                        ) : (
+                          <span title="Missing or invalid account creation date">—</span>
+                        )}
                       </td>
                       <td className="p-4 text-right space-x-2 whitespace-nowrap">
                         <Button

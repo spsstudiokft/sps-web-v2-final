@@ -393,6 +393,9 @@ export const setupDatabase = async () => {
           phone TEXT DEFAULT '',
           workspace TEXT DEFAULT 'Main Studio',
           team_id TEXT DEFAULT NULL,
+          password_auth_enabled INTEGER DEFAULT 1,
+          password_updated_at DATETIME DEFAULT NULL,
+          tfa_enabled INTEGER DEFAULT 0,
           last_login_at DATETIME DEFAULT NULL,
           updated_at DATETIME DEFAULT NULL,
           portal_access_disabled_at DATETIME DEFAULT NULL,
@@ -542,6 +545,9 @@ export const setupDatabase = async () => {
   } catch (e) {
     // Column might already exist
   }
+  try { await client.execute("ALTER TABLE users ADD COLUMN password_auth_enabled INTEGER DEFAULT 1"); } catch {}
+  try { await client.execute("ALTER TABLE users ADD COLUMN password_updated_at DATETIME DEFAULT NULL"); } catch {}
+  try { await client.execute("ALTER TABLE users ADD COLUMN tfa_enabled INTEGER DEFAULT 0"); } catch {}
   try {
     await client.execute("ALTER TABLE users ADD COLUMN phone TEXT DEFAULT ''");
   } catch (e) {
@@ -2308,6 +2314,37 @@ export const setupDatabase = async () => {
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
+
+  // One-time compatibility migration for accounts originally created by a
+  // signup magic link. Their bcrypt value is a random placeholder, not a
+  // client-chosen password, so settings must offer "add password" instead of
+  // asking for a current password the client never knew.
+  try {
+    const passwordModeMigration = await client.execute({
+      sql: "SELECT value FROM settings WHERE key = ? LIMIT 1",
+      args: ["migration_password_auth_mode_v1"],
+    });
+    if (passwordModeMigration.rows.length === 0) {
+      await client.execute(`
+        UPDATE users
+        SET password_auth_enabled = 0
+        WHERE role = 'client'
+          AND EXISTS (
+            SELECT 1 FROM magic_links ml
+            WHERE LOWER(TRIM(ml.email)) = LOWER(TRIM(users.email))
+              AND ml.type = 'signup'
+              AND ml.used_at IS NOT NULL
+              AND ABS(strftime('%s', COALESCE(users.created_at, ml.used_at)) - strftime('%s', ml.used_at)) <= 600
+          )
+      `);
+      await client.execute({
+        sql: "INSERT INTO settings (key, value) VALUES (?, ?)",
+        args: ["migration_password_auth_mode_v1", new Date().toISOString()],
+      });
+    }
+  } catch (passwordModeMigrationError) {
+    console.warn("[DB Setup] Password-auth mode migration notice:", passwordModeMigrationError);
+  }
 
   try {
     await client.execute("ALTER TABLE magic_links ADD COLUMN properties_json TEXT DEFAULT '[]'");

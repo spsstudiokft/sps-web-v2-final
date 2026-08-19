@@ -555,6 +555,113 @@ export const DEFAULT_EMAIL_TEMPLATES: Record<string, {
     }
   },
 
+  client_password_registration: {
+    template_key: "client_password_registration",
+    name: "Client Password Registration Welcome",
+    category: "onboarding",
+    description: "Sent after a client successfully creates an active portal account using an email address and password.",
+    subject: "Your {{studio_name}} client account is ready",
+    body_html: `
+<p style="color: #1e293b; font-size: 15px; line-height: 1.6; margin: 0 0 16px 0;">
+  Welcome <strong>{{user.name}}</strong>!
+</p>
+<p style="color: #1e293b; font-size: 15px; line-height: 1.6; margin: 0 0 20px 0;">
+  Your password-protected client account at <strong>{{studio_name}}</strong> has been created successfully and is ready to use.
+</p>
+
+<div style="text-align: center; margin: 30px 0;">
+  <a href="{{action_url}}" style="background-color: #3b82f6; color: #ffffff; text-decoration: none; padding: 14px 34px; border-radius: 8px; font-weight: 600; font-size: 15px; display: inline-block; box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.2);">
+    {{action_text}}
+  </a>
+</div>
+
+<table style="width: 100%; border-collapse: collapse; margin: 24px 0; font-size: 13px; color: #1e293b; background-color: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0;">
+  <tbody>
+    <tr style="border-bottom: 1px solid #e2e8f0;">
+      <td style="padding: 10px 14px; font-weight: 600; color: #64748b; width: 150px;">Registered Email</td>
+      <td style="padding: 10px 14px; font-family: monospace;">{{user.email}}</td>
+    </tr>
+    <tr style="border-bottom: 1px solid #e2e8f0;">
+      <td style="padding: 10px 14px; font-weight: 600; color: #64748b;">Registration Method</td>
+      <td style="padding: 10px 14px;">{{registration_method}}</td>
+    </tr>
+    <tr>
+      <td style="padding: 10px 14px; font-weight: 600; color: #64748b;">Registration Date</td>
+      <td style="padding: 10px 14px;">{{registered_date}}</td>
+    </tr>
+  </tbody>
+</table>
+
+<p style="color: #64748b; font-size: 13px; line-height: 1.5; margin: 16px 0 0 0;">
+  You can now follow project milestones, receive studio updates, access delivered galleries, and download available media from your client portal. If you did not create this account, please reply to this email immediately.
+</p>
+    `.trim(),
+    body_text: `Welcome to {{studio_name}}!\n\nYour password-protected client account for {{user.email}} was created successfully on {{registered_date}}.\n\nOpen your client portal:\n{{action_url}}\n\nIf you did not create this account, please reply to this email immediately.`.trim(),
+    available_tokens: [
+      { token: "{{user.name}}", label: "Client Name", description: "Email username used as the initial display name", example: "Eleanor" },
+      { token: "{{user.email}}", label: "Registered Email", description: "The new client account email address", example: "eleanor@example.com" },
+      { token: "{{registration_method}}", label: "Registration Method", description: "How the client created the account", example: "Email and password" },
+      { token: "{{registered_date}}", label: "Registration Date", description: "Date when the account was created", example: "August 19, 2026" },
+      { token: "{{action_url}}", label: "Client Portal URL", description: "Direct link to the client portal", example: "https://spsstudio.com/client" },
+      { token: "{{action_text}}", label: "Button Label", description: "Primary call-to-action text", example: "Open Client Portal" },
+      { token: "{{studio_name}}", label: "Studio Name", description: "Configured studio brand name", example: "SPS Studio" },
+      { token: "{{support_email}}", label: "Support Email", description: "Configured reply-to address", example: "contact@spsstudio.com" }
+    ],
+    sample_data: {
+      "user.name": "Eleanor",
+      "recipient_name": "Eleanor",
+      "user.email": "eleanor@example.com",
+      "registration_method": "Email and password",
+      "registered_date": "August 19, 2026",
+      "action_url": "https://spsstudio.com/client",
+      "action_text": "Open Client Portal",
+      "studio_name": "SPS Studio",
+      "support_email": "contact@spsstudio.com"
+    }
+  },
+
+  client_account_changed: {
+    template_key: "client_account_changed",
+    name: "Client Account Details Changed",
+    category: "auth",
+    description: "Security notification sent after a client changes their display name, changes their password, or adds password sign-in to a magic-link account.",
+    subject: "Your {{studio_name}} account details were changed",
+    body_html: `
+<p style="color: #1e293b; font-size: 15px; line-height: 1.6; margin: 0 0 16px 0;">Hello <strong>{{user.name}}</strong>,</p>
+<p style="color: #1e293b; font-size: 15px; line-height: 1.6; margin: 0 0 20px 0;">This is a security notification confirming that your <strong>{{studio_name}}</strong> client account details were updated.</p>
+<table style="width: 100%; border-collapse: collapse; margin: 24px 0; font-size: 13px; color: #1e293b; background-color: #f8fafc; border: 1px solid #e2e8f0;">
+  <tbody>
+    <tr style="border-bottom: 1px solid #e2e8f0;"><td style="padding: 11px 14px; font-weight: 600; color: #64748b; width: 145px;">Change</td><td style="padding: 11px 14px;">{{change_type}}</td></tr>
+    <tr style="border-bottom: 1px solid #e2e8f0;"><td style="padding: 11px 14px; font-weight: 600; color: #64748b;">Details</td><td style="padding: 11px 14px;">{{change_details}}</td></tr>
+    <tr style="border-bottom: 1px solid #e2e8f0;"><td style="padding: 11px 14px; font-weight: 600; color: #64748b;">Time</td><td style="padding: 11px 14px;">{{changed_at}}</td></tr>
+    <tr><td style="padding: 11px 14px; font-weight: 600; color: #64748b;">IP address</td><td style="padding: 11px 14px; font-family: monospace;">{{ip_address}}</td></tr>
+  </tbody>
+</table>
+<div style="text-align: center; margin: 30px 0;"><a href="{{action_url}}" style="background-color: #0f172a; color: #ffffff; text-decoration: none; padding: 14px 34px; border-radius: 8px; font-weight: 600; font-size: 15px; display: inline-block;">{{action_text}}</a></div>
+<div style="background-color: #fff7ed; border: 1px solid #fed7aa; border-radius: 8px; padding: 14px; margin: 24px 0; color: #9a3412; font-size: 13px; line-height: 1.5;">If you did not make this change, contact us immediately by replying to this email and secure your account.</div>
+    `.trim(),
+    body_text: `Hello {{user.name}},\n\nYour {{studio_name}} client account details were changed.\n\nChange: {{change_type}}\nDetails: {{change_details}}\nTime: {{changed_at}}\nIP address: {{ip_address}}\n\nReview your account settings: {{action_url}}\n\nIf you did not make this change, reply to this email immediately.`.trim(),
+    available_tokens: [
+      { token: "{{user.name}}", label: "Client Name", description: "Current client display name", example: "Eleanor Rigby" },
+      { token: "{{user.email}}", label: "Client Email", description: "Client account email address", example: "eleanor@example.com" },
+      { token: "{{change_type}}", label: "Change Type", description: "Short description of the account change", example: "Password changed" },
+      { token: "{{change_details}}", label: "Change Details", description: "Safe summary of what changed; passwords are never included", example: "The password for your client portal account was changed." },
+      { token: "{{changed_at}}", label: "Change Time", description: "Local date and time of the change", example: "2026. 08. 19. 18:42:10" },
+      { token: "{{ip_address}}", label: "IP Address", description: "IP address associated with the request", example: "192.0.2.10" },
+      { token: "{{action_url}}", label: "Account Settings URL", description: "Direct link to client account settings", example: "https://spsstudio.com/client/settings" },
+      { token: "{{action_text}}", label: "Button Label", description: "Primary call-to-action text", example: "Review account settings" },
+      { token: "{{studio_name}}", label: "Studio Name", description: "Configured studio brand name", example: "SPS Studio" },
+      { token: "{{support_email}}", label: "Support Email", description: "Configured reply-to address", example: "contact@spsstudio.com" }
+    ],
+    sample_data: {
+      "user.name": "Eleanor Rigby", "user.email": "eleanor@example.com",
+      "change_type": "Password changed", "change_details": "The password for your client portal account was changed.",
+      "changed_at": "2026. 08. 19. 18:42:10", "ip_address": "192.0.2.10",
+      "action_url": "https://spsstudio.com/client/settings", "action_text": "Review account settings",
+      "studio_name": "SPS Studio", "support_email": "contact@spsstudio.com"
+    }
+  },
+
   project_update: {
     template_key: "project_update",
     name: "Project Milestone & Media Status Update",
@@ -2640,7 +2747,7 @@ export async function sendMagicLinkEmail(
     referral_code?: string;
     ip_address?: string;
   }
-): Promise<{ success: boolean; token?: string; error?: string; simulated?: boolean }> {
+): Promise<{ success: boolean; token?: string; error?: string; simulated?: boolean; deduplicated?: boolean }> {
   const token = crypto.randomBytes(32).toString("hex");
   const ttlMinutes = 20;
   const expiresAt = new Date(Date.now() + ttlMinutes * 60 * 1000).toISOString();
@@ -2680,9 +2787,19 @@ export async function sendMagicLinkEmail(
   const referralCode = metadata?.referral_code ? metadata.referral_code.trim().toUpperCase() : "";
 
   const linkId = crypto.randomUUID();
-  await db.execute({
+  // An atomic conditional insert makes the endpoint idempotent across browser
+  // double-submits, network retries, and separate Vercel instances. Only the
+  // request that actually inserts a fresh token is allowed to send an email.
+  const inserted = await db.execute({
     sql: `INSERT INTO magic_links (id, email, user_id, token, type, property_address, advertisement_link, properties_json, referral_code, ip_address, expires_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+          WHERE NOT EXISTS (
+            SELECT 1 FROM magic_links
+            WHERE LOWER(TRIM(email)) = LOWER(TRIM(?))
+              AND type = ?
+              AND used_at IS NULL
+              AND created_at > datetime('now', '-45 seconds')
+          )`,
     args: [
       linkId,
       email,
@@ -2694,9 +2811,15 @@ export async function sendMagicLinkEmail(
       propertiesJson,
       referralCode,
       metadata?.ip_address || "",
-      expiresAt
+      expiresAt,
+      email,
+      type,
     ]
   });
+
+  if (inserted.rowsAffected === 0) {
+    return { success: true, deduplicated: true };
+  }
 
   const verifyUrl = `${appOrigin.replace(/\/$/, "")}/auth/magic-link?token=${encodeURIComponent(token)}`;
   const isSignup = type === "signup";
@@ -2719,6 +2842,16 @@ export async function sendMagicLinkEmail(
       expiresInMinutes: ttlMinutes
     }
   });
+
+  // A provider failure must not leave an idempotency record that prevents the
+  // visitor from retrying the delivery immediately.
+  if (!emailRes.success) {
+    try {
+      await db.execute({ sql: "DELETE FROM magic_links WHERE id = ? AND used_at IS NULL", args: [linkId] });
+    } catch (cleanupError) {
+      console.error("Failed to clean up undelivered magic link:", cleanupError);
+    }
+  }
 
   return {
     success: emailRes.success,

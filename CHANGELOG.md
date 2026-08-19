@@ -1,5 +1,50 @@
 # Modification Log
 
+## 2026-08-19 — Admin client account creation date display
+
+- Fixed SQLite UTC timestamps being interpreted as local timestamps in the admin client portal list.
+- Account creation now shows a stable localized date and time in the Budapest timezone, with safe handling for missing, invalid, ISO, and numeric timestamp values.
+- Zero-valued timestamps are treated as missing data, preventing the Unix epoch (`1970-01-01`) from appearing as an account creation date.
+
+## 2026-08-19 — Client account change notification emails
+
+- Added an editable `client_account_changed` security email template to the admin email template manager.
+- Client display-name changes, password changes, and first-password setup for magic-link accounts now send a security notification email.
+- Notifications include a safe change summary, timestamp, request IP address, and direct account-settings link; passwords are never included.
+- Unchanged profile submissions do not produce duplicate notification emails.
+
+## 2026-08-19 — Client account settings and password onboarding
+
+- Added a dedicated `/client/settings` portal page and responsive navigation entry for profile and account-security management.
+- Clients can save a 2–100 character display name; the authenticated session updates immediately, future password/magic-link sessions include the name, and admin client search/list/detail responses now expose it independently from the CRM name.
+- Added authenticated profile read/update endpoints and password-management logic with the existing strong-password policy and bcrypt cost 12.
+- Password-based clients must verify their current password before changing it, cannot reuse the same password, and receive clear validation errors.
+- Magic-link-created clients can add their first known password without supplying the random internal placeholder, while retaining magic-link sign-in as an alternative.
+- Added `password_auth_enabled`, `password_updated_at`, and reserved `tfa_enabled` account fields, plus a one-time compatibility migration that identifies existing magic-link-created accounts.
+- Added a disabled two-factor authentication settings card and API status contract so TFA enrollment can be added later without redesigning account settings.
+- Added editable English, Hungarian, German, Spanish, and French translation keys; the existing missing-key synchronizer persists them to the database during setup.
+
+## 2026-08-19 — Client password-registration email audit
+
+- Prevented duplicate public signup/login magic-link emails with a synchronous client submit lock plus an atomic 45-second server-side idempotency window keyed by normalized email and link type.
+- Only the request that inserts the fresh magic-link record may dispatch an email; Vercel retries and simultaneous instances now return success without generating or sending a second token.
+- Failed provider deliveries remove their unused idempotency record so a legitimate retry is not blocked.
+- Audited the public client password-registration path separately from the already verified admin invitation/magic-link workflow.
+- Fixed unreliable Vercel delivery by awaiting the registration welcome email before returning the successful authentication response instead of starting fire-and-forget work after account creation.
+- Added the dedicated, independently editable `client_password_registration` onboarding template with branded HTML/plain-text bodies, login CTA, registration method/date, registered email, studio, and support tokens.
+- Kept account creation successful when the email provider reports a delivery failure, while recording the delivery result in email logs and returning a non-sensitive delivery status with the registration response.
+- Preserved the existing `account_verification` template and admin invitation workflow unchanged.
+
+## 2026-08-19 — Persistent admin gallery background uploads
+
+- Portfolio records can now be created and saved before any gallery media is attached, providing the persistent gallery id required for subsequent background uploads.
+- Published-but-empty portfolio records remain available in the admin CMS but are excluded from the public portfolio and its navigation until they receive media.
+- Moved saved portfolio-gallery image and video uploads into an AdminLayout-level background queue so transfers continue when the editor modal closes or the administrator navigates to another admin page.
+- Added a persistent floating upload monitor with queued, active, completed, failed, per-file progress, and gallery context states.
+- Completed uploads are attached to the saved portfolio immediately through a dedicated authenticated endpoint, preventing successful bucket uploads from becoming orphaned when the portfolio page unmounts.
+- Kept uploads sequential across batches to protect Appwrite/R2 endpoints from avoidable concurrent rate-limit pressure, and added a browser-tab close warning while transfers are active.
+- New, not-yet-saved portfolio records retain the foreground workflow because no persistent gallery id exists until their first save.
+
 ## 2026-08-19 — Vercel build pipeline optimization
 
 - Split the frontend and standalone Express server builds into explicit `build:client` and `build:server` tasks while preserving the complete local/standalone `npm run build` workflow.
