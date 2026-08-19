@@ -1,5 +1,12 @@
 # Modification Log
 
+## 2026-08-19 — Vercel build pipeline optimization
+
+- Split the frontend and standalone Express server builds into explicit `build:client` and `build:server` tasks while preserving the complete local/standalone `npm run build` workflow.
+- Added a Vercel-specific build task that emits only the Vite frontend because Vercel packages the `api/*.ts` serverless entrypoints independently.
+- Removed the unused standalone `dist/server.cjs` bundle and its source map from Vercel build output, avoiding roughly 3.8 MB of redundant generated deployment artifacts and an unnecessary server bundling pass on every deployment.
+- Removed the unused direct `uuid` and `zod` dependencies from the npm manifest and lockfile, reducing installation and dependency-tracing work without changing application behavior.
+
 ## 2026-08-19 — Portfolio media lifecycle, optimized delivery, and showcase refinements
 
 ### Upload and storage reliability

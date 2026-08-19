@@ -13,6 +13,8 @@ SPS Studio is an all-in-one studio management platform designed for architectura
 - **AERO/GLOW Design System**: Responsive blue-white ambient lighting, section-aware imagery, accessible light/dark palettes, frosted-glass cards, modals, navigation, authentication, and client/admin workspaces.
 - **Backend API**: Express REST API with modular public, authentication, admin, client, billing, media, and automation routers.
 - **Vercel Runtime**: Domain-isolated Vercel Functions for public content, authentication, administration, client delivery, budgets, invoices, payment requests, referrals, public billing links, and system health, with shared application bootstrap and function-specific duration settings.
+- **Deployment-Specific Builds**: Vercel builds only the Vite client and packages `api/*.ts` Functions itself; the standalone Express bundle and source map are generated only by the full local/self-hosted build, keeping redundant artifacts out of Vercel deployments.
+- **Lean Dependency Graph**: Build and runtime packages are audited so unused direct dependencies do not add installation or serverless tracing work.
 - **Database Layer**: LibSQL / Turso SQLite with local fallback (`local.db`) for lightweight development and edge/serverless scaling in production.
 - **Media Engine**: Cloudflare R2 multipart and direct browser-to-Appwrite uploads, structured filenames, automatic sub-10 MB JPEG derivatives, video thumbnails, watermark rendering, storage lifecycle cleanup, and ZIP delivery.
 - **Email Engine**: Resend API integration with transactional email templates, live multi-device visual previewer, and token interpolation.
