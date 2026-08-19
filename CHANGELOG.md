@@ -62,6 +62,10 @@
 - Added stable, unique slugs for every existing and future portfolio gallery, including an automatic database backfill and unique index.
 - Added standalone `/portfolio/:slug` gallery pages with all associated media, responsive optimized previews, lightbox access, localized content, canonical/Open Graph metadata, ImageGallery JSON-LD, and an automatically generated `/sitemap.xml`.
 - Added a localized “Open full gallery” action to the public portfolio lightbox so visitors and crawlers can reach the dedicated gallery URL.
+- Moved the public portfolio lightbox into a document-level portal with full-viewport high-strength backdrop blur, scroll locking, reliable stacking, and centered mobile/desktop positioning.
+- Replaced native controls on directly hosted portfolio videos with branded play/pause, seek, elapsed-time, mute, volume, and fullscreen controls that remain touch-accessible on mobile.
+- Fixed unreliable Vercel watermark rendering by generating locked client previews from stored optimized derivatives, normalizing EXIF rotation, and replacing the font/filter-sensitive SVG pattern with explicit renderer-safe repeated marks.
+- Kept public lightbox images clean during viewing and converted right-click into an on-demand server-generated watermarked JPG download; drag-save remains suppressed.
 - Removed full schema migration/setup work from the read-only Vercel public function cold-start path; admin, authentication, client, billing, and fallback functions retain database initialization.
 - Added dedicated browser and Vercel CDN cache controls for the public bootstrap response, including stale-on-error delivery during temporary database outages.
 - Added one-year immutable caching for fingerprinted Vite assets and revalidation caching for bundled public images.

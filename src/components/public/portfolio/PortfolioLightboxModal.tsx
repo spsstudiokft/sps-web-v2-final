@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
+import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import { PortfolioItem } from "../../../lib/types";
 import { useLanguage } from "../../../contexts/LanguageContext";
@@ -15,7 +16,12 @@ import {
   Send,
   Sparkles,
   Layers,
-  Film
+  Film,
+  Pause,
+  Volume2,
+  VolumeX,
+  Maximize,
+  LoaderCircle
 } from "lucide-react";
 import { 
   GalleryMediaItem, 
@@ -32,10 +38,124 @@ interface PortfolioLightboxModalProps {
   onClose: () => void;
 }
 
+function formatVideoTime(value: number) {
+  if (!Number.isFinite(value)) return "0:00";
+  const minutes = Math.floor(value / 60);
+  const seconds = Math.floor(value % 60).toString().padStart(2, "0");
+  return `${minutes}:${seconds}`;
+}
+
+function CustomVideoPlayer({ src, poster, title }: { src: string; poster?: string; title: string }) {
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const [playing, setPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [volume, setVolume] = useState(1);
+  const [muted, setMuted] = useState(false);
+
+  const togglePlayback = async () => {
+    const video = videoRef.current;
+    if (!video) return;
+    if (video.paused) {
+      try { await video.play(); } catch {}
+    } else {
+      video.pause();
+    }
+  };
+
+  const toggleFullscreen = async () => {
+    const target = containerRef.current;
+    if (!target) return;
+    if (document.fullscreenElement) await document.exitFullscreen();
+    else await target.requestFullscreen();
+  };
+
+  return (
+    <div ref={containerRef} className="group/video relative aspect-video w-full max-w-4xl overflow-hidden rounded-xl bg-black shadow-2xl">
+      <video
+        ref={videoRef}
+        key={src}
+        src={src}
+        poster={poster}
+        autoPlay
+        playsInline
+        preload="metadata"
+        onClick={togglePlayback}
+        onContextMenu={(event) => event.preventDefault()}
+        onPlay={() => setPlaying(true)}
+        onPause={() => setPlaying(false)}
+        onTimeUpdate={(event) => setCurrentTime(event.currentTarget.currentTime)}
+        onLoadedMetadata={(event) => setDuration(event.currentTarget.duration || 0)}
+        onVolumeChange={(event) => {
+          setVolume(event.currentTarget.volume);
+          setMuted(event.currentTarget.muted);
+        }}
+        className="h-full w-full cursor-pointer object-contain"
+        aria-label={title}
+      />
+
+      {!playing && (
+        <button type="button" onClick={togglePlayback} aria-label="Play video" className="absolute inset-0 m-auto flex h-16 w-16 items-center justify-center rounded-full border border-white/30 bg-black/60 text-white shadow-2xl backdrop-blur-md transition-transform hover:scale-105">
+          <Play className="ml-1 h-7 w-7 fill-current" />
+        </button>
+      )}
+
+      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/95 via-black/60 to-transparent px-3 pb-3 pt-10 opacity-100 transition-opacity sm:opacity-0 sm:group-hover/video:opacity-100 sm:group-focus-within/video:opacity-100">
+        <input
+          type="range"
+          min={0}
+          max={duration || 0}
+          step={0.1}
+          value={Math.min(currentTime, duration || 0)}
+          onChange={(event) => {
+            const next = Number(event.target.value);
+            if (videoRef.current) videoRef.current.currentTime = next;
+            setCurrentTime(next);
+          }}
+          aria-label="Video position"
+          className="h-1.5 w-full cursor-pointer accent-cyan-400"
+        />
+        <div className="mt-2 flex items-center gap-2 text-white">
+          <button type="button" onClick={togglePlayback} aria-label={playing ? "Pause video" : "Play video"} className="rounded-lg p-2 hover:bg-white/15">
+            {playing ? <Pause className="h-5 w-5 fill-current" /> : <Play className="h-5 w-5 fill-current" />}
+          </button>
+          <button
+            type="button"
+            onClick={() => { if (videoRef.current) videoRef.current.muted = !videoRef.current.muted; }}
+            aria-label={muted ? "Unmute video" : "Mute video"}
+            className="rounded-lg p-2 hover:bg-white/15"
+          >
+            {muted || volume === 0 ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
+          </button>
+          <input
+            type="range"
+            min={0}
+            max={1}
+            step={0.05}
+            value={muted ? 0 : volume}
+            onChange={(event) => {
+              const next = Number(event.target.value);
+              if (videoRef.current) { videoRef.current.volume = next; videoRef.current.muted = next === 0; }
+            }}
+            aria-label="Volume"
+            className="hidden h-1 w-20 cursor-pointer accent-cyan-400 sm:block"
+          />
+          <span className="min-w-0 flex-1 text-xs font-semibold tabular-nums">{formatVideoTime(currentTime)} / {formatVideoTime(duration)}</span>
+          <button type="button" onClick={toggleFullscreen} aria-label="Toggle fullscreen" className="rounded-lg p-2 hover:bg-white/15">
+            <Maximize className="h-5 w-5" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function PortfolioLightboxModal({ item, initialIndex = 0, onClose }: PortfolioLightboxModalProps) {
   const { currentLang, defaultLang, tUi } = useLanguage();
   const [currentIndex, setCurrentIndex] = useState(initialIndex || 0);
   const [fullImageLoaded, setFullImageLoaded] = useState(false);
+  const [isPreparingProtectedDownload, setIsPreparingProtectedDownload] = useState(false);
 
   // Normalize all gallery media items
   const mediaItems: GalleryMediaItem[] = useMemo(() => {
@@ -103,6 +223,13 @@ export function PortfolioLightboxModal({ item, initialIndex = 0, onClose }: Port
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [item, mediaItems.length, onClose]);
 
+  useEffect(() => {
+    if (!item) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = previousOverflow; };
+  }, [item]);
+
   if (!item) return null;
 
   const currentMedia: GalleryMediaItem | undefined = mediaItems[currentIndex];
@@ -146,10 +273,40 @@ export function PortfolioLightboxModal({ item, initialIndex = 0, onClose }: Port
     }
   };
 
-  return (
+  const handleProtectedImageDownload = async (event: React.MouseEvent<HTMLElement>) => {
+    event.preventDefault();
+    if (!item.slug || !currentMedia || isCurrentVideo || isPreparingProtectedDownload) return;
+
+    setIsPreparingProtectedDownload(true);
+    try {
+      const response = await fetch(
+        `/api/public/portfolio/${encodeURIComponent(item.slug)}/media/${currentIndex}/watermarked`,
+      );
+      if (!response.ok) throw new Error(`Protected download failed (${response.status})`);
+
+      const blob = await response.blob();
+      const disposition = response.headers.get("content-disposition") || "";
+      const dispositionFilename = disposition.match(/filename="([^"]+)"/i)?.[1];
+      const filename = dispositionFilename || `${item.slug}-${currentIndex + 1}-watermarked.jpg`;
+      const objectUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = objectUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 0);
+    } catch (error) {
+      console.error("Failed to download watermarked portfolio image:", error);
+    } finally {
+      setIsPreparingProtectedDownload(false);
+    }
+  };
+
+  return createPortal((
     <div
       id="portfolio-lightbox-backdrop"
-      className="fixed inset-0 z-50 overflow-y-auto bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 animate-in fade-in duration-200"
+      className="fixed inset-0 z-[9999] grid h-[100dvh] w-screen place-items-center overflow-hidden bg-slate-950/75 p-2 backdrop-blur-2xl sm:p-5 animate-in fade-in duration-200"
       onClick={onClose}
       aria-modal="true"
       role="dialog"
@@ -157,7 +314,7 @@ export function PortfolioLightboxModal({ item, initialIndex = 0, onClose }: Port
     >
       <div
         id="portfolio-lightbox-dialog"
-        className="bg-background text-text border border-border/80 w-full max-w-5xl rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] animate-in zoom-in-95 duration-200"
+        className="relative m-auto flex max-h-[calc(100dvh-1rem)] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-white/15 bg-background text-text shadow-[0_32px_120px_rgba(0,0,0,0.75)] sm:max-h-[calc(100dvh-2.5rem)] sm:rounded-3xl animate-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Modal Header */}
@@ -207,7 +364,10 @@ export function PortfolioLightboxModal({ item, initialIndex = 0, onClose }: Port
         </div>
 
         {/* Media Viewing Stage */}
-        <div className="relative bg-black flex-1 min-h-[300px] sm:min-h-[440px] max-h-[60vh] flex items-center justify-center overflow-hidden select-none">
+        <div
+          onContextMenu={isCurrentVideo ? (event) => event.preventDefault() : handleProtectedImageDownload}
+          className="relative bg-black flex-1 min-h-[300px] sm:min-h-[440px] max-h-[60vh] flex items-center justify-center overflow-hidden select-none"
+        >
           {mediaItems.length > 0 && currentMedia ? (
             <div className="relative w-full h-full flex items-center justify-center p-2 sm:p-4">
               {isCurrentVideo ? (
@@ -234,14 +394,10 @@ export function PortfolioLightboxModal({ item, initialIndex = 0, onClose }: Port
                       />
                     </div>
                   ) : (
-                    <video
-                      key={currentMedia.url}
+                    <CustomVideoPlayer
                       src={currentMedia.url}
                       poster={currentMedia.thumbnail_url}
-                      controls
-                      autoPlay
-                      playsInline
-                      className="max-h-[56vh] w-auto max-w-full rounded-xl shadow-2xl object-contain"
+                      title={currentMedia.title || title}
                     />
                   )}
                 </div>
@@ -264,6 +420,8 @@ export function PortfolioLightboxModal({ item, initialIndex = 0, onClose }: Port
                     sizes={responsiveCurrentImage.sizes}
                     alt={currentMedia.alt || currentMedia.title || title}
                     decoding="async"
+                    draggable={false}
+                    onDragStart={(event) => event.preventDefault()}
                     onLoad={() => setFullImageLoaded(true)}
                     onError={(event) => {
                       const image = event.currentTarget;
@@ -278,6 +436,15 @@ export function PortfolioLightboxModal({ item, initialIndex = 0, onClose }: Port
                       fullImageLoaded ? "opacity-100 blur-0 scale-100" : "opacity-0 blur-sm scale-[0.995]"
                     }`}
                   />
+                </div>
+              )}
+
+              {isPreparingProtectedDownload && (
+                <div className="pointer-events-none absolute inset-x-4 top-4 z-30 flex justify-center" role="status">
+                  <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-black/80 px-4 py-2 text-xs font-semibold text-white shadow-xl backdrop-blur-md">
+                    <LoaderCircle className="h-4 w-4 animate-spin text-cyan-400" />
+                    {tUi("portfolio.page.preparing_watermarked_download")}
+                  </span>
                 </div>
               )}
 
@@ -455,5 +622,5 @@ export function PortfolioLightboxModal({ item, initialIndex = 0, onClose }: Port
         </div>
       </div>
     </div>
-  );
+  ), document.body);
 }

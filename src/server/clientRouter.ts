@@ -280,6 +280,15 @@ clientRouter.post("/projects/:projectId/galleries/:galleryId/preview", async (re
         return res.send(buffer);
       }
       previewItem = { url: thumbnailUrl, type: "image", title: item.title };
+    } else {
+      const raw = typeof rawItems[index] === "object" ? rawItems[index] : {};
+      // Preview generation must not make Vercel decode the full-resolution
+      // master. The stored optimized image is visually equivalent here and
+      // keeps Sharp memory and execution time predictable.
+      previewItem = {
+        ...item,
+        url: String(raw.compressed_url || raw.thumbnail_url || item.url),
+      };
     }
     const prepared = await prepareGalleryFile(previewItem, index, unlocked);
     res.setHeader("Content-Type", prepared.mimeType || "image/jpeg");

@@ -11,6 +11,7 @@ import { translationService } from "./services/translationService.js";
 import { getAllLegalDocuments } from "./services/legalDocumentService.js";
 import { markGoogleReviewClicked } from "./services/googleReviewService.js";
 import { getAppUrl } from "./appUrl.js";
+import { prepareGalleryFile } from "./services/galleryDownloadService.js";
 import { 
   sendPasswordResetToken, 
   sendInquiryAlerts, 
@@ -1114,6 +1115,59 @@ router.get("/public/portfolio/:slug", async (req, res) => {
   } catch (error) {
     console.error("Public portfolio gallery fetch error:", error);
     res.status(500).json({ error: "Failed to fetch portfolio gallery" });
+  }
+});
+
+router.get("/public/portfolio/:slug/media/:index/watermarked", async (req, res) => {
+  try {
+    const index = Number(req.params.index);
+    if (!Number.isSafeInteger(index) || index < 0) {
+      return res.status(400).json({ error: "Invalid portfolio media index" });
+    }
+
+    const result = await db.execute({
+      sql: `SELECT slug, title, image_urls
+            FROM portfolio_items
+            WHERE slug = ? AND is_published = 1
+            LIMIT 1`,
+      args: [String(req.params.slug || "")],
+    });
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Portfolio gallery not found" });
+    }
+
+    const row: any = result.rows[0];
+    let gallery: any = row.image_urls;
+    for (let attempt = 0; attempt < 2 && typeof gallery === "string"; attempt += 1) {
+      try { gallery = JSON.parse(gallery); } catch { gallery = []; }
+    }
+    if (!Array.isArray(gallery) || index >= gallery.length) {
+      return res.status(404).json({ error: "Portfolio media not found" });
+    }
+
+    const raw = gallery[index];
+    const media: any = typeof raw === "string" ? { url: raw } : raw || {};
+    const sourceUrl = String(media.compressed_url || media.thumbnail_url || media.url || media.src || "");
+    const hintedType = String(media.type || media.media_type || "").toLowerCase();
+    const isVideo = hintedType === "video" || /\.(mp4|mov|webm)(\?|$)/i.test(sourceUrl);
+    if (!sourceUrl) return res.status(404).json({ error: "Portfolio image source not found" });
+    if (isVideo) return res.status(400).json({ error: "Watermarked download is available for images only" });
+
+    const prepared = await prepareGalleryFile({
+      url: sourceUrl,
+      type: "image",
+      title: String(media.title || row.title || `portfolio-${index + 1}`),
+    }, index, false, true);
+    const safeSlug = String(row.slug || "portfolio").replace(/[^a-z0-9_-]+/gi, "-").replace(/^-|-$/g, "") || "portfolio";
+
+    res.set("Content-Type", "image/jpeg");
+    res.set("Content-Disposition", `attachment; filename="${safeSlug}-${index + 1}-watermarked.jpg"`);
+    res.set("Cache-Control", "private, no-store");
+    res.set("X-Content-Type-Options", "nosniff");
+    res.send(prepared.buffer);
+  } catch (error) {
+    console.error("Public watermarked portfolio download error:", error);
+    res.status(500).json({ error: "Failed to prepare watermarked portfolio image" });
   }
 });
 

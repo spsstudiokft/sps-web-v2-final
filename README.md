@@ -33,6 +33,8 @@ SPS Studio is an all-in-one studio management platform designed for architectura
 - **Mixed Portfolio Conveyor**: Gallery media is randomized across marquee rows and avoids adjacent images from the same portfolio whenever possible.
 - **Four Media Rows**: Separate randomized rows for standard photography, drone video, interior walkthrough video, and drone photography, using an alternating left/right motion pattern.
 - **Indexable Gallery Pages**: Every published portfolio gallery has a stable `/portfolio/:slug` page containing all associated media, canonical/Open Graph metadata, ImageGallery structured data, and automatic sitemap discovery.
+- **Immersive Media Viewer**: The viewport-level gallery lightbox fully blurs the page behind it and keeps media centered, while uploaded videos use branded playback, seek, volume, mute, and fullscreen controls.
+- **On-Demand Protected Saving**: Public lightbox images remain clean while viewing; right-click initiates a server-rendered watermarked JPG download from the optimized derivative. Locked client previews continue to receive a server-baked watermark for reliable Vercel execution.
 
 ### 🔐 Client Portal & Project Management
 - **Passwordless Magic Link & Password Sign-In**: Secure client authentication via email magic link or traditional credentials.

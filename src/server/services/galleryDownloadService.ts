@@ -29,30 +29,24 @@ const extensionFor = (mime: string, url: string) => {
 };
 
 function createContinuousWatermark(width: number, height: number): Buffer {
-  // A dense, diagonal marketplace-style pattern protects the full frame while
-  // remaining transparent enough for clients to evaluate the photograph.
   const cellWidth = Math.max(360, Math.min(680, Math.round(width * 0.34)));
   const cellHeight = Math.max(170, Math.round(cellWidth * 0.43));
   const fontSize = Math.max(24, Math.min(48, Math.round(cellWidth * 0.072)));
   const mark = "Courtesy of SPS Studio";
+  const marks: string[] = [];
+  for (let y = -cellHeight; y < height + cellHeight; y += cellHeight) {
+    for (let x = -cellWidth; x < width + cellWidth; x += cellWidth) {
+      const offset = (Math.floor(y / cellHeight) % 2) * (cellWidth / 2);
+      marks.push(`<text x="0" y="0" transform="translate(${Math.round(x + offset + cellWidth / 2)} ${Math.round(y + cellHeight / 2)}) rotate(-27)"
+        text-anchor="middle" font-family="DejaVu Sans, Liberation Sans, sans-serif" font-size="${fontSize}" font-weight="700"
+        letter-spacing="0.5" fill="#ffffff" fill-opacity="0.42" stroke="#081420" stroke-opacity="0.5"
+        stroke-width="1.4" paint-order="stroke fill">${mark}</text>`);
+    }
+  }
   return Buffer.from(`
     <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <filter id="wm-shadow" x="-20%" y="-20%" width="140%" height="140%">
-          <feGaussianBlur in="SourceAlpha" stdDeviation="1.2" result="blur"/>
-          <feOffset dy="1" result="offset"/>
-          <feComponentTransfer><feFuncA type="linear" slope="0.55"/></feComponentTransfer>
-          <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
-        </filter>
-        <pattern id="wm" width="${cellWidth}" height="${cellHeight}" patternUnits="userSpaceOnUse" patternTransform="rotate(-27)">
-          <text x="${cellWidth / 2}" y="${cellHeight / 2}"
-            dominant-baseline="middle" text-anchor="middle"
-            font-family="Arial, Helvetica, sans-serif" font-size="${fontSize}" font-weight="700" letter-spacing="0.5"
-            fill="rgba(255,255,255,0.40)" stroke="rgba(8,20,32,0.42)" stroke-width="1.4"
-            paint-order="stroke fill" filter="url(#wm-shadow)">${mark}</text>
-        </pattern>
-      </defs>
-      <rect width="100%" height="100%" fill="url(#wm)"/>
+      <rect width="100%" height="100%" fill="#061522" fill-opacity="0.035"/>
+      ${marks.join("\n")}
     </svg>
   `);
 }
@@ -62,11 +56,15 @@ export async function prepareGalleryFile(item: DownloadableGalleryItem, index: n
   let buffer = source.buffer;
   let mimeType = source.mimeType;
   if (!unlocked && item.type === "image") {
+    // Normalize EXIF rotation before sizing the overlay. This also avoids
+    // platform-specific SVG/composite differences between local Sharp and the
+    // Linux binary used by Vercel Functions.
+    buffer = await sharp(buffer, { failOn: "none" }).rotate().jpeg({ quality: 90, progressive: true, mozjpeg: true }).toBuffer();
     const metadata = await sharp(buffer).metadata();
-    const width = Math.max(600, metadata.width || 1600);
+    const width = metadata.width || 1600;
     const height = metadata.height || Math.round(width * .67);
     const svg = createContinuousWatermark(width, height);
-    buffer = await sharp(buffer).composite([{ input: svg, gravity: "center" }]).jpeg({ quality: 90 }).toBuffer();
+    buffer = await sharp(buffer).composite([{ input: svg, gravity: "center" }]).jpeg({ quality: 90, progressive: true, mozjpeg: true }).toBuffer();
     mimeType = "image/jpeg";
   } else if (forceJpeg && item.type === "image" && mimeType.split(";")[0].toLowerCase() !== "image/jpeg") {
     buffer = await sharp(buffer).jpeg({ quality: 90, mozjpeg: true }).toBuffer();
