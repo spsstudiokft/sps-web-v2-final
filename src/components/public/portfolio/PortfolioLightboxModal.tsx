@@ -23,6 +23,7 @@ import {
   isVideoMedia,
   getGalleryCoverThumbnail 
 } from "../../../lib/mediaUtils";
+import { getResponsiveImageAttributes } from "../../../lib/responsiveImage";
 
 interface PortfolioLightboxModalProps {
   item: PortfolioItem | null;
@@ -101,6 +102,15 @@ export function PortfolioLightboxModal({ item, initialIndex = 0, onClose }: Port
   const currentMedia: GalleryMediaItem | undefined = mediaItems[currentIndex];
   const isCurrentVideo = currentMedia ? (currentMedia.type === "video" || isVideoMedia(currentMedia)) : false;
   const currentVideoParsed = (isCurrentVideo && currentMedia) ? parseVideoUrl(currentMedia.url) : null;
+  const currentImageSource = !isCurrentVideo && currentMedia
+    ? (currentMedia.compressed_url || currentMedia.thumbnail_url || currentMedia.url)
+    : "";
+  const responsiveCurrentImage = getResponsiveImageAttributes(
+    currentImageSource,
+    [480, 768, 1024, 1440, 1920],
+    "(max-width: 640px) calc(100vw - 32px), (max-width: 1024px) calc(100vw - 80px), 960px",
+    88,
+  );
 
   const title = t(item.title, currentLang, defaultLang) || item.title;
   const description = t(item.description, currentLang, defaultLang) || item.description;
@@ -230,8 +240,11 @@ export function PortfolioLightboxModal({ item, initialIndex = 0, onClose }: Port
                 /* Photo Slide */
                 <img
                   key={currentMedia.compressed_url || currentMedia.url}
-                  src={currentMedia.compressed_url || currentMedia.thumbnail_url || currentMedia.url}
+                  src={responsiveCurrentImage.src}
+                  srcSet={responsiveCurrentImage.srcSet}
+                  sizes={responsiveCurrentImage.sizes}
                   alt={currentMedia.alt || currentMedia.title || title}
+                  decoding="async"
                   className="max-h-[56vh] w-auto max-w-full rounded-xl shadow-2xl object-contain transition-all duration-300 animate-in fade-in zoom-in-95 duration-200"
                 />
               )}
@@ -288,6 +301,7 @@ export function PortfolioLightboxModal({ item, initialIndex = 0, onClose }: Port
               const isVid = media.type === "video" || isVideoMedia(media);
               const vidInfo = isVid ? parseVideoUrl(media.url) : null;
               const thumb = media.compressed_url || media.thumbnail_url || (vidInfo?.thumbnailUrl) || (isVid ? "" : media.url);
+              const responsiveThumb = getResponsiveImageAttributes(thumb, [96, 128, 192], "64px", 76);
 
               return (
                 <button
@@ -302,7 +316,15 @@ export function PortfolioLightboxModal({ item, initialIndex = 0, onClose }: Port
                   aria-label={`Jump to slide ${idx + 1}`}
                 >
                   {thumb ? (
-                    <img src={thumb} alt="" className="w-full h-full object-cover" />
+                    <img
+                      src={responsiveThumb.src}
+                      srcSet={responsiveThumb.srcSet}
+                      sizes={responsiveThumb.sizes}
+                      alt=""
+                      loading="lazy"
+                      decoding="async"
+                      className="w-full h-full object-cover"
+                    />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center bg-surface text-muted-text">
                       {isVid ? <VideoIcon className="w-4 h-4 text-purple-400" /> : <Camera className="w-4 h-4" />}

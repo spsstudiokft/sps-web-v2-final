@@ -21,6 +21,7 @@ import {
   getOptimized360pVideoUrl 
 } from "../../../lib/mediaUtils";
 import { globalVideoStreamManager } from "../../../lib/videoManager";
+import { getResponsiveImageAttributes } from "../../../lib/responsiveImage";
 
 export interface ShowcaseMediaCardItem {
   id: string;
@@ -35,9 +36,10 @@ interface MediaCardProps {
   card: ShowcaseMediaCardItem;
   onClick: (item: PortfolioItem, mediaIndex: number) => void;
   priority?: boolean;
+  deferMedia?: boolean;
 }
 
-export function MediaCard({ card, onClick, priority = false }: MediaCardProps) {
+export function MediaCard({ card, onClick, priority = false, deferMedia = false }: MediaCardProps) {
   const instanceId = useId();
   const { currentLang, defaultLang } = useLanguage();
   
@@ -114,14 +116,14 @@ export function MediaCard({ card, onClick, priority = false }: MediaCardProps) {
         }
       },
       {
-        rootMargin: "250px 100px", // Warm up metadata slightly before scrolling into view
+        rootMargin: deferMedia ? "40px 60px" : "250px 100px",
         threshold: [0, 0.25, 0.5, 0.75, 1.0],
       }
     );
 
     observer.observe(cardRef.current);
     return () => observer.disconnect();
-  }, [instanceId, isVideoCard]);
+  }, [deferMedia, instanceId, isVideoCard]);
 
   // 3. Update hover state in Video Stream Manager for instant top-priority playback
   const handleMouseEnter = () => {
@@ -172,6 +174,13 @@ export function MediaCard({ card, onClick, priority = false }: MediaCardProps) {
   const previewImageUrl = !isVideoCard
     ? (media.compressed_url || media.thumbnail_url || item.thumbnail_url || media.url || "")
     : (media.thumbnail_url || (parsedVideo?.type === "youtube" ? `https://img.youtube.com/vi/${parsedVideo.videoId}/${youtubePreviewIndex}.jpg` : ""));
+  const shouldLoadMedia = priority || isInViewport;
+  const responsivePreview = getResponsiveImageAttributes(
+    previewImageUrl,
+    [320, 480, 640, 840],
+    "(max-width: 639px) 310px, (max-width: 767px) 380px, 420px",
+    82,
+  );
 
   const projectTitle = t(item.title, currentLang, defaultLang) || item.title;
   // The public portfolio cards identify the project, not the uploaded file.
@@ -236,9 +245,11 @@ export function MediaCard({ card, onClick, priority = false }: MediaCardProps) {
             ) : (
               /* Lightweight standby state when out of view */
               <div className="w-full h-full bg-zinc-950 flex items-center justify-center">
-                {previewImageUrl && (
+                {previewImageUrl && shouldLoadMedia && (
                   <img
-                    src={previewImageUrl}
+                    src={responsivePreview.src}
+                    srcSet={responsivePreview.srcSet}
+                    sizes={responsivePreview.sizes}
                     alt={displayTitle}
                     loading="lazy"
                     decoding="async"
@@ -260,13 +271,15 @@ export function MediaCard({ card, onClick, priority = false }: MediaCardProps) {
                 />
               </div>
             ) : (
-              <img
-                src={previewImageUrl || `https://img.youtube.com/vi/${parsedVideo.videoId}/${youtubePreviewIndex}.jpg`}
+              shouldLoadMedia ? <img
+                src={responsivePreview.src || `https://img.youtube.com/vi/${parsedVideo.videoId}/${youtubePreviewIndex}.jpg`}
+                srcSet={responsivePreview.srcSet}
+                sizes={responsivePreview.sizes}
                 alt={displayTitle}
                 loading="lazy"
                 decoding="async"
                 className="w-full h-full object-cover opacity-85 group-hover:scale-105 transition-transform duration-700"
-              />
+              /> : <div className="w-full h-full bg-zinc-950" />
             )
           ) : parsedVideo?.type === "vimeo" && parsedVideo.videoId ? (
             /* 3. Embedded Low-Latency 360p Vimeo Stream */
@@ -285,10 +298,12 @@ export function MediaCard({ card, onClick, priority = false }: MediaCardProps) {
                 <Film className="w-12 h-12 text-amber-400/60" />
               </div>
             )
-          ) : previewImageUrl && !hasError ? (
+          ) : previewImageUrl && !hasError && shouldLoadMedia ? (
             /* 4. Dedicated video poster thumbnail (never cover image) */
             <img
-              src={previewImageUrl}
+              src={responsivePreview.src}
+              srcSet={responsivePreview.srcSet}
+              sizes={responsivePreview.sizes}
               alt={displayTitle}
               loading={priority ? "eager" : "lazy"}
               decoding="async"
@@ -313,9 +328,11 @@ export function MediaCard({ card, onClick, priority = false }: MediaCardProps) {
       ) : (
         /* Image Preview Card */
         <div className="absolute inset-0 w-full h-full overflow-hidden bg-zinc-900">
-          {previewImageUrl && !hasError ? (
+          {previewImageUrl && !hasError && shouldLoadMedia ? (
             <img
-              src={previewImageUrl}
+              src={responsivePreview.src}
+              srcSet={responsivePreview.srcSet}
+              sizes={responsivePreview.sizes}
               alt={displayTitle}
               loading={priority ? "eager" : "lazy"}
               decoding="async"

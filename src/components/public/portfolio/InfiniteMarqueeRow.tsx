@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { PortfolioItem } from "../../../lib/types";
 import { MediaCard, ShowcaseMediaCardItem } from "./MediaCard";
 
@@ -22,6 +22,12 @@ export function InfiniteMarqueeRow({
   isStaticScroll = false,
 }: InfiniteMarqueeRowProps) {
   const [isRowHovered, setIsRowHovered] = useState(false);
+  const staticMode = isReducedMotion || isStaticScroll;
+  const [visibleStaticItems, setVisibleStaticItems] = useState(4);
+
+  useEffect(() => {
+    setVisibleStaticItems(4);
+  }, [items, staticMode]);
 
   // Build a seamless base sequence that is guaranteed wide enough for ultra-wide screens
   const baseSequence = useMemo(() => {
@@ -42,19 +48,29 @@ export function InfiniteMarqueeRow({
 
   // Mobile, performance-lite and reduced-motion views use one non-duplicated
   // sequence that visitors can move horizontally with touch or a trackpad.
-  if (isReducedMotion || isStaticScroll) {
+  if (staticMode) {
+    const renderedItems = isStaticScroll ? items.slice(0, visibleStaticItems) : items;
     return (
       <div
         className="portfolio-touch-scroll w-full overflow-x-auto overscroll-x-contain touch-pan-x py-2.5 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent snap-x snap-proximity"
         aria-label="Scrollable portfolio gallery"
+        onScroll={(event) => {
+          if (!isStaticScroll || visibleStaticItems >= items.length) return;
+          const scroller = event.currentTarget;
+          const remainingDistance = scroller.scrollWidth - scroller.scrollLeft - scroller.clientWidth;
+          if (remainingDistance < scroller.clientWidth * 1.25) {
+            setVisibleStaticItems((current) => Math.min(items.length, current + 4));
+          }
+        }}
       >
         <div className="flex items-center px-3 sm:px-4 w-max">
-          {items.map((card, idx) => (
+          {renderedItems.map((card, idx) => (
             <div key={`static-${card.id}-${idx}`} className="snap-start">
               <MediaCard
                 card={card}
                 onClick={onItemClick}
-                priority={idx < 2}
+                priority={false}
+                deferMedia={isStaticScroll}
               />
             </div>
           ))}

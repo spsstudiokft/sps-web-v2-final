@@ -91,8 +91,9 @@ function shouldUseLitePerformanceMode() {
   const lowMemory = typeof nav.deviceMemory === "number" && nav.deviceMemory <= 4;
   const lowCpu = typeof nav.hardwareConcurrency === "number" && nav.hardwareConcurrency <= 4;
   const constrainedNetwork = Boolean(nav.connection?.saveData) || ["slow-2g", "2g"].includes(nav.connection?.effectiveType || "");
+  const mobileViewport = coarsePointer && window.innerWidth <= 767;
   const narrowLowCoreMobile = coarsePointer && window.innerWidth <= 480 && typeof nav.hardwareConcurrency === "number" && nav.hardwareConcurrency <= 6;
-  return Boolean(reducedMotion || lowMemory || lowCpu || constrainedNetwork || narrowLowCoreMobile);
+  return Boolean(reducedMotion || lowMemory || lowCpu || constrainedNetwork || mobileViewport || narrowLowCoreMobile);
 }
 
 export default function PublicHome() {

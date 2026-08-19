@@ -107,6 +107,8 @@ SPS Studio is an all-in-one studio management platform designed for architectura
 - **Immutable Build Assets**: Fingerprinted Vite assets receive a one-year immutable cache policy, and public image assets use browser/CDN revalidation windows.
 - **Route-Level Code Splitting**: Admin, finance, authentication, and client-portal pages are loaded only when their routes are opened; public visitors do not download those modules during startup.
 - **Mobile Touch Portfolio**: Mobile portfolio rows are static by default and remain horizontally touch-scrollable, avoiding continuous marquee work and duplicate media cards on handheld devices.
+- **Progressive Mobile Media**: Mobile gallery rows mount cards in small batches and assign image/video-poster sources only near the viewport, preventing decode bursts when the portfolio section enters the screen.
+- **Adaptive Image Delivery**: Public portfolio cards and lightboxes use responsive `srcset` candidates backed by Appwrite's cached preview transformations (with Unsplash URL support), so each screen downloads an appropriately sized WebP display asset without proxying bytes through Vercel.
 - **Adaptive Low-End Mode**: Low-memory/low-core devices, constrained connections, data-saver mode, and reduced-motion preferences receive fewer blur/3D effects and deferred off-screen rendering.
 - **Critical Media Loading**: The hero background is preloaded while optimized portfolio derivatives are prefetched only when device and connection conditions allow it.
 - **Accessible Light Theme**: Public light-mode body, muted, primary, accent, placeholder, border, and focus colors use higher-contrast values, including explicit text colors over photographic sections.
