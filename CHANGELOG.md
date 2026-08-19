@@ -29,6 +29,8 @@
 
 ### Public showcase and visual fixes
 
+- Fixed Social Tree group/link creation and editing with null-safe request normalization, validated parent groups, normalized platform/icon identifiers, and explicit create responses.
+- Unified social icon rendering across the admin tree, editor preview, public popup, and footer; legacy FontAwesome-style identifiers now resolve correctly, unknown stored icons fall back to the selected platform, missing group icons are supported, and card text colors are no longer overridden by hardcoded inline brand colors.
 - Optimized the mobile Visual Ideas section with contained, non-blurred, transition-free cards and deferred grid painting, reducing main-thread and compositing work while the section is visible.
 - Corrected mobile Portfolio gesture handling so horizontal gallery interaction no longer captures vertical page scrolling; disabled smooth-scroll work, fixed mobile background attachment, and contained each row's paint area.
 - Reduced mobile Portfolio media pressure by mounting two cards per row initially, adding further cards in smaller batches, using a lighter viewport observer, and showing image posters instead of initializing video decoders during touch scrolling.

@@ -33,7 +33,9 @@ import {
   faImage,
   faStar,
   faBuilding,
-  faStore
+  faStore,
+  faLayerGroup,
+  faWandMagicSparkles
 } from "@fortawesome/free-solid-svg-icons";
 import {
   Instagram,
@@ -268,7 +270,24 @@ export function SocialIconRenderer({
   className?: string;
   color?: string;
 }) {
-  const iconKey = (icon || platform || "").toLowerCase().trim();
+  const normalizeIconKey = (value?: string | null) => String(value || "")
+    .trim()
+    .replace(/([a-z0-9])([A-Z])/g, "$1-$2")
+    .toLowerCase()
+    .replace(/^(fab|fas|far)[\s:-]+/, "")
+    .replace(/^fa[\s:-]+/, "")
+    .replace(/^fa-/, "")
+    .replace(/^fa(?=[a-z])/, "")
+    .replace(/_/g, "-");
+  const groupIcons = new Set(["folder", "briefcase", "message-circle", "messages", "layers", "globe", "sparkles", "camera", "video", "building", "star", "compass", "share-2", "share"]);
+  const linkIcons = new Set(["instagram", "facebook", "youtube", "tiktok", "linkedin", "x", "x-twitter", "twitter", "whatsapp", "telegram", "vimeo", "vimeo-v", "pinterest", "threads", "github", "discord", "behance", "dribbble", "email", "envelope", "mail", "phone", "tel", "globe", "website", "camera", "video", "image", "link"]);
+  const normalizedIcon = normalizeIconKey(icon);
+  const normalizedPlatform = normalizeIconKey(platform);
+  const supportedIcons = type === "group" ? groupIcons : linkIcons;
+  const iconKey = supportedIcons.has(normalizedIcon)
+    ? normalizedIcon
+    : (supportedIcons.has(normalizedPlatform) ? normalizedPlatform : (type === "group" ? "share-2" : "link"));
+  const explicitColorStyle = color ? { color } : undefined;
 
   // 1. Group default or specific icon
   if (type === "group") {
@@ -279,7 +298,11 @@ export function SocialIconRenderer({
         return <FontAwesomeIcon icon={faBriefcase} className={className} style={{ color }} />;
       case "message-circle":
       case "messages":
-        return <FontAwesomeIcon icon={faComments} className={className} style={{ color }} />;
+        return <FontAwesomeIcon icon={faComments} className={className} style={explicitColorStyle} />;
+      case "layers":
+        return <FontAwesomeIcon icon={faLayerGroup} className={className} style={explicitColorStyle} />;
+      case "sparkles":
+        return <FontAwesomeIcon icon={faWandMagicSparkles} className={className} style={explicitColorStyle} />;
       case "globe":
         return <FontAwesomeIcon icon={faGlobe} className={className} style={{ color }} />;
       case "camera":
@@ -302,45 +325,48 @@ export function SocialIconRenderer({
   // 2. Platform brand icons
   switch (iconKey) {
     case "instagram":
-      return <FontAwesomeIcon icon={faInstagram} className={className} style={{ color: color || "#E4405F" }} />;
+      return <FontAwesomeIcon icon={faInstagram} className={className} style={explicitColorStyle} />;
     case "facebook":
-      return <FontAwesomeIcon icon={faFacebook} className={className} style={{ color: color || "#1877F2" }} />;
+      return <FontAwesomeIcon icon={faFacebook} className={className} style={explicitColorStyle} />;
     case "youtube":
-      return <FontAwesomeIcon icon={faYoutube} className={className} style={{ color: color || "#FF0000" }} />;
+      return <FontAwesomeIcon icon={faYoutube} className={className} style={explicitColorStyle} />;
     case "tiktok":
       return <FontAwesomeIcon icon={faTiktok} className={className} style={{ color }} />;
     case "linkedin":
-      return <FontAwesomeIcon icon={faLinkedin} className={className} style={{ color: color || "#0A66C2" }} />;
+      return <FontAwesomeIcon icon={faLinkedin} className={className} style={explicitColorStyle} />;
     case "x":
+    case "x-twitter":
     case "twitter":
       return <FontAwesomeIcon icon={faXTwitter} className={className} style={{ color }} />;
     case "whatsapp":
-      return <FontAwesomeIcon icon={faWhatsapp} className={className} style={{ color: color || "#25D366" }} />;
+      return <FontAwesomeIcon icon={faWhatsapp} className={className} style={explicitColorStyle} />;
     case "telegram":
-      return <FontAwesomeIcon icon={faTelegram} className={className} style={{ color: color || "#229ED9" }} />;
+      return <FontAwesomeIcon icon={faTelegram} className={className} style={explicitColorStyle} />;
     case "vimeo":
-      return <FontAwesomeIcon icon={faVimeoV} className={className} style={{ color: color || "#1AB7EA" }} />;
+    case "vimeo-v":
+      return <FontAwesomeIcon icon={faVimeoV} className={className} style={explicitColorStyle} />;
     case "pinterest":
-      return <FontAwesomeIcon icon={faPinterest} className={className} style={{ color: color || "#E60023" }} />;
+      return <FontAwesomeIcon icon={faPinterest} className={className} style={explicitColorStyle} />;
     case "threads":
       return <FontAwesomeIcon icon={faThreads} className={className} style={{ color }} />;
     case "github":
       return <FontAwesomeIcon icon={faGithub} className={className} style={{ color }} />;
     case "discord":
-      return <FontAwesomeIcon icon={faDiscord} className={className} style={{ color: color || "#5865F2" }} />;
+      return <FontAwesomeIcon icon={faDiscord} className={className} style={explicitColorStyle} />;
     case "behance":
-      return <FontAwesomeIcon icon={faBehance} className={className} style={{ color: color || "#1769FF" }} />;
+      return <FontAwesomeIcon icon={faBehance} className={className} style={explicitColorStyle} />;
     case "dribbble":
-      return <FontAwesomeIcon icon={faDribbble} className={className} style={{ color: color || "#EA4C89" }} />;
+      return <FontAwesomeIcon icon={faDribbble} className={className} style={explicitColorStyle} />;
     case "email":
+    case "envelope":
     case "mail":
-      return <FontAwesomeIcon icon={faEnvelope} className={className} style={{ color: color || "#EA4335" }} />;
+      return <FontAwesomeIcon icon={faEnvelope} className={className} style={explicitColorStyle} />;
     case "phone":
     case "tel":
-      return <FontAwesomeIcon icon={faPhone} className={className} style={{ color: color || "#10B981" }} />;
+      return <FontAwesomeIcon icon={faPhone} className={className} style={explicitColorStyle} />;
     case "globe":
     case "website":
-      return <FontAwesomeIcon icon={faGlobe} className={className} style={{ color: color || "#3B82F6" }} />;
+      return <FontAwesomeIcon icon={faGlobe} className={className} style={explicitColorStyle} />;
     case "camera":
       return <FontAwesomeIcon icon={faCamera} className={className} style={{ color }} />;
     case "video":
@@ -348,6 +374,6 @@ export function SocialIconRenderer({
     case "image":
       return <FontAwesomeIcon icon={faImage} className={className} style={{ color }} />;
     default:
-      return <FontAwesomeIcon icon={faLink} className={className} style={{ color: color || "#6366F1" }} />;
+      return <FontAwesomeIcon icon={faLink} className={className} style={explicitColorStyle} />;
   }
 }

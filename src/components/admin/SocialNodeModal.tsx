@@ -147,13 +147,13 @@ export function SocialNodeModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const trimmedTitle = formData.title?.trim() || "";
+    const trimmedTitle = typeof formData.title === "string" ? formData.title.trim() : "";
     if (!trimmedTitle) {
       setErrorMessage(tUi("admin.social.error_enter_title", currentLanguage) || "Please enter a title.");
       return;
     }
 
-    let finalUrl = formData.url?.trim() || "";
+    let finalUrl = typeof formData.url === "string" ? formData.url.trim() : "";
     if (formData.type === "link") {
       if (!finalUrl) {
         setErrorMessage(tUi("admin.social.error_enter_url", currentLanguage) || "Please enter a destination URL for this social link.");
@@ -178,9 +178,9 @@ export function SocialNodeModal({
       await onSave({
         ...formData,
         title: trimmedTitle,
-        subtitle: formData.subtitle?.trim() || "",
+        subtitle: typeof formData.subtitle === "string" ? formData.subtitle.trim() : "",
         url: finalUrl,
-        badge: formData.badge?.trim() || "",
+        badge: typeof formData.badge === "string" ? formData.badge.trim() : "",
       });
       onClose();
     } catch (err: any) {

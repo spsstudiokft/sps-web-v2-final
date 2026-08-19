@@ -5488,13 +5488,20 @@ adminRouter.post("/social-links", async (req, res) => {
       is_enabled = 1,
       is_expanded_default = 1,
       sort_order
-    } = req.body;
+    } = req.body || {};
 
-    if (!title || typeof title !== "string" || title.trim() === "") {
+    const cleanTitle = typeof title === "string" ? title.trim() : "";
+    const cleanSubtitle = typeof subtitle === "string" ? subtitle.trim() : "";
+    const cleanPlatform = typeof platform === "string" ? platform.trim().toLowerCase() : "custom";
+    const cleanIcon = typeof icon === "string" ? icon.trim().toLowerCase() : "";
+    const cleanBadge = typeof badge === "string" ? badge.trim() : "";
+    const cleanColor = typeof color === "string" ? color.trim() : "";
+
+    if (!cleanTitle) {
       return res.status(400).json({ error: "Title is required" });
     }
 
-    let finalUrl = url?.trim() || "";
+    let finalUrl = typeof url === "string" ? url.trim() : "";
     if (type === "link") {
       if (finalUrl) {
         const isSpecialScheme = /^(mailto:|tel:|wa\.me|t\.me|https?:\/\/|\/\/)/i.test(finalUrl);
@@ -5510,6 +5517,16 @@ adminRouter.post("/social-links", async (req, res) => {
     }
 
     const id = crypto.randomUUID();
+
+    if (parent_id) {
+      const parent = await db.execute({
+        sql: "SELECT id, type FROM social_tree_nodes WHERE id = ?",
+        args: [String(parent_id)],
+      });
+      if (parent.rows.length === 0 || parent.rows[0].type !== "group") {
+        return res.status(400).json({ error: "The selected parent group does not exist" });
+      }
+    }
 
     // Determine default sort_order if not provided
     let finalSortOrder = typeof sort_order === "number" ? sort_order : 0;
@@ -5533,13 +5550,13 @@ adminRouter.post("/social-links", async (req, res) => {
         id,
         parent_id || null,
         type === "group" ? "group" : "link",
-        title.trim(),
-        subtitle?.trim() || "",
-        platform?.trim() || "custom",
+        cleanTitle,
+        cleanSubtitle,
+        cleanPlatform || "custom",
         finalUrl,
-        icon?.trim() || "",
-        badge?.trim() || "",
-        color?.trim() || "",
+        cleanIcon,
+        cleanBadge,
+        cleanColor,
         is_enabled ? 1 : 0,
         is_expanded_default ? 1 : 0,
         finalSortOrder
@@ -5551,7 +5568,7 @@ adminRouter.post("/social-links", async (req, res) => {
       args: [id]
     });
 
-    res.json({ success: true, item: created.rows[0] });
+    res.status(201).json({ success: true, item: created.rows[0] });
   } catch (error: any) {
     console.error("Failed to create social link node:", error);
     res.status(500).json({ error: error.message || "Failed to create social link node" });
@@ -5575,7 +5592,7 @@ adminRouter.put("/social-links/:id", async (req, res) => {
       is_enabled,
       is_expanded_default,
       sort_order
-    } = req.body;
+    } = req.body || {};
 
     // Check if node exists
     const existing = await db.execute({
@@ -5598,7 +5615,7 @@ adminRouter.put("/social-links/:id", async (req, res) => {
     const current = existing.rows[0];
     const nodeType = type !== undefined ? type : current.type;
 
-    let finalUrl = url !== undefined ? (url?.trim() || "") : current.url;
+    let finalUrl = url !== undefined ? (typeof url === "string" ? url.trim() : "") : current.url;
     if (nodeType === "link") {
       if (finalUrl) {
         const isSpecialScheme = /^(mailto:|tel:|wa\.me|t\.me|https?:\/\/|\/\/)/i.test(finalUrl);
@@ -5615,13 +5632,13 @@ adminRouter.put("/social-links/:id", async (req, res) => {
 
     const updatedParentId = parent_id !== undefined ? (parent_id || null) : current.parent_id;
     const updatedType = nodeType;
-    const updatedTitle = title !== undefined ? title.trim() : current.title;
-    const updatedSubtitle = subtitle !== undefined ? (subtitle?.trim() || "") : current.subtitle;
-    const updatedPlatform = platform !== undefined ? platform : current.platform;
+    const updatedTitle = title !== undefined && title !== null ? String(title).trim() : current.title;
+    const updatedSubtitle = subtitle !== undefined ? (typeof subtitle === "string" ? subtitle.trim() : "") : current.subtitle;
+    const updatedPlatform = platform !== undefined ? (typeof platform === "string" ? platform.trim().toLowerCase() : "custom") : current.platform;
     const updatedUrl = finalUrl;
-    const updatedIcon = icon !== undefined ? (icon?.trim() || "") : current.icon;
-    const updatedBadge = badge !== undefined ? (badge?.trim() || "") : current.badge;
-    const updatedColor = color !== undefined ? (color?.trim() || "") : current.color;
+    const updatedIcon = icon !== undefined ? (typeof icon === "string" ? icon.trim().toLowerCase() : "") : current.icon;
+    const updatedBadge = badge !== undefined ? (typeof badge === "string" ? badge.trim() : "") : current.badge;
+    const updatedColor = color !== undefined ? (typeof color === "string" ? color.trim() : "") : current.color;
     const updatedIsEnabled = is_enabled !== undefined ? (is_enabled ? 1 : 0) : current.is_enabled;
     const updatedIsExpanded = is_expanded_default !== undefined ? (is_expanded_default ? 1 : 0) : current.is_expanded_default;
     const updatedSortOrder = sort_order !== undefined ? Number(sort_order) : current.sort_order;

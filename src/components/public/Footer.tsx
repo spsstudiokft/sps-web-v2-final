@@ -4,7 +4,7 @@ import { useLanguage } from "../../contexts/LanguageContext";
 import { useTheme } from "../ThemeProvider";
 import { t, tUi } from "../../lib/i18n";
 import { LegalDocumentModal } from "./LegalDocumentModal";
-import { Facebook, Github, Globe2, Instagram, Linkedin, MessageCircle, Music2, Youtube } from "lucide-react";
+import { SocialIconRenderer } from "../../lib/socialPresets";
 
 type LegalType = "privacy" | "terms" | "cookies" | "legal_notice";
 type LegalDocuments = Record<LegalType, Record<string, { title: string; content: string; updated_at?: string }>>;
@@ -36,18 +36,6 @@ export function Footer({ settings }: { settings: SiteSettings }) {
     fetch("/api/public/legal-documents").then((res) => res.ok ? res.json() : null).then((data) => data && setDocuments((prev) => ({ ...prev, ...data }))).catch(() => {});
     fetch("/api/public/social-links").then((res) => res.ok ? res.json() : []).then((data) => setSocialLinks(Array.isArray(data) ? data.filter((node) => node.type === "link" && node.url) : [])).catch(() => {});
   }, []);
-
-  const socialIcon = (platform = "") => {
-    const key = platform.toLowerCase();
-    if (key.includes("instagram")) return Instagram;
-    if (key.includes("facebook")) return Facebook;
-    if (key.includes("youtube")) return Youtube;
-    if (key.includes("linkedin")) return Linkedin;
-    if (key.includes("github")) return Github;
-    if (key.includes("tiktok")) return Music2;
-    if (key.includes("messenger") || key.includes("whatsapp")) return MessageCircle;
-    return Globe2;
-  };
 
   const safeSocialUrl = (url?: string | null) => url && /^(https?:|mailto:|tel:)/i.test(url) ? url : "#";
   const version = settings.footer_version || "v2.0.0";
@@ -97,8 +85,7 @@ export function Footer({ settings }: { settings: SiteSettings }) {
         {socialLinks.length > 0 && (
           <nav aria-label={tUi("footer.social_links", currentLang, undefined, defaultLang)} className="flex flex-wrap items-center justify-center gap-2 pt-2">
             {socialLinks.map((link) => {
-              const Icon = socialIcon(link.platform || link.title);
-              return <a key={link.id} href={safeSocialUrl(link.url)} target="_blank" rel="noopener noreferrer" aria-label={link.title} title={link.title} className="aero-footer-social w-10 h-10 rounded-xl border border-white/15 bg-white/8 hover:bg-white/15 hover:border-primary/50 hover:text-primary flex items-center justify-center transition-all"><Icon className="w-4.5 h-4.5" /></a>;
+              return <a key={link.id} href={safeSocialUrl(link.url)} target="_blank" rel="noopener noreferrer" aria-label={link.title} title={link.title} className="aero-footer-social w-10 h-10 rounded-xl border border-white/15 bg-white/8 hover:bg-white/15 hover:border-primary/50 hover:text-primary flex items-center justify-center transition-all"><SocialIconRenderer platform={link.platform || link.title} icon={link.icon} type="link" className="w-4.5 h-4.5" /></a>;
             })}
           </nav>
         )}
