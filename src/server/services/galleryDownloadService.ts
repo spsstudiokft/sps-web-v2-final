@@ -1,6 +1,7 @@
 import path from "path";
 import sharp from "sharp";
 import { downloadOrReadMediaBuffer } from "./mediaProcessingService.js";
+import { db } from "../../db.js";
 
 export type DownloadableGalleryItem = {
   url: string;
@@ -28,19 +29,117 @@ const extensionFor = (mime: string, url: string) => {
   return known[mime.split(";")[0].toLowerCase()] || path.extname(url.split("?")[0]) || ".bin";
 };
 
-function createContinuousWatermark(width: number, height: number): Buffer {
+const WATERMARK_GLYPHS: Record<string, string[]> = {
+  " ": ["00000", "00000", "00000", "00000", "00000", "00000", "00000"],
+  C: ["01111", "10000", "10000", "10000", "10000", "10000", "01111"],
+  D: ["11110", "10001", "10001", "10001", "10001", "10001", "11110"],
+  E: ["11111", "10000", "10000", "11110", "10000", "10000", "11111"],
+  F: ["11111", "10000", "10000", "11110", "10000", "10000", "10000"],
+  I: ["11111", "00100", "00100", "00100", "00100", "00100", "11111"],
+  O: ["01110", "10001", "10001", "10001", "10001", "10001", "01110"],
+  P: ["11110", "10001", "10001", "11110", "10000", "10000", "10000"],
+  R: ["11110", "10001", "10001", "11110", "10100", "10010", "10001"],
+  S: ["01111", "10000", "10000", "01110", "00001", "00001", "11110"],
+  T: ["11111", "00100", "00100", "00100", "00100", "00100", "00100"],
+  U: ["10001", "10001", "10001", "10001", "10001", "10001", "01110"],
+  Y: ["10001", "10001", "01010", "00100", "00100", "00100", "00100"],
+};
+
+function createWatermarkPath(label: string) {
+  const glyphWidth = 5;
+  const glyphGap = 1.5;
+  const pixelSize = 0.84;
+  const commands: string[] = [];
+  let cursor = 0;
+
+  for (const character of label.toUpperCase()) {
+    const glyph = WATERMARK_GLYPHS[character] || WATERMARK_GLYPHS[" "];
+    glyph.forEach((row, y) => {
+      for (let x = 0; x < row.length; x += 1) {
+        if (row[x] === "1") commands.push(`M${cursor + x} ${y}h${pixelSize}v${pixelSize}h-${pixelSize}z`);
+      }
+    });
+    cursor += glyphWidth + glyphGap;
+  }
+
+  return { path: commands.join(""), width: Math.max(1, cursor - glyphGap), height: 7 };
+}
+
+let watermarkLogoCache: { expiresAt: number; url: string; buffer: Buffer | null } | null = null;
+
+async function loadWatermarkLogo() {
+  const now = Date.now();
+  if (watermarkLogoCache && watermarkLogoCache.expiresAt > now) return watermarkLogoCache.buffer;
+
+  try {
+    const result = await db.execute(`SELECT key, value FROM settings
+      WHERE key IN ('logo_header_dark', 'logo_header_light')`);
+    const settings = Object.fromEntries(result.rows.map((row: any) => [String(row.key), String(row.value || "")]));
+    const url = String(settings.logo_header_dark || settings.logo_header_light || "").trim();
+    if (!url) {
+      watermarkLogoCache = { expiresAt: now + 60_000, url: "", buffer: null };
+      return null;
+    }
+    if (watermarkLogoCache?.url === url && watermarkLogoCache.buffer) {
+      watermarkLogoCache.expiresAt = now + 5 * 60_000;
+      return watermarkLogoCache.buffer;
+    }
+
+    const source = await downloadOrReadMediaBuffer(url);
+    watermarkLogoCache = { expiresAt: now + 5 * 60_000, url, buffer: source.buffer };
+    return source.buffer;
+  } catch (error) {
+    console.warn("Watermark logo could not be loaded; using text-only watermark", error);
+    watermarkLogoCache = { expiresAt: now + 30_000, url: "", buffer: null };
+    return null;
+  }
+}
+
+async function createContinuousWatermark(width: number, height: number): Promise<Buffer> {
   const cellWidth = Math.max(360, Math.min(680, Math.round(width * 0.34)));
   const cellHeight = Math.max(170, Math.round(cellWidth * 0.43));
   const fontSize = Math.max(24, Math.min(48, Math.round(cellWidth * 0.072)));
-  const mark = "Courtesy of SPS Studio";
+  const mark = createWatermarkPath("Courtesy of SPS Studio");
+  const scale = Math.min(fontSize / mark.height, (cellWidth * 0.78) / mark.width);
+  const textWidth = mark.width * scale;
+  let logoMarkup = "";
+  let logoWidth = 0;
+  const logoSource = await loadWatermarkLogo();
+  if (logoSource) {
+    try {
+      const targetHeight = Math.max(30, Math.round(fontSize * 1.05));
+      const renderedLogo = await sharp(logoSource, { failOn: "none" })
+        .resize({ width: Math.round(cellWidth * 0.22), height: targetHeight, fit: "inside", withoutEnlargement: false })
+        .png()
+        .toBuffer({ resolveWithObject: true });
+      logoWidth = renderedLogo.info.width;
+      const logoHeight = renderedLogo.info.height;
+      const padX = Math.max(6, Math.round(fontSize * 0.18));
+      const padY = Math.max(5, Math.round(fontSize * 0.14));
+      logoMarkup = `<g transform="translate(LOGO_X ${-logoHeight / 2})">
+        <rect x="${-padX}" y="${-padY}" width="${logoWidth + padX * 2}" height="${logoHeight + padY * 2}" rx="${Math.round((logoHeight + padY * 2) * 0.28)}"
+          fill="#061522" fill-opacity="0.58" stroke="#ffffff" stroke-opacity="0.68" stroke-width="1.25"/>
+        <image width="${logoWidth}" height="${logoHeight}" href="data:image/png;base64,${renderedLogo.data.toString("base64")}"/>
+      </g>`;
+    } catch (error) {
+      console.warn("Watermark logo could not be rasterized; using text-only watermark", error);
+    }
+  }
+  const logoGap = logoMarkup ? Math.max(18, Math.round(fontSize * 0.55)) : 0;
+  const totalWidth = logoWidth + logoGap + textWidth;
+  const logoX = -totalWidth / 2;
+  const textX = logoX + logoWidth + logoGap;
   const marks: string[] = [];
   for (let y = -cellHeight; y < height + cellHeight; y += cellHeight) {
     for (let x = -cellWidth; x < width + cellWidth; x += cellWidth) {
       const offset = (Math.floor(y / cellHeight) % 2) * (cellWidth / 2);
-      marks.push(`<text x="0" y="0" transform="translate(${Math.round(x + offset + cellWidth / 2)} ${Math.round(y + cellHeight / 2)}) rotate(-27)"
-        text-anchor="middle" font-family="DejaVu Sans, Liberation Sans, sans-serif" font-size="${fontSize}" font-weight="700"
-        letter-spacing="0.5" fill="#ffffff" fill-opacity="0.42" stroke="#081420" stroke-opacity="0.5"
-        stroke-width="1.4" paint-order="stroke fill">${mark}</text>`);
+      const centerX = Math.round(x + offset + cellWidth / 2);
+      const centerY = Math.round(y + cellHeight / 2);
+      marks.push(`<g transform="translate(${centerX} ${centerY}) rotate(-27)">
+        ${logoMarkup.replace("LOGO_X", String(logoX))}
+        <path d="${mark.path}" transform="translate(${textX} ${-(mark.height * scale) / 2}) scale(${scale})"
+          fill="#ffffff" fill-opacity="0.55" stroke="#061522" stroke-opacity="0.78" stroke-width="0.28" stroke-linejoin="round"/>
+      </g>`);
     }
   }
   return Buffer.from(`
@@ -63,7 +162,7 @@ export async function prepareGalleryFile(item: DownloadableGalleryItem, index: n
     const metadata = await sharp(buffer).metadata();
     const width = metadata.width || 1600;
     const height = metadata.height || Math.round(width * .67);
-    const svg = createContinuousWatermark(width, height);
+    const svg = await createContinuousWatermark(width, height);
     buffer = await sharp(buffer).composite([{ input: svg, gravity: "center" }]).jpeg({ quality: 90, progressive: true, mozjpeg: true }).toBuffer();
     mimeType = "image/jpeg";
   } else if (forceJpeg && item.type === "image" && mimeType.split(";")[0].toLowerCase() !== "image/jpeg") {
