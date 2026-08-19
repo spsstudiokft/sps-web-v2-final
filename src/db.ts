@@ -188,6 +188,24 @@ export const setupDatabase = async () => {
   try { await client.execute(`UPDATE invitations SET team_id = 'team-main-studio' WHERE (team_id IS NULL OR team_id = '') AND COALESCE(workspace, 'Main Studio') = 'Main Studio'`); } catch {}
   try { await client.execute("ALTER TABLE email_templates ADD COLUMN token_defaults TEXT NOT NULL DEFAULT '{}'"); } catch {}
 
+  // Client account settings were introduced after the v8 initialization
+  // marker. These migrations must run before the initialized-database fast
+  // path or existing Turso databases will make /client/settings/profile fail.
+  try {
+    const usersSchema = await client.execute("PRAGMA table_info(users)");
+    const existingUserColumns = new Set(usersSchema.rows.map((column: any) => String(column.name)));
+    const missingUserColumns = [
+      ["name", "ALTER TABLE users ADD COLUMN name TEXT DEFAULT ''"],
+      ["updated_at", "ALTER TABLE users ADD COLUMN updated_at DATETIME DEFAULT NULL"],
+      ["password_auth_enabled", "ALTER TABLE users ADD COLUMN password_auth_enabled INTEGER DEFAULT 1"],
+      ["password_updated_at", "ALTER TABLE users ADD COLUMN password_updated_at DATETIME DEFAULT NULL"],
+      ["tfa_enabled", "ALTER TABLE users ADD COLUMN tfa_enabled INTEGER DEFAULT 0"],
+    ].filter(([name]) => !existingUserColumns.has(name)).map(([, sql]) => sql);
+    if (missingUserColumns.length > 0) await client.batch(missingUserColumns, "write");
+  } catch {
+    // A brand-new database creates the complete users table below.
+  }
+
   // Portfolio gallery pages were added after the v8 marker. Run this compact
   // migration before the fast path so existing production galleries receive
   // stable public URLs without replaying the full schema setup.

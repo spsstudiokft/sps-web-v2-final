@@ -1,5 +1,12 @@
 # Modification Log
 
+## 2026-08-19 — Client settings endpoint production migration fix
+
+- Moved the client profile/password/TFA compatibility columns into the lightweight migration phase that always runs before the initialized-database fast path.
+- Fixed existing Vercel/Turso databases returning `Failed to load account settings` because the settings endpoint selected columns that had not been added after an earlier initialization.
+- Added a rolling-deployment compatibility query so the registered email address remains available while additive schema migration finishes.
+- Reduced repeated Turso cold-start migration traffic by checking the user schema once and batching only genuinely missing columns.
+
 ## 2026-08-19 — Admin client account creation date display
 
 - Fixed SQLite UTC timestamps being interpreted as local timestamps in the admin client portal list.

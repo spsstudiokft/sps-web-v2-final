@@ -86,11 +86,23 @@ async function sendClientAccountChangeEmail(params: {
 clientRouter.get("/settings/profile", async (req, res) => {
   try {
     const userId = String((req as any).user?.id || "");
-    const result = await db.execute({
-      sql: `SELECT id, email, name, password_auth_enabled, password_updated_at, tfa_enabled, created_at
-            FROM users WHERE id = ? AND role = 'client' LIMIT 1`,
-      args: [userId],
-    });
+    let result;
+    try {
+      result = await db.execute({
+        sql: `SELECT id, email, name, password_auth_enabled, password_updated_at, tfa_enabled, created_at
+              FROM users WHERE id = ? AND role = 'client' LIMIT 1`,
+        args: [userId],
+      });
+    } catch (schemaError) {
+      // Keep the registered email/profile available during a rolling deploy
+      // even if a serverless instance reaches Turso before the additive
+      // account-settings migration has completed.
+      console.warn("Client settings columns are not available yet; using compatibility profile query", schemaError);
+      result = await db.execute({
+        sql: "SELECT id, email, created_at FROM users WHERE id = ? AND role = 'client' LIMIT 1",
+        args: [userId],
+      });
+    }
     if (result.rows.length === 0) return res.status(404).json({ error: "Client account not found." });
     const user = result.rows[0];
     res.json({
