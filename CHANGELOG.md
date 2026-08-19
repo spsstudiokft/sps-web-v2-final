@@ -54,6 +54,9 @@
 - Standardized legacy mobile proxy requests on one 640 px cache key and preconnects the browser to detected media origins before the portfolio approaches the viewport.
 - Added a Facebook-style blur-up placeholder to portfolio lightbox images, using the small stored thumbnail until the larger optimized image finishes loading and decoding.
 - Switched dependency installation and Vercel builds from pnpm to npm, with a single npm lockfile and deterministic `npm ci` installs.
+- Pinned npm to the Vercel-supported 10.x line and documented that any legacy Vercel dashboard `pnpm install` override must be disabled or changed to `npm ci --no-audit --no-fund`.
+- Removed the unused Google GenAI SDK and redundant Sharp/UUID stub type packages, eliminating their transitive deprecation warnings.
+- Added version-pinned npm install-script approvals for the required esbuild and protobufjs lifecycle scripts, and silenced esbuild's non-actionable server bundle size marker.
 - Removed full schema migration/setup work from the read-only Vercel public function cold-start path; admin, authentication, client, billing, and fallback functions retain database initialization.
 - Added dedicated browser and Vercel CDN cache controls for the public bootstrap response, including stale-on-error delivery during temporary database outages.
 - Added one-year immutable caching for fingerprinted Vite assets and revalidation caching for bundled public images.

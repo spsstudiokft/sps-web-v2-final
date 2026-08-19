@@ -16,7 +16,6 @@ SPS Studio is an all-in-one studio management platform designed for architectura
 - **Database Layer**: LibSQL / Turso SQLite with local fallback (`local.db`) for lightweight development and edge/serverless scaling in production.
 - **Media Engine**: Cloudflare R2 multipart and direct browser-to-Appwrite uploads, structured filenames, automatic sub-10 MB JPEG derivatives, video thumbnails, watermark rendering, storage lifecycle cleanup, and ZIP delivery.
 - **Email Engine**: Resend API integration with transactional email templates, live multi-device visual previewer, and token interpolation.
-- **AI Services**: Google Gemini (`@google/genai`) for automated multi-language translation and localized content generation.
 
 ---
 
@@ -128,7 +127,6 @@ SPS Studio is an all-in-one studio management platform designed for architectura
 | **Database** | LibSQL (`@libsql/client`), Turso SQLite |
 | **Storage Providers** | AWS S3 SDK (Cloudflare R2), Appwrite Web SDK + `node-appwrite` |
 | **Email Service** | Resend (`resend`) |
-| **AI Integration** | Google GenAI SDK (`@google/genai`) |
 | **Security & Auth** | JSON Web Tokens (`jsonwebtoken`), Bcrypt (`bcryptjs`) |
 | **Build & Tooling** | Vite 6, ESBuild, TypeScript 5.8, TSX |
 
@@ -138,7 +136,7 @@ SPS Studio is an all-in-one studio management platform designed for architectura
 
 ### 1. Prerequisites
 - **Node.js**: v18.0.0 or higher
-- **npm 11+** (the repository and Vercel deployment use `package-lock.json`, `npm ci`, and `npm run build`)
+- **npm 10** (the repository and Vercel deployment use `package-lock.json`, `npm ci`, and `npm run build`)
 
 ### 2. Clone and Install Dependencies
 ```bash
