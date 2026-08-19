@@ -38,6 +38,10 @@
   ],
   "rewrites": [
     {
+      "source": "/sitemap.xml",
+      "destination": "/api/public/sitemap.xml"
+    },
+    {
       "source": "/api/admin/budgets/:match*",
       "destination": "/api/budgets.ts"
     },

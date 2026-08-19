@@ -45,6 +45,7 @@ const ClientProjectsPage = lazy(() => import("./pages/client/ClientProjectsPage"
 const ClientInvoicesPage = lazy(() => import("./pages/client/ClientInvoicesPage"));
 const ClientReferralsPage = lazy(() => import("./pages/client/ClientReferralsPage"));
 const PublicInvoicePage = lazy(() => import("./pages/PublicInvoicePage"));
+const PortfolioGalleryPage = lazy(() => import("./pages/PortfolioGalleryPage"));
 
 const ProtectedClientRoute = ({ children }: { children: React.ReactNode }) => {
   const { token, user } = useAuth();
@@ -108,6 +109,7 @@ export default function App() {
             <Suspense fallback={<div className="min-h-screen bg-background" aria-busy="true" />}>
             <Routes>
               <Route path="/" element={<PublicHome />} />
+              <Route path="/portfolio/:slug" element={<PortfolioGalleryPage />} />
               <Route path="/admin/setup" element={<AdminSetup />} />
               <Route path="/admin/login" element={<AdminLogin />} />
 

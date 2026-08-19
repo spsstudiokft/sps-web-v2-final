@@ -58,6 +58,10 @@
 - Removed the unused Google GenAI SDK and redundant Sharp/UUID stub type packages, eliminating their transitive deprecation warnings.
 - Added version-pinned npm install-script approvals for the required esbuild and protobufjs lifecycle scripts, and silenced esbuild's non-actionable server bundle size marker.
 - Updated every generated email header to prefer the uploaded dark-background logo variant on the blue header, retaining the light-background logo as a compatibility fallback.
+- Added authenticated client-portal project timelines with ordered milestones, status indicators, due dates, and timestamped project updates; timeline records are batch-loaded only for projects owned by the signed-in client.
+- Added stable, unique slugs for every existing and future portfolio gallery, including an automatic database backfill and unique index.
+- Added standalone `/portfolio/:slug` gallery pages with all associated media, responsive optimized previews, lightbox access, localized content, canonical/Open Graph metadata, ImageGallery JSON-LD, and an automatically generated `/sitemap.xml`.
+- Added a localized “Open full gallery” action to the public portfolio lightbox so visitors and crawlers can reach the dedicated gallery URL.
 - Removed full schema migration/setup work from the read-only Vercel public function cold-start path; admin, authentication, client, billing, and fallback functions retain database initialization.
 - Added dedicated browser and Vercel CDN cache controls for the public bootstrap response, including stale-on-error delivery during temporary database outages.
 - Added one-year immutable caching for fingerprinted Vite assets and revalidation caching for bundled public images.

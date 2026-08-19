@@ -13,6 +13,7 @@ import { translationService } from "./services/translationService.js";
 import { getAllLegalDocuments, saveLegalDocument } from "./services/legalDocumentService.js";
 import { scheduleGoogleReviewCampaign } from "./services/googleReviewService.js";
 import { getAppUrl } from "./appUrl.js";
+import { createPortfolioSlug } from "./portfolioSlug.js";
 import { 
   processStructuredMediaUpload,
   validateStructuredFilename,
@@ -1148,13 +1149,15 @@ adminRouter.post("/portfolio", async (req, res) => {
   try {
     const { title, description, category_id, item_type, media_type, media_url, thumbnail_url, image_urls, target_url, is_featured, is_published, sort_order, keywords } = req.body;
     const id = crypto.randomUUID();
+    const slug = createPortfolioSlug(title, id);
     const resolvedItemType = item_type || (media_type === "video" ? "interior_video" : "image");
     const resolvedMediaType = (resolvedItemType === "drone_video" || resolvedItemType === "interior_video" || media_type === "video") ? "video" : "image";
 
     await db.execute({
-      sql: "INSERT INTO portfolio_items (id, title, description, category_id, item_type, media_type, media_url, thumbnail_url, image_urls, target_url, is_featured, is_published, sort_order, keywords) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      sql: "INSERT INTO portfolio_items (id, slug, title, description, category_id, item_type, media_type, media_url, thumbnail_url, image_urls, target_url, is_featured, is_published, sort_order, keywords) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
       args: [
-        id, 
+        id,
+        slug,
         title, 
         description || "", 
         category_id || null, 
@@ -1170,7 +1173,7 @@ adminRouter.post("/portfolio", async (req, res) => {
         keywords || ""
       ]
     });
-    res.json({ success: true, id });
+    res.json({ success: true, id, slug });
   } catch (error) {
     console.error("Failed to create portfolio item", error);
     res.status(500).json({ error: "Failed to create portfolio item" });

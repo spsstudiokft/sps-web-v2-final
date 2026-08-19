@@ -32,11 +32,12 @@ SPS Studio is an all-in-one studio management platform designed for architectura
 - **Adaptive Navigation**: Services and Portfolio links disappear automatically when no published content exists.
 - **Mixed Portfolio Conveyor**: Gallery media is randomized across marquee rows and avoids adjacent images from the same portfolio whenever possible.
 - **Four Media Rows**: Separate randomized rows for standard photography, drone video, interior walkthrough video, and drone photography, using an alternating left/right motion pattern.
+- **Indexable Gallery Pages**: Every published portfolio gallery has a stable `/portfolio/:slug` page containing all associated media, canonical/Open Graph metadata, ImageGallery structured data, and automatic sitemap discovery.
 
 ### 🔐 Client Portal & Project Management
 - **Passwordless Magic Link & Password Sign-In**: Secure client authentication via email magic link or traditional credentials.
 - **Self-Service Client Registration**: Onboarding flow with client profile setup and welcome emails.
-- **Interactive Project Tracker**: Milestone progression (Booked → Scheduled → Shooting → Editing → Delivered).
+- **Interactive Project Tracker**: Each authenticated client sees the ordered milestones, live status, due dates, and timestamped update feed for their own projects.
 - **PIN-Protected Deliverable Galleries**: Individual and multi-select ZIP downloads with rotating four-digit PINs, forgotten-PIN email recovery, locked-preview watermarking, and right-click-safe delivery.
 - **Original & Optimized Downloads**: Separate full-resolution and optimized-image categories with identical authorization and watermark rules.
 - **Video & Image Previewing**: Generated video frame thumbnails, project preview images, attached-gallery counts, and full-size media modals.

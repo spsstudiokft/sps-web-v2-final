@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
+import { Link } from "react-router-dom";
 import { PortfolioItem } from "../../../lib/types";
 import { useLanguage } from "../../../contexts/LanguageContext";
 import { t } from "../../../lib/i18n";
@@ -32,7 +33,7 @@ interface PortfolioLightboxModalProps {
 }
 
 export function PortfolioLightboxModal({ item, initialIndex = 0, onClose }: PortfolioLightboxModalProps) {
-  const { currentLang, defaultLang } = useLanguage();
+  const { currentLang, defaultLang, tUi } = useLanguage();
   const [currentIndex, setCurrentIndex] = useState(initialIndex || 0);
   const [fullImageLoaded, setFullImageLoaded] = useState(false);
 
@@ -419,7 +420,17 @@ export function PortfolioLightboxModal({ item, initialIndex = 0, onClose }: Port
             )}
           </div>
 
-          <div className="flex items-center gap-3 w-full sm:w-auto shrink-0">
+          <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto shrink-0">
+            {item.slug && (
+              <Link
+                to={`/portfolio/${item.slug}`}
+                onClick={onClose}
+                className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl border border-primary/30 bg-primary/10 hover:bg-primary/15 text-primary text-xs font-semibold flex items-center justify-center gap-2 transition-colors"
+              >
+                <Layers className="w-3.5 h-3.5" />
+                <span>{tUi("portfolio.page.open_full_gallery")}</span>
+              </Link>
+            )}
             {item.target_url && (
               <a
                 href={item.target_url}

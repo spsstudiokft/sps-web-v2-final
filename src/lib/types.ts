@@ -107,6 +107,7 @@ export interface GalleryMediaItem {
 
 export type PortfolioItem = {
   id: string;
+  slug?: string | null;
   title: string;
   description: string | null;
   category_id: string | null;
@@ -137,6 +138,8 @@ export type Project = {
   keywords?: string | null;
   created_at: string;
   updated_at: string;
+  milestones?: ProjectMilestone[];
+  updates?: ProjectUpdate[];
   portfolios?: Array<{
     id: string;
     title: string;
@@ -147,6 +150,30 @@ export type Project = {
     media_url?: string;
     media_type?: "image" | "video";
   }>;
+};
+
+export type ProjectMilestone = {
+  id: string;
+  project_id: string;
+  title: string;
+  description?: string | null;
+  status: "pending" | "in_progress" | "completed" | "blocked" | string;
+  due_date?: string | null;
+  completed_at?: string | null;
+  sort_order: number;
+  created_at: string;
+  updated_at?: string;
+};
+
+export type ProjectUpdate = {
+  id: string;
+  project_id: string;
+  milestone_id?: string | null;
+  title: string;
+  message: string;
+  status_label?: string | null;
+  created_at: string;
+  updated_at?: string;
 };
 
 export type Category = {

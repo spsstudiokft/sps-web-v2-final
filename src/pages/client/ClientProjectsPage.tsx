@@ -22,7 +22,12 @@ import {
   Maximize2,
   X,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Flag,
+  MessageSquare,
+  CheckCircle2,
+  CircleDot,
+  AlertCircle
 } from "lucide-react";
 
 export default function ClientProjectsPage() {
@@ -177,6 +182,15 @@ export default function ClientProjectsPage() {
     }
   };
 
+  const getMilestoneStatus = (status: string) => {
+    switch (status) {
+      case "completed": return { label: tUi("client.projects.milestone_completed"), className: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400", icon: CheckCircle2 };
+      case "in_progress": return { label: tUi("client.projects.milestone_in_progress"), className: "bg-sky-500/10 text-sky-600 dark:text-sky-400", icon: CircleDot };
+      case "blocked": return { label: tUi("client.projects.milestone_blocked"), className: "bg-rose-500/10 text-rose-600 dark:text-rose-400", icon: AlertCircle };
+      default: return { label: tUi("client.projects.milestone_pending"), className: "bg-amber-500/10 text-amber-600 dark:text-amber-400", icon: Clock };
+    }
+  };
+
   if (loading) {
     return (
       <div className="space-y-6 max-w-5xl mx-auto py-6">
@@ -260,6 +274,85 @@ export default function ClientProjectsPage() {
                       <p className="text-text/90 text-sm leading-relaxed">{project.description}</p>
                     </div>
                   )}
+
+                  <section className="space-y-4" aria-labelledby={`project-timeline-${project.id}`}>
+                    <div className="flex items-center justify-between gap-3">
+                      <h4 id={`project-timeline-${project.id}`} className="text-sm font-semibold text-text uppercase tracking-wider">
+                        {tUi("client.projects.timeline")}
+                      </h4>
+                      <span className="text-[11px] text-muted-text">
+                        {tUi("client.projects.timeline_summary", {
+                          milestones: project.milestones?.length || 0,
+                          updates: project.updates?.length || 0,
+                        })}
+                      </span>
+                    </div>
+
+                    {(project.milestones?.length || project.updates?.length) ? (
+                      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                        <div className="rounded-2xl border border-border bg-background/70 p-4 sm:p-5">
+                          <div className="mb-4 flex items-center gap-2 text-sm font-semibold text-text">
+                            <Flag className="h-4 w-4 text-primary" />
+                            {tUi("client.projects.milestones")}
+                          </div>
+                          {project.milestones?.length ? (
+                            <ol className="space-y-0">
+                              {project.milestones.map((milestone, index) => {
+                                const status = getMilestoneStatus(milestone.status);
+                                const StatusIcon = status.icon;
+                                return (
+                                  <li key={milestone.id} className="relative flex gap-3 pb-5 last:pb-0">
+                                    {index < project.milestones!.length - 1 && <span className="absolute left-[15px] top-8 bottom-0 w-px bg-border" aria-hidden="true" />}
+                                    <span className={`relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${status.className}`}>
+                                      <StatusIcon className="h-4 w-4" />
+                                    </span>
+                                    <div className="min-w-0 flex-1 pt-0.5">
+                                      <div className="flex flex-wrap items-start justify-between gap-2">
+                                        <p className="text-sm font-semibold text-text">{milestone.title}</p>
+                                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${status.className}`}>{status.label}</span>
+                                      </div>
+                                      {milestone.description && <p className="mt-1 text-xs leading-relaxed text-muted-text">{milestone.description}</p>}
+                                      {milestone.due_date && (
+                                        <p className="mt-2 flex items-center gap-1 text-[11px] text-muted-text">
+                                          <Calendar className="h-3 w-3" />
+                                          {tUi("client.projects.due_date", { date: new Date(milestone.due_date).toLocaleDateString() })}
+                                        </p>
+                                      )}
+                                    </div>
+                                  </li>
+                                );
+                              })}
+                            </ol>
+                          ) : <p className="text-xs italic text-muted-text">{tUi("client.projects.no_milestones")}</p>}
+                        </div>
+
+                        <div className="rounded-2xl border border-border bg-background/70 p-4 sm:p-5">
+                          <div className="mb-4 flex items-center gap-2 text-sm font-semibold text-text">
+                            <MessageSquare className="h-4 w-4 text-primary" />
+                            {tUi("client.projects.updates_feed")}
+                          </div>
+                          {project.updates?.length ? (
+                            <div className="max-h-[28rem] space-y-3 overflow-y-auto pr-1">
+                              {project.updates.map((update) => (
+                                <article key={update.id} className="rounded-xl border border-border/80 bg-surface/40 p-3.5">
+                                  <div className="flex flex-wrap items-start justify-between gap-2">
+                                    <h5 className="text-sm font-semibold text-text">{update.title}</h5>
+                                    <time className="text-[10px] text-muted-text" dateTime={update.created_at}>{new Date(update.created_at).toLocaleString()}</time>
+                                  </div>
+                                  {update.status_label && <span className="mt-2 inline-flex rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">{update.status_label}</span>}
+                                  <p className="mt-2 whitespace-pre-line text-xs leading-relaxed text-muted-text">{update.message}</p>
+                                </article>
+                              ))}
+                            </div>
+                          ) : <p className="text-xs italic text-muted-text">{tUi("client.projects.no_updates")}</p>}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="rounded-2xl border border-dashed border-border bg-background/40 px-4 py-6 text-center text-sm text-muted-text">
+                        {tUi("client.projects.no_timeline")}
+                      </div>
+                    )}
+                  </section>
 
                   <div className="space-y-4">
                     <h4 className="text-sm font-semibold text-text uppercase tracking-wider">{tUi("client.projects.linked_galleries")}</h4>

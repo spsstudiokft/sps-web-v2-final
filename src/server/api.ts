@@ -1098,6 +1098,47 @@ router.get("/public/portfolio", async (req, res) => {
   }
 });
 
+router.get("/public/portfolio/:slug", async (req, res) => {
+  try {
+    res.set("Cache-Control", "public, max-age=60, s-maxage=300, stale-while-revalidate=86400");
+    const result = await db.execute({
+      sql: `SELECT p.*, c.name as category_name, c.slug as category_slug
+            FROM portfolio_items p
+            LEFT JOIN categories c ON p.category_id = c.id
+            WHERE p.slug = ? AND p.is_published = 1
+            LIMIT 1`,
+      args: [String(req.params.slug || "")],
+    });
+    if (result.rows.length === 0) return res.status(404).json({ error: "Portfolio gallery not found" });
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error("Public portfolio gallery fetch error:", error);
+    res.status(500).json({ error: "Failed to fetch portfolio gallery" });
+  }
+});
+
+router.get("/public/sitemap.xml", async (req, res) => {
+  try {
+    const origin = getAppUrl(req).replace(/\/$/, "");
+    const result = await db.execute(`SELECT slug, COALESCE(updated_at, created_at) AS lastmod
+                                     FROM portfolio_items
+                                     WHERE is_published = 1 AND slug IS NOT NULL AND TRIM(slug) != ''
+                                     ORDER BY updated_at DESC, created_at DESC`);
+    const escapeXml = (value: unknown) => String(value || "")
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;");
+    const urls = [
+      `<url><loc>${escapeXml(origin)}/</loc><changefreq>weekly</changefreq><priority>1.0</priority></url>`,
+      ...result.rows.map((row: any) => `<url><loc>${escapeXml(origin)}/portfolio/${encodeURIComponent(String(row.slug))}</loc>${row.lastmod ? `<lastmod>${escapeXml(new Date(String(row.lastmod)).toISOString())}</lastmod>` : ""}<changefreq>monthly</changefreq><priority>0.8</priority></url>`),
+    ];
+    res.set("Content-Type", "application/xml; charset=utf-8");
+    res.set("Cache-Control", "public, max-age=300, s-maxage=3600, stale-while-revalidate=86400");
+    res.send(`<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls.join("")}</urlset>`);
+  } catch (error) {
+    console.error("Sitemap generation error:", error);
+    res.status(500).type("text/plain").send("Failed to generate sitemap");
+  }
+});
+
 router.get("/public/services", async (req, res) => {
   try {
     res.set("Cache-Control", "public, max-age=30, s-maxage=60, stale-while-revalidate=300");

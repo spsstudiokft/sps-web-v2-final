@@ -1,5 +1,6 @@
 import { createClient } from "@libsql/client";
 import crypto from "node:crypto";
+import { createPortfolioSlug } from "./server/portfolioSlug.js";
 
 // In production environments like Vercel or Cloud Run, the filesystem is often read-only except for /tmp.
 const isProd = process.env.NODE_ENV === "production" || process.env.VERCEL === "1";
@@ -183,6 +184,23 @@ export const setupDatabase = async () => {
   try { await client.execute(`UPDATE users SET team_id = 'team-main-studio' WHERE role IN ('superadmin','admin','editor','viewer') AND (team_id IS NULL OR team_id = '') AND COALESCE(workspace, 'Main Studio') = 'Main Studio'`); } catch {}
   try { await client.execute(`UPDATE invitations SET team_id = 'team-main-studio' WHERE (team_id IS NULL OR team_id = '') AND COALESCE(workspace, 'Main Studio') = 'Main Studio'`); } catch {}
   try { await client.execute("ALTER TABLE email_templates ADD COLUMN token_defaults TEXT NOT NULL DEFAULT '{}'"); } catch {}
+
+  // Portfolio gallery pages were added after the v8 marker. Run this compact
+  // migration before the fast path so existing production galleries receive
+  // stable public URLs without replaying the full schema setup.
+  try { await client.execute("ALTER TABLE portfolio_items ADD COLUMN slug TEXT"); } catch {}
+  try {
+    const missingSlugs = await client.execute("SELECT id, title FROM portfolio_items WHERE slug IS NULL OR TRIM(slug) = ''");
+    for (const item of missingSlugs.rows as any[]) {
+      await client.execute({
+        sql: "UPDATE portfolio_items SET slug = ? WHERE id = ?",
+        args: [createPortfolioSlug(item.title, String(item.id)), item.id],
+      });
+    }
+    await client.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_portfolio_slug ON portfolio_items(slug)");
+  } catch (error) {
+    console.warn("Portfolio slug lightweight migration warning", error);
+  }
 
   // Public landing-page reads repeatedly filter and order by these columns.
   // Create their indexes in a single remote batch to keep Turso cold starts
@@ -393,6 +411,7 @@ export const setupDatabase = async () => {
         )`,
         `CREATE TABLE IF NOT EXISTS portfolio_items (
           id TEXT PRIMARY KEY,
+          slug TEXT UNIQUE,
           title TEXT NOT NULL,
           description TEXT,
           category_id TEXT,
@@ -574,6 +593,7 @@ export const setupDatabase = async () => {
   await client.execute(`
     CREATE TABLE IF NOT EXISTS portfolio_items (
       id TEXT PRIMARY KEY,
+      slug TEXT UNIQUE,
       title TEXT NOT NULL,
       description TEXT,
       category_id TEXT,
@@ -596,6 +616,21 @@ export const setupDatabase = async () => {
   try {
     await client.execute("ALTER TABLE portfolio_items ADD COLUMN item_type TEXT DEFAULT 'image'");
   } catch (e) {}
+  try {
+    await client.execute("ALTER TABLE portfolio_items ADD COLUMN slug TEXT");
+  } catch (e) {}
+  try {
+    const missingSlugs = await client.execute("SELECT id, title FROM portfolio_items WHERE slug IS NULL OR TRIM(slug) = ''");
+    for (const item of missingSlugs.rows as any[]) {
+      await client.execute({
+        sql: "UPDATE portfolio_items SET slug = ? WHERE id = ?",
+        args: [createPortfolioSlug(item.title, String(item.id)), item.id],
+      });
+    }
+    await client.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_portfolio_slug ON portfolio_items(slug)");
+  } catch (error) {
+    console.warn("Portfolio slug migration warning", error);
+  }
 
   // Backfill item_type for existing items based on category if needed
   try {
@@ -3822,6 +3857,21 @@ export const setupDatabase = async () => {
     }
   } catch (refErr) {
     console.warn("[DB Setup] Referral schema setup note:", refErr);
+  }
+
+  // A brand-new database may insert its demo portfolio records after the
+  // column migration above, so finish by assigning slugs to those rows too.
+  try {
+    const missingSlugs = await client.execute("SELECT id, title FROM portfolio_items WHERE slug IS NULL OR TRIM(slug) = ''");
+    for (const item of missingSlugs.rows as any[]) {
+      await client.execute({
+        sql: "UPDATE portfolio_items SET slug = ? WHERE id = ?",
+        args: [createPortfolioSlug(item.title, String(item.id)), item.id],
+      });
+    }
+    await client.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_portfolio_slug ON portfolio_items(slug)");
+  } catch (error) {
+    console.warn("Final portfolio slug backfill warning", error);
   }
 
   // Mark schema as fully initialized for high-performance subsequent cold-starts

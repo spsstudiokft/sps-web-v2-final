@@ -84,6 +84,36 @@ clientRouter.get("/projects", async (req, res) => {
       sql: "SELECT * FROM projects WHERE client_id = ? ORDER BY created_at DESC",
       args: [user.id]
     });
+
+    const projectIds = result.rows.map((project: any) => String(project.id));
+    const placeholders = projectIds.map(() => "?").join(",");
+    const [milestoneResult, updateResult] = projectIds.length > 0
+      ? await Promise.all([
+          db.execute({
+            sql: `SELECT id, project_id, title, description, status, due_date, completed_at, sort_order, created_at, updated_at
+                  FROM project_milestones WHERE project_id IN (${placeholders})
+                  ORDER BY project_id, sort_order ASC, created_at ASC`,
+            args: projectIds,
+          }),
+          db.execute({
+            sql: `SELECT id, project_id, milestone_id, title, message, status_label, created_at, updated_at
+                  FROM project_updates WHERE project_id IN (${placeholders})
+                  ORDER BY project_id, created_at DESC`,
+            args: projectIds,
+          }),
+        ])
+      : [{ rows: [] }, { rows: [] }];
+
+    const milestonesByProject = new Map<string, any[]>();
+    const updatesByProject = new Map<string, any[]>();
+    for (const milestone of milestoneResult.rows as any[]) {
+      const projectId = String(milestone.project_id);
+      milestonesByProject.set(projectId, [...(milestonesByProject.get(projectId) || []), milestone]);
+    }
+    for (const update of updateResult.rows as any[]) {
+      const projectId = String(update.project_id);
+      updatesByProject.set(projectId, [...(updatesByProject.get(projectId) || []), update]);
+    }
     
     const projects = await Promise.all(result.rows.map(async (project) => {
       const portRes = await db.execute({
@@ -112,6 +142,8 @@ clientRouter.get("/projects", async (req, res) => {
       });
       return {
         ...project,
+        milestones: milestonesByProject.get(String(project.id)) || [],
+        updates: updatesByProject.get(String(project.id)) || [],
         portfolios
       };
     }));
