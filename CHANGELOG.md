@@ -6,6 +6,7 @@
 - Added a Vercel-specific build task that emits only the Vite frontend because Vercel packages the `api/*.ts` serverless entrypoints independently.
 - Removed the unused standalone `dist/server.cjs` bundle and its source map from Vercel build output, avoiding roughly 3.8 MB of redundant generated deployment artifacts and an unnecessary server bundling pass on every deployment.
 - Removed the unused direct `uuid` and `zod` dependencies from the npm manifest and lockfile, reducing installation and dependency-tracing work without changing application behavior.
+- Regenerated `package-lock.json` from a clean npm state after dependency pruning so optional Tailwind WASI packages (`@emnapi/core` and `@emnapi/wasi-threads`) remain represented and Vercel's strict `npm ci` validation succeeds.
 
 ## 2026-08-19 — Portfolio media lifecycle, optimized delivery, and showcase refinements
 
