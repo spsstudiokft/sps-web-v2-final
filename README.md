@@ -68,6 +68,9 @@ SPS Studio is an all-in-one studio management platform designed for architectura
 - **Immediate Listing Publication**: Public property list/detail responses bypass browser and Vercel CDN caches, so enabling or disabling a listing is reflected on `/properties` without waiting for a stale catalog to expire.
 - **Direct Section Media Uploads**: Admin-managed section backgrounds and content images use the configured direct Appwrite/R2 pipeline, generate optimized display media during upload, and avoid Vercel request-body limits.
 - **Built-in Section Media Previews**: The section media editor shows the public site's hard-coded default imagery until an uploaded override is configured.
+- **Editable Section Media Localization**: Section-image controls and labels are available in all five supported locales and are synchronized to the database translation editor together with property-listing navigation and account keys.
+- **Context-Aware Error Pages**: Aero-styled 401, 403, 404, 500, and 503 states preserve light/dark mode, distinguish login redirects from forbidden roles, keep nested dashboard context, and handle missing public resources without silent homepage redirects.
+- **Coming Soon Mode**: Administrators can immediately gate public marketing routes behind a multilingual Aero countdown with uploaded blurred image/video media, theme-aware branding, social-tree links, and optional footer while operational portals and invoice links remain accessible.
 - **Menu Publication Control**: Administrators can show or hide the Properties entry in the public desktop and mobile navigation without disabling direct access to the catalog URL.
 - **Direct Studio Messaging**: In-portal project inquiries and revision requests linked directly to the studio admin.
 

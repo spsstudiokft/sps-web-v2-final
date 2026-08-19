@@ -265,7 +265,7 @@ export function ImageUploadCard({
               )}
               {!value && fallbackPreviewUrl && (
                 <div className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
-                  Beépített alapértelmezett kép
+                  {tUi("admin.section_media.built_in_preview") || "Built-in default image"}
                 </div>
               )}
             </div>

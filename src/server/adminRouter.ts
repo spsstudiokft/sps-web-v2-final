@@ -754,6 +754,18 @@ adminRouter.post("/settings", async (req, res) => {
         if (key === 'visual_ideas_enabled') {
           finalValue = value === '0' || value === 'false' ? '0' : '1';
         }
+        if (['coming_soon_enabled', 'coming_soon_show_socials', 'coming_soon_show_footer'].includes(key)) {
+          finalValue = value === '0' || value === 'false' ? '0' : '1';
+        }
+        if (key === 'coming_soon_media_type') {
+          finalValue = value === 'video' ? 'video' : 'image';
+        }
+        if (key === 'coming_soon_blur') {
+          finalValue = String(Math.min(30, Math.max(0, Number(value) || 0)));
+        }
+        if (key === 'coming_soon_overlay') {
+          finalValue = String(Math.min(0.9, Math.max(0, Number(value) || 0)));
+        }
 
         await db.execute({
           sql: "INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)",

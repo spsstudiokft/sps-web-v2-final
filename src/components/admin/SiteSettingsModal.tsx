@@ -8,6 +8,7 @@ import { SeoSettingsManager } from "./SeoSettingsManager";
 import { TranslationsManager } from "./TranslationsManager";
 import { EmailSettingsManager } from "./EmailSettingsManager";
 import { SectionMediaManager } from "./SectionMediaManager";
+import { ComingSoonSettings } from "./ComingSoonSettings";
 import { Button } from "../ui/Button";
 import { Input } from "../ui/Input";
 import { Label } from "../ui/Label";
@@ -382,6 +383,13 @@ export function SiteSettingsModal({
                   placeholder="e.g. SPS Studio | Premier Real Estate Media"
                 />
               </div>
+
+              <ComingSoonSettings
+                settings={settings}
+                siteLanguages={siteLangs}
+                onChange={handleChange}
+                tr={(key, fallback) => tUi(key, currentLanguage) || fallback}
+              />
 
               <div className="p-5 rounded-2xl bg-surface border border-border space-y-4">
                 <div className="flex items-center gap-2 text-text font-bold text-sm">

@@ -1,0 +1,42 @@
+export const errorPageTranslations: Record<string, Record<string, string>> = {
+  en: {
+    "error.401.title": "Authentication required", "error.401.description": "Please sign in to continue to this protected page.",
+    "error.403.title": "Access denied", "error.403.description": "Your account does not have permission to open this page.",
+    "error.404.title": "Page not found", "error.404.description": "The address may be incorrect, or the page may have been moved or removed.",
+    "error.500.title": "Something went wrong", "error.500.description": "An unexpected error occurred while displaying the page. Please try again.",
+    "error.503.title": "Temporarily unavailable", "error.503.description": "The service is currently unavailable. Please try again shortly.",
+    "error.action.back": "Go back", "error.action.home": "Back to home", "error.action.retry": "Try again",
+  },
+  hu: {
+    "error.401.title": "Bejelentkezés szükséges", "error.401.description": "A védett oldal folytatásához jelentkezzen be.",
+    "error.403.title": "Hozzáférés megtagadva", "error.403.description": "A fiókja nem rendelkezik jogosultsággal az oldal megnyitásához.",
+    "error.404.title": "Az oldal nem található", "error.404.description": "Lehet, hogy a cím hibás, vagy az oldalt áthelyezték, illetve törölték.",
+    "error.500.title": "Váratlan hiba történt", "error.500.description": "Az oldal megjelenítése közben váratlan hiba történt. Kérjük, próbálja újra.",
+    "error.503.title": "Átmenetileg nem elérhető", "error.503.description": "A szolgáltatás jelenleg nem érhető el. Kérjük, próbálja újra rövidesen.",
+    "error.action.back": "Vissza", "error.action.home": "Vissza a főoldalra", "error.action.retry": "Újrapróbálás",
+  },
+  de: {
+    "error.401.title": "Anmeldung erforderlich", "error.401.description": "Bitte melden Sie sich an, um diese geschützte Seite aufzurufen.",
+    "error.403.title": "Zugriff verweigert", "error.403.description": "Ihr Konto ist nicht berechtigt, diese Seite zu öffnen.",
+    "error.404.title": "Seite nicht gefunden", "error.404.description": "Die Adresse ist möglicherweise falsch oder die Seite wurde verschoben oder entfernt.",
+    "error.500.title": "Ein Fehler ist aufgetreten", "error.500.description": "Beim Anzeigen der Seite ist ein unerwarteter Fehler aufgetreten. Bitte versuchen Sie es erneut.",
+    "error.503.title": "Vorübergehend nicht verfügbar", "error.503.description": "Der Dienst ist derzeit nicht verfügbar. Bitte versuchen Sie es später erneut.",
+    "error.action.back": "Zurück", "error.action.home": "Zur Startseite", "error.action.retry": "Erneut versuchen",
+  },
+  es: {
+    "error.401.title": "Inicio de sesión requerido", "error.401.description": "Inicie sesión para continuar a esta página protegida.",
+    "error.403.title": "Acceso denegado", "error.403.description": "Su cuenta no tiene permiso para abrir esta página.",
+    "error.404.title": "Página no encontrada", "error.404.description": "La dirección puede ser incorrecta o la página se ha movido o eliminado.",
+    "error.500.title": "Algo salió mal", "error.500.description": "Se produjo un error inesperado al mostrar la página. Inténtelo de nuevo.",
+    "error.503.title": "Temporalmente no disponible", "error.503.description": "El servicio no está disponible en este momento. Inténtelo de nuevo en breve.",
+    "error.action.back": "Volver", "error.action.home": "Volver al inicio", "error.action.retry": "Intentar de nuevo",
+  },
+  fr: {
+    "error.401.title": "Connexion requise", "error.401.description": "Veuillez vous connecter pour accéder à cette page protégée.",
+    "error.403.title": "Accès refusé", "error.403.description": "Votre compte n’est pas autorisé à ouvrir cette page.",
+    "error.404.title": "Page introuvable", "error.404.description": "L’adresse est peut-être incorrecte, ou la page a été déplacée ou supprimée.",
+    "error.500.title": "Une erreur est survenue", "error.500.description": "Une erreur inattendue s’est produite pendant l’affichage de la page. Veuillez réessayer.",
+    "error.503.title": "Temporairement indisponible", "error.503.description": "Le service est actuellement indisponible. Veuillez réessayer dans quelques instants.",
+    "error.action.back": "Retour", "error.action.home": "Retour à l’accueil", "error.action.retry": "Réessayer",
+  },
+};

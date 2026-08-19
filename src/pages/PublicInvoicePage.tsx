@@ -17,6 +17,7 @@ import {
   Phone
 } from "lucide-react";
 import { Button } from "../components/ui/Button";
+import { ErrorPage, ErrorStatus } from "./ErrorPage";
 
 export default function PublicInvoicePage() {
   const { id } = useParams<{ id: string }>();
@@ -27,6 +28,7 @@ export default function PublicInvoicePage() {
   const [studio, setStudio] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [errorStatus, setErrorStatus] = useState<ErrorStatus>(404);
 
   // Intent form state
   const [showNotifyModal, setShowNotifyModal] = useState(false);
@@ -47,6 +49,7 @@ export default function PublicInvoicePage() {
       const res = await fetch(url);
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
+        setErrorStatus(res.status === 401 ? 401 : res.status === 403 ? 403 : res.status === 503 ? 503 : res.status >= 500 ? 500 : 404);
         throw new Error(errData.error || "Invoice not found or access expired");
       }
       const data = await res.json();
@@ -105,20 +108,7 @@ export default function PublicInvoicePage() {
   }
 
   if (error || !invoice) {
-    return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4 text-center">
-        <div className="w-14 h-14 rounded-2xl bg-rose-500/10 text-rose-500 flex items-center justify-center mx-auto mb-4">
-          <AlertCircle className="w-8 h-8" />
-        </div>
-        <h2 className="text-xl font-bold text-text mb-2 font-heading">Invoice Unavailable</h2>
-        <p className="text-sm text-muted-text max-w-sm mb-6">
-          {error || "The requested invoice could not be located or access is restricted."}
-        </p>
-        <Link to="/" className="text-xs text-primary font-semibold hover:underline">
-          Return to SPS Studio Homepage
-        </Link>
-      </div>
-    );
+    return <ErrorPage status={errorStatus} />;
   }
 
   const amountDue = Math.max(0, Number(invoice.total_amount) - Number(invoice.amount_paid));

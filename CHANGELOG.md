@@ -1,5 +1,28 @@
 # Modification Log
 
+## 2026-08-19 — Admin-controlled Coming Soon mode
+
+- Added a Coming Soon configuration card to Site & System Settings with multilingual title/description, target date, enable switch, footer/social visibility controls, blur strength, and overlay opacity.
+- Added direct Appwrite/R2 upload support for optimized background images and MP4/WebM background videos, including progress, preview, direct URL, replacement, and removal controls.
+- Added a responsive Aero Coming Soon experience with theme-aware branding, blurred image/video backdrop, live days/hours/minutes/seconds countdown, configured social-tree links, and the existing public footer.
+- Added an uncached lightweight public configuration endpoint so enabling or disabling the mode is reflected immediately without loading the full homepage dataset.
+- Scoped the mode to public marketing routes (home, portfolio galleries, and properties) while keeping admin, client portal, advertiser manager, authentication, invitations, invoices, and error pages accessible.
+- Added editable Coming Soon translations for English, Hungarian, German, Spanish, and French.
+
+## 2026-08-19 — Context-aware Aero error pages
+
+- Added responsive, light/dark-aware 401, 403, 404, 500, and 503 pages matching the public Aero visual system.
+- Unknown public, admin, and client routes now render a real 404 view instead of silently redirecting to the homepage; nested admin/client 404s remain inside their respective layouts.
+- Protected areas continue to redirect unauthenticated visitors to the correct login, while authenticated users with an invalid role now receive a 403 page.
+- Added a route-level React error boundary for unexpected rendering failures and status-aware errors for missing portfolio galleries, property listings, and unavailable public invoices.
+- Added editable error-page translations for all five supported locales.
+
+## 2026-08-19 — Section media and property translation completion
+
+- Replaced the section media editor's identity translation callback and hard-coded Hungarian labels with editable `admin.section_media.*` translation keys.
+- Added complete English, Hungarian, German, Spanish, and French values for section names, image controls, positions, overlays, defaults, and upload previews.
+- Synchronized all missing built-in translation rows, including the recently added property-listing navigation and client account settings keys, into the translation database without overwriting existing admin customizations.
+
 ## 2026-08-19 — Built-in section image previews
 
 - Section media cards now display their hard-coded public-site background or content image before an admin uploads an override.

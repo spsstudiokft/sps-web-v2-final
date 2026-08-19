@@ -1173,6 +1173,31 @@ router.get("/public/bootstrap", async (_req, res) => {
   }
 });
 
+router.get("/public/coming-soon-config", async (_req, res) => {
+  try {
+    res.set("Cache-Control", "no-store, max-age=0");
+    res.set("Vercel-CDN-Cache-Control", "no-store");
+    const result = await db.execute(`
+      SELECT key, value FROM settings
+      WHERE key LIKE 'coming_soon_%'
+         OR key IN (
+           'studio_name', 'site_languages', 'default_language', 'custom_translations',
+           'theme_colors', 'theme_public_config', 'logo_header_light', 'logo_header_dark',
+           'logo_footer_light', 'logo_footer_dark', 'logo_alt_text', 'footer_brand_display',
+           'footer_version', 'footer_ai_notice', 'footer_created_prefix', 'footer_created_suffix'
+         )
+    `);
+    const settings = result.rows.reduce((acc: Record<string, unknown>, row: any) => {
+      acc[String(row.key)] = row.value;
+      return acc;
+    }, {});
+    res.json(settings);
+  } catch (error) {
+    console.error("Coming soon config fetch error:", error);
+    res.status(500).json({ error: "Failed to load coming soon configuration" });
+  }
+});
+
 router.get("/public/settings", async (req, res) => {
   try {
     res.set("Cache-Control", "public, max-age=30, s-maxage=60, stale-while-revalidate=300");

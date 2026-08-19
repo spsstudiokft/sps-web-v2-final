@@ -23,6 +23,16 @@ export type SiteSettings = {
   visual_ideas_items?: string;
   visual_ideas_enabled?: string;
   property_menu_enabled?: string;
+  coming_soon_enabled?: string;
+  coming_soon_title?: string;
+  coming_soon_description?: string;
+  coming_soon_target_at?: string;
+  coming_soon_media_url?: string;
+  coming_soon_media_type?: "image" | "video";
+  coming_soon_blur?: string;
+  coming_soon_overlay?: string;
+  coming_soon_show_socials?: string;
+  coming_soon_show_footer?: string;
   contact_title?: string;
   contact_description?: string;
   contact_email?: string;

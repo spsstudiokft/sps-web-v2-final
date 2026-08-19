@@ -10,6 +10,8 @@ import { ThemeProvider } from "./components/ThemeProvider";
 import { LanguageProvider } from "./contexts/LanguageContext";
 import PublicHome from "./pages/PublicHome";
 import { IncidentStatusWidget } from "./components/common/IncidentStatusWidget";
+import { ErrorPage, RouteErrorBoundary } from "./pages/ErrorPage";
+import { ComingSoonGate } from "./components/public/ComingSoonGate";
 
 const AdminLogin = lazy(() => import("./pages/AdminLogin"));
 const AdminSetup = lazy(() => import("./pages/AdminSetup"));
@@ -73,7 +75,7 @@ const ProtectedClientRoute = ({ children }: { children: ReactNode }) => {
   }
   
   if (role !== 'client' && role !== 'admin') {
-    return <Navigate to="/client/login" state={{ from: location }} replace />;
+    return <ErrorPage status={403} />;
   }
   
   return children;
@@ -98,10 +100,7 @@ const ProtectedRoute = ({ children }: { children: ReactNode }) => {
   }
 
   if (role !== 'admin' && role !== 'editor' && role !== 'viewer' && role !== 'superadmin') {
-    if (role === 'client') {
-      return <Navigate to="/client" replace />;
-    }
-    return <Navigate to="/" replace />;
+    return <ErrorPage status={403} />;
   }
   return children;
 };
@@ -127,12 +126,15 @@ export default function App() {
         <AuthProvider>
           <LanguageProvider>
             <IncidentStatusWidget />
+            <RouteErrorBoundary>
             <Suspense fallback={<div className="min-h-screen bg-background" aria-busy="true" />}>
             <Routes>
-              <Route path="/" element={<PublicHome />} />
-              <Route path="/portfolio/:slug" element={<PortfolioGalleryPage />} />
-              <Route path="/properties" element={<PropertiesPage />} />
-              <Route path="/properties/:id" element={<PropertiesPage />} />
+              <Route element={<ComingSoonGate />}>
+                <Route path="/" element={<PublicHome />} />
+                <Route path="/portfolio/:slug" element={<PortfolioGalleryPage />} />
+                <Route path="/properties" element={<PropertiesPage />} />
+                <Route path="/properties/:id" element={<PropertiesPage />} />
+              </Route>
               <Route path="/admin/setup" element={<AdminSetup />} />
               <Route path="/admin/login" element={<AdminLogin />} />
 
@@ -169,6 +171,7 @@ export default function App() {
                 <Route path="referrals" element={<ClientReferralsPage />} />
                 <Route path="settings" element={<ClientSettingsPage />} />
                 <Route path="property-listings" element={<ClientListingAccountPage />} />
+                <Route path="*" element={<ErrorPage status={404} embedded />} />
               </Route>
 
               <Route
@@ -202,12 +205,18 @@ export default function App() {
                 <Route path="customers" element={<CustomersPage />} />
                 <Route path="projects" element={<ProjectsPage />} />
                 <Route path="marketing-emails" element={<MarketingEmailsPage />} />
+                <Route path="*" element={<ErrorPage status={404} embedded />} />
               </Route>
 
-              {/* Catch-all fallback */}
-              <Route path="*" element={<Navigate to="/" replace />} />
+              <Route path="/401" element={<ErrorPage status={401} />} />
+              <Route path="/403" element={<ErrorPage status={403} />} />
+              <Route path="/404" element={<ErrorPage status={404} />} />
+              <Route path="/500" element={<ErrorPage status={500} />} />
+              <Route path="/503" element={<ErrorPage status={503} />} />
+              <Route path="*" element={<ErrorPage status={404} />} />
             </Routes>
             </Suspense>
+            </RouteErrorBoundary>
           </LanguageProvider>
         </AuthProvider>
       </ThemeProvider>

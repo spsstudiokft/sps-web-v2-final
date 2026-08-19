@@ -10,6 +10,7 @@ import { useLanguage } from "../contexts/LanguageContext";
 import { PropertySiteShell } from "../components/property/PropertySiteShell";
 import { usePageTitle } from "../hooks/usePageTitle";
 import { t } from "../lib/i18n";
+import { ErrorPage, ErrorStatus } from "./ErrorPage";
 
 const statusLabels: Record<string, string> = { active: "Aktív", reserved: "Lefoglalt", sold: "Elkelt" };
 const orientationLabels: Record<string, string> = { north: "Észak", northeast: "Északkelet", east: "Kelet", southeast: "Délkelet", south: "Dél", southwest: "Délnyugat", west: "Nyugat", northwest: "Északnyugat" };
@@ -45,34 +46,44 @@ export default function PropertiesPage() {
   const [item, setItem] = useState<PropertyListing | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [errorStatus, setErrorStatus] = useState<ErrorStatus | null>(null);
 
   useEffect(() => {
     setLoading(true);
     setError("");
+    setErrorStatus(null);
     Promise.all([
       fetch("/api/public/settings").then(response => response.ok ? response.json() : {}),
       fetch(id ? `/api/public/properties/${encodeURIComponent(id)}` : "/api/public/properties", { cache: "no-store", headers: { "Cache-Control": "no-cache" } }).then(async response => {
         const body = await response.json().catch(() => ({}));
-        if (!response.ok) throw new Error(body.error || "Az ingatlanhirdetések nem tölthetők be.");
+        if (!response.ok) {
+          const requestError = new Error(body.error || "Az ingatlanhirdetések nem tölthetők be.") as Error & { status?: number };
+          requestError.status = response.status;
+          throw requestError;
+        }
         return body;
       }),
     ]).then(([siteSettings, data]) => {
       setSettings(siteSettings || {});
       if (id) setItem(data);
       else setItems(Array.isArray(data) ? data : []);
-    }).catch(error => setError(error instanceof Error ? error.message : "Betöltési hiba.")).finally(() => setLoading(false));
+    }).catch(error => {
+      setError(error instanceof Error ? error.message : "Betöltési hiba.");
+      const status = Number((error as { status?: number })?.status);
+      setErrorStatus(status === 404 ? 404 : status === 403 ? 403 : status === 503 ? 503 : 500);
+    }).finally(() => setLoading(false));
   }, [id]);
 
-  return <PropertySiteShell settings={settings}><PropertiesContent settings={settings} items={items} item={item} loading={loading} error={error} detail={Boolean(id)} /></PropertySiteShell>;
+  return <PropertySiteShell settings={settings}><PropertiesContent settings={settings} items={items} item={item} loading={loading} error={error} errorStatus={errorStatus} detail={Boolean(id)} /></PropertySiteShell>;
 }
 
-function PropertiesContent({ settings, items, item, loading, error, detail }: { settings: SiteSettings; items: PropertyListing[]; item: PropertyListing | null; loading: boolean; error: string; detail: boolean }) {
+function PropertiesContent({ settings, items, item, loading, error, errorStatus, detail }: { settings: SiteSettings; items: PropertyListing[]; item: PropertyListing | null; loading: boolean; error: string; errorStatus: ErrorStatus | null; detail: boolean }) {
   const { currentLang, defaultLang } = useLanguage();
   const studioName = t(settings.studio_name, currentLang, defaultLang) || "SPS Studio";
   usePageTitle(item?.title || "Ingatlanok", studioName);
 
   return <main className="mx-auto min-h-[78vh] max-w-7xl px-4 pb-20 pt-28 sm:px-6 md:pt-36 lg:px-8">
-      {loading ? <LoadingState /> : error ? <ErrorState message={error} /> : detail && item ? <PropertyDetail item={item} /> : <PropertyCatalog items={items} />}
+      {loading ? <LoadingState /> : error ? <ErrorPage status={errorStatus || 500} embedded /> : detail && item ? <PropertyDetail item={item} /> : <PropertyCatalog items={items} />}
     </main>;
 }
 

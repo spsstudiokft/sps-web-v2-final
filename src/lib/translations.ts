@@ -2,6 +2,9 @@ import { newKeysTranslations } from "./newKeysTranslations.js";
 import { financialTranslations } from "./financialTranslations.js";
 import { clientPortalTranslations } from "./clientPortalTranslations.js";
 import { contactTravelTranslations } from "./contactTravelTranslations.js";
+import { sectionMediaTranslations } from "./sectionMediaTranslations.js";
+import { errorPageTranslations } from "./errorPageTranslations.js";
+import { comingSoonTranslations } from "./comingSoonTranslations.js";
 
 export type TranslationDictionary = Record<string, string>;
 
@@ -8931,4 +8934,10 @@ for (const locale of ["en", "hu", "de", "es", "fr"] as const) {
   if (defaultLocales[locale]) Object.assign(defaultLocales[locale], clientPortalTranslations[locale]);
   if (defaultLocales[locale]) Object.assign(defaultLocales[locale], financialTranslations[locale]);
   if (defaultLocales[locale]) Object.assign(defaultLocales[locale], contactTravelTranslations[locale]);
+  if (defaultLocales[locale]) Object.assign(defaultLocales[locale], sectionMediaTranslations[locale]);
+  if (defaultLocales[locale]) Object.assign(defaultLocales[locale], errorPageTranslations[locale]);
+  if (defaultLocales[locale]) Object.assign(defaultLocales[locale], comingSoonTranslations[locale]);
 }
+Object.assign(enTranslations, sectionMediaTranslations.en);
+Object.assign(enTranslations, errorPageTranslations.en);
+Object.assign(enTranslations, comingSoonTranslations.en);

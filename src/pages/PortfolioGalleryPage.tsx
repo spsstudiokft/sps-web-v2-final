@@ -9,6 +9,7 @@ import { PortfolioItem, SiteSettings } from "../lib/types";
 import { t } from "../lib/i18n";
 import { getNormalizedGallery, isVideoMedia, parseVideoUrl } from "../lib/mediaUtils";
 import { getResponsiveImageAttributes } from "../lib/responsiveImage";
+import { ErrorPage } from "./ErrorPage";
 
 function setMeta(selector: string, attributes: Record<string, string>) {
   let element = document.head.querySelector<HTMLMetaElement>(selector);
@@ -141,14 +142,7 @@ function PortfolioGalleryContent({ settings, item, notFound }: { settings: SiteS
       <Header settings={settings} hasServices={false} hasPortfolio={false} hasPricing={false} hasFaq={false} />
       <main className="mx-auto w-full max-w-7xl px-4 pb-20 pt-28 sm:px-6 lg:px-8 lg:pt-32">
         {notFound || !item ? (
-          <div className="mx-auto flex min-h-[55vh] max-w-xl flex-col items-center justify-center text-center">
-            <SearchX className="mb-5 h-14 w-14 text-muted-text" />
-            <h1 className="text-3xl font-bold">{tUi("portfolio.page.not_found_title")}</h1>
-            <p className="mt-3 text-muted-text">{tUi("portfolio.page.not_found_description")}</p>
-            <Link to="/#portfolio" className="mt-7 inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-bold text-primary-foreground">
-              <ArrowLeft className="h-4 w-4" /> {tUi("portfolio.page.back")}
-            </Link>
-          </div>
+          <ErrorPage status={404} embedded />
         ) : (
           <>
             <nav aria-label="Breadcrumb" className="mb-7">
