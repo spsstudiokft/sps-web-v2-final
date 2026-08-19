@@ -1,5 +1,17 @@
 # Modification Log
 
+## 2026-08-19 — Immediate public property visibility
+
+- Disabled browser and Vercel CDN caching for the public property list and detail endpoints so newly enabled listings appear immediately instead of leaving a cached empty catalog visible.
+- Forced the `/properties` client to bypass its HTTP cache whenever it loads or revisits the catalog.
+- Verified against the production API that the enabled listing exists and identified the previous response as an aged Vercel cache hit.
+
+## 2026-08-19 — Vercel property login and manager routing
+
+- Added the missing `/api/property-auth/*` Vercel rewrite to the authentication serverless function, fixing the text 404 response that caused the `Unexpected token 'T'` JSON parsing error.
+- Added a dedicated `/api/property-manager/*` serverless function and rewrite with the same scoped-token and active-account checks as the full Node server.
+- Hardened the property login and manager clients against non-JSON infrastructure responses so they now show an actionable message instead of leaking a JSON parser exception.
+
 ## 2026-08-19 — Public property catalog and advertiser contact
 
 - Added the public `/properties` catalog and `/properties/:id` detail routes for enabled property listings.

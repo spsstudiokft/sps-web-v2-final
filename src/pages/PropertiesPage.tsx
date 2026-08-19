@@ -53,7 +53,7 @@ export default function PropertiesPage() {
     setError("");
     Promise.all([
       fetch("/api/public/settings").then(response => response.ok ? response.json() : {}),
-      fetch(id ? `/api/public/properties/${encodeURIComponent(id)}` : "/api/public/properties").then(async response => {
+      fetch(id ? `/api/public/properties/${encodeURIComponent(id)}` : "/api/public/properties", { cache: "no-store", headers: { "Cache-Control": "no-cache" } }).then(async response => {
         const body = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(body.error || "Az ingatlanhirdetések nem tölthetők be.");
         return body;

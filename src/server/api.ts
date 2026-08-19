@@ -175,7 +175,12 @@ router.get("/public/properties", async (_req, res) => {
                      pl.updated_at DESC`,
       args: [],
     });
-    res.setHeader("Cache-Control", "public, max-age=30, s-maxage=120, stale-while-revalidate=300");
+    // Listing visibility is controlled by administrators and must become
+    // public immediately. Do not let Vercel serve a previously cached empty
+    // catalog after a listing has been enabled.
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
+    res.setHeader("CDN-Cache-Control", "no-store");
+    res.setHeader("Vercel-CDN-Cache-Control", "no-store");
     res.json(result.rows.map(normalizePublicPropertyListing));
   } catch (error) {
     console.error("Failed to load public property listings", error);
@@ -198,7 +203,9 @@ router.get("/public/properties/:id", async (req, res) => {
       args: [req.params.id],
     });
     if (!result.rows.length) return res.status(404).json({ error: "Az ingatlanhirdetés nem található." });
-    res.setHeader("Cache-Control", "public, max-age=30, s-maxage=120, stale-while-revalidate=300");
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
+    res.setHeader("CDN-Cache-Control", "no-store");
+    res.setHeader("Vercel-CDN-Cache-Control", "no-store");
     res.json(normalizePublicPropertyListing(result.rows[0]));
   } catch (error) {
     console.error("Failed to load public property listing", error);

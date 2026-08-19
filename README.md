@@ -61,7 +61,9 @@ SPS Studio is an all-in-one studio management platform designed for architectura
 - **Ownership Auditability**: Every client-created listing records its linked owner, creator user, and creator role for clear identification in the admin listing catalog.
 - **Account Lifecycle Cleanup**: Deleting a migrated portal client from the admin panel also removes its linked listing account, owned listings, and tracked listing media so no orphaned ownership or storage records remain.
 - **Direct English URLs**: Migrated users sign in at `/property-listings/login` and manage their listings at `/property-listings/manager`.
+- **Vercel Property API Routing**: Dedicated rewrites route `/api/property-auth/*` and `/api/property-manager/*` to independently deployed authentication and scoped listing-manager serverless functions.
 - **Public Property Catalog**: `/properties` lists every enabled sale and rental listing with optimized media, feature badges, price and description; `/properties/:id` provides the full gallery, structured property data, amenities, and direct advertiser contact.
+- **Immediate Listing Publication**: Public property list/detail responses bypass browser and Vercel CDN caches, so enabling or disabling a listing is reflected on `/properties` without waiting for a stale catalog to expire.
 - **Menu Publication Control**: Administrators can show or hide the Properties entry in the public desktop and mobile navigation without disabling direct access to the catalog URL.
 - **Direct Studio Messaging**: In-portal project inquiries and revision requests linked directly to the studio admin.
 

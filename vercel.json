@@ -8,6 +8,7 @@
     "api/auth.ts": { "maxDuration": 60 },
     "api/admin.ts": { "maxDuration": 300 },
     "api/client.ts": { "maxDuration": 300 },
+    "api/property-manager.ts": { "maxDuration": 300 },
     "api/system.ts": { "maxDuration": 30 },
     "api/budgets.ts": { "maxDuration": 120 },
     "api/invoices.ts": { "maxDuration": 120 },
@@ -72,6 +73,14 @@
     {
       "source": "/api/client/:match*",
       "destination": "/api/client.ts"
+    },
+    {
+      "source": "/api/property-manager/:match*",
+      "destination": "/api/property-manager.ts"
+    },
+    {
+      "source": "/api/property-auth/:match*",
+      "destination": "/api/auth.ts"
     },
     {
       "source": "/api/auth/:match*",
