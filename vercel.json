@@ -1,5 +1,7 @@
 {
   "framework": "vite",
+  "installCommand": "npm ci --no-audit --no-fund",
+  "buildCommand": "npm run build",
   "functions": {
     "api/public.ts": { "maxDuration": 60 },
     "api/auth.ts": { "maxDuration": 60 },

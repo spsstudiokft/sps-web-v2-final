@@ -138,7 +138,7 @@ SPS Studio is an all-in-one studio management platform designed for architectura
 
 ### 1. Prerequisites
 - **Node.js**: v18.0.0 or higher
-- **npm** or **pnpm 10.10.0** (the repository lockfile and Vercel deployment are pinned to this pnpm generation)
+- **npm 11+** (the repository and Vercel deployment use `package-lock.json`, `npm ci`, and `npm run build`)
 
 ### 2. Clone and Install Dependencies
 ```bash
