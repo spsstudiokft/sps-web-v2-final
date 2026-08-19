@@ -14,7 +14,7 @@ SPS Studio is an all-in-one studio management platform designed for architectura
 - **Backend API**: Express REST API with modular public, authentication, admin, client, billing, media, and automation routers.
 - **Vercel Runtime**: Domain-isolated Vercel Functions (`public`, `auth`, `admin`, `client`, and `billing`) with a compatibility fallback, shared database bootstrap, and function-specific duration settings.
 - **Database Layer**: LibSQL / Turso SQLite with local fallback (`local.db`) for lightweight development and edge/serverless scaling in production.
-- **Media Engine**: Cloudflare R2 multipart and direct browser-to-Appwrite uploads, structured filenames, image optimization, video thumbnails, watermark rendering, and ZIP delivery.
+- **Media Engine**: Cloudflare R2 multipart and direct browser-to-Appwrite uploads, structured filenames, automatic sub-10 MB JPEG derivatives, video thumbnails, watermark rendering, storage lifecycle cleanup, and ZIP delivery.
 - **Email Engine**: Resend API integration with transactional email templates, live multi-device visual previewer, and token interpolation.
 - **AI Services**: Google Gemini (`@google/genai`) for automated multi-language translation and localized content generation.
 
@@ -23,7 +23,7 @@ SPS Studio is an all-in-one studio management platform designed for architectura
 ## 🚀 Key Features
 
 ### 📸 Public Portfolio & Studio Showcase
-- **Hero & Featured Gallery**: Spotlight high-value architectural shoots and property portfolios.
+- **Hero & Featured Gallery**: Spotlight high-value architectural shoots and property portfolios using optimized display assets instead of full-resolution masters.
 - **Category Filter & Search**: Interactive filtering across photography, aerial drone, 3D virtual tours, and cinematic video.
 - **Lightbox & Gallery Viewer**: Full-screen high-resolution media previews with responsive touch navigation.
 - **Services & Pricing Showcase**: Dynamic tier cards with package feature lists, pricing models, and instant booking CTAs.
@@ -31,6 +31,7 @@ SPS Studio is an all-in-one studio management platform designed for architectura
 - **Interactive Contact & Booking**: Guided lead capture with required property city, optional address, travel-distance pricing from Hódmezővásárhely, package/add-on calculator, structured estimate persistence, admin alert, and client confirmation.
 - **Consent & Legal Modals**: Cookie-gated inquiry form plus database-backed Privacy Policy, Terms, Cookie Policy, and Legal Notice documents rendered from formatted admin content.
 - **Adaptive Navigation**: Services and Portfolio links disappear automatically when no published content exists.
+- **Mixed Portfolio Conveyor**: Gallery media is randomized across marquee rows and avoids adjacent images from the same portfolio whenever possible.
 
 ### 🔐 Client Portal & Project Management
 - **Passwordless Magic Link & Password Sign-In**: Secure client authentication via email magic link or traditional credentials.
@@ -42,7 +43,8 @@ SPS Studio is an all-in-one studio management platform designed for architectura
 - **Direct Studio Messaging**: In-portal project inquiries and revision requests linked directly to the studio admin.
 
 ### 🛠️ Admin Management Dashboard
-- **Portfolio & Gallery CMS**: Multi-image uploads, drag-and-drop sorting (`@dnd-kit`), category management, and keyword tagging.
+- **Portfolio & Gallery CMS**: Multi-image uploads, drag-and-drop sorting (`@dnd-kit`), localized names/categories, automatic optimized-media creation, category management, and keyword tagging.
+- **Section Media Management**: Public-section images and backgrounds can be replaced from the admin panel without code changes.
 - **Projects & Client Accounts**: Create client accounts, link projects, update delivery milestones, and upload final deliverables.
 - **Services & Pricing Manager**: Manage service offerings, highlight featured tiers, and update pricing schedules.
 - **FAQ & Knowledge Base Manager**: Organize questions into custom categories with quick reordering.
@@ -214,7 +216,7 @@ The server starts on `http://localhost:3000` by default. Set `PORT` when that po
 5. Clients may download one item or select multiple items for server-generated ZIP delivery.
 6. Requesting a forgotten PIN sends the editable recovery template and rotates the PIN immediately.
 
-Large file bytes do not pass through Vercel during normal Appwrite upload. The browser receives a constrained upload session, transfers directly to the configured bucket, and the API registers the completed object and metadata.
+Large file bytes do not pass through Vercel during normal Appwrite upload. The browser receives a short-lived server-created upload session, transfers directly to the configured bucket, and the API registers the completed object and metadata. Image uploads automatically create a high-quality JPEG display/download derivative below 10 MB while retaining the original master. Removing gallery media or deleting a portfolio also removes its original and derived objects from the configured bucket, including recognizable legacy Appwrite objects that predate upload tracking.
 
 ---
 

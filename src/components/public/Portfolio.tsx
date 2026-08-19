@@ -263,7 +263,7 @@ export function Portfolio({ items }: PortfolioProps) {
         viewport={VIEWPORT_CONFIG}
         className="space-y-4 sm:space-y-6 overflow-hidden relative z-10"
       >
-        {/* Row 1: Photography Previews (scrolls right) */}
+        {/* Row 1: Photography Previews (scrolls left) */}
         {imageCards.length > 0 && (
           <div className="relative">
             <div className="max-w-7xl mx-auto px-6 mb-2 flex items-center justify-between text-xs text-muted-text font-semibold uppercase tracking-wider">
@@ -277,7 +277,7 @@ export function Portfolio({ items }: PortfolioProps) {
             </div>
             <InfiniteMarqueeRow
               items={imageCards}
-              direction="right"
+              direction="left"
               speedSeconds={48}
               isPaused={isPaused}
               onItemClick={handleCardClick}
@@ -286,7 +286,7 @@ export function Portfolio({ items }: PortfolioProps) {
           </div>
         )}
 
-        {/* Row 2: Drone Video Previews (scrolls left) */}
+        {/* Row 2: Drone Video Previews (scrolls right) */}
         {droneVideoCards.length > 0 && (
           <div className="relative">
             <div className="max-w-7xl mx-auto px-6 mb-2 flex items-center justify-between text-xs text-muted-text font-semibold uppercase tracking-wider">
@@ -300,7 +300,7 @@ export function Portfolio({ items }: PortfolioProps) {
             </div>
             <InfiniteMarqueeRow
               items={droneVideoCards}
-              direction="left"
+              direction="right"
               speedSeconds={42}
               isPaused={isPaused}
               onItemClick={handleCardClick}
@@ -309,7 +309,7 @@ export function Portfolio({ items }: PortfolioProps) {
           </div>
         )}
 
-        {/* Row 3: Interior Video Walkthrough Previews (scrolls right) */}
+        {/* Row 3: Interior Video Walkthrough Previews (scrolls left) */}
         {interiorVideoCards.length > 0 && (
           <div className="relative">
             <div className="max-w-7xl mx-auto px-6 mb-2 flex items-center justify-between text-xs text-muted-text font-semibold uppercase tracking-wider">
@@ -323,7 +323,7 @@ export function Portfolio({ items }: PortfolioProps) {
             </div>
             <InfiniteMarqueeRow
               items={interiorVideoCards}
-              direction="right"
+              direction="left"
               speedSeconds={52}
               isPaused={isPaused}
               onItemClick={handleCardClick}

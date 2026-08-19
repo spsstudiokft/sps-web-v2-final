@@ -1,5 +1,40 @@
 # Modification Log
 
+## 2026-08-19 — Portfolio media lifecycle, optimized delivery, and showcase refinements
+
+### Upload and storage reliability
+
+- Replaced repeated client-side Appwrite account-session creation with short-lived API-key-authenticated upload sessions to avoid the per-IP and per-user session endpoint rate limit during multi-file and video uploads.
+- Kept gallery transfers direct from the browser to Appwrite so Vercel does not proxy large file bodies, and added retry handling for temporary rate-limit responses.
+- Changed gallery uploads to run sequentially with clearer per-file and overall progress feedback.
+- Added automatic optimized-image creation during upload: each image retains its original master and receives a high-quality JPEG derivative constrained below 10 MB, with adaptive dimensions and quality when needed.
+- Preserved optimized JPEG delivery for client downloads while using derivatives for admin and public previews to prevent large source images from slowing the interface.
+
+### Portfolio data and media cleanup
+
+- Corrected localized portfolio names and categories in admin cards and category selectors so translated values render instead of serialized objects or translation keys.
+- Portfolio updates now compare the previous and saved gallery media sets and delete removed originals, optimized images, thumbnails, posters, and previews from storage.
+- Full and bulk portfolio deletion use the same storage cleanup path before database removal.
+- Added URL-based Appwrite bucket/file detection so older objects not present in `media_uploads` can also be removed safely.
+- Cleared stale `media_url` and `thumbnail_url` references when their corresponding gallery items are removed.
+
+### Public showcase and visual fixes
+
+- The homepage interactive portfolio and its lightbox now prefer optimized image derivatives instead of raw full-resolution files.
+- Portfolio marquee cards no longer expose individual image titles or filenames; they identify the portfolio and category instead.
+- Randomized each portfolio marquee row on load and, when possible, prevented media from the same gallery from appearing consecutively.
+- Constrained the Additional Services card shine layer to the card's positioned, rounded bounds so the animation no longer crosses the page.
+- Added admin-managed media/background controls for public website sections.
+
+### Pricing bundles
+
+- Bundle cards now hydrate referenced base tiers from current catalog data rather than retaining stale embedded snapshots.
+- Expanded tier content shows the complete, current feature list and included items without truncation.
+
+### Verification
+
+- Production Vite builds and server ESBuild bundles completed successfully after the portfolio, upload, storage, pricing, and public-interface changes.
+
 ## 2026-08-18 — Platform expansion, client delivery, finance, email automation, and Vercel architecture
 
 ### Public website and AERO/GLOW visual consistency
