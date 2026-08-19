@@ -5,8 +5,13 @@
     "api/auth.ts": { "maxDuration": 60 },
     "api/admin.ts": { "maxDuration": 300 },
     "api/client.ts": { "maxDuration": 300 },
-    "api/billing.ts": { "maxDuration": 300 },
-    "api/index.ts": { "maxDuration": 300 }
+    "api/system.ts": { "maxDuration": 30 },
+    "api/budgets.ts": { "maxDuration": 120 },
+    "api/invoices.ts": { "maxDuration": 120 },
+    "api/payment-requests.ts": { "maxDuration": 300 },
+    "api/referrals.ts": { "maxDuration": 120 },
+    "api/public-invoices.ts": { "maxDuration": 60 },
+    "api/public-referrals.ts": { "maxDuration": 60 }
   },
   "headers": [
     {
@@ -31,19 +36,27 @@
   "rewrites": [
     {
       "source": "/api/admin/budgets/:match*",
-      "destination": "/api/billing.ts"
+      "destination": "/api/budgets.ts"
     },
     {
       "source": "/api/admin/invoices/:match*",
-      "destination": "/api/billing.ts"
+      "destination": "/api/invoices.ts"
     },
     {
       "source": "/api/admin/payment-requests/:match*",
-      "destination": "/api/billing.ts"
+      "destination": "/api/payment-requests.ts"
     },
     {
       "source": "/api/admin/referrals/:match*",
-      "destination": "/api/billing.ts"
+      "destination": "/api/referrals.ts"
+    },
+    {
+      "source": "/api/health",
+      "destination": "/api/system.ts"
+    },
+    {
+      "source": "/api/status-summary",
+      "destination": "/api/system.ts"
     },
     {
       "source": "/api/admin/:match*",
@@ -70,12 +83,16 @@
       "destination": "/api/auth.ts"
     },
     {
-      "source": "/api/public/:match*",
-      "destination": "/api/public.ts"
+      "source": "/api/public/invoices/:match*",
+      "destination": "/api/public-invoices.ts"
     },
     {
-      "source": "/api/:match*",
-      "destination": "/api/index.ts"
+      "source": "/api/public/referrals/:match*",
+      "destination": "/api/public-referrals.ts"
+    },
+    {
+      "source": "/api/public/:match*",
+      "destination": "/api/public.ts"
     },
     {
       "source": "/((?!api/|api$).*)",

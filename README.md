@@ -12,7 +12,7 @@ SPS Studio is an all-in-one studio management platform designed for architectura
 - **Frontend SPA**: React 19 single-page app bundled with Vite, styled with Tailwind CSS v4 and Motion animations.
 - **AERO/GLOW Design System**: Responsive blue-white ambient lighting, section-aware imagery, accessible light/dark palettes, frosted-glass cards, modals, navigation, authentication, and client/admin workspaces.
 - **Backend API**: Express REST API with modular public, authentication, admin, client, billing, media, and automation routers.
-- **Vercel Runtime**: Domain-isolated Vercel Functions (`public`, `auth`, `admin`, `client`, and `billing`) with a compatibility fallback, shared database bootstrap, and function-specific duration settings.
+- **Vercel Runtime**: Domain-isolated Vercel Functions for public content, authentication, administration, client delivery, budgets, invoices, payment requests, referrals, public billing links, and system health, with shared application bootstrap and function-specific duration settings.
 - **Database Layer**: LibSQL / Turso SQLite with local fallback (`local.db`) for lightweight development and edge/serverless scaling in production.
 - **Media Engine**: Cloudflare R2 multipart and direct browser-to-Appwrite uploads, structured filenames, automatic sub-10 MB JPEG derivatives, video thumbnails, watermark rendering, storage lifecycle cleanup, and ZIP delivery.
 - **Email Engine**: Resend API integration with transactional email templates, live multi-device visual previewer, and token interpolation.
@@ -261,8 +261,15 @@ npm run start
 | `api/auth.ts` | Authentication, registration, invitations, setup | 60 s |
 | `api/admin.ts` | Admin CMS, teams, email, media control | 300 s |
 | `api/client.ts` | Client portal, gallery authorization and downloads | 300 s |
-| `api/billing.ts` | Budgets, invoices, payment requests, referrals | 300 s |
-| `api/index.ts` | Compatibility fallback and uncategorized API routes | 300 s |
+| `api/budgets.ts` | Budget records, settings and audit logs | 120 s |
+| `api/invoices.ts` | Administrative invoice workflows | 120 s |
+| `api/payment-requests.ts` | Payment requests, uploads and approvals | 300 s |
+| `api/referrals.ts` | Administrative referral program workflows | 120 s |
+| `api/public-invoices.ts` | Public invoice views and payment intent notifications | 60 s |
+| `api/public-referrals.ts` | Public referral-code validation | 60 s |
+| `api/system.ts` | Health and external status summary | 30 s |
+
+Every active API prefix has an explicit rewrite. The previous all-in-one `api/index.ts` compatibility Function was removed so Vercel no longer packages the complete backend a second time.
 
 `APP_URL` must contain the canonical public origin (for example `https://studio.example.com`) without an application path. It is used for magic links, invitations, invoice links, gallery links, review tracking, and all other transactional email actions.
 

@@ -3,8 +3,6 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import { db, getDb } from "../db.js";
-import { publicInvoiceRouter } from "./invoiceRouter.js";
-import { publicReferralRouter } from "./referralRouter.js";
 import { 
   processRegistrationReferral, 
   ensureUserReferralCode 
@@ -123,65 +121,6 @@ router.get("/public/google-review/:token", async (req, res) => {
   } catch (error) {
     console.error("Google review tracking redirect failed:", error);
     return res.redirect(302, "/");
-  }
-});
-
-router.get("/health", (req, res) => {
-  res.json({ status: "ok" });
-});
-
-// Cache for incident.io summary
-let cachedStatusSummary: any = null;
-let lastStatusFetchTime = 0;
-const STATUS_CACHE_TTL_MS = 25000; // 25 seconds
-
-// Proxy endpoint for incident.io Status Widget API
-router.get("/status-summary", async (req, res) => {
-  const now = Date.now();
-  if (cachedStatusSummary && (now - lastStatusFetchTime < STATUS_CACHE_TTL_MS)) {
-    return res.json(cachedStatusSummary);
-  }
-
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 6000);
-
-    const response = await fetch("https://status.spsstudio.hu/api/v1/summary", {
-      headers: {
-        "Accept": "application/json",
-        "User-Agent": "SPSStudio-StatusWidget/1.0"
-      },
-      signal: controller.signal
-    });
-
-    clearTimeout(timeoutId);
-
-    if (!response.ok) {
-      throw new Error(`incident.io API responded with ${response.status}`);
-    }
-
-    const data = await response.json();
-    cachedStatusSummary = { success: true, data };
-    lastStatusFetchTime = now;
-    return res.json(cachedStatusSummary);
-  } catch (error: any) {
-    console.debug("[StatusWidget] Failed to fetch incident.io summary:", error?.message || error);
-    // If we have stale cache, return it
-    if (cachedStatusSummary) {
-      return res.json({ ...cachedStatusSummary, stale: true });
-    }
-    // Return empty operational state rather than an error code
-    return res.json({
-      success: false,
-      error: "Status summary unavailable",
-      data: {
-        summary: {
-          status: "operational",
-          ongoing_incidents: [],
-          in_progress_maintenances: []
-        }
-      }
-    });
   }
 });
 
@@ -1685,6 +1624,4 @@ router.post("/public/contact", async (req, res) => {
   }
 });
 
-router.use("/public/invoices", publicInvoiceRouter);
-router.use("/public/referrals", publicReferralRouter);
 export default router;

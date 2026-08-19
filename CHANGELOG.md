@@ -62,6 +62,14 @@
 - Added automatic lightweight rendering for low-memory/low-core mobile devices, data-saver or slow connections, and reduced-motion users.
 - In lightweight mode, portfolio marquees become non-duplicated touch-scroll rows, continuous GPU effects and costly blur/3D layers are disabled, Motion animations are reduced, and off-screen public sections use deferred rendering.
 
+### Vercel serverless architecture
+
+- Split the combined billing Function into independent budget, invoice, payment-request, and referral Functions with domain-specific duration limits.
+- Moved public invoice routes and public referral-code validation into dedicated read-oriented Functions.
+- Extracted health and incident-status endpoints into a lightweight system Function that does not run database initialization.
+- Removed public invoice/referral imports from the general public/auth router bundle and restored their mounts explicitly in the local full-server router.
+- Removed the all-in-one `api/index.ts` compatibility Function and its catch-all rewrite after auditing every active API prefix, preventing Vercel from packaging the complete backend again on every deployment.
+
 ### Pricing bundles
 
 - Bundle cards now hydrate referenced base tiers from current catalog data rather than retaining stale embedded snapshots.
@@ -69,6 +77,7 @@
 
 ### Verification
 
+- All 11 Vercel Function entry points were bundled independently after the serverless domain split, alongside successful production frontend and full local-server bundles.
 - Production Vite builds and server ESBuild bundles completed successfully after the portfolio, upload, storage, pricing, and public-interface changes.
 
 ## 2026-08-18 — Platform expansion, client delivery, finance, email automation, and Vercel architecture
