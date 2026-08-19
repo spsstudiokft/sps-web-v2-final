@@ -70,15 +70,17 @@ export function PortfolioGallery({ items: initialItems, onEdit, onDelete, onReor
   }, [initialItems]);
 
   // Compute counts for item categories
-  const { totalCount, photoCount, droneVideoCount, interiorVideoCount } = useMemo(() => {
+  const { totalCount, photoCount, droneVideoCount, interiorVideoCount, dronePhotoCount } = useMemo(() => {
     let p = 0;
     let d = 0;
     let i = 0;
+    let dp = 0;
 
     items.forEach(item => {
       const type = item.item_type || (item.media_type === "video" ? "drone_video" : "image");
       if (type === "drone_video") d++;
       else if (type === "interior_video") i++;
+      else if (type === "drone_photo") dp++;
       else p++;
     });
 
@@ -86,7 +88,8 @@ export function PortfolioGallery({ items: initialItems, onEdit, onDelete, onReor
       totalCount: items.length,
       photoCount: p,
       droneVideoCount: d,
-      interiorVideoCount: i
+      interiorVideoCount: i,
+      dronePhotoCount: dp
     };
   }, [items]);
 
@@ -118,6 +121,8 @@ export function PortfolioGallery({ items: initialItems, onEdit, onDelete, onReor
         matchesItemType = item.item_type === "drone_video";
       } else if (filterItemType === "interior_video") {
         matchesItemType = item.item_type === "interior_video";
+      } else if (filterItemType === "drone_photo") {
+        matchesItemType = item.item_type === "drone_photo";
       } else if (filterItemType === "image") {
         matchesItemType = item.item_type === "image" || (!item.item_type && vCount === 0);
       } else if (filterItemType === "video") {
@@ -237,6 +242,19 @@ export function PortfolioGallery({ items: initialItems, onEdit, onDelete, onReor
             <Film className="w-3.5 h-3.5 text-amber-500" />
             <span>Interior Walkthroughs (Row 3) ({interiorVideoCount})</span>
           </button>
+
+          <button
+            type="button"
+            onClick={() => setFilterItemType(filterItemType === "drone_photo" ? "all" : "drone_photo")}
+            className={`px-3.5 py-1.5 rounded-full font-semibold transition-all shrink-0 flex items-center gap-1.5 cursor-pointer ${
+              filterItemType === "drone_photo"
+                ? "bg-emerald-600 text-white shadow-xs"
+                : "bg-surface border border-border text-muted-text hover:text-text hover:bg-surface/80"
+            }`}
+          >
+            <Plane className="w-3.5 h-3.5 text-emerald-500" />
+            <span>Drone Photos (Row 4) ({dronePhotoCount})</span>
+          </button>
         </div>
 
         {/* Filter Toolbar */}
@@ -262,6 +280,7 @@ export function PortfolioGallery({ items: initialItems, onEdit, onDelete, onReor
               <option value="image">📷 Photos / Images (Row 1)</option>
               <option value="drone_video">🛸 Drone Aerial Videos (Row 2)</option>
               <option value="interior_video">🏠 Interior Walkthroughs (Row 3)</option>
+              <option value="drone_photo">🚁 Drone Photos (Row 4)</option>
               <option value="video">🎥 All Video Items</option>
               <option value="mixed">✨ Mixed Galleries</option>
             </select>

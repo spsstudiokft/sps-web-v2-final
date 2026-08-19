@@ -98,7 +98,7 @@ export type PortfolioItem = {
   category_id: string | null;
   category_name?: string | null;
   category_slug?: string | null;
-  item_type?: 'image' | 'drone_video' | 'interior_video' | string | null;
+  item_type?: 'image' | 'drone_video' | 'interior_video' | 'drone_photo' | string | null;
   media_type?: 'image' | 'video';
   media_url?: string | null;
   thumbnail_url?: string | null;

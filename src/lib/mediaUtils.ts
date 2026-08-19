@@ -1,5 +1,5 @@
 export type GalleryMediaType = "image" | "video";
-export type GalleryItemType = "image" | "drone_video" | "interior_video";
+export type GalleryItemType = "image" | "drone_video" | "interior_video" | "drone_photo";
 export type VideoEmbedType = "upload" | "youtube" | "vimeo" | "direct";
 
 export interface GalleryMediaItem {
@@ -97,6 +97,7 @@ export function buildStructuredFilename({
   if (!categoryRaw && itemType) {
     if (itemType === "drone_video") categoryRaw = "drone";
     else if (itemType === "interior_video") categoryRaw = "interior";
+    else if (itemType === "drone_photo") categoryRaw = "drone-photos";
     else categoryRaw = "photos";
   }
   const category = sanitizeNameForFilename(categoryRaw, "photos");

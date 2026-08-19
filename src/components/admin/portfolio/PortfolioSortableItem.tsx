@@ -22,7 +22,8 @@ import {
   Sparkles,
   Edit2,
   Trash2,
-  Layers
+  Layers,
+  Plane
 } from "lucide-react";
 
 interface Props {
@@ -139,7 +140,12 @@ export function PortfolioSortableItem({ item, isSelected, onSelect, onEdit, onDe
 
         {/* Top Right Badges */}
         <div className="absolute top-2 right-2 z-10 flex gap-1 items-center pointer-events-none flex-wrap justify-end">
-          {item.item_type === "drone_video" ? (
+          {item.item_type === "drone_photo" ? (
+            <span className="px-2 py-0.5 rounded-md bg-emerald-600/90 backdrop-blur-xs text-white text-[10px] font-bold flex items-center gap-1 shadow-xs" title="Row 4: Drone Photo">
+              <Plane className="w-3 h-3" />
+              <span>Drone Photo</span>
+            </span>
+          ) : item.item_type === "drone_video" ? (
             <span className="px-2 py-0.5 rounded-md bg-purple-600/90 backdrop-blur-xs text-white text-[10px] font-bold flex items-center gap-1 shadow-xs" title="Row 2: Drone Video">
               <VideoIcon className="w-3 h-3" />
               <span>Drone Video</span>

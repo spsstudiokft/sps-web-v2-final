@@ -49,7 +49,8 @@ import {
   Copy as CopyIcon, 
   Sparkles,
   ExternalLink,
-  Zap
+  Zap,
+  Plane
 } from "lucide-react";
 
 export type GalleryImage = GalleryMediaItem;
@@ -86,7 +87,7 @@ export function ImageSortableItem({
   const [isSavingAndSyncing, setIsSavingAndSyncing] = useState(false);
   const [copiedFilename, setCopiedFilename] = useState<string | null>(null);
   
-  // Resolve item type (image | drone_video | interior_video)
+  // Resolve item type (image | drone_video | interior_video | drone_photo)
   const resolvedItemType: GalleryItemType = image.item_type || (
     image.type === "video" || isVideoMedia(image) ? "drone_video" : "image"
   );
@@ -143,7 +144,7 @@ export function ImageSortableItem({
 
   const handleTypeChange = (newType: GalleryItemType) => {
     const isNowVideo = newType === "drone_video" || newType === "interior_video";
-    const newCategory = newType === "drone_video" ? "drone" : newType === "interior_video" ? "interior" : "photos";
+    const newCategory = newType === "drone_video" ? "drone" : newType === "interior_video" ? "interior" : newType === "drone_photo" ? "drone-photos" : "photos";
     const ext = isNowVideo ? "mp4" : "jpg";
     const newFilename = buildStructuredFilename({
       projectName: projectName || "project",
@@ -161,7 +162,7 @@ export function ImageSortableItem({
 
   const handleAutoFormatFilename = () => {
     const isNowVideo = editData.item_type === "drone_video" || editData.item_type === "interior_video";
-    const cat = editData.item_type === "drone_video" ? "drone" : editData.item_type === "interior_video" ? "interior" : (categoryName || "photos");
+    const cat = editData.item_type === "drone_video" ? "drone" : editData.item_type === "interior_video" ? "interior" : editData.item_type === "drone_photo" ? "drone-photos" : (categoryName || "photos");
     const ext = isNowVideo ? "mp4" : "jpg";
     const formatted = buildStructuredFilename({
       projectName: projectName || "project",
@@ -304,7 +305,12 @@ export function ImageSortableItem({
 
       {/* Top Right Badges */}
       <div className="absolute top-2 right-2 z-10 flex gap-1 items-center pointer-events-none">
-        {resolvedItemType === "drone_video" ? (
+        {resolvedItemType === "drone_photo" ? (
+          <span className="px-2 py-0.5 rounded-md bg-emerald-600/90 backdrop-blur-xs text-white text-[10px] font-bold flex items-center gap-1 shadow-xs">
+            <Plane className="w-3 h-3" />
+            <span>Drone Photo (Row 4)</span>
+          </span>
+        ) : resolvedItemType === "drone_video" ? (
           <span className="px-2 py-0.5 rounded-md bg-purple-600/90 backdrop-blur-xs text-white text-[10px] font-bold flex items-center gap-1 shadow-xs">
             <VideoIcon className="w-3 h-3" />
             <span>Drone Video (Row 2)</span>
@@ -507,6 +513,19 @@ export function ImageSortableItem({
             <Film className="w-2.5 h-2.5 shrink-0" />
             <span className="truncate">Interior</span>
           </button>
+          <button
+            type="button"
+            onClick={() => handleTypeChange("drone_photo")}
+            className={`px-1.5 py-0.5 rounded-md font-semibold transition-all flex items-center gap-1 cursor-pointer truncate ${
+              resolvedItemType === "drone_photo"
+                ? "bg-emerald-600 text-white shadow-xs"
+                : "text-muted-text hover:text-text"
+            }`}
+            title="Designate as Drone Photo (Row 4)"
+          >
+            <Plane className="w-2.5 h-2.5 shrink-0" />
+            <span className="truncate">Drone Photo</span>
+          </button>
         </div>
       </div>
 
@@ -564,6 +583,7 @@ export function ImageSortableItem({
                 <option value="image">📷 Photo / Image (Row 1)</option>
                 <option value="drone_video">🛸 Drone Aerial Video (Row 2)</option>
                 <option value="interior_video">🏠 Interior Walkthrough Video (Row 3)</option>
+                <option value="drone_photo">🚁 Drone Photo (Row 4)</option>
               </select>
             </div>
 

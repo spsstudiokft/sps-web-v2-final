@@ -49,7 +49,8 @@ import {
   Wand2,
   Loader2,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  Plane
 } from "lucide-react";
 import { useApi } from "../../../hooks/useApi";
 import { GalleryItemType } from "../../../lib/mediaUtils";
@@ -80,7 +81,7 @@ export function ImageGalleryManager({
   const { fetchApi } = useApi();
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState("");
-  const [mediaTypeFilter, setMediaTypeFilter] = useState<"all" | "photos" | "drone" | "interior" | "videos">("all");
+  const [mediaTypeFilter, setMediaTypeFilter] = useState<"all" | "photos" | "drone" | "interior" | "drone_photos" | "videos">("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [isEmbedModalOpen, setIsEmbedModalOpen] = useState(false);
   const [isBatchRestructuring, setIsBatchRestructuring] = useState(false);
@@ -165,10 +166,11 @@ export function ImageGalleryManager({
   };
 
   // Calculate specific media type counts
-  const { photoCount, droneVideoCount, interiorVideoCount, totalVideos } = useMemo(() => {
+  const { photoCount, droneVideoCount, interiorVideoCount, dronePhotoCount, totalVideos } = useMemo(() => {
     let pCount = 0;
     let dCount = 0;
     let iCount = 0;
+    let dpCount = 0;
 
     images.forEach(img => {
       const type = img.item_type || (img.type === "video" || isVideoMedia(img) ? "drone_video" : "image");
@@ -178,6 +180,8 @@ export function ImageGalleryManager({
         dCount++;
       } else if (type === "interior_video") {
         iCount++;
+      } else if (type === "drone_photo") {
+        dpCount++;
       } else {
         pCount++;
       }
@@ -187,6 +191,7 @@ export function ImageGalleryManager({
       photoCount: pCount, 
       droneVideoCount: dCount, 
       interiorVideoCount: iCount,
+      dronePhotoCount: dpCount,
       totalVideos: dCount + iCount
     };
   }, [images]);
@@ -199,7 +204,8 @@ export function ImageGalleryManager({
       if (mediaTypeFilter === "photos" && type !== "image") return false;
       if (mediaTypeFilter === "drone" && type !== "drone_video") return false;
       if (mediaTypeFilter === "interior" && type !== "interior_video") return false;
-      if (mediaTypeFilter === "videos" && type === "image") return false;
+      if (mediaTypeFilter === "drone_photos" && type !== "drone_photo") return false;
+      if (mediaTypeFilter === "videos" && type !== "drone_video" && type !== "interior_video") return false;
 
       if (!searchQuery) return true;
       const q = searchQuery.toLowerCase();
@@ -390,6 +396,19 @@ export function ImageGalleryManager({
               <Film className="w-3 h-3" />
               <span>Interior Videos ({interiorVideoCount})</span>
             </button>
+            <button
+              type="button"
+              onClick={() => { setMediaTypeFilter("drone_photos"); setCurrentPage(1); }}
+              className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all flex items-center gap-1 ${
+                mediaTypeFilter === "drone_photos"
+                  ? "bg-emerald-600 text-white shadow-xs"
+                  : "text-muted-text hover:text-text"
+              }`}
+              title="Show only Drone Photos (Row 4 items)"
+            >
+              <Plane className="w-3 h-3" />
+              <span>Drone Photos ({dronePhotoCount})</span>
+            </button>
           </div>
         </div>
         
@@ -569,6 +588,16 @@ export function ImageGalleryManager({
             >
               <Film className="w-3 h-3" />
               <span>Set as Interior Video</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleBulkSetType("drone_photo")}
+              className="px-2.5 py-1 rounded-lg bg-emerald-600/10 text-emerald-600 dark:text-emerald-400 border border-emerald-600/20 hover:bg-emerald-600 hover:text-white transition-colors flex items-center gap-1 font-semibold"
+              title="Set selected items as Drone Photo (Row 4)"
+            >
+              <Plane className="w-3 h-3" />
+              <span>Set as Drone Photo</span>
             </button>
 
             <Button 

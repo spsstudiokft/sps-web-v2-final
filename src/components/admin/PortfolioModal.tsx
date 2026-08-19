@@ -144,7 +144,7 @@ export function PortfolioModal({
     if (isOpen) {
       if (item) {
         let detectedItemType: PortfolioItemType = "image";
-        if (item.item_type === "drone_video" || item.item_type === "interior_video" || item.item_type === "image") {
+        if (item.item_type === "drone_video" || item.item_type === "interior_video" || item.item_type === "drone_photo" || item.item_type === "image") {
           detectedItemType = item.item_type as PortfolioItemType;
         } else if (item.category_slug === "drone-videos" || item.category_id === "cat-drone-videos") {
           detectedItemType = "drone_video";

@@ -122,6 +122,7 @@ export function buildStructuredFilename(options: StructuredNamingOptions): strin
   if (!categoryRaw && options.itemType) {
     if (options.itemType === "drone_video") categoryRaw = "drone";
     else if (options.itemType === "interior_video") categoryRaw = "interior";
+    else if (options.itemType === "drone_photo") categoryRaw = "drone-photos";
     else categoryRaw = "photos";
   }
   const category = sanitizeNameForFilename(categoryRaw, "photos");

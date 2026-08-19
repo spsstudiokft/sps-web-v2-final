@@ -61,14 +61,15 @@ export function Portfolio({ items }: PortfolioProps) {
   const isReducedMotion = false;
 
   // Extract individual gallery item previews across all portfolio projects into their designated rows
-  const { imageCards, droneVideoCards, interiorVideoCards } = useMemo(() => {
+  const { imageCards, droneVideoCards, interiorVideoCards, dronePhotoCards } = useMemo(() => {
     if (!items || items.length === 0) {
-      return { imageCards: [], droneVideoCards: [], interiorVideoCards: [] };
+      return { imageCards: [], droneVideoCards: [], interiorVideoCards: [], dronePhotoCards: [] };
     }
 
     const imgCards: ShowcaseMediaCardItem[] = [];
     const droneCards: ShowcaseMediaCardItem[] = [];
     const interiorCards: ShowcaseMediaCardItem[] = [];
+    const dronePhotoCards: ShowcaseMediaCardItem[] = [];
 
     items.forEach((item) => {
       const gallery = getNormalizedGallery(item.image_urls);
@@ -87,9 +88,11 @@ export function Portfolio({ items }: PortfolioProps) {
           const displayMedia: GalleryMediaItem = media.type === "image" && media.compressed_url
             ? { ...media, url: media.compressed_url, thumbnail_url: media.compressed_url }
             : media;
-          let resolvedType: "image" | "drone_video" | "interior_video" = "image";
+          let resolvedType: "image" | "drone_video" | "interior_video" | "drone_photo" = "image";
 
-          if (media.item_type === "drone_video") {
+          if (media.item_type === "drone_photo") {
+            resolvedType = "drone_photo";
+          } else if (media.item_type === "drone_video") {
             resolvedType = "drone_video";
           } else if (media.item_type === "interior_video") {
             resolvedType = "interior_video";
@@ -117,7 +120,9 @@ export function Portfolio({ items }: PortfolioProps) {
             itemType: resolvedType,
           };
 
-          if (resolvedType === "drone_video") {
+          if (resolvedType === "drone_photo") {
+            dronePhotoCards.push(cardItem);
+          } else if (resolvedType === "drone_video") {
             droneCards.push(cardItem);
           } else if (resolvedType === "interior_video") {
             interiorCards.push(cardItem);
@@ -128,9 +133,11 @@ export function Portfolio({ items }: PortfolioProps) {
       } else {
         // Fallback when gallery is empty: use primary media_url or thumbnail_url
         const isVideo = item.media_type === "video" || (item.media_url && isVideoMedia(item.media_url));
-        let resolvedType: "image" | "drone_video" | "interior_video" = "image";
+        let resolvedType: "image" | "drone_video" | "interior_video" | "drone_photo" = "image";
 
-        if (item.item_type === "drone_video" || (isVideo && isLegacyDrone)) {
+        if (item.item_type === "drone_photo" && !isVideo) {
+          resolvedType = "drone_photo";
+        } else if (item.item_type === "drone_video" || (isVideo && isLegacyDrone)) {
           resolvedType = "drone_video";
         } else if (item.item_type === "interior_video" || isVideo) {
           resolvedType = "interior_video";
@@ -158,7 +165,9 @@ export function Portfolio({ items }: PortfolioProps) {
           itemType: resolvedType,
         };
 
-        if (resolvedType === "drone_video") {
+        if (resolvedType === "drone_photo") {
+          dronePhotoCards.push(cardItem);
+        } else if (resolvedType === "drone_video") {
           droneCards.push(cardItem);
         } else if (resolvedType === "interior_video") {
           interiorCards.push(cardItem);
@@ -172,6 +181,7 @@ export function Portfolio({ items }: PortfolioProps) {
       imageCards: shuffleShowcaseCards(imgCards),
       droneVideoCards: shuffleShowcaseCards(droneCards),
       interiorVideoCards: shuffleShowcaseCards(interiorCards),
+      dronePhotoCards: shuffleShowcaseCards(dronePhotoCards),
     };
   }, [items]);
 
@@ -325,6 +335,29 @@ export function Portfolio({ items }: PortfolioProps) {
               items={interiorVideoCards}
               direction="left"
               speedSeconds={52}
+              isPaused={isPaused}
+              onItemClick={handleCardClick}
+              isReducedMotion={isReducedMotion}
+            />
+          </div>
+        )}
+
+        {/* Row 4: Drone Photography Previews (scrolls right) */}
+        {dronePhotoCards.length > 0 && (
+          <div className="relative">
+            <div className="max-w-7xl mx-auto px-6 mb-2 flex items-center justify-between text-xs text-muted-text font-semibold uppercase tracking-wider">
+              <span className="flex items-center gap-1.5">
+                <Plane className="w-3.5 h-3.5 text-emerald-500" />
+                <span>{tUi("Drone Photography", currentLang, undefined, defaultLang) || "Drone Photography"}</span>
+              </span>
+              <span className="text-[11px] opacity-60">
+                {tUi(dronePhotoCards.length === 1 ? "portfolio.photo_preview_count_one" : "portfolio.photo_preview_count_many", { count: dronePhotoCards.length }, currentLang, defaultLang)}
+              </span>
+            </div>
+            <InfiniteMarqueeRow
+              items={dronePhotoCards}
+              direction="right"
+              speedSeconds={46}
               isPaused={isPaused}
               onItemClick={handleCardClick}
               isReducedMotion={isReducedMotion}

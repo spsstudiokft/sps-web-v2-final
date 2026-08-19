@@ -28,7 +28,7 @@ export interface ShowcaseMediaCardItem {
   media: GalleryMediaItem;
   mediaIndex: number;
   totalInGallery: number;
-  itemType: "image" | "drone_video" | "interior_video";
+  itemType: "image" | "drone_video" | "interior_video" | "drone_photo";
 }
 
 interface MediaCardProps {
@@ -337,7 +337,12 @@ export function MediaCard({ card, onClick, priority = false }: MediaCardProps) {
       {/* Top Floating Badges */}
       <div className="absolute top-3 left-3 right-3 flex items-center justify-between pointer-events-none z-20">
         <div className="flex items-center gap-1.5 flex-wrap">
-          {itemType === "drone_video" ? (
+          {itemType === "drone_photo" ? (
+            <span className="px-2.5 py-1 rounded-full bg-emerald-950/90 backdrop-blur-md text-emerald-200 border border-emerald-500/40 text-[11px] font-bold flex items-center gap-1.5 shadow-sm">
+              <Plane className="w-3 h-3 text-emerald-400" />
+              <span>{tUi("portfolio.drone_photo", currentLang, undefined, defaultLang)}</span>
+            </span>
+          ) : itemType === "drone_video" ? (
             <span className="px-2.5 py-1 rounded-full bg-purple-950/90 backdrop-blur-md text-purple-200 border border-purple-500/40 text-[11px] font-bold flex items-center gap-1.5 shadow-sm">
               <Plane className="w-3 h-3 text-purple-400" />
               <span>{tUi("portfolio.drone_video", currentLang, undefined, defaultLang)}</span>

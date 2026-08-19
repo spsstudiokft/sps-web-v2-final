@@ -78,7 +78,7 @@ export type PageSeoMeta = {
 };
 
 export type GalleryMediaType = 'image' | 'video';
-export type PortfolioItemType = 'image' | 'drone_video' | 'interior_video';
+export type PortfolioItemType = 'image' | 'drone_video' | 'interior_video' | 'drone_photo';
 export type VideoEmbedType = 'upload' | 'youtube' | 'vimeo' | 'direct';
 
 export interface GalleryMediaItem {
