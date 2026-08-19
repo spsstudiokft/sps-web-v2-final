@@ -1,5 +1,55 @@
 # Modification Log
 
+## 2026-08-19 — Public property catalog and advertiser contact
+
+- Added the public `/properties` catalog and `/properties/:id` detail routes for enabled property listings.
+- Added responsive property cards with optimized thumbnail media, title, price, description, sale/rental and status labels, plus icon badges for enabled amenity switches.
+- Added full listing galleries, structured property facts, equipment details, and direct email contact with the linked advertiser or administrative creator.
+- Added cached read-only public listing API endpoints that never return disabled listings and prefer optimized media over original uploads.
+- Replaced the former disabled “Coming soon” navigation item with a working Properties link on desktop and mobile.
+- Added an admin listing-page switch that controls whether the Properties link appears in the main navigation while keeping `/properties` directly accessible.
+
+## 2026-08-19 — Linked listing-account deletion integrity
+
+- Extended admin client deletion to remove the linked property-listing account, all owned listings, and their tracked original/optimized/thumbnail media before deleting the portal user.
+- Prevented orphaned listing-account and ownership records when a migrated client is removed.
+
+## 2026-08-19 — English property-manager URLs
+
+- Added `/property-listings/login` as the canonical direct property-account login URL.
+- Added `/property-listings/manager` as the canonical protected listing-manager URL.
+- Kept the previous Hungarian paths as redirect-only compatibility aliases so existing bookmarks remain valid.
+
+## 2026-08-19 — Dedicated property-manager email/password login
+
+- Added a direct `/ingatlanos/bejelentkezes` login page and `/api/property-auth/login` endpoint for previously migrated property-listing accounts.
+- The login validates the migrated email against the linked portal user's current bcrypt password and requires password sign-in to be enabled; magic-link users must add a password before migration.
+- Added a separate 12-hour `property_client` JWT with a strict `property-listings` scope and independent `property_listing_token` storage, so signing into the property manager does not replace the client-portal session.
+- Moved listing management behind `/api/property-manager` and blocked normal client-portal tokens from all listing CRUD operations.
+- Removed direct switching from the client portal. The portal now only performs and reports the one-time migration; users subsequently sign in through the dedicated property-manager login.
+- Every property-manager request revalidates both the linked listing account and original portal user as active, while scoped sessions are rejected by unrelated client/admin endpoints.
+
+## 2026-08-19 — Linked client property-listing accounts
+
+- Added a separate `property_listing_accounts` table linked one-to-one to existing client-portal users, with an idempotent one-time migration that copies the registered email address and display name.
+- Added a client-portal migration gateway and an explicit transition into a dedicated personal property-listing manager; reverse migration/switching remains reserved for the later phase.
+- Clients can create, edit, enable/disable, search, upload optimized images for, and delete their own listings with the same data model and form capabilities as administrators.
+- Enforced owner-scoped API queries on every client listing read/write/delete operation so a linked account cannot access another owner's listing.
+- Added restricted listing-media upload authorization for active linked client accounts without granting access to other admin endpoints; existing admin/editor/viewer/superadmin upload behavior is preserved.
+- Added listing ownership, creator user, and creator role fields. Admin listing cards now show who created each listing and which linked account owns it.
+- Client display-name changes synchronize to the linked listing account while the original portal and listing-account records remain separate.
+- Added the client navigation entry in English, Hungarian, German, Spanish, and French; the public property website remains locked.
+
+## 2026-08-19 — Admin property listing and management system
+
+- Added a dedicated admin Property Listings area with searchable responsive cards, listing status/type badges, edit/delete actions, and an independent publication switch.
+- Added a production-safe `property_listings` schema and authenticated admin CRUD endpoints for core details, pricing, dimensions, room counts, description, construction details, orientation, view, bathroom/WC arrangement, multiple heating types, amenities, media, and visibility.
+- Added a screen-bounded create/edit modal with basic and detailed sections, yes/no amenity controls, dropdowns, multi-select heating options, image management, and live upload progress.
+- Property images use the existing direct-to-storage uploader and automatically create optimized/thumbnail variants; cancelling before save does not upload selected files.
+- Removing images while editing or deleting an entire listing also removes tracked original, optimized, and thumbnail media from storage.
+- The public real-estate page remains locked and unchanged; only enabled listings are prepared for its later implementation.
+- Added the property-listing navigation label in English, Hungarian, German, Spanish, and French.
+
 ## 2026-08-19 — Client settings endpoint production migration fix
 
 - Moved the client profile/password/TFA compatibility columns into the lightweight migration phase that always runs before the initialized-database fast path.

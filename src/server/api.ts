@@ -72,6 +72,40 @@ function hydratePublicPricing(rows: any[]): any[] {
   });
 }
 
+function parsePublicListingArray(value: unknown): any[] {
+  try {
+    const parsed = typeof value === "string" ? JSON.parse(value || "[]") : value;
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function normalizePublicPropertyListing(row: any) {
+  const images = parsePublicListingArray(row.image_urls).map((image: any) => {
+    const compressedUrl = String(image?.compressedUrl || image?.compressed_url || "");
+    const thumbnailUrl = String(image?.thumbnailUrl || image?.thumbnail_url || "");
+    const fallbackUrl = String(image?.url || "");
+    return {
+      url: compressedUrl || fallbackUrl,
+      compressedUrl: compressedUrl || undefined,
+      thumbnailUrl: thumbnailUrl || undefined,
+      originalName: image?.originalName || image?.original_name || undefined,
+    };
+  }).filter((image: any) => image.url || image.thumbnailUrl);
+  return {
+    ...row,
+    price_huf: Number(row.price_huf || 0),
+    floor_area_sqm: Number(row.floor_area_sqm || 0),
+    rooms: Number(row.rooms || 0),
+    bathrooms: Number(row.bathrooms || 0),
+    construction_year: row.construction_year == null ? null : Number(row.construction_year),
+    floor_count: row.floor_count == null ? null : Number(row.floor_count),
+    heating_types: parsePublicListingArray(row.heating_types),
+    image_urls: images,
+  };
+}
+
 async function loadPublicBootstrap() {
   const now = Date.now();
   if (publicBootstrapCache && publicBootstrapCache.expiresAt > now) return publicBootstrapCache.payload;
@@ -125,6 +159,53 @@ router.get("/public/google-review/:token", async (req, res) => {
   }
 });
 
+router.get("/public/properties", async (_req, res) => {
+  try {
+    const result = await db.execute({
+      sql: `SELECT pl.*,
+                   COALESCE(NULLIF(pla.name, ''), NULLIF(owner.name, ''), NULLIF(creator.name, ''), 'SPS Studio') AS contact_name,
+                   COALESCE(NULLIF(pla.email, ''), NULLIF(owner.email, ''), NULLIF(creator.email, ''),
+                     (SELECT value FROM settings WHERE key = 'contact_email' LIMIT 1)) AS contact_email
+            FROM property_listings pl
+            LEFT JOIN property_listing_accounts pla ON pla.id = pl.owner_account_id
+            LEFT JOIN users owner ON owner.id = pla.portal_user_id
+            LEFT JOIN users creator ON creator.id = pl.created_by_user_id
+            WHERE pl.is_enabled = 1
+            ORDER BY CASE pl.listing_status WHEN 'active' THEN 0 WHEN 'reserved' THEN 1 ELSE 2 END,
+                     pl.updated_at DESC`,
+      args: [],
+    });
+    res.setHeader("Cache-Control", "public, max-age=30, s-maxage=120, stale-while-revalidate=300");
+    res.json(result.rows.map(normalizePublicPropertyListing));
+  } catch (error) {
+    console.error("Failed to load public property listings", error);
+    res.status(500).json({ error: "Az ingatlanhirdetések jelenleg nem tölthetők be." });
+  }
+});
+
+router.get("/public/properties/:id", async (req, res) => {
+  try {
+    const result = await db.execute({
+      sql: `SELECT pl.*,
+                   COALESCE(NULLIF(pla.name, ''), NULLIF(owner.name, ''), NULLIF(creator.name, ''), 'SPS Studio') AS contact_name,
+                   COALESCE(NULLIF(pla.email, ''), NULLIF(owner.email, ''), NULLIF(creator.email, ''),
+                     (SELECT value FROM settings WHERE key = 'contact_email' LIMIT 1)) AS contact_email
+            FROM property_listings pl
+            LEFT JOIN property_listing_accounts pla ON pla.id = pl.owner_account_id
+            LEFT JOIN users owner ON owner.id = pla.portal_user_id
+            LEFT JOIN users creator ON creator.id = pl.created_by_user_id
+            WHERE pl.id = ? AND pl.is_enabled = 1 LIMIT 1`,
+      args: [req.params.id],
+    });
+    if (!result.rows.length) return res.status(404).json({ error: "Az ingatlanhirdetés nem található." });
+    res.setHeader("Cache-Control", "public, max-age=30, s-maxage=120, stale-while-revalidate=300");
+    res.json(normalizePublicPropertyListing(result.rows[0]));
+  } catch (error) {
+    console.error("Failed to load public property listing", error);
+    res.status(500).json({ error: "Az ingatlanhirdetés jelenleg nem tölthető be." });
+  }
+});
+
 // ... API routes will be added here
 router.get("/setup/status", async (req, res) => {
   try {
@@ -162,6 +243,7 @@ router.post("/setup", async (req, res) => {
       ["about_text", "SPS Studio is a premier real estate photography studio dedicated to showcasing properties in their best light. With years of experience and an eye for detail, we provide top-tier visual marketing for realtors and homeowners."],
       ["contact_email", "contact@spsstudio.com"],
       ["contact_phone", "+1 234 567 890"],
+      ["property_menu_enabled", "1"],
     ];
 
     for (const [key, value] of defaultSettings) {
@@ -212,6 +294,36 @@ router.post("/auth/login", async (req, res) => {
   } catch (error: any) {
     console.error("[Login Error]", error);
     res.status(500).json({ error: "Login failed" });
+  }
+});
+
+router.post("/property-auth/login", async (req, res) => {
+  try {
+    const cleanEmail = typeof req.body?.email === "string" ? req.body.email.trim().toLowerCase() : "";
+    const password = typeof req.body?.password === "string" ? req.body.password : "";
+    if (!cleanEmail || !password) return res.status(400).json({ error: "Az email-cím és a jelszó megadása kötelező." });
+    const result = await db.execute({
+      sql: `SELECT pla.id AS property_account_id, pla.email, pla.name, pla.is_active AS property_account_active,
+                   u.id AS portal_user_id, u.password_hash, u.password_auth_enabled, u.is_active AS portal_user_active
+            FROM property_listing_accounts pla
+            JOIN users u ON u.id = pla.portal_user_id
+            WHERE LOWER(TRIM(pla.email)) = ? LIMIT 1`,
+      args: [cleanEmail],
+    });
+    if (!result.rows.length) return res.status(401).json({ error: "Hibás email-cím vagy jelszó." });
+    const account = result.rows[0];
+    if (Number(account.property_account_active) !== 1 || Number(account.portal_user_active) !== 1) return res.status(403).json({ error: "A hirdetői fiók jelenleg nem aktív." });
+    if (Number(account.password_auth_enabled ?? 1) !== 1) return res.status(403).json({ error: "Ehhez a fiókhoz még nincs jelszó beállítva. Előbb adj hozzá jelszót az ügyfélkapu beállításaiban." });
+    const matches = await bcrypt.compare(password, String(account.password_hash || ""));
+    if (!matches) return res.status(401).json({ error: "Hibás email-cím vagy jelszó." });
+    const token = jwt.sign({
+      id: String(account.portal_user_id), propertyAccountId: String(account.property_account_id),
+      email: String(account.email), name: String(account.name || ""), role: "property_client", scope: "property-listings",
+    }, JWT_SECRET, { expiresIn: "12h" });
+    res.json({ token, user: { id: account.property_account_id, email: account.email, name: account.name || "", role: "property_client" } });
+  } catch (error) {
+    console.error("[Property Login Error]", error);
+    res.status(500).json({ error: "Az ingatlanos bejelentkezés sikertelen." });
   }
 });
 

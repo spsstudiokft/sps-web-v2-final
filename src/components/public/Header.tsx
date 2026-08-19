@@ -93,6 +93,7 @@ export function Header({ settings, hasServices = true, hasPortfolio = true, hasP
   const brandDisplay = settings.header_brand_display || "logo_only";
   const showLogo = brandDisplay !== "name_only" && Boolean(activeLogo) && !logoLoadFailed;
   const showStudioName = brandDisplay === "name_only" || brandDisplay === "logo_and_name" || !showLogo;
+  const showProperties = settings.property_menu_enabled !== "0" && settings.property_menu_enabled !== "false";
 
   // Reset logo load failure if logo URL changes
   useEffect(() => {
@@ -259,10 +260,10 @@ export function Header({ settings, hasServices = true, hasPortfolio = true, hasP
             {tUi("FAQ", currentLang, undefined, defaultLang) || "FAQ"}
           </a>}
 
-          <button disabled className="flex items-center gap-2 opacity-40 cursor-not-allowed hover:text-muted-text transition-colors px-1 py-0.5" title="Coming soon">
+          {showProperties && <Link to="/properties" className="flex items-center gap-2 text-text/90 hover:text-primary transition-colors px-1 py-0.5">
             <FontAwesomeIcon icon={faHouse} aria-hidden="true" />
             <span>{tUi("Properties", currentLang, undefined, defaultLang) || "Properties"}</span>
-          </button>
+          </Link>}
           
           <LanguageSelector />
           
@@ -366,10 +367,10 @@ export function Header({ settings, hasServices = true, hasPortfolio = true, hasP
                 <ThemeToggle id="mobile-drawer-theme-toggle" size="md" />
               </div>
 
-              <button disabled className="flex items-center gap-3 opacity-40 cursor-not-allowed text-lg font-medium text-text w-fit" title="Coming soon">
+              {showProperties && <Link to="/properties" onClick={closeMenu} className="flex items-center gap-3 text-lg font-medium text-text hover:text-primary w-fit">
                 <FontAwesomeIcon icon={faHouse} aria-hidden="true" className="w-5 h-5" />
-                <span>{tUi("Properties", currentLang, undefined, defaultLang) || "Properties"} <span className="text-sm font-normal">({tUi("Coming Soon", currentLang, undefined, defaultLang) || "Coming Soon"})</span></span>
-              </button>
+                <span>{tUi("Properties", currentLang, undefined, defaultLang) || "Properties"}</span>
+              </Link>}
               <a href="#contact" onClick={closeMenu} className="bg-primary text-background px-5 py-3 rounded-full hover:opacity-90 transition-opacity focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 outline-none font-semibold shadow-sm flex items-center justify-center gap-2 mt-2">
                 {tUi("Make an Inquiry", currentLang, undefined, defaultLang) || "Make an Inquiry"}
               </a>

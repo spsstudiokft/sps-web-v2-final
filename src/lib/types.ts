@@ -22,6 +22,7 @@ export type SiteSettings = {
   visual_ideas_description?: string;
   visual_ideas_items?: string;
   visual_ideas_enabled?: string;
+  property_menu_enabled?: string;
   contact_title?: string;
   contact_description?: string;
   contact_email?: string;
@@ -454,6 +455,53 @@ export interface Client {
   portal_access_disabled_reason?: string | null;
   portal_access_disabled_by?: string | null;
   created_at: string;
+}
+
+export interface PropertyListingImage {
+  url: string;
+  compressedUrl?: string;
+  thumbnailUrl?: string;
+  originalName?: string;
+}
+
+export interface PropertyListing {
+  id: string;
+  title: string;
+  location: string;
+  price_huf: number;
+  price_text?: string;
+  floor_area_sqm: number;
+  rooms: number;
+  bathrooms: number;
+  description?: string;
+  listing_status: "active" | "reserved" | "sold";
+  listing_type: "sale" | "rent";
+  construction_year?: number | null;
+  floor_count?: number | null;
+  central_heating: number;
+  garden_access: number;
+  floor_plan_available: number;
+  balcony: number;
+  full_comfort: number;
+  air_conditioned: number;
+  new_construction: number;
+  orientation?: string;
+  view_type?: string;
+  bathroom_toilet?: string;
+  heating_types: string[];
+  image_urls: PropertyListingImage[];
+  is_enabled: number;
+  owner_account_id?: string | null;
+  owner_name?: string | null;
+  owner_email?: string | null;
+  created_by_user_id?: string | null;
+  created_by_role?: "admin" | "client" | string;
+  creator_name?: string | null;
+    creator_email?: string | null;
+    contact_name?: string | null;
+    contact_email?: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface TranslationItem {

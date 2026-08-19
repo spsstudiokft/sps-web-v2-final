@@ -12,11 +12,19 @@ import { sendTransactionalEmail, getEmailSenderConfig } from "./services/emailSe
 import sharp from "sharp";
 import { getAppUrl } from "./appUrl.js";
 import bcrypt from "bcryptjs";
+import { deleteMedia } from "./storage/index.js";
 
 const clientRouter = Router();
 const JWT_SECRET = process.env.JWT_SECRET || "supersecretjwtstring";
 const pinAttempts = new Map<string, { count: number; resetAt: number }>();
 const pinEmailRequests = new Map<string, number>();
+
+clientRouter.use((req: any, res, next) => {
+  if (req.user?.role === "property_client" && !req.path.startsWith("/property-listings")) {
+    return res.status(403).json({ error: "Ez a munkamenet kizárólag az ingatlanhirdetés-kezelőhöz használható." });
+  }
+  next();
+});
 
 const hashDownloadPin = (projectId: string, pin: string) =>
   crypto.createHmac("sha256", JWT_SECRET).update(`${projectId}:${pin}`).digest("hex");
@@ -142,6 +150,10 @@ clientRouter.patch("/settings/profile", async (req, res) => {
       sql: "UPDATE users SET name = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND role = 'client'",
       args: [name, userId],
     });
+    await db.execute({
+      sql: "UPDATE property_listing_accounts SET name = ?, updated_at = CURRENT_TIMESTAMP WHERE portal_user_id = ?",
+      args: [name, userId],
+    }).catch(() => undefined);
     const email = await sendClientAccountChangeEmail({
       email: String(account.email || ""), name,
       changeType: "Display name changed",
@@ -196,6 +208,143 @@ clientRouter.put("/settings/password", async (req, res) => {
     console.error("Failed to update client password", error);
     res.status(500).json({ error: "Failed to update password." });
   }
+});
+
+// ==================== LINKED PROPERTY LISTING ACCOUNT ====================
+const CLIENT_PROPERTY_STATUSES = new Set(["active", "reserved", "sold"]);
+const CLIENT_PROPERTY_TYPES = new Set(["sale", "rent"]);
+
+function parseListingArray(value: unknown): any[] {
+  if (Array.isArray(value)) return value;
+  if (typeof value !== "string" || !value.trim()) return [];
+  try { const parsed = JSON.parse(value); return Array.isArray(parsed) ? parsed : []; } catch { return []; }
+}
+
+function normalizeClientListing(row: any) {
+  return { ...row, price_huf: Number(row.price_huf || 0), floor_area_sqm: Number(row.floor_area_sqm || 0), rooms: Number(row.rooms || 0), bathrooms: Number(row.bathrooms || 0), heating_types: parseListingArray(row.heating_types), image_urls: parseListingArray(row.image_urls) };
+}
+
+function normalizeClientListingInput(body: any) {
+  const title = typeof body?.title === "string" ? body.title.trim() : "";
+  const location = typeof body?.location === "string" ? body.location.trim() : "";
+  if (title.length < 2 || title.length > 180) throw new Error("A címnek 2 és 180 karakter között kell lennie.");
+  if (location.length < 2 || location.length > 220) throw new Error("A helyszín megadása kötelező.");
+  const numeric = (value: unknown) => Math.max(0, Number.isFinite(Number(value)) ? Number(value) : 0);
+  const optionalInteger = (value: unknown) => value === "" || value === null || value === undefined ? null : Math.round(numeric(value));
+  const images = (Array.isArray(body.image_urls) ? body.image_urls : []).filter((item: any) => item && typeof item.url === "string" && item.url.trim()).slice(0, 60).map((item: any) => ({
+    url: item.url.trim(), compressedUrl: typeof item.compressedUrl === "string" ? item.compressedUrl.trim() : undefined,
+    thumbnailUrl: typeof item.thumbnailUrl === "string" ? item.thumbnailUrl.trim() : undefined,
+    originalName: typeof item.originalName === "string" ? item.originalName.slice(0, 255) : undefined,
+  }));
+  return {
+    title, location, price_huf: Math.round(numeric(body.price_huf)), price_text: String(body.price_text || "").trim().slice(0, 120),
+    floor_area_sqm: numeric(body.floor_area_sqm), rooms: numeric(body.rooms), bathrooms: numeric(body.bathrooms), description: String(body.description || "").trim(),
+    listing_status: CLIENT_PROPERTY_STATUSES.has(String(body.listing_status)) ? String(body.listing_status) : "active",
+    listing_type: CLIENT_PROPERTY_TYPES.has(String(body.listing_type)) ? String(body.listing_type) : "sale",
+    construction_year: optionalInteger(body.construction_year), floor_count: optionalInteger(body.floor_count),
+    central_heating: body.central_heating ? 1 : 0, garden_access: body.garden_access ? 1 : 0, floor_plan_available: body.floor_plan_available ? 1 : 0,
+    balcony: body.balcony ? 1 : 0, full_comfort: body.full_comfort ? 1 : 0, air_conditioned: body.air_conditioned ? 1 : 0, new_construction: body.new_construction ? 1 : 0,
+    orientation: String(body.orientation || "").trim().slice(0, 40), view_type: String(body.view_type || "").trim().slice(0, 40), bathroom_toilet: String(body.bathroom_toilet || "").trim().slice(0, 40),
+    heating_types: [...new Set((Array.isArray(body.heating_types) ? body.heating_types : []).map(String).map(v => v.trim()).filter(Boolean))].slice(0, 20),
+    image_urls: images, is_enabled: body.is_enabled ? 1 : 0,
+  };
+}
+
+async function getClientListingAccount(userId: string) {
+  const result = await db.execute({ sql: "SELECT * FROM property_listing_accounts WHERE portal_user_id = ? AND is_active = 1 LIMIT 1", args: [userId] });
+  return result.rows[0] as any;
+}
+
+function listingMediaUrls(images: any[]): string[] {
+  const urls = new Set<string>();
+  for (const image of images) for (const key of ["url", "compressedUrl", "thumbnailUrl"]) if (typeof image?.[key] === "string" && image[key].trim()) urls.add(image[key].trim());
+  return [...urls];
+}
+
+async function deleteClientListingMedia(urls: string[]) {
+  if (!urls.length) return;
+  for (let offset = 0; offset < urls.length; offset += 100) {
+    const batch = urls.slice(offset, offset + 100); const placeholders = batch.map(() => "?").join(",");
+    const tracked = await db.execute({ sql: `SELECT id, provider, bucket, file_key FROM media_uploads WHERE public_url IN (${placeholders})`, args: batch });
+    for (const upload of tracked.rows as any[]) {
+      await deleteMedia(String(upload.file_key), String(upload.bucket), String(upload.provider));
+      await db.execute({ sql: "DELETE FROM media_uploads WHERE id = ?", args: [upload.id] });
+    }
+  }
+}
+
+clientRouter.get("/property-listing-account", async (req, res) => {
+  try {
+    const account = await getClientListingAccount(String((req as any).user?.id || ""));
+    res.json({ migrated: Boolean(account), account: account || null });
+  } catch (error) { console.error("Failed to load linked listing account", error); res.status(500).json({ error: "A hirdetői fiók állapota nem tölthető be." }); }
+});
+
+clientRouter.post("/property-listing-account/migrate", async (req, res) => {
+  const userId = String((req as any).user?.id || "");
+  try {
+    const existing = await getClientListingAccount(userId);
+    if (existing) return res.json({ migrated: true, alreadyMigrated: true, account: existing });
+    const userResult = await db.execute({ sql: "SELECT email, name, password_auth_enabled FROM users WHERE id = ? AND role = 'client' LIMIT 1", args: [userId] });
+    if (!userResult.rows.length) return res.status(403).json({ error: "Csak aktív ügyfélkapus felhasználó hozhat létre hirdetői fiókot." });
+    if (Number(userResult.rows[0].password_auth_enabled ?? 1) !== 1) return res.status(400).json({ error: "A migráció előtt adj hozzá jelszót az ügyfélkapu fiókbeállításaiban. Az ingatlanos felület közvetlen email–jelszó belépést használ." });
+    const id = crypto.randomUUID(); const user = userResult.rows[0];
+    await db.execute({ sql: "INSERT INTO property_listing_accounts (id, portal_user_id, email, name) VALUES (?, ?, ?, ?)", args: [id, userId, String(user.email || ""), String(user.name || "")] });
+    const account = await getClientListingAccount(userId);
+    res.status(201).json({ migrated: true, account });
+  } catch (error: any) {
+    if (String(error?.message || "").toUpperCase().includes("UNIQUE")) {
+      const account = await getClientListingAccount(userId).catch(() => null);
+      if (account) return res.json({ migrated: true, alreadyMigrated: true, account });
+    }
+    console.error("Failed to migrate property listing account", error); res.status(500).json({ error: "A hirdetői fiók létrehozása sikertelen." });
+  }
+});
+
+clientRouter.use("/property-listings", (req: any, res, next) => {
+  if (req.user?.role !== "property_client" || req.user?.scope !== "property-listings") {
+    return res.status(403).json({ error: "A hirdetések kezeléséhez jelentkezz be a külön ingatlanos felületen." });
+  }
+  next();
+});
+
+clientRouter.get("/property-listings", async (req, res) => {
+  try {
+    const account = await getClientListingAccount(String((req as any).user?.id || ""));
+    if (!account) return res.status(403).json({ error: "Előbb hozd létre a kapcsolt hirdetői fiókot." });
+    const result = await db.execute({ sql: "SELECT * FROM property_listings WHERE owner_account_id = ? ORDER BY updated_at DESC", args: [account.id] });
+    res.json(result.rows.map(normalizeClientListing));
+  } catch (error) { console.error("Failed to load client listings", error); res.status(500).json({ error: "A saját hirdetések nem tölthetők be." }); }
+});
+
+clientRouter.post("/property-listings", async (req, res) => {
+  try {
+    const userId = String((req as any).user?.id || ""); const account = await getClientListingAccount(userId);
+    if (!account) return res.status(403).json({ error: "Előbb hozd létre a kapcsolt hirdetői fiókot." });
+    const item = normalizeClientListingInput(req.body); const id = crypto.randomUUID();
+    await db.execute({ sql: `INSERT INTO property_listings (id,title,location,price_huf,price_text,floor_area_sqm,rooms,bathrooms,description,listing_status,listing_type,construction_year,floor_count,central_heating,garden_access,floor_plan_available,balcony,full_comfort,air_conditioned,new_construction,orientation,view_type,bathroom_toilet,heating_types,image_urls,is_enabled,owner_account_id,created_by_user_id,created_by_role) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, args: [id,item.title,item.location,item.price_huf,item.price_text,item.floor_area_sqm,item.rooms,item.bathrooms,item.description,item.listing_status,item.listing_type,item.construction_year,item.floor_count,item.central_heating,item.garden_access,item.floor_plan_available,item.balcony,item.full_comfort,item.air_conditioned,item.new_construction,item.orientation,item.view_type,item.bathroom_toilet,JSON.stringify(item.heating_types),JSON.stringify(item.image_urls),item.is_enabled,account.id,userId,"client"] });
+    const created = await db.execute({ sql: "SELECT * FROM property_listings WHERE id = ? AND owner_account_id = ?", args: [id, account.id] }); res.status(201).json(normalizeClientListing(created.rows[0]));
+  } catch (error: any) { console.error("Failed to create client listing", error); res.status(/kötelező|karakter/.test(error?.message || "") ? 400 : 500).json({ error: error?.message || "A hirdetés létrehozása sikertelen." }); }
+});
+
+clientRouter.put("/property-listings/:id", async (req, res) => {
+  try {
+    const account = await getClientListingAccount(String((req as any).user?.id || "")); if (!account) return res.status(403).json({ error: "Nincs aktív hirdetői fiók." });
+    const current = await db.execute({ sql: "SELECT image_urls FROM property_listings WHERE id = ? AND owner_account_id = ?", args: [req.params.id, account.id] });
+    if (!current.rows.length) return res.status(404).json({ error: "A saját hirdetés nem található." });
+    const item = normalizeClientListingInput(req.body); const next = new Set(listingMediaUrls(item.image_urls)); const removed = listingMediaUrls(parseListingArray(current.rows[0].image_urls)).filter(url => !next.has(url));
+    await deleteClientListingMedia(removed);
+    await db.execute({ sql: `UPDATE property_listings SET title=?,location=?,price_huf=?,price_text=?,floor_area_sqm=?,rooms=?,bathrooms=?,description=?,listing_status=?,listing_type=?,construction_year=?,floor_count=?,central_heating=?,garden_access=?,floor_plan_available=?,balcony=?,full_comfort=?,air_conditioned=?,new_construction=?,orientation=?,view_type=?,bathroom_toilet=?,heating_types=?,image_urls=?,is_enabled=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND owner_account_id=?`, args: [item.title,item.location,item.price_huf,item.price_text,item.floor_area_sqm,item.rooms,item.bathrooms,item.description,item.listing_status,item.listing_type,item.construction_year,item.floor_count,item.central_heating,item.garden_access,item.floor_plan_available,item.balcony,item.full_comfort,item.air_conditioned,item.new_construction,item.orientation,item.view_type,item.bathroom_toilet,JSON.stringify(item.heating_types),JSON.stringify(item.image_urls),item.is_enabled,req.params.id,account.id] });
+    const updated = await db.execute({ sql: "SELECT * FROM property_listings WHERE id = ? AND owner_account_id = ?", args: [req.params.id, account.id] }); res.json(normalizeClientListing(updated.rows[0]));
+  } catch (error: any) { console.error("Failed to update client listing", error); res.status(/kötelező|karakter/.test(error?.message || "") ? 400 : 500).json({ error: error?.message || "A hirdetés mentése sikertelen." }); }
+});
+
+clientRouter.delete("/property-listings/:id", async (req, res) => {
+  try {
+    const account = await getClientListingAccount(String((req as any).user?.id || "")); if (!account) return res.status(403).json({ error: "Nincs aktív hirdetői fiók." });
+    const current = await db.execute({ sql: "SELECT image_urls FROM property_listings WHERE id = ? AND owner_account_id = ?", args: [req.params.id, account.id] }); if (!current.rows.length) return res.status(404).json({ error: "A saját hirdetés nem található." });
+    await deleteClientListingMedia(listingMediaUrls(parseListingArray(current.rows[0].image_urls))); await db.execute({ sql: "DELETE FROM property_listings WHERE id = ? AND owner_account_id = ?", args: [req.params.id, account.id] }); res.json({ success: true });
+  } catch (error: any) { console.error("Failed to delete client listing", error); res.status(500).json({ error: error?.message || "A hirdetés törlése sikertelen." }); }
 });
 
 clientRouter.get("/dashboard", async (req, res) => {

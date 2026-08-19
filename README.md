@@ -52,6 +52,17 @@ SPS Studio is an all-in-one studio management platform designed for architectura
 - **PIN-Protected Deliverable Galleries**: Individual and multi-select ZIP downloads with rotating four-digit PINs, forgotten-PIN email recovery, locked-preview watermarking, and right-click-safe delivery.
 - **Original & Optimized Downloads**: Separate full-resolution and optimized-image categories with identical authorization and watermark rules.
 - **Video & Image Previewing**: Generated video frame thumbnails, project preview images, attached-gallery counts, and full-size media modals.
+
+### 🏠 Property Listing Management
+- **Admin Listing CRUD**: Create, edit, search, enable/disable, and delete sale or rental listings before the public real-estate page is unlocked.
+- **Structured Property Data**: Pricing, dimensions, room counts, construction details, orientation, view, bathroom arrangement, multi-select heating, and amenity flags are stored in a dedicated schema.
+- **Optimized Listing Media**: Multi-image uploads reuse direct storage delivery and create optimized and thumbnail variants, with storage cleanup when media or listings are deleted.
+- **Linked Client Listing Accounts**: An authenticated portal client can perform a one-time migration into a separate, one-to-one listing account. Subsequent access uses a dedicated email/password login and independently scoped session without direct portal switching or general admin access.
+- **Ownership Auditability**: Every client-created listing records its linked owner, creator user, and creator role for clear identification in the admin listing catalog.
+- **Account Lifecycle Cleanup**: Deleting a migrated portal client from the admin panel also removes its linked listing account, owned listings, and tracked listing media so no orphaned ownership or storage records remain.
+- **Direct English URLs**: Migrated users sign in at `/property-listings/login` and manage their listings at `/property-listings/manager`.
+- **Public Property Catalog**: `/properties` lists every enabled sale and rental listing with optimized media, feature badges, price and description; `/properties/:id` provides the full gallery, structured property data, amenities, and direct advertiser contact.
+- **Menu Publication Control**: Administrators can show or hide the Properties entry in the public desktop and mobile navigation without disabling direct access to the catalog URL.
 - **Direct Studio Messaging**: In-portal project inquiries and revision requests linked directly to the studio admin.
 
 ### 🛠️ Admin Management Dashboard

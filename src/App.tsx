@@ -4,7 +4,7 @@
  */
 
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
-import { lazy, Suspense } from "react";
+import { lazy, ReactNode, Suspense } from "react";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { ThemeProvider } from "./components/ThemeProvider";
 import { LanguageProvider } from "./contexts/LanguageContext";
@@ -26,6 +26,7 @@ const ProjectsPage = lazy(() => import("./pages/admin/ProjectsPage"));
 const ServicesPage = lazy(() => import("./pages/admin/ServicesPage"));
 const PricingPage = lazy(() => import("./pages/admin/PricingPage"));
 const VisualIdeasPage = lazy(() => import("./pages/admin/VisualIdeasPage"));
+const PropertyListingsPage = lazy(() => import("./pages/admin/PropertyListingsPage"));
 const SocialLinksPage = lazy(() => import("./pages/admin/SocialLinksPage"));
 const InfoBarPage = lazy(() => import("./pages/admin/InfoBarPage"));
 const FaqsPage = lazy(() => import("./pages/admin/FaqsPage"));
@@ -46,10 +47,14 @@ const ClientProjectsPage = lazy(() => import("./pages/client/ClientProjectsPage"
 const ClientInvoicesPage = lazy(() => import("./pages/client/ClientInvoicesPage"));
 const ClientReferralsPage = lazy(() => import("./pages/client/ClientReferralsPage"));
 const ClientSettingsPage = lazy(() => import("./pages/client/ClientSettingsPage"));
+const ClientListingAccountPage = lazy(() => import("./pages/client/ClientListingAccountPage"));
+const ClientPropertyListingsPage = lazy(() => import("./pages/client/ClientPropertyListingsPage"));
+const PropertyListingLoginPage = lazy(() => import("./pages/PropertyListingLoginPage"));
 const PublicInvoicePage = lazy(() => import("./pages/PublicInvoicePage"));
 const PortfolioGalleryPage = lazy(() => import("./pages/PortfolioGalleryPage"));
+const PropertiesPage = lazy(() => import("./pages/PropertiesPage"));
 
-const ProtectedClientRoute = ({ children }: { children: React.ReactNode }) => {
+const ProtectedClientRoute = ({ children }: { children: ReactNode }) => {
   const { token, user } = useAuth();
   const location = useLocation();
   
@@ -74,7 +79,7 @@ const ProtectedClientRoute = ({ children }: { children: React.ReactNode }) => {
   return children;
 };
 
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+const ProtectedRoute = ({ children }: { children: ReactNode }) => {
   const { token, user } = useAuth();
   const location = useLocation();
   
@@ -101,6 +106,20 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return children;
 };
 
+const ProtectedPropertyRoute = ({ children }: { children: ReactNode }) => {
+  const token = localStorage.getItem("property_listing_token");
+  try {
+    if (!token) throw new Error("missing");
+    const payload = JSON.parse(atob(token.split(".")[1] || ""));
+    if (payload.role !== "property_client" || payload.scope !== "property-listings" || (payload.exp && payload.exp * 1000 <= Date.now())) throw new Error("invalid");
+    return children;
+  } catch {
+    localStorage.removeItem("property_listing_token");
+    localStorage.removeItem("property_listing_user");
+    return <Navigate to="/property-listings/login" replace />;
+  }
+};
+
 export default function App() {
   return (
     <BrowserRouter>
@@ -112,6 +131,8 @@ export default function App() {
             <Routes>
               <Route path="/" element={<PublicHome />} />
               <Route path="/portfolio/:slug" element={<PortfolioGalleryPage />} />
+              <Route path="/properties" element={<PropertiesPage />} />
+              <Route path="/properties/:id" element={<PropertiesPage />} />
               <Route path="/admin/setup" element={<AdminSetup />} />
               <Route path="/admin/login" element={<AdminLogin />} />
 
@@ -130,6 +151,10 @@ export default function App() {
 
               <Route path="/client/login" element={<ClientLogin />} />
               <Route path="/client/register" element={<ClientRegister />} />
+              <Route path="/property-listings/login" element={<PropertyListingLoginPage />} />
+              <Route path="/property-listings/manager" element={<ProtectedPropertyRoute><ClientPropertyListingsPage /></ProtectedPropertyRoute>} />
+              <Route path="/ingatlanos/bejelentkezes" element={<Navigate to="/property-listings/login" replace />} />
+              <Route path="/ingatlanos/kezelo" element={<Navigate to="/property-listings/manager" replace />} />
               <Route
                 path="/client"
                 element={
@@ -143,6 +168,7 @@ export default function App() {
                 <Route path="invoices" element={<ClientInvoicesPage />} />
                 <Route path="referrals" element={<ClientReferralsPage />} />
                 <Route path="settings" element={<ClientSettingsPage />} />
+                <Route path="property-listings" element={<ClientListingAccountPage />} />
               </Route>
 
               <Route
@@ -164,6 +190,7 @@ export default function App() {
                 <Route path="services" element={<ServicesPage />} />
                 <Route path="pricing" element={<PricingPage />} />
                 <Route path="visual-ideas" element={<VisualIdeasPage />} />
+                <Route path="property-listings" element={<PropertyListingsPage />} />
                 <Route path="info-bar" element={<InfoBarPage />} />
                 <Route path="announcements" element={<InfoBarPage />} />
                 <Route path="social-links" element={<SocialLinksPage />} />

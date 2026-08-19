@@ -1,6 +1,6 @@
 import { Outlet, Link, useNavigate, useLocation } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faSignOutAlt, faHome, faFolderOpen, faFileInvoiceDollar, faGift, faGear } from "@fortawesome/free-solid-svg-icons";
+import { faSignOutAlt, faHome, faFolderOpen, faFileInvoiceDollar, faGift, faGear, faBuilding } from "@fortawesome/free-solid-svg-icons";
 import { useAuth } from "../contexts/AuthContext";
 import { useLanguage } from "../contexts/LanguageContext";
 import { Button } from "./ui/Button";
@@ -20,6 +20,7 @@ export default function ClientLayout() {
   const isProjectsActive = location.pathname === "/client/projects" || location.pathname.startsWith("/client/projects/");
   const isInvoicesActive = location.pathname === "/client/invoices" || location.pathname.startsWith("/client/invoices/");
   const isReferralsActive = location.pathname === "/client/referrals" || location.pathname.startsWith("/client/referrals/");
+  const isPropertyListingsActive = location.pathname.startsWith("/client/property-listings");
   const isSettingsActive = location.pathname === "/client/settings";
 
   return (
@@ -74,6 +75,13 @@ export default function ClientLayout() {
             >
               <FontAwesomeIcon icon={faGift} className="text-amber-500" /> 
               <span>{tUi("client.nav.rewards")}</span>
+            </Link>
+            <Link
+              to="/client/property-listings"
+              aria-current={isPropertyListingsActive ? "page" : undefined}
+              className={`aero-client-nav-item px-3 py-1.5 rounded-lg flex shrink-0 items-center gap-2 ${isPropertyListingsActive ? "bg-primary text-primary-foreground font-semibold shadow-xs" : "text-muted-text hover:text-text hover:bg-surface"}`}
+            >
+              <FontAwesomeIcon icon={faBuilding} /> <span>{tUi("client.nav.property_listings")}</span>
             </Link>
             <Link
               to="/client/settings"

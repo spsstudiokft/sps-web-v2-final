@@ -166,6 +166,68 @@ export const setupDatabase = async () => {
   `);
   await client.execute(`CREATE INDEX IF NOT EXISTS idx_project_updates_project ON project_updates(project_id, created_at)`);
 
+  // Property listings are managed in admin while the public real-estate page
+  // remains locked. Keep this table in the lightweight phase so existing
+  // production databases receive it without replaying the full initializer.
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS property_listings (
+      id TEXT PRIMARY KEY,
+      title TEXT NOT NULL,
+      location TEXT NOT NULL,
+      price_huf INTEGER DEFAULT 0,
+      price_text TEXT DEFAULT '',
+      floor_area_sqm REAL DEFAULT 0,
+      rooms REAL DEFAULT 0,
+      bathrooms REAL DEFAULT 0,
+      description TEXT DEFAULT '',
+      listing_status TEXT DEFAULT 'active',
+      listing_type TEXT DEFAULT 'sale',
+      construction_year INTEGER,
+      floor_count INTEGER,
+      central_heating INTEGER DEFAULT 0,
+      garden_access INTEGER DEFAULT 0,
+      floor_plan_available INTEGER DEFAULT 0,
+      balcony INTEGER DEFAULT 0,
+      full_comfort INTEGER DEFAULT 0,
+      air_conditioned INTEGER DEFAULT 0,
+      new_construction INTEGER DEFAULT 0,
+      orientation TEXT DEFAULT '',
+      view_type TEXT DEFAULT '',
+      bathroom_toilet TEXT DEFAULT '',
+      heating_types TEXT DEFAULT '[]',
+      image_urls TEXT DEFAULT '[]',
+      is_enabled INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+  await client.execute("CREATE INDEX IF NOT EXISTS idx_property_listings_admin ON property_listings(updated_at DESC)");
+  await client.execute("CREATE INDEX IF NOT EXISTS idx_property_listings_public ON property_listings(is_enabled, listing_status, created_at DESC)");
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS property_listing_accounts (
+      id TEXT PRIMARY KEY,
+      portal_user_id TEXT UNIQUE NOT NULL,
+      email TEXT NOT NULL,
+      name TEXT DEFAULT '',
+      is_active INTEGER DEFAULT 1,
+      migrated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+  await client.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_property_listing_accounts_user ON property_listing_accounts(portal_user_id)");
+  try {
+    const listingSchema = await client.execute("PRAGMA table_info(property_listings)");
+    const listingColumns = new Set(listingSchema.rows.map((column: any) => String(column.name)));
+    const listingMigrations = [
+      ["owner_account_id", "ALTER TABLE property_listings ADD COLUMN owner_account_id TEXT DEFAULT NULL"],
+      ["created_by_user_id", "ALTER TABLE property_listings ADD COLUMN created_by_user_id TEXT DEFAULT NULL"],
+      ["created_by_role", "ALTER TABLE property_listings ADD COLUMN created_by_role TEXT DEFAULT 'admin'"],
+    ].filter(([name]) => !listingColumns.has(name)).map(([, sql]) => sql);
+    if (listingMigrations.length) await client.batch(listingMigrations, "write");
+  } catch {}
+  await client.execute("CREATE INDEX IF NOT EXISTS idx_property_listings_owner ON property_listings(owner_account_id, updated_at DESC)");
+
   await client.execute(`
     CREATE TABLE IF NOT EXISTS gallery_download_access (
       project_id TEXT PRIMARY KEY, pin_hash TEXT NOT NULL,

@@ -1393,6 +1393,162 @@ adminRouter.delete("/portfolio/:id", async (req, res) => {
   }
 });
 
+// ==================== PROPERTY LISTINGS CRUD ====================
+const PROPERTY_STATUSES = new Set(["active", "reserved", "sold"]);
+const PROPERTY_TYPES = new Set(["sale", "rent"]);
+
+function parsePropertyListingJson(value: unknown): any[] {
+  if (Array.isArray(value)) return value;
+  if (typeof value !== "string" || !value.trim()) return [];
+  try { const parsed = JSON.parse(value); return Array.isArray(parsed) ? parsed : []; } catch { return []; }
+}
+
+function normalizePropertyListing(row: any) {
+  return {
+    ...row,
+    price_huf: Number(row.price_huf || 0), floor_area_sqm: Number(row.floor_area_sqm || 0),
+    rooms: Number(row.rooms || 0), bathrooms: Number(row.bathrooms || 0),
+    heating_types: parsePropertyListingJson(row.heating_types),
+    image_urls: parsePropertyListingJson(row.image_urls),
+  };
+}
+
+function normalizePropertyListingInput(body: any) {
+  const title = typeof body?.title === "string" ? body.title.trim() : "";
+  const location = typeof body?.location === "string" ? body.location.trim() : "";
+  if (title.length < 2 || title.length > 180) throw new Error("A címnek 2 és 180 karakter között kell lennie.");
+  if (location.length < 2 || location.length > 220) throw new Error("A helyszín megadása kötelező.");
+  const listingStatus = PROPERTY_STATUSES.has(String(body.listing_status)) ? String(body.listing_status) : "active";
+  const listingType = PROPERTY_TYPES.has(String(body.listing_type)) ? String(body.listing_type) : "sale";
+  const number = (value: unknown, min = 0) => Math.max(min, Number.isFinite(Number(value)) ? Number(value) : 0);
+  const optionalInteger = (value: unknown) => value === "" || value === null || value === undefined
+    ? null : Math.max(0, Math.round(number(value)));
+  const heatingTypes = [...new Set((Array.isArray(body.heating_types) ? body.heating_types : []).map(String).map(v => v.trim()).filter(Boolean))].slice(0, 20);
+  const imageUrls = (Array.isArray(body.image_urls) ? body.image_urls : []).filter((item: any) => item && typeof item.url === "string" && item.url.trim()).slice(0, 60).map((item: any) => ({
+    url: item.url.trim(),
+    compressedUrl: typeof item.compressedUrl === "string" ? item.compressedUrl.trim() : undefined,
+    thumbnailUrl: typeof item.thumbnailUrl === "string" ? item.thumbnailUrl.trim() : undefined,
+    originalName: typeof item.originalName === "string" ? item.originalName.slice(0, 255) : undefined,
+  }));
+  return {
+    title, location, price_huf: Math.round(number(body.price_huf)), price_text: String(body.price_text || "").trim().slice(0, 120),
+    floor_area_sqm: number(body.floor_area_sqm), rooms: number(body.rooms), bathrooms: number(body.bathrooms),
+    description: String(body.description || "").trim(), listing_status: listingStatus, listing_type: listingType,
+    construction_year: optionalInteger(body.construction_year), floor_count: optionalInteger(body.floor_count),
+    central_heating: body.central_heating ? 1 : 0, garden_access: body.garden_access ? 1 : 0,
+    floor_plan_available: body.floor_plan_available ? 1 : 0, balcony: body.balcony ? 1 : 0,
+    full_comfort: body.full_comfort ? 1 : 0, air_conditioned: body.air_conditioned ? 1 : 0,
+    new_construction: body.new_construction ? 1 : 0,
+    orientation: String(body.orientation || "").trim().slice(0, 40), view_type: String(body.view_type || "").trim().slice(0, 40),
+    bathroom_toilet: String(body.bathroom_toilet || "").trim().slice(0, 40),
+    heating_types: heatingTypes, image_urls: imageUrls, is_enabled: body.is_enabled ? 1 : 0,
+  };
+}
+
+function collectPropertyListingMediaUrls(images: any[]): string[] {
+  const urls = new Set<string>();
+  for (const image of images) {
+    if (!image || typeof image !== "object") continue;
+    for (const key of ["url", "compressedUrl", "thumbnailUrl"]) {
+      if (typeof image[key] === "string" && image[key].trim()) urls.add(image[key].trim());
+    }
+  }
+  return [...urls];
+}
+
+adminRouter.get("/property-listings", async (_req, res) => {
+  try {
+    const result = await db.execute(`SELECT pl.*, pla.name AS owner_name, pla.email AS owner_email,
+      creator.name AS creator_name, creator.email AS creator_email
+      FROM property_listings pl
+      LEFT JOIN property_listing_accounts pla ON pla.id = pl.owner_account_id
+      LEFT JOIN users creator ON creator.id = pl.created_by_user_id
+      ORDER BY pl.updated_at DESC, pl.created_at DESC`);
+    res.json(result.rows.map(normalizePropertyListing));
+  } catch (error) {
+    console.error("Failed to load property listings", error);
+    res.status(500).json({ error: "Az ingatlanhirdetések betöltése sikertelen." });
+  }
+});
+
+adminRouter.post("/property-listings", async (req, res) => {
+  try {
+    const item = normalizePropertyListingInput(req.body);
+    const id = crypto.randomUUID();
+    const creator = (req as any).user || {};
+    await db.execute({
+      sql: `INSERT INTO property_listings (id, title, location, price_huf, price_text, floor_area_sqm, rooms, bathrooms, description,
+            listing_status, listing_type, construction_year, floor_count, central_heating, garden_access, floor_plan_available,
+            balcony, full_comfort, air_conditioned, new_construction, orientation, view_type, bathroom_toilet, heating_types, image_urls, is_enabled,
+            created_by_user_id, created_by_role)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      args: [id, item.title, item.location, item.price_huf, item.price_text, item.floor_area_sqm, item.rooms, item.bathrooms, item.description,
+        item.listing_status, item.listing_type, item.construction_year, item.floor_count, item.central_heating, item.garden_access,
+        item.floor_plan_available, item.balcony, item.full_comfort, item.air_conditioned, item.new_construction, item.orientation,
+        item.view_type, item.bathroom_toilet, JSON.stringify(item.heating_types), JSON.stringify(item.image_urls), item.is_enabled,
+        String(creator.id || "") || null, "admin"],
+    });
+    const created = await db.execute({ sql: "SELECT * FROM property_listings WHERE id = ?", args: [id] });
+    res.status(201).json(normalizePropertyListing(created.rows[0]));
+  } catch (error: any) {
+    console.error("Failed to create property listing", error);
+    res.status(error?.message?.includes("kötelező") || error?.message?.includes("karakter") ? 400 : 500).json({ error: error?.message || "A hirdetés létrehozása sikertelen." });
+  }
+});
+
+adminRouter.put("/property-listings/:id", async (req, res) => {
+  try {
+    const current = await db.execute({ sql: "SELECT image_urls FROM property_listings WHERE id = ?", args: [req.params.id] });
+    if (current.rows.length === 0) return res.status(404).json({ error: "Az ingatlanhirdetés nem található." });
+    const item = normalizePropertyListingInput(req.body);
+    const previousUrls = collectPropertyListingMediaUrls(parsePropertyListingJson(current.rows[0].image_urls));
+    const nextUrlSet = new Set(collectPropertyListingMediaUrls(item.image_urls));
+    const removedUrls = previousUrls.filter(url => !nextUrlSet.has(url));
+    if (removedUrls.length > 0) await deletePortfolioMediaUrls(removedUrls);
+    await db.execute({
+      sql: `UPDATE property_listings SET title=?, location=?, price_huf=?, price_text=?, floor_area_sqm=?, rooms=?, bathrooms=?, description=?,
+            listing_status=?, listing_type=?, construction_year=?, floor_count=?, central_heating=?, garden_access=?, floor_plan_available=?,
+            balcony=?, full_comfort=?, air_conditioned=?, new_construction=?, orientation=?, view_type=?, bathroom_toilet=?, heating_types=?,
+            image_urls=?, is_enabled=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`,
+      args: [item.title, item.location, item.price_huf, item.price_text, item.floor_area_sqm, item.rooms, item.bathrooms, item.description,
+        item.listing_status, item.listing_type, item.construction_year, item.floor_count, item.central_heating, item.garden_access,
+        item.floor_plan_available, item.balcony, item.full_comfort, item.air_conditioned, item.new_construction, item.orientation,
+        item.view_type, item.bathroom_toilet, JSON.stringify(item.heating_types), JSON.stringify(item.image_urls), item.is_enabled, req.params.id],
+    });
+    const updated = await db.execute({ sql: "SELECT * FROM property_listings WHERE id = ?", args: [req.params.id] });
+    res.json(normalizePropertyListing(updated.rows[0]));
+  } catch (error: any) {
+    console.error("Failed to update property listing", error);
+    res.status(error?.message?.includes("kötelező") || error?.message?.includes("karakter") ? 400 : 500).json({ error: error?.message || "A hirdetés mentése sikertelen." });
+  }
+});
+
+adminRouter.delete("/property-listings/:id", async (req, res) => {
+  try {
+    const current = await db.execute({ sql: "SELECT image_urls FROM property_listings WHERE id = ?", args: [req.params.id] });
+    if (current.rows.length === 0) return res.status(404).json({ error: "Az ingatlanhirdetés nem található." });
+    const urls = collectPropertyListingMediaUrls(parsePropertyListingJson(current.rows[0].image_urls));
+    if (urls.length > 0) await deletePortfolioMediaUrls(urls);
+    await db.execute({ sql: "DELETE FROM property_listings WHERE id = ?", args: [req.params.id] });
+    res.json({ success: true });
+  } catch (error: any) {
+    console.error("Failed to delete property listing", error);
+    res.status(500).json({ error: error?.message || "A hirdetés és a képek törlése sikertelen." });
+  }
+});
+
+adminRouter.patch("/property-listings/:id/visibility", async (req, res) => {
+  try {
+    await db.execute({ sql: "UPDATE property_listings SET is_enabled = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", args: [req.body?.is_enabled ? 1 : 0, req.params.id] });
+    const updated = await db.execute({ sql: "SELECT * FROM property_listings WHERE id = ?", args: [req.params.id] });
+    if (updated.rows.length === 0) return res.status(404).json({ error: "Az ingatlanhirdetés nem található." });
+    res.json(normalizePropertyListing(updated.rows[0]));
+  } catch (error) {
+    console.error("Failed to update property visibility", error);
+    res.status(500).json({ error: "A hirdetés láthatósága nem módosítható." });
+  }
+});
+
 // ==================== SERVICES CRUD ====================
 // Get all services
 adminRouter.get("/services", async (req, res) => {
@@ -3270,6 +3426,15 @@ adminRouter.put("/clients/:id", async (req, res) => {
 
 adminRouter.delete("/clients/:id", async (req, res) => {
   try {
+    const listingAccount = await db.execute({ sql: "SELECT id FROM property_listing_accounts WHERE portal_user_id = ? LIMIT 1", args: [req.params.id] });
+    if (listingAccount.rows.length > 0) {
+      const accountId = String(listingAccount.rows[0].id);
+      const ownedListings = await db.execute({ sql: "SELECT image_urls FROM property_listings WHERE owner_account_id = ?", args: [accountId] });
+      const ownedMediaUrls = ownedListings.rows.flatMap((row: any) => collectPropertyListingMediaUrls(parsePropertyListingJson(row.image_urls)));
+      if (ownedMediaUrls.length > 0) await deletePortfolioMediaUrls([...new Set(ownedMediaUrls)]);
+      await db.execute({ sql: "DELETE FROM property_listings WHERE owner_account_id = ?", args: [accountId] });
+      await db.execute({ sql: "DELETE FROM property_listing_accounts WHERE id = ?", args: [accountId] });
+    }
     await db.execute({
       sql: "DELETE FROM client_properties WHERE client_id = ?",
       args: [req.params.id]
