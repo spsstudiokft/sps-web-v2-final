@@ -1,5 +1,12 @@
 # Modification Log
 
+## 2026-08-19 — Client property-listing media upload authorization
+
+- Fixed Vercel property-client image uploads returning `Forbidden: Admin access required` from `/api/admin/media/upload/*`.
+- Added a shared upload authorization middleware used by both the full Node server and the Vercel admin function.
+- Limited the exception strictly to media-upload routes and require a valid `property-listings` scope plus a matching, active linked listing account for property-client sessions.
+- Preserved normal admin-role and active-account validation for every admin request, including uploads.
+
 ## 2026-08-19 — Unified property-site and client-manager design
 
 - Replaced the separate property-page navbar with the same responsive Header component used by the public homepage, including configured light/dark logos, brand display mode, language selector, theme switch, account menu, and mobile drawer.
