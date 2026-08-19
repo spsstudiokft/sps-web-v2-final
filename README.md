@@ -63,7 +63,7 @@ SPS Studio is an all-in-one studio management platform designed for architectura
 
 ### ✉️ Resend Email Engine & Template Editor
 - **Configurable Sender Profiles**: Set custom `from_name`, `from_email`, `reply_to`, and admin alert addresses.
-- **Email Header Branding**: Transactional and marketing email layouts can use the uploaded header logo, logo with studio name, or studio name only, with the website header mode as the initial fallback.
+- **Email Header Branding**: Transactional and marketing email layouts can use the uploaded header logo, logo with studio name, or studio name only. Their blue header prefers the dark-background logo variant, with the light-background logo as fallback.
 - **Transactional Template Catalog**: Pre-built system templates covering:
   - Password Reset & Account Recovery (`password_reset`)
   - Magic Link Passwordless Sign-In (`magic_link_login`)

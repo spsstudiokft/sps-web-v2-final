@@ -82,7 +82,7 @@ export async function getEmailSenderConfig(): Promise<EmailSenderConfig> {
   let footerText = "SPS Studio · Premium Real Estate Visual Marketing · All rights reserved.";
   let headerBrandDisplay: EmailSenderConfig["brandDisplay"] = "logo_only";
   let emailBrandDisplay = "";
-  let logoUrl = "";
+  let darkBackgroundLogoUrl = "";
   let fallbackLogoUrl = "";
   let logoAltText = "";
 
@@ -98,8 +98,8 @@ export async function getEmailSenderConfig(): Promise<EmailSenderConfig> {
       if (k === "email_footer_text" && v?.trim()) footerText = v.trim();
       if (k === "email_brand_display" && v?.trim()) emailBrandDisplay = v.trim();
       if (k === "header_brand_display" && ["logo_only", "logo_and_name", "name_only"].includes(v?.trim())) headerBrandDisplay = v.trim() as EmailSenderConfig["brandDisplay"];
-      if (k === "logo_header_light" && v?.trim()) logoUrl = v.trim();
-      if (k === "logo_header_dark" && v?.trim()) fallbackLogoUrl = v.trim();
+      if (k === "logo_header_dark" && v?.trim()) darkBackgroundLogoUrl = v.trim();
+      if (k === "logo_header_light" && v?.trim()) fallbackLogoUrl = v.trim();
       if (k === "logo_alt_text" && v?.trim()) logoAltText = v.trim();
       if (k === "contact_email" && v?.trim() && !replyToEmail) replyToEmail = v.trim();
       if (k === "studio_name" && v?.trim()) {
@@ -118,7 +118,10 @@ export async function getEmailSenderConfig(): Promise<EmailSenderConfig> {
   const requestedBrandDisplay = ["logo_only", "logo_and_name", "name_only"].includes(emailBrandDisplay)
     ? emailBrandDisplay as EmailSenderConfig["brandDisplay"]
     : headerBrandDisplay;
-  const configuredLogoUrl = logoUrl || fallbackLogoUrl;
+  // Email headers use the dark blue brand background, so prefer the logo
+  // specifically designed for dark surfaces. The light-surface logo remains
+  // a fallback for installations that have not uploaded both variants yet.
+  const configuredLogoUrl = darkBackgroundLogoUrl || fallbackLogoUrl;
   const appUrl = String(process.env.APP_URL || "").trim().replace(/\/$/, "");
   const absoluteLogoUrl = configuredLogoUrl.startsWith("/") && appUrl
     ? `${appUrl}${configuredLogoUrl}`

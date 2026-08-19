@@ -698,7 +698,7 @@ export function EmailSettingsManager({ settings, onChange }: EmailSettingsManage
                   <option value="name_only">Studio name only</option>
                 </select>
                 <p className="text-[11px] text-muted-text mt-1">
-                  Uses the uploaded light header logo, with the dark header logo as fallback. Until saved separately, this follows the website header branding mode.
+                  Uses the uploaded dark-background header logo on the blue email header, with the light-background logo as fallback. Until saved separately, this follows the website header branding mode.
                 </p>
               </div>
 
