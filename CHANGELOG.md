@@ -17,6 +17,7 @@
 
 ### Portfolio data and media cleanup
 
+- Fixed new client-property creation and editing when legacy or incomplete records contain a `null` property name, address, metadata, or request body; client and admin endpoints now normalize values before trimming and return address validation instead of a runtime exception.
 - Corrected localized portfolio names and categories in admin cards and category selectors so translated values render instead of serialized objects or translation keys.
 - Portfolio updates now compare the previous and saved gallery media sets and delete removed originals, optimized images, thumbnails, posters, and previews from storage.
 - Full and bulk portfolio deletion use the same storage cleanup path before database removal.

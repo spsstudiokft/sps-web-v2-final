@@ -84,7 +84,14 @@ export default function ClientDashboardHome() {
 
   const handleSaveProperty = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingProp || !editingProp.address?.trim()) return;
+    const cleanAddress = typeof editingProp?.address === "string" ? editingProp.address.trim() : "";
+    const cleanPropertyName = typeof editingProp?.property_name === "string"
+      ? editingProp.property_name.trim()
+      : "";
+    if (!editingProp || !cleanAddress) {
+      setErrorMsg("Property address is required");
+      return;
+    }
 
     setSavingItem(true);
     setErrorMsg("");
@@ -94,8 +101,8 @@ export default function ClientDashboardHome() {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            property_name: editingProp.property_name?.trim() || "My Property",
-            address: editingProp.address.trim()
+            property_name: cleanPropertyName || "My Property",
+            address: cleanAddress
           })
         });
         if (!res.ok) {
@@ -107,8 +114,8 @@ export default function ClientDashboardHome() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            property_name: editingProp.property_name?.trim() || "My Property",
-            address: editingProp.address.trim()
+            property_name: cleanPropertyName || "My Property",
+            address: cleanAddress
           })
         });
         if (!res.ok) {

@@ -3268,8 +3268,10 @@ adminRouter.get("/clients/:id/properties", async (req, res) => {
 adminRouter.post("/clients/:id/properties", async (req, res) => {
   try {
     const clientId = req.params.id;
-    const { property_name, address, metadata } = req.body;
-    if (!address || typeof address !== "string" || !address.trim()) {
+    const { property_name, address, metadata } = req.body || {};
+    const cleanAddress = typeof address === "string" ? address.trim() : "";
+    const cleanPropertyName = typeof property_name === "string" ? property_name.trim() : "";
+    if (!cleanAddress) {
       return res.status(400).json({ error: "Property address is required" });
     }
 
@@ -3286,9 +3288,9 @@ adminRouter.post("/clients/:id/properties", async (req, res) => {
       args: [
         id,
         clientId,
-        property_name ? property_name.trim() : "Property",
-        address.trim(),
-        typeof metadata === "object" ? JSON.stringify(metadata) : (metadata || "{}"),
+        cleanPropertyName || "Property",
+        cleanAddress,
+        metadata && typeof metadata === "object" ? JSON.stringify(metadata) : (typeof metadata === "string" ? metadata : "{}"),
         nextOrder
       ]
     });
@@ -3307,8 +3309,10 @@ adminRouter.post("/clients/:id/properties", async (req, res) => {
 
 adminRouter.put("/clients/:id/properties/:propertyId", async (req, res) => {
   try {
-    const { property_name, address, metadata } = req.body;
-    if (!address || typeof address !== "string" || !address.trim()) {
+    const { property_name, address, metadata } = req.body || {};
+    const cleanAddress = typeof address === "string" ? address.trim() : "";
+    const cleanPropertyName = typeof property_name === "string" ? property_name.trim() : "";
+    if (!cleanAddress) {
       return res.status(400).json({ error: "Property address is required" });
     }
 
@@ -3317,9 +3321,9 @@ adminRouter.put("/clients/:id/properties/:propertyId", async (req, res) => {
             SET property_name = ?, address = ?, metadata = ?, updated_at = CURRENT_TIMESTAMP
             WHERE id = ?`,
       args: [
-        property_name ? property_name.trim() : "Property",
-        address.trim(),
-        typeof metadata === "object" ? JSON.stringify(metadata) : (metadata || "{}"),
+        cleanPropertyName || "Property",
+        cleanAddress,
+        metadata && typeof metadata === "object" ? JSON.stringify(metadata) : (typeof metadata === "string" ? metadata : "{}"),
         req.params.propertyId
       ]
     });

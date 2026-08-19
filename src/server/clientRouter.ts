@@ -375,8 +375,10 @@ clientRouter.post("/properties", async (req, res) => {
       return res.status(401).json({ error: "Unauthorized" });
     }
 
-    const { property_name, address, metadata } = req.body;
-    if (!address || typeof address !== "string" || !address.trim()) {
+    const { property_name, address, metadata } = req.body || {};
+    const cleanAddress = typeof address === "string" ? address.trim() : "";
+    const cleanPropertyName = typeof property_name === "string" ? property_name.trim() : "";
+    if (!cleanAddress) {
       return res.status(400).json({ error: "Property address is required" });
     }
 
@@ -393,9 +395,9 @@ clientRouter.post("/properties", async (req, res) => {
       args: [
         id,
         user.id,
-        property_name ? property_name.trim() : "Property",
-        address.trim(),
-        typeof metadata === "object" ? JSON.stringify(metadata) : (metadata || "{}"),
+        cleanPropertyName || "Property",
+        cleanAddress,
+        metadata && typeof metadata === "object" ? JSON.stringify(metadata) : (typeof metadata === "string" ? metadata : "{}"),
         nextOrder
       ]
     });
@@ -404,7 +406,7 @@ clientRouter.post("/properties", async (req, res) => {
     await db.execute({
       sql: `UPDATE users SET property_address = ? 
             WHERE id = ? AND (property_address IS NULL OR property_address = '')`,
-      args: [address.trim(), user.id]
+      args: [cleanAddress, user.id]
     });
 
     const item = await db.execute({
@@ -426,8 +428,10 @@ clientRouter.put("/properties/:id", async (req, res) => {
       return res.status(401).json({ error: "Unauthorized" });
     }
 
-    const { property_name, address, metadata } = req.body;
-    if (!address || typeof address !== "string" || !address.trim()) {
+    const { property_name, address, metadata } = req.body || {};
+    const cleanAddress = typeof address === "string" ? address.trim() : "";
+    const cleanPropertyName = typeof property_name === "string" ? property_name.trim() : "";
+    if (!cleanAddress) {
       return res.status(400).json({ error: "Property address is required" });
     }
 
@@ -444,9 +448,9 @@ clientRouter.put("/properties/:id", async (req, res) => {
             SET property_name = ?, address = ?, metadata = ?, updated_at = CURRENT_TIMESTAMP
             WHERE id = ? AND client_id = ?`,
       args: [
-        property_name ? property_name.trim() : "Property",
-        address.trim(),
-        typeof metadata === "object" ? JSON.stringify(metadata) : (metadata || "{}"),
+        cleanPropertyName || "Property",
+        cleanAddress,
+        metadata && typeof metadata === "object" ? JSON.stringify(metadata) : (typeof metadata === "string" ? metadata : "{}"),
         req.params.id,
         user.id
       ]

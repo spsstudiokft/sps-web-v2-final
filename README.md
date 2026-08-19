@@ -54,6 +54,7 @@ SPS Studio is an all-in-one studio management platform designed for architectura
 - **Portfolio & Gallery CMS**: Multi-image uploads, drag-and-drop sorting (`@dnd-kit`), localized names/categories, automatic optimized-media creation, category management, and keyword tagging.
 - **Section Media Management**: Public-section images and backgrounds can be replaced from the admin panel without code changes.
 - **Projects & Client Accounts**: Create client accounts, link projects, update delivery milestones, and upload final deliverables.
+- **Null-Safe Property Records**: Client and admin property creation/editing normalize incomplete legacy values and validate missing addresses without exposing runtime errors.
 - **Services & Pricing Manager**: Manage service offerings, highlight featured tiers, and update pricing schedules.
 - **Visual Ideas Manager**: Edit the pre-pricing section heading, introduction, visibility, localized card copy, ordering, and up to 15 compact cards.
 - **FAQ & Knowledge Base Manager**: Organize questions into custom categories with quick reordering.
