@@ -18,6 +18,10 @@ export type SiteSettings = {
   vision_statement?: string;
   about_text?: string;
   section_media?: string; // JSON map of public section background/image configuration
+  visual_ideas_title?: string;
+  visual_ideas_description?: string;
+  visual_ideas_items?: string;
+  visual_ideas_enabled?: string;
   contact_title?: string;
   contact_description?: string;
   contact_email?: string;

@@ -72,7 +72,7 @@ function UserDropdown({ token, logout, currentLang }: { token: string | null, lo
   );
 }
 
-export function Header({ settings, hasServices = true, hasPortfolio = true }: { settings: SiteSettings; hasServices?: boolean; hasPortfolio?: boolean }) {
+export function Header({ settings, hasServices = true, hasPortfolio = true, hasPricing = true, hasFaq = true }: { settings: SiteSettings; hasServices?: boolean; hasPortfolio?: boolean; hasPricing?: boolean; hasFaq?: boolean }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isVisible, setIsVisible] = useState(true);
   const [activeSection, setActiveSection] = useState("");
@@ -141,8 +141,9 @@ export function Header({ settings, hasServices = true, hasPortfolio = true }: { 
         "about",
         ...(hasServices ? ["services"] : []),
         ...(hasPortfolio ? ["portfolio"] : []),
+        ...(hasPricing ? ["pricing"] : []),
         "contact",
-        "faq",
+        ...(hasFaq ? ["faq"] : []),
       ];
       let currentSec = "";
       for (const sec of sections) {
@@ -177,7 +178,7 @@ export function Header({ settings, hasServices = true, hasPortfolio = true }: { 
       window.removeEventListener("scroll", handleScroll);
       window.removeEventListener("resize", handleScroll);
     };
-  }, [hasServices, hasPortfolio]);
+  }, [hasServices, hasPortfolio, hasPricing, hasFaq]);
 
   const closeMenu = () => setMobileMenuOpen(false);
 
@@ -228,14 +229,14 @@ export function Header({ settings, hasServices = true, hasPortfolio = true }: { 
           >
             {tUi("Portfolio", currentLang, undefined, defaultLang) || "Portfolio"}
           </a>}
-          <a 
+          {hasPricing && <a 
             href="#pricing" 
             className={`transition-colors focus-visible:ring-2 focus-visible:ring-primary rounded-sm outline-none px-1 py-0.5 ${
               activeSection === "pricing" ? "text-primary font-bold" : "text-text/90 hover:text-text"
             }`}
           >
             {tUi("Pricing", currentLang, undefined, defaultLang) || "Pricing"}
-          </a>
+          </a>}
           <a 
             href="#contact" 
             className={`transition-colors focus-visible:ring-2 focus-visible:ring-primary rounded-sm outline-none px-1 py-0.5 ${
@@ -244,14 +245,14 @@ export function Header({ settings, hasServices = true, hasPortfolio = true }: { 
           >
             {tUi("Contact", currentLang, undefined, defaultLang) || "Contact"}
           </a>
-          <a 
+          {hasFaq && <a 
             href="#faq" 
             className={`transition-colors focus-visible:ring-2 focus-visible:ring-primary rounded-sm outline-none px-1 py-0.5 ${
               activeSection === "faq" ? "text-primary font-bold" : "text-text/90 hover:text-text"
             }`}
           >
             {tUi("FAQ", currentLang, undefined, defaultLang) || "FAQ"}
-          </a>
+          </a>}
 
           <button disabled className="flex items-center gap-2 opacity-40 cursor-not-allowed hover:text-muted-text transition-colors px-1 py-0.5" title="Coming soon">
             <FontAwesomeIcon icon={faHouse} aria-hidden="true" />
@@ -324,7 +325,7 @@ export function Header({ settings, hasServices = true, hasPortfolio = true }: { 
             >
               {tUi("Portfolio", currentLang, undefined, defaultLang) || "Portfolio"}
             </a>}
-            <a 
+            {hasPricing && <a 
               href="#pricing" 
               onClick={closeMenu} 
               className={`text-lg font-medium transition-colors focus-visible:ring-2 focus-visible:ring-primary rounded-sm outline-none w-fit ${
@@ -332,7 +333,7 @@ export function Header({ settings, hasServices = true, hasPortfolio = true }: { 
               }`}
             >
               {tUi("Pricing", currentLang, undefined, defaultLang) || "Pricing"}
-            </a>
+            </a>}
             <a 
               href="#contact" 
               onClick={closeMenu} 
@@ -342,7 +343,7 @@ export function Header({ settings, hasServices = true, hasPortfolio = true }: { 
             >
               {tUi("Contact", currentLang, undefined, defaultLang) || "Contact"}
             </a>
-            <a 
+            {hasFaq && <a 
               href="#faq" 
               onClick={closeMenu} 
               className={`text-lg font-medium transition-colors focus-visible:ring-2 focus-visible:ring-primary rounded-sm outline-none w-fit ${
@@ -350,7 +351,7 @@ export function Header({ settings, hasServices = true, hasPortfolio = true }: { 
               }`}
             >
               {tUi("FAQ", currentLang, undefined, defaultLang) || "FAQ"}
-            </a>
+            </a>}
 
             <div className="pt-4 mt-2 border-t border-border flex flex-col gap-3">
               <div className="flex items-center justify-between py-1">

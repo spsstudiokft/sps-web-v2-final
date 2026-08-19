@@ -17,10 +17,14 @@ export function FloatingNav({
   onOpenSocial,
   hasServices = true,
   hasPortfolio = true,
+  hasPricing = true,
+  hasFaq = true,
 }: {
   onOpenSocial?: () => void;
   hasServices?: boolean;
   hasPortfolio?: boolean;
+  hasPricing?: boolean;
+  hasFaq?: boolean;
 }) {
   const [activeSection, setActiveSection] = useState("");
   const [isVisible, setIsVisible] = useState(false);
@@ -40,9 +44,9 @@ export function FloatingNav({
       "about",
       ...(hasServices ? ["services"] : []),
       ...(hasPortfolio ? ["portfolio"] : []),
-      "pricing",
+      ...(hasPricing ? ["pricing"] : []),
       "contact",
-      "faq",
+      ...(hasFaq ? ["faq"] : []),
     ];
     
     const handleScroll = () => {
@@ -63,15 +67,15 @@ export function FloatingNav({
     window.addEventListener("scroll", handleScroll, { passive: true });
     handleScroll();
     return () => window.removeEventListener("scroll", handleScroll);
-  }, [hasServices, hasPortfolio]);
+  }, [hasServices, hasPortfolio, hasPricing, hasFaq]);
 
   const navItems = [
     { id: "about", label: "About", icon: faInfoCircle },
     ...(hasServices ? [{ id: "services", label: "Services", icon: faConciergeBell }] : []),
     ...(hasPortfolio ? [{ id: "portfolio", label: "Portfolio", icon: faImage }] : []),
-    { id: "pricing", label: "Pricing", icon: faTag },
+    ...(hasPricing ? [{ id: "pricing", label: "Pricing", icon: faTag }] : []),
     { id: "contact", label: "Contact", icon: faEnvelope },
-    { id: "faq", label: "FAQ", icon: faQuestionCircle },
+    ...(hasFaq ? [{ id: "faq", label: "FAQ", icon: faQuestionCircle }] : []),
   ];
 
   return (

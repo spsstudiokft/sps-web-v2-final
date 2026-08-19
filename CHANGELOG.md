@@ -25,6 +25,10 @@
 
 ### Public showcase and visual fixes
 
+- Added the admin-managed “Miről lehet jó ingatlan vizuált készíteni?” section directly before pricing, with a responsive five-column desktop grid, a hard 15-card/three-row limit, localized title and description fields, ordering controls, visibility control, and no public navigation entry.
+- Integrated the new section into the existing section-background media manager while excluding it from scroll-driven navigation and page-title state.
+- Added unified content-aware rendering for Services, Portfolio, Pricing, Visual Ideas, and FAQ: empty or fully hidden sections and their desktop/mobile/floating navigation anchors are no longer rendered.
+- Removed legacy public fallback cards that kept empty Services and FAQ sections visible, and added per-card visibility controls to Visual Ideas.
 - The homepage interactive portfolio and its lightbox now prefer optimized image derivatives instead of raw full-resolution files.
 - Portfolio marquee cards no longer expose individual image titles or filenames; they identify the portfolio and category instead.
 - Randomized each portfolio marquee row on load and, when possible, prevented media from the same gallery from appearing consecutively.
@@ -79,6 +83,7 @@
 - Added route-level lazy loading for admin, finance, authentication, invoice, and client-portal modules; the main startup JavaScript decreased from approximately 2.59 MB to 870 KB (about 600 KB to 230 KB gzip).
 - Added hero-image preload and conditional optimized portfolio-image prefetching that respects constrained devices and connections.
 - Added automatic lightweight rendering for low-memory/low-core mobile devices, data-saver or slow connections, and reduced-motion users.
+- Fixed pricing cards remaining transparent on mobile when lightweight `content-visibility` prevented their viewport animation from completing; lite mode now renders pricing immediately with a CSS visibility fallback, tighter card spacing, responsive padding, and a compact three-column filter bar.
 - In lightweight mode, portfolio marquees become non-duplicated touch-scroll rows, continuous GPU effects and costly blur/3D layers are disabled, Motion animations are reduced, and off-screen public sections use deferred rendering.
 
 ### Vercel serverless architecture

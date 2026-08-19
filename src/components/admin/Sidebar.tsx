@@ -37,6 +37,7 @@ import {
   Send,
   Gift,
   Mail,
+  PanelsTopLeft,
   LucideIcon
 } from "lucide-react";
 
@@ -116,6 +117,7 @@ export function Sidebar({ isMobileOpen = false, onMobileClose }: SidebarProps) {
         { to: "/admin/portfolio", label: "Portfolio", translationKey: "admin.nav.portfolio", icon: ImageIcon },
         { to: "/admin/projects", label: "Projects", translationKey: "admin.nav.projects", icon: FolderKanban },
         { to: "/admin/services", label: "Services", translationKey: "admin.nav.services", icon: Sparkles },
+        { to: "/admin/visual-ideas", label: "Visual Ideas", translationKey: "admin.nav.visual_ideas", icon: PanelsTopLeft },
         { to: "/admin/pricing", label: "Pricing & Packages", translationKey: "admin.nav.pricing", icon: Tag },
         { to: "/admin/info-bar", label: "Announcement Bar", translationKey: "admin.nav.info_bar", icon: Megaphone },
         { to: "/admin/social-links", label: "Social Popup Tree", translationKey: "admin.nav.social_links", icon: Share2 },

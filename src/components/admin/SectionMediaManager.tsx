@@ -11,6 +11,7 @@ const SECTIONS = [
   ["about", "Rólunk"],
   ["services", "Szolgáltatások"],
   ["portfolio", "Portfólió"],
+  ["visual-ideas", "Ingatlanvizuál ötletek"],
   ["pricing", "Árak és csomagok"],
   ["contact", "Kapcsolat"],
   ["faq", "GYIK"],

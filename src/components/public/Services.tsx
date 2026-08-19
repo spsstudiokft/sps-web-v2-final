@@ -6,51 +6,6 @@ import { ServiceIcon } from "../common/ServiceIcon";
 import { motion } from "motion/react";
 import { ArrowRight } from "lucide-react";
 
-const DEFAULT_SERVICES: Array<Partial<Service>> = [
-  {
-    id: "default-1",
-    title: "Professional Photography",
-    description: "High-resolution, beautifully composed images that highlight the best features of every property.",
-    icon: "camera",
-    sort_order: 1,
-  },
-  {
-    id: "default-2",
-    title: "Cinematic Video Tours",
-    description: "Smooth, stabilized walkthrough videos that provide a realistic and engaging viewing experience.",
-    icon: "video",
-    sort_order: 2,
-  },
-  {
-    id: "default-3",
-    title: "Drone & Aerial",
-    description: "Stunning aerial perspectives that showcase the property exterior, land, and surrounding neighborhood.",
-    icon: "helicopter",
-    sort_order: 3,
-  },
-  {
-    id: "default-4",
-    title: "Virtual Staging",
-    description: "Transform empty spaces into furnished, inviting homes that help buyers visualize their future.",
-    icon: "couch",
-    sort_order: 4,
-  },
-  {
-    id: "default-5",
-    title: "Floor Plans",
-    description: "Accurate, clean floor plans with precise measurements to help buyers understand the layout.",
-    icon: "ruler",
-    sort_order: 5,
-  },
-  {
-    id: "default-6",
-    title: "Twilight Photography",
-    description: "Dramatic evening shots that make properties stand out and evoke an emotional connection.",
-    icon: "moon",
-    sort_order: 6,
-  },
-];
-
 export function Services({ 
   settings, 
   initialServices 
@@ -60,7 +15,7 @@ export function Services({
 }) {
   const { currentLang, defaultLang } = useLanguage();
   const [services, setServices] = useState<Service[] | Partial<Service>[]>(
-    initialServices !== undefined ? initialServices : DEFAULT_SERVICES
+    initialServices || []
   );
 
   useEffect(() => {
@@ -69,9 +24,7 @@ export function Services({
     fetch("/api/public/services")
       .then((res) => (res.ok ? res.json() : []))
       .then((data) => {
-        if (isMounted && Array.isArray(data) && data.length > 0) {
-          setServices(data);
-        }
+        if (isMounted && Array.isArray(data)) setServices(data);
       })
       .catch((err) => {
         console.error("Failed to load public services:", err);
@@ -102,6 +55,8 @@ export function Services({
     const translated = t(val, currentLang, defaultLang);
     return translated || (fallbackKey ? tUi(fallbackKey, currentLang) : val);
   };
+
+  if (services.length === 0) return null;
 
   return (
     <section id="services" className="aero-section aero-services aero-image-section scroll-mt-20 py-24 md:py-32 px-6">

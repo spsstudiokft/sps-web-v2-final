@@ -750,6 +750,15 @@ html:not(.dark) .aero-site {
   .aero-site[data-performance="lite"] img {
     image-rendering: auto;
   }
+  /* Mobile content-visibility can prevent Motion's intersection callback from
+     promoting a deferred pricing grid out of its initial transparent state. */
+  .aero-site[data-performance="lite"] #pricing,
+  .aero-site[data-performance="lite"] #pricing [data-pricing-grid="true"],
+  .aero-site[data-performance="lite"] #pricing [data-pricing-card="true"] {
+    opacity: 1 !important;
+    transform: none !important;
+    visibility: visible !important;
+  }
 }
 
 @media (hover: none) and (pointer: coarse) {

@@ -26,10 +26,12 @@ SPS Studio is an all-in-one studio management platform designed for architectura
 - **Category Filter & Search**: Interactive filtering across photography, aerial drone, 3D virtual tours, and cinematic video.
 - **Lightbox & Gallery Viewer**: Full-screen high-resolution media previews with responsive touch navigation.
 - **Services & Pricing Showcase**: Dynamic tier cards with package feature lists, pricing models, and instant booking CTAs.
+- **Real Estate Visual Ideas**: A compact, responsive text-card section before pricing supports up to 15 localized, admin-managed property ideas in a five-column desktop layout without adding another public navigation item.
 - **Collapsible FAQs & Social Hub**: Grouped questions with instant search, plus verified studio social media links.
 - **Interactive Contact & Booking**: Guided lead capture with required property city, optional address, travel-distance pricing from Hódmezővásárhely, package/add-on calculator, structured estimate persistence, admin alert, and client confirmation.
 - **Consent & Legal Modals**: Cookie-gated inquiry form plus database-backed Privacy Policy, Terms, Cookie Policy, and Legal Notice documents rendered from formatted admin content.
 - **Adaptive Navigation**: Services and Portfolio links disappear automatically when no published content exists.
+- **Content-Aware Section Rendering**: Services, Portfolio, Pricing, Visual Ideas, and FAQ sections are omitted together with their header/floating navigation anchors whenever they contain no visible items; hidden Visual Ideas cards are excluded individually.
 - **Mixed Portfolio Conveyor**: Gallery media is randomized across marquee rows and avoids adjacent images from the same portfolio whenever possible.
 - **Four Media Rows**: Separate randomized rows for standard photography, drone video, interior walkthrough video, and drone photography, using an alternating left/right motion pattern.
 - **Indexable Gallery Pages**: Every published portfolio gallery has a stable `/portfolio/:slug` page containing all associated media, canonical/Open Graph metadata, ImageGallery structured data, and automatic sitemap discovery.
@@ -50,6 +52,7 @@ SPS Studio is an all-in-one studio management platform designed for architectura
 - **Section Media Management**: Public-section images and backgrounds can be replaced from the admin panel without code changes.
 - **Projects & Client Accounts**: Create client accounts, link projects, update delivery milestones, and upload final deliverables.
 - **Services & Pricing Manager**: Manage service offerings, highlight featured tiers, and update pricing schedules.
+- **Visual Ideas Manager**: Edit the pre-pricing section heading, introduction, visibility, localized card copy, ordering, and up to 15 compact cards.
 - **FAQ & Knowledge Base Manager**: Organize questions into custom categories with quick reordering.
 - **Inquiry & Lead CRM**: Status tracking (`new`, `contacted`, `converted`, `archived`) with contact details and notes.
 - **Social Media Link Manager**: Manage brand handles across 20+ platforms with FontAwesome and Lucide icons.
@@ -114,6 +117,7 @@ SPS Studio is an all-in-one studio management platform designed for architectura
 - **Stored Card Derivatives**: New image uploads also create a dedicated 840 px JPEG card asset in object storage; cards use this file directly, while existing media uses a standardized, preconnected 640 px Appwrite preview path until regenerated.
 - **Progressive Gallery Loading**: The lightbox immediately displays the stored card thumbnail as a blurred placeholder and crossfades to the larger optimized image after it has decoded.
 - **Adaptive Low-End Mode**: Low-memory/low-core devices, constrained connections, data-saver mode, and reduced-motion preferences receive fewer blur/3D effects and deferred off-screen rendering.
+- **Reliable Mobile Pricing**: Pricing cards bypass viewport-dependent entrance opacity in lightweight mode and use compact mobile spacing and filter controls, preventing deferred rendering from leaving cards invisible.
 - **Critical Media Loading**: The hero background is preloaded while optimized portfolio derivatives are prefetched only when device and connection conditions allow it.
 - **Accessible Light Theme**: Public light-mode body, muted, primary, accent, placeholder, border, and focus colors use higher-contrast values, including explicit text colors over photographic sections.
 

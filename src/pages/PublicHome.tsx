@@ -7,6 +7,7 @@ import { About } from "../components/public/About";
 import { Services } from "../components/public/Services";
 import { Portfolio } from "../components/public/Portfolio";
 import { Pricing } from "../components/public/Pricing";
+import { VisualIdeas } from "../components/public/VisualIdeas";
 import { Contact } from "../components/public/Contact";
 import { FAQ } from "../components/public/FAQ";
 import { Footer } from "../components/public/Footer";
@@ -21,6 +22,7 @@ import { LanguageProvider, useLanguage } from "../contexts/LanguageContext";
 import { t } from "../lib/i18n";
 import { parseSectionMedia } from "../lib/sectionMedia";
 import { getNormalizedGallery } from "../lib/mediaUtils";
+import { parseVisualIdeas } from "../lib/visualIdeas";
 import { MotionConfig } from "motion/react";
 
 type PublicBootstrapData = {
@@ -174,6 +176,15 @@ function PublicHomeContent({ settings, portfolio, services, bootstrap, loading }
   const [isSocialPopupOpen, setIsSocialPopupOpen] = useState(false);
   const { currentLang, defaultLang } = useLanguage();
   const [litePerformanceMode, setLitePerformanceMode] = useState(shouldUseLitePerformanceMode);
+  const visibleServices = services.filter((service) => service.is_published !== 0);
+  const visiblePortfolio = portfolio.filter((item) => item.is_published !== 0);
+  const visiblePlans = (bootstrap?.pricing || []).filter((plan) => plan.is_enabled !== 0);
+  const visibleExtras = (bootstrap?.extraServices || []).filter((extra) => extra.is_enabled !== 0 && extra.show_on_pricing_page !== 0);
+  const visibleFaqs = (bootstrap?.faqs || []).filter((faq) => faq.is_published !== 0);
+  const visibleVisualIdeas = parseVisualIdeas(settings.visual_ideas_items).filter((item) => item.is_visible !== false);
+  const hasPricing = visiblePlans.length > 0 || visibleExtras.length > 0;
+  const hasFaq = visibleFaqs.length > 0;
+  const hasVisualIdeas = settings.visual_ideas_enabled !== "0" && settings.visual_ideas_enabled !== "false" && visibleVisualIdeas.length > 0;
   const sectionMedia = parseSectionMedia(settings.section_media);
   const sectionBackgroundCss = Object.entries(sectionMedia)
     .filter(([, media]) => Boolean(media.backgroundUrl))
@@ -210,7 +221,7 @@ function PublicHomeContent({ settings, portfolio, services, bootstrap, loading }
   useEffect(() => {
     if (loading) return;
     
-    const sections = document.querySelectorAll("section[id]");
+    const sections = document.querySelectorAll("section[id]:not([data-nav-section='false'])");
     const observer = new IntersectionObserver(
       (entries) => {
         const mostVisible = entries
@@ -258,20 +269,23 @@ function PublicHomeContent({ settings, portfolio, services, bootstrap, loading }
 
       <div className="relative z-10">
         {sectionBackgroundCss && <style>{sectionBackgroundCss}</style>}
-        <Header settings={settings} hasServices={services.length > 0} hasPortfolio={portfolio.length > 0} />
+        <Header settings={settings} hasServices={visibleServices.length > 0} hasPortfolio={visiblePortfolio.length > 0} hasPricing={hasPricing} hasFaq={hasFaq} />
         <FloatingNav
-          hasServices={services.length > 0}
-          hasPortfolio={portfolio.length > 0}
+          hasServices={visibleServices.length > 0}
+          hasPortfolio={visiblePortfolio.length > 0}
+          hasPricing={hasPricing}
+          hasFaq={hasFaq}
           onOpenSocial={() => setIsSocialPopupOpen(true)}
         />
         <Hero settings={settings} />
         <Vision settings={settings} />
         <About settings={settings} />
-        <Services settings={settings} initialServices={services} />
-        <Portfolio items={portfolio} isPerformanceLite={litePerformanceMode} />
-        <Pricing initialPlans={bootstrap?.pricing} initialExtras={bootstrap?.extraServices} initialFeeRules={bootstrap?.feeRules} />
+        {visibleServices.length > 0 && <Services settings={settings} initialServices={visibleServices} />}
+        {visiblePortfolio.length > 0 && <Portfolio items={visiblePortfolio} isPerformanceLite={litePerformanceMode} />}
+        {hasVisualIdeas && <VisualIdeas settings={settings} />}
+        {hasPricing && <Pricing initialPlans={visiblePlans} initialExtras={visibleExtras} initialFeeRules={bootstrap?.feeRules || []} isPerformanceLite={litePerformanceMode} />}
         <Contact settings={settings} initialPlans={bootstrap?.pricing} initialExtras={bootstrap?.extraServices} initialFeeRules={bootstrap?.feeRules} />
-        <FAQ settings={settings} initialFaqs={bootstrap?.faqs} initialCategories={bootstrap?.faqCategories} />
+        {hasFaq && <FAQ settings={settings} initialFaqs={visibleFaqs} initialCategories={bootstrap?.faqCategories || []} />}
         <Footer settings={settings} />
 
         {/* Manual Fixed Floating Button in Bottom-Right Corner */}

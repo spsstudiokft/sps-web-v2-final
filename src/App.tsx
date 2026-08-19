@@ -25,6 +25,7 @@ const CustomersPage = lazy(() => import("./pages/admin/CustomersPage"));
 const ProjectsPage = lazy(() => import("./pages/admin/ProjectsPage"));
 const ServicesPage = lazy(() => import("./pages/admin/ServicesPage"));
 const PricingPage = lazy(() => import("./pages/admin/PricingPage"));
+const VisualIdeasPage = lazy(() => import("./pages/admin/VisualIdeasPage"));
 const SocialLinksPage = lazy(() => import("./pages/admin/SocialLinksPage"));
 const InfoBarPage = lazy(() => import("./pages/admin/InfoBarPage"));
 const FaqsPage = lazy(() => import("./pages/admin/FaqsPage"));
@@ -160,6 +161,7 @@ export default function App() {
                 <Route path="portfolio" element={<PortfolioPage />} />
                 <Route path="services" element={<ServicesPage />} />
                 <Route path="pricing" element={<PricingPage />} />
+                <Route path="visual-ideas" element={<VisualIdeasPage />} />
                 <Route path="info-bar" element={<InfoBarPage />} />
                 <Route path="announcements" element={<InfoBarPage />} />
                 <Route path="social-links" element={<SocialLinksPage />} />

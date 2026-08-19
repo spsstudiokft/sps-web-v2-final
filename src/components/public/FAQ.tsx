@@ -7,44 +7,6 @@ import { tUi, t } from "../../lib/i18n";
 import { SiteSettings, FAQItem, FAQCategory } from "../../lib/types";
 import { motion, AnimatePresence } from "motion/react";
 
-const DEFAULT_FAQS: Array<Partial<FAQItem>> = [
-  {
-    id: "default-1",
-    question: "What is your typical turnaround time?",
-    answer: "We understand that speed is crucial in real estate. Our standard turnaround time for photography and floor plans is 24 to 48 hours after the shoot is completed. Video tours and virtual staging may require an additional day.",
-    category: "Turnaround & Delivery",
-    sort_order: 1
-  },
-  {
-    id: "default-2",
-    question: "How should the property be prepared before the shoot?",
-    answer: "The property should be perfectly clean, decluttered, and staged as you want it to appear. We recommend removing personal items, turning on all interior and exterior lights, opening all blinds, and moving vehicles out of the driveway.",
-    category: "Preparation",
-    sort_order: 2
-  },
-  {
-    id: "default-3",
-    question: "Are you licensed and insured for drone photography?",
-    answer: "Yes, our drone operators are fully licensed and insured. We adhere to all local aviation regulations and safety guidelines to capture stunning aerial perspectives of your property.",
-    category: "Licensing & Safety",
-    sort_order: 3
-  },
-  {
-    id: "default-4",
-    question: "Do you offer virtual staging for empty rooms?",
-    answer: "Absolutely. We provide high-quality, realistic virtual staging for vacant properties to help potential buyers visualize themselves in the space and understand the room's scale.",
-    category: "Services",
-    sort_order: 4
-  },
-  {
-    id: "default-5",
-    question: "How will I receive the final files?",
-    answer: "Once editing is complete, you will receive an email with a secure link to an online gallery. From there, you can view, share, and download the high-resolution files directly to your device.",
-    category: "Turnaround & Delivery",
-    sort_order: 5
-  }
-];
-
 export function FAQ({ 
   settings, 
   initialFaqs,
@@ -55,7 +17,7 @@ export function FAQ({
   initialCategories?: FAQCategory[];
 }) {
   const [faqs, setFaqs] = useState<Array<FAQItem | Partial<FAQItem>>>(
-    initialFaqs && initialFaqs.length > 0 ? initialFaqs : DEFAULT_FAQS
+    initialFaqs || []
   );
   const [dbCategories, setDbCategories] = useState<FAQCategory[]>(initialCategories || []);
   const [openIndex, setOpenIndex] = useState<number | null>(0);
@@ -71,9 +33,7 @@ export function FAQ({
     ])
       .then(([faqsData, catsData]) => {
         if (isMounted) {
-          if (Array.isArray(faqsData) && faqsData.length > 0) {
-            setFaqs(faqsData);
-          }
+          if (Array.isArray(faqsData)) setFaqs(faqsData);
           if (Array.isArray(catsData)) {
             setDbCategories(catsData);
           }
@@ -146,6 +106,8 @@ export function FAQ({
   const toggleFaq = (index: number) => {
     setOpenIndex(openIndex === index ? null : index);
   };
+
+  if (faqs.length === 0) return null;
 
   return (
     <section 

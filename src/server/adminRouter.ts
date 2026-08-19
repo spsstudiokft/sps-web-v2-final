@@ -737,6 +737,24 @@ adminRouter.post("/settings", async (req, res) => {
           }
         }
 
+        if (key === 'visual_ideas_items') {
+          try {
+            const parsed = JSON.parse(value);
+            if (!Array.isArray(parsed)) throw new Error('Visual ideas must be an array');
+            finalValue = JSON.stringify(parsed.slice(0, 15).map((item: any, index: number) => ({
+              id: String(item?.id || `visual-idea-${index + 1}`).slice(0, 100),
+              title: String(item?.title || '').slice(0, 5000),
+              description: String(item?.description || '').slice(0, 10000),
+              is_visible: item?.is_visible !== false && item?.is_visible !== 0,
+            })));
+          } catch {
+            return res.status(400).json({ error: 'Invalid visual ideas data' });
+          }
+        }
+        if (key === 'visual_ideas_enabled') {
+          finalValue = value === '0' || value === 'false' ? '0' : '1';
+        }
+
         await db.execute({
           sql: "INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)",
           args: [key, finalValue]

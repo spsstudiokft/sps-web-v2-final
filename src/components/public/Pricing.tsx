@@ -62,10 +62,12 @@ export function Pricing({
   initialPlans,
   initialExtras,
   initialFeeRules,
+  isPerformanceLite = false,
 }: { 
   initialPlans?: PricingPlan[];
   initialExtras?: ExtraService[];
   initialFeeRules?: PricingFeeRule[];
+  isPerformanceLite?: boolean;
 }) {
   const { currentLang, defaultLang } = useLanguage();
   const [plans, setPlans] = useState<PricingPlan[]>(initialPlans || []);
@@ -314,15 +316,15 @@ export function Pricing({
   return (
     <motion.section
       id="pricing"
-      initial={{ opacity: 0, y: 15 }}
-      whileInView={{ opacity: 1, y: 0 }}
+      initial={isPerformanceLite ? false : { opacity: 0, y: 15 }}
+      whileInView={isPerformanceLite ? undefined : { opacity: 1, y: 0 }}
       viewport={VIEWPORT_CONFIG}
       transition={{ duration: 0.5, ease: "easeOut" }}
-      className="scroll-mt-20 py-20 sm:py-24 md:py-32 bg-surface/30 border-t border-b border-border relative overflow-hidden"
+      className="scroll-mt-20 py-16 sm:py-24 md:py-32 bg-surface/30 border-t border-b border-border relative overflow-hidden"
     >
-      <div className="max-w-7xl mx-auto px-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6">
         {/* Section Header */}
-        <div className="flex flex-col md:flex-row md:justify-between md:items-end mb-12 gap-6">
+        <div className="flex flex-col md:flex-row md:justify-between md:items-end mb-8 sm:mb-12 gap-5 sm:gap-6">
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold uppercase tracking-wider mb-3">
               <Tag className="w-3.5 h-3.5" />
@@ -339,11 +341,11 @@ export function Pricing({
 
           {/* Filter Tabs (All / Plans / Bundles) */}
           {tierCount > 0 && bundleCount > 0 && (
-            <div className="inline-flex items-center p-1 rounded-xl bg-surface border border-border self-start md:self-auto shadow-2xs">
+            <div className="grid w-full grid-cols-3 items-center gap-1 rounded-xl border border-border bg-surface p-1 shadow-2xs md:inline-flex md:w-auto md:self-auto">
               <button
                 type="button"
                 onClick={() => setActiveFilter("all")}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                className={`min-w-0 px-2 py-2 text-xs sm:px-4 sm:text-sm rounded-lg font-medium transition-all ${
                   activeFilter === "all"
                     ? "bg-primary text-background shadow-xs font-semibold"
                     : "text-muted-text hover:text-text"
@@ -354,7 +356,7 @@ export function Pricing({
               <button
                 type="button"
                 onClick={() => setActiveFilter("tier")}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                className={`min-w-0 px-2 py-2 text-xs sm:px-4 sm:text-sm rounded-lg font-medium transition-all ${
                   activeFilter === "tier"
                     ? "bg-primary text-background shadow-xs font-semibold"
                     : "text-muted-text hover:text-text"
@@ -365,7 +367,7 @@ export function Pricing({
               <button
                 type="button"
                 onClick={() => setActiveFilter("bundle")}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                className={`min-w-0 px-2 py-2 text-xs sm:px-4 sm:text-sm rounded-lg font-medium transition-all ${
                   activeFilter === "bundle"
                     ? "bg-primary text-background shadow-xs font-semibold"
                     : "text-muted-text hover:text-text"
@@ -379,11 +381,12 @@ export function Pricing({
 
         {/* Pricing Cards Grid */}
         <motion.div
+          data-pricing-grid="true"
           variants={containerVariants}
-          initial="hidden"
+          initial={isPerformanceLite ? "show" : "hidden"}
           whileInView="show"
           viewport={{ once: true }}
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
+          className="grid grid-cols-1 gap-5 sm:gap-8 md:grid-cols-2 lg:grid-cols-3"
         >
           <AnimatePresence mode="popLayout">
             {filteredPlans.map((plan) => {
@@ -415,10 +418,11 @@ export function Pricing({
 
               return (
                 <motion.div
+                  data-pricing-card="true"
                   key={plan.id}
-                  layout
+                  layout={!isPerformanceLite}
                   variants={itemVariants}
-                  className={`aero-pricing-shine relative flex flex-col justify-between rounded-3xl p-7 md:p-8 transition-all duration-300 ${
+                  className={`aero-pricing-shine relative flex min-w-0 flex-col justify-between rounded-2xl p-5 sm:rounded-3xl sm:p-7 md:p-8 transition-all duration-300 ${
                     isFeatured
                       ? "bg-background border-2 border-primary shadow-xl ring-1 ring-primary/20 md:-translate-y-2"
                       : "bg-background border border-border shadow-md hover:shadow-lg hover:border-primary/40"

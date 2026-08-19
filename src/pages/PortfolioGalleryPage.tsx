@@ -138,7 +138,7 @@ function PortfolioGalleryContent({ settings, item, notFound }: { settings: SiteS
 
   return (
     <div className="min-h-screen bg-background text-text">
-      <Header settings={settings} hasServices={false} hasPortfolio />
+      <Header settings={settings} hasServices={false} hasPortfolio={false} hasPricing={false} hasFaq={false} />
       <main className="mx-auto w-full max-w-7xl px-4 pb-20 pt-28 sm:px-6 lg:px-8 lg:pt-32">
         {notFound || !item ? (
           <div className="mx-auto flex min-h-[55vh] max-w-xl flex-col items-center justify-center text-center">
