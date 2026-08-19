@@ -25,6 +25,9 @@
 
 ### Public showcase and visual fixes
 
+- Optimized the mobile Visual Ideas section with contained, non-blurred, transition-free cards and deferred grid painting, reducing main-thread and compositing work while the section is visible.
+- Corrected mobile Portfolio gesture handling so horizontal gallery interaction no longer captures vertical page scrolling; disabled smooth-scroll work, fixed mobile background attachment, and contained each row's paint area.
+- Reduced mobile Portfolio media pressure by mounting two cards per row initially, adding further cards in smaller batches, using a lighter viewport observer, and showing image posters instead of initializing video decoders during touch scrolling.
 - Added the admin-managed “Miről lehet jó ingatlan vizuált készíteni?” section directly before pricing, with a responsive five-column desktop grid, a hard 15-card/three-row limit, localized title and description fields, ordering controls, visibility control, and no public navigation entry.
 - Integrated the new section into the existing section-background media manager while excluding it from scroll-driven navigation and page-title state.
 - Added unified content-aware rendering for Services, Portfolio, Pricing, Visual Ideas, and FAQ: empty or fully hidden sections and their desktop/mobile/floating navigation anchors are no longer rendered.
@@ -45,6 +48,7 @@
 
 ### Public loading and low-end device performance
 
+- Removed the floating section-navigation rail from mobile layouts and made the primary mobile navbar permanently visible; desktop scroll-aware navbar hiding and floating navigation remain unchanged.
 - Aligned `package.json#packageManager` with the pnpm 10.x generator expected by the version 9 lockfile and supported by Vercel, removing the pnpm 11 lockfile mismatch during deployment.
 - Disabled automatic portfolio marquee animation for every mobile viewport and replaced each row with a single, non-duplicated horizontal touch-scroll track with scroll snapping.
 - Hid the desktop marquee play/pause control on mobile, while preserving the randomized card order and desktop left/right animation pattern.

@@ -27,13 +27,16 @@ SPS Studio is an all-in-one studio management platform designed for architectura
 - **Lightbox & Gallery Viewer**: Full-screen high-resolution media previews with responsive touch navigation.
 - **Services & Pricing Showcase**: Dynamic tier cards with package feature lists, pricing models, and instant booking CTAs.
 - **Real Estate Visual Ideas**: A compact, responsive text-card section before pricing supports up to 15 localized, admin-managed property ideas in a five-column desktop layout without adding another public navigation item.
+- **Mobile Section Budgeting**: Visual Ideas cards use a contained, transition-free mobile rendering path, while portfolio rows progressively mount small card batches and use static posters instead of starting video decoders during touch scrolling.
 - **Collapsible FAQs & Social Hub**: Grouped questions with instant search, plus verified studio social media links.
 - **Interactive Contact & Booking**: Guided lead capture with required property city, optional address, travel-distance pricing from Hódmezővásárhely, package/add-on calculator, structured estimate persistence, admin alert, and client confirmation.
 - **Consent & Legal Modals**: Cookie-gated inquiry form plus database-backed Privacy Policy, Terms, Cookie Policy, and Legal Notice documents rendered from formatted admin content.
 - **Adaptive Navigation**: Services and Portfolio links disappear automatically when no published content exists.
+- **Mobile Navigation Strategy**: Handheld layouts keep the primary top navbar permanently visible and omit the desktop-only floating section rail, while desktop retains scroll-aware header hiding and the floating shortcuts.
 - **Content-Aware Section Rendering**: Services, Portfolio, Pricing, Visual Ideas, and FAQ sections are omitted together with their header/floating navigation anchors whenever they contain no visible items; hidden Visual Ideas cards are excluded individually.
 - **Mixed Portfolio Conveyor**: Gallery media is randomized across marquee rows and avoids adjacent images from the same portfolio whenever possible.
 - **Four Media Rows**: Separate randomized rows for standard photography, drone video, interior walkthrough video, and drone photography, using an alternating left/right motion pattern.
+- **Touch-Safe Portfolio Scrolling**: Mobile rows remain manually swipeable in both directions without capturing vertical page gestures, and their paint work is isolated from the rest of the page.
 - **Indexable Gallery Pages**: Every published portfolio gallery has a stable `/portfolio/:slug` page containing all associated media, canonical/Open Graph metadata, ImageGallery structured data, and automatic sitemap discovery.
 - **Immersive Media Viewer**: The viewport-level gallery lightbox fully blurs the page behind it and keeps media centered, while uploaded videos use branded playback, seek, volume, mute, and fullscreen controls.
 - **On-Demand Protected Saving**: Public lightbox and dedicated portfolio-gallery images remain clean while viewing; right-click initiates a server-rendered watermarked JPG download from the optimized derivative. Locked client previews use the uploaded dark-background logo plus a font-independent, dual-contrast vector watermark for consistent visibility and rendering on Vercel.

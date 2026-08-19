@@ -104,6 +104,7 @@ export function Header({ settings, hasServices = true, hasPortfolio = true, hasP
 
     const checkVisibility = () => {
       const currentScrollY = Math.max(0, window.scrollY);
+      const isDesktopViewport = window.matchMedia("(min-width: 768px)").matches;
       const heroElement = document.getElementById("home");
       
       let isHeroInView = false;
@@ -117,7 +118,11 @@ export function Header({ settings, hasServices = true, hasPortfolio = true, hasP
 
       isHeroInViewRef.current = isHeroInView;
 
-      if (isHeroInView) {
+      if (!isDesktopViewport) {
+        // Mobile navigation must remain reliably accessible regardless of
+        // scroll direction. Desktop keeps the existing auto-hide behaviour.
+        setIsVisible(true);
+      } else if (isHeroInView) {
         // Always show the navbar when viewing the hero section (at or near top)
         setIsVisible(true);
       } else {

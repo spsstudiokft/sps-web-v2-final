@@ -40,6 +40,7 @@ export function FloatingNav({
   };
 
   useEffect(() => {
+    const desktopQuery = window.matchMedia("(min-width: 768px)");
     const sections = [
       "about",
       ...(hasServices ? ["services"] : []),
@@ -50,6 +51,7 @@ export function FloatingNav({
     ];
     
     const handleScroll = () => {
+      if (!desktopQuery.matches) return;
       let current = "";
       for (const section of sections) {
         const element = document.getElementById(section);
@@ -64,9 +66,23 @@ export function FloatingNav({
       setIsVisible(window.scrollY > window.innerHeight * 0.8);
     };
 
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    handleScroll();
-    return () => window.removeEventListener("scroll", handleScroll);
+    const syncViewportMode = () => {
+      window.removeEventListener("scroll", handleScroll);
+      if (desktopQuery.matches) {
+        window.addEventListener("scroll", handleScroll, { passive: true });
+        handleScroll();
+      } else {
+        setIsVisible(false);
+        setActiveSection("");
+      }
+    };
+
+    syncViewportMode();
+    desktopQuery.addEventListener?.("change", syncViewportMode);
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      desktopQuery.removeEventListener?.("change", syncViewportMode);
+    };
   }, [hasServices, hasPortfolio, hasPricing, hasFaq]);
 
   const navItems = [
@@ -80,7 +96,7 @@ export function FloatingNav({
 
   return (
     <>
-      <nav className={`fixed left-2 md:left-4 top-1/2 -translate-y-1/2 z-40 flex flex-col gap-2 md:gap-3 bg-background supports-[backdrop-filter]:bg-background/80 supports-[backdrop-filter]:backdrop-blur-lg p-2 md:p-3 rounded-full border border-border shadow-lg transition-all duration-300 ${isVisible ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-full pointer-events-none"}`}>
+      <nav className={`fixed left-2 md:left-4 top-1/2 -translate-y-1/2 z-40 hidden md:flex flex-col gap-2 md:gap-3 bg-background supports-[backdrop-filter]:bg-background/80 supports-[backdrop-filter]:backdrop-blur-lg p-2 md:p-3 rounded-full border border-border shadow-lg transition-all duration-300 ${isVisible ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-full pointer-events-none"}`}>
         {navItems.map((item) => (
           <a
             key={item.id}

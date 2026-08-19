@@ -115,10 +115,9 @@ export function MediaCard({ card, onClick, priority = false, deferMedia = false 
           });
         }
       },
-      {
-        rootMargin: deferMedia ? "40px 60px" : "250px 100px",
-        threshold: [0, 0.25, 0.5, 0.75, 1.0],
-      }
+      deferMedia
+        ? { rootMargin: "20px 40px", threshold: 0.01 }
+        : { rootMargin: "250px 100px", threshold: [0, 0.25, 0.5, 0.75, 1.0] }
     );
 
     observer.observe(cardRef.current);
@@ -237,7 +236,7 @@ export function MediaCard({ card, onClick, priority = false, deferMedia = false 
       {isVideoCard ? (
         <div className="absolute inset-0 w-full h-full overflow-hidden bg-zinc-950">
           {/* 1. Direct HTML5 Low-Latency 360p Video Preview */}
-          {isDirectVideo && directVideoSrcWithKeyframe ? (
+          {isDirectVideo && directVideoSrcWithKeyframe && !deferMedia ? (
             isInViewport ? (
               <video
                 ref={videoRef}
@@ -278,6 +277,22 @@ export function MediaCard({ card, onClick, priority = false, deferMedia = false 
                   />
                 )}
               </div>
+            )
+          ) : isDirectVideo && deferMedia ? (
+            previewImageUrl && shouldLoadMedia ? (
+              <img
+                src={responsivePreview.src}
+                srcSet={responsivePreview.srcSet}
+                sizes={responsivePreview.sizes}
+                alt={displayTitle}
+                loading="lazy"
+                decoding="async"
+                onLoad={() => setImageLoaded(true)}
+                onError={handleResponsiveImageError}
+                className={`h-full w-full object-cover ${imageLoaded ? "opacity-100" : "opacity-70"}`}
+              />
+            ) : (
+              <div className="h-full w-full bg-zinc-950" />
             )
           ) : parsedVideo?.type === "youtube" && parsedVideo.videoId ? (
             /* 2. Embedded Low-Latency 360p YouTube Stream (active on hover/priority to avoid heavy iframe overload) */

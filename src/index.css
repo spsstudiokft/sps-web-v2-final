@@ -707,6 +707,14 @@ html:not(.dark) .aero-site {
   .aero-showreel-card { padding: .85rem; }
 }
 
+@media (max-width: 767px) {
+  /* The mobile header is the sole navigation surface and must never inherit
+     the desktop scroll-away transform, including during viewport changes. */
+  .aero-site .aero-header {
+    transform: translateY(0) !important;
+  }
+}
+
 /* Lightweight public rendering for low-memory/low-core mobile devices, data
    saver connections, and visitors who request reduced motion. */
 @media (max-width: 900px) {
@@ -964,11 +972,43 @@ html:not(.dark) .aero-site {
 
 .portfolio-touch-scroll {
   -webkit-overflow-scrolling: touch;
-  scroll-behavior: smooth;
+  scroll-behavior: auto;
   scrollbar-width: thin;
+  overscroll-behavior-x: contain;
+  overscroll-behavior-y: auto;
+  touch-action: pan-x pan-y pinch-zoom;
 }
 
 @media (max-width: 640px) {
+  .aero-image-section {
+    background-attachment: scroll;
+  }
+  .aero-portfolio .portfolio-touch-scroll {
+    contain: layout paint;
+  }
+  .aero-portfolio .portfolio-touch-scroll [role="button"] {
+    transition: none !important;
+    box-shadow: none;
+  }
+  .aero-visual-ideas {
+    contain: layout paint style;
+  }
+  .aero-visual-ideas .visual-ideas-grid {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 900px;
+  }
+  .aero-visual-ideas .visual-idea-card {
+    min-height: 0;
+    padding: 1rem;
+    contain: content;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    transition: none !important;
+    box-shadow: none;
+  }
+  .aero-visual-ideas .visual-idea-card:hover {
+    transform: none;
+  }
   .aero-marquee-viewport {
     --marquee-edge-fade: 2.25rem;
     --marquee-edge-soft: .8rem;

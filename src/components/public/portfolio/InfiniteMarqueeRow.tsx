@@ -23,10 +23,10 @@ export function InfiniteMarqueeRow({
 }: InfiniteMarqueeRowProps) {
   const [isRowHovered, setIsRowHovered] = useState(false);
   const staticMode = isReducedMotion || isStaticScroll;
-  const [visibleStaticItems, setVisibleStaticItems] = useState(4);
+  const [visibleStaticItems, setVisibleStaticItems] = useState(2);
 
   useEffect(() => {
-    setVisibleStaticItems(4);
+    setVisibleStaticItems(2);
   }, [items, staticMode]);
 
   // Build a seamless base sequence that is guaranteed wide enough for ultra-wide screens
@@ -52,14 +52,14 @@ export function InfiniteMarqueeRow({
     const renderedItems = isStaticScroll ? items.slice(0, visibleStaticItems) : items;
     return (
       <div
-        className="portfolio-touch-scroll w-full overflow-x-auto overscroll-x-contain touch-pan-x py-2.5 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent snap-x snap-proximity"
+        className="portfolio-touch-scroll w-full overflow-x-auto py-2.5 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent snap-x snap-proximity"
         aria-label="Scrollable portfolio gallery"
         onScroll={(event) => {
           if (!isStaticScroll || visibleStaticItems >= items.length) return;
           const scroller = event.currentTarget;
           const remainingDistance = scroller.scrollWidth - scroller.scrollLeft - scroller.clientWidth;
           if (remainingDistance < scroller.clientWidth * 1.25) {
-            setVisibleStaticItems((current) => Math.min(items.length, current + 4));
+            setVisibleStaticItems((current) => Math.min(items.length, current + 2));
           }
         }}
       >
