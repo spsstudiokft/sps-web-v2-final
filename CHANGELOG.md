@@ -1,5 +1,10 @@
 # Modification Log
 
+## 2026-08-20 — SEO-complete dynamic sitemap and robots policy
+
+- Expanded `/sitemap.xml` with the public properties index, enabled property detail pages, published portfolio pages, image sitemap entries, canonical public URLs, validated last-modified dates, crawl priorities, and refresh hints.
+- Added a dynamic `/robots.txt` that points crawlers to the canonical sitemap and excludes private admin, client, authentication, invitation, invoice, API, and listing-management areas.
+
 ## 2026-08-20 — Sitemap production routing fix
 
 - Added a sitemap route alias for Vercel's rewritten request path so `/sitemap.xml` no longer returns a 404 in production.

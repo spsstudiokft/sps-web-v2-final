@@ -1349,28 +1349,90 @@ router.get("/public/portfolio/:slug/media/:index/watermarked", async (req, res) 
   }
 });
 
+const escapeXml = (value: unknown) => String(value || "")
+  .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;");
+
+const sitemapLastModified = (value: unknown) => {
+  if (!value) return "";
+  const date = new Date(String(value));
+  return Number.isNaN(date.getTime()) ? "" : `<lastmod>${escapeXml(date.toISOString())}</lastmod>`;
+};
+
+const absolutePublicUrl = (origin: string, value: unknown) => {
+  const url = String(value || "").trim();
+  if (!url) return "";
+  if (/^https?:\/\//i.test(url)) return url;
+  if (url.startsWith("/")) return `${origin}${url}`;
+  return "";
+};
+
+const sitemapImages = (origin: string, rawImages: unknown, fallbackTitle: unknown) => {
+  let items: any = rawImages;
+  if (typeof items === "string") {
+    try { items = JSON.parse(items); } catch { items = []; }
+  }
+  if (!Array.isArray(items)) return "";
+
+  return items.slice(0, 1_000).map((item: any) => {
+    const media = typeof item === "string" ? { url: item } : item || {};
+    const source = media.optimized_url || media.compressed_url || media.thumbnail_url || media.url || media.src;
+    const location = absolutePublicUrl(origin, source);
+    const type = String(media.type || media.media_type || "").toLowerCase();
+    if (!location || type === "video" || /\.(mp4|mov|webm)(\?|$)/i.test(location)) return "";
+    const title = String(media.title || fallbackTitle || "").trim();
+    return `<image:image><image:loc>${escapeXml(location)}</image:loc>${title ? `<image:title>${escapeXml(title)}</image:title>` : ""}</image:image>`;
+  }).join("");
+};
+
 // The Vercel function receives the original /sitemap.xml path after its
 // rewrite, while the local Express API is mounted below /api. Support both.
 router.get(["/public/sitemap.xml", "/sitemap.xml"], async (req, res) => {
   try {
     const origin = getAppUrl(req).replace(/\/$/, "");
-    const result = await db.execute(`SELECT slug, COALESCE(updated_at, created_at) AS lastmod
-                                     FROM portfolio_items
-                                     WHERE is_published = 1 AND slug IS NOT NULL AND TRIM(slug) != ''
-                                     ORDER BY updated_at DESC, created_at DESC`);
-    const escapeXml = (value: unknown) => String(value || "")
-      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;");
+    const [portfolioResult, propertiesResult] = await Promise.all([
+      db.execute(`SELECT slug, title, image_urls, COALESCE(updated_at, created_at) AS lastmod
+                  FROM portfolio_items
+                  WHERE is_published = 1 AND slug IS NOT NULL AND TRIM(slug) != ''
+                  ORDER BY updated_at DESC, created_at DESC`),
+      db.execute(`SELECT id, title, image_urls, COALESCE(updated_at, created_at) AS lastmod
+                  FROM property_listings
+                  WHERE is_enabled = 1
+                  ORDER BY updated_at DESC, created_at DESC`),
+    ]);
     const urls = [
       `<url><loc>${escapeXml(origin)}/</loc><changefreq>weekly</changefreq><priority>1.0</priority></url>`,
-      ...result.rows.map((row: any) => `<url><loc>${escapeXml(origin)}/portfolio/${encodeURIComponent(String(row.slug))}</loc>${row.lastmod ? `<lastmod>${escapeXml(new Date(String(row.lastmod)).toISOString())}</lastmod>` : ""}<changefreq>monthly</changefreq><priority>0.8</priority></url>`),
+      `<url><loc>${escapeXml(origin)}/properties</loc><changefreq>daily</changefreq><priority>0.9</priority></url>`,
+      ...portfolioResult.rows.map((row: any) => `<url><loc>${escapeXml(origin)}/portfolio/${encodeURIComponent(String(row.slug))}</loc>${sitemapLastModified(row.lastmod)}<changefreq>monthly</changefreq><priority>0.8</priority>${sitemapImages(origin, row.image_urls, row.title)}</url>`),
+      ...propertiesResult.rows.map((row: any) => `<url><loc>${escapeXml(origin)}/properties/${encodeURIComponent(String(row.id))}</loc>${sitemapLastModified(row.lastmod)}<changefreq>weekly</changefreq><priority>0.7</priority>${sitemapImages(origin, row.image_urls, row.title)}</url>`),
     ];
     res.set("Content-Type", "application/xml; charset=utf-8");
     res.set("Cache-Control", "public, max-age=300, s-maxage=3600, stale-while-revalidate=86400");
-    res.send(`<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls.join("")}</urlset>`);
+    res.set("X-Robots-Tag", "noindex");
+    res.send(`<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">${urls.join("")}</urlset>`);
   } catch (error) {
     console.error("Sitemap generation error:", error);
     res.status(500).type("text/plain").send("Failed to generate sitemap");
   }
+});
+
+// Like the sitemap route, support both local /api mounting and Vercel's
+// original rewritten path. Keep private application areas out of crawlers.
+router.get(["/public/robots.txt", "/robots.txt"], (req, res) => {
+  const origin = getAppUrl(req).replace(/\/$/, "");
+  res.type("text/plain").set("Cache-Control", "public, max-age=300, s-maxage=3600").send([
+    "User-agent: *",
+    "Allow: /",
+    "Disallow: /admin/",
+    "Disallow: /client/",
+    "Disallow: /api/",
+    "Disallow: /auth/",
+    "Disallow: /invite/",
+    "Disallow: /invoice/",
+    "Disallow: /invoices/",
+    "Disallow: /property-listings/",
+    "",
+    `Sitemap: ${origin}/sitemap.xml`,
+  ].join("\n"));
 });
 
 router.get("/public/services", async (req, res) => {
