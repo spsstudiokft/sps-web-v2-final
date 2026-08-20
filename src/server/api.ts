@@ -1029,7 +1029,8 @@ router.post("/invitations/accept", async (req, res) => {
     const cleanEmail = invitation.email.trim().toLowerCase();
     const cleanName = (name && typeof name === "string" && name.trim()) ? name.trim() : (invitation.name || cleanEmail.split("@")[0]);
     const cleanPhone = (phone && typeof phone === "string") ? phone.trim() : "";
-    const role = invitation.role || "editor";
+    const rawRole = String(invitation.role || "editor").toLowerCase().replace(/[_-]/g, "");
+    const role = ["admin", "editor", "viewer"].includes(rawRole) ? rawRole : "editor";
     const workspace = invitation.workspace || "Main Studio";
     const teamId = invitation.team_id || null;
 

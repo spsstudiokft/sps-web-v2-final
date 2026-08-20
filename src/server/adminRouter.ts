@@ -6669,7 +6669,13 @@ adminRouter.get("/team", async (req: any, res) => {
         u.email, 
         u.name, 
         u.phone, 
-        u.role, 
+        CASE LOWER(REPLACE(REPLACE(TRIM(COALESCE(u.role, '')), '_', ''), '-', ''))
+          WHEN 'superadmin' THEN 'superadmin'
+          WHEN 'admin' THEN 'admin'
+          WHEN 'editor' THEN 'editor'
+          WHEN 'viewer' THEN 'viewer'
+          ELSE LOWER(TRIM(COALESCE(u.role, 'viewer')))
+        END AS role,
         u.workspace,
         u.team_id,
         t.name AS team_name,
@@ -6679,9 +6685,10 @@ adminRouter.get("/team", async (req: any, res) => {
         u.updated_at 
       FROM users u
       LEFT JOIN teams t ON t.id = u.team_id
-      WHERE u.role IN ('superadmin', 'admin', 'editor', 'viewer')
+      WHERE LOWER(REPLACE(REPLACE(TRIM(COALESCE(u.role, '')), '_', ''), '-', ''))
+        IN ('superadmin', 'admin', 'editor', 'viewer')
       ORDER BY 
-        CASE u.role 
+        CASE LOWER(REPLACE(REPLACE(TRIM(COALESCE(u.role, '')), '_', ''), '-', ''))
           WHEN 'superadmin' THEN 1
           WHEN 'admin' THEN 2 
           WHEN 'editor' THEN 3 
@@ -6792,6 +6799,16 @@ adminRouter.put("/team/:id", async (req: any, res) => {
     }
 
     const existingUser: any = existingRes.rows[0];
+    const requesterRole = String(req.user?.role || "").toLowerCase().replace(/[_-]/g, "");
+    const existingRole = String(existingUser.role || "").toLowerCase().replace(/[_-]/g, "");
+    const requestedRole = typeof role === "string" ? role.toLowerCase().replace(/[_-]/g, "") : existingRole;
+
+    if (existingRole === "superadmin" && requesterRole !== "superadmin") {
+      return res.status(403).json({ error: "Only a Superadmin can modify a Superadmin account." });
+    }
+    if (requestedRole === "superadmin" && requesterRole !== "superadmin") {
+      return res.status(403).json({ error: "Only a Superadmin can grant the Superadmin role." });
+    }
 
     // If changing role away from admin/superadmin or deactivating, ensure at least one other active admin remains
     if ((existingUser.role === "admin" || existingUser.role === "superadmin") && (role !== "admin" && role !== "superadmin" || is_active === 0 || is_active === false)) {
@@ -6808,7 +6825,7 @@ adminRouter.put("/team/:id", async (req: any, res) => {
     }
 
     const validRoles = ["superadmin", "admin", "editor", "viewer"];
-    const targetRole = validRoles.includes(role) ? role : existingUser.role;
+    const targetRole = validRoles.includes(requestedRole) ? requestedRole : existingRole;
     const targetActive = is_active !== undefined ? (is_active ? 1 : 0) : existingUser.is_active;
 
     let targetTeamId = team_id !== undefined ? (team_id || null) : existingUser.team_id;
@@ -6865,11 +6882,19 @@ adminRouter.delete("/team/:id", async (req: any, res) => {
     }
 
     const existingUser: any = existingRes.rows[0];
+    const requesterRole = String(req.user?.role || "").toLowerCase().replace(/[_-]/g, "");
+    const existingRole = String(existingUser.role || "").toLowerCase().replace(/[_-]/g, "");
 
-    // If deleting an admin, ensure another active admin remains
-    if (existingUser.role === "admin") {
+    if (existingRole === "superadmin" && requesterRole !== "superadmin") {
+      return res.status(403).json({ error: "Only a Superadmin can remove a Superadmin account." });
+    }
+
+    // Keep at least one active administrative account available.
+    if (existingRole === "admin" || existingRole === "superadmin") {
       const activeAdminsRes = await db.execute({
-        sql: `SELECT COUNT(*) as count FROM users WHERE role = 'admin' AND is_active = 1 AND id != ?`,
+        sql: `SELECT COUNT(*) as count FROM users
+              WHERE LOWER(REPLACE(REPLACE(TRIM(COALESCE(role, '')), '_', ''), '-', '')) IN ('admin', 'superadmin')
+                AND is_active = 1 AND id != ?`,
         args: [id]
       });
       const remainingAdmins = Number(activeAdminsRes.rows[0]?.count || 0);
@@ -6971,6 +6996,10 @@ adminRouter.post("/invitations", async (req: any, res) => {
 
     const validRoles = ["admin", "editor", "viewer"];
     const targetRole = validRoles.includes(role) ? role : "editor";
+
+    if (req.user?.role === "viewer") {
+      return res.status(403).json({ error: "View-only accounts cannot invite team members." });
+    }
 
     // Check if user already exists with this email and is active
     const existingUserRes = await db.execute({

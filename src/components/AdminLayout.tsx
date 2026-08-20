@@ -5,11 +5,15 @@ import { useApi } from "../hooks/useApi";
 import { useLanguage } from "../contexts/LanguageContext";
 import { Menu, Globe } from "lucide-react";
 import { BackgroundUploadProvider } from "../contexts/BackgroundUploadContext";
+import { useAuth } from "../contexts/AuthContext";
+import { canAccessAdminRoute } from "../lib/adminPermissions";
+import { ErrorPage } from "../pages/ErrorPage";
 
 export default function AdminLayout() {
   const { tUi } = useLanguage();
   const { fetchApi } = useApi();
   const location = useLocation();
+  const { user } = useAuth();
   const [verifying, setVerifying] = useState(true);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
@@ -31,6 +35,8 @@ export default function AdminLayout() {
       </div>
     );
   }
+
+  const hasRouteAccess = canAccessAdminRoute(user?.role, location.pathname, location.search);
 
   return (
     <div className="aero-workspace aero-admin-shell flex flex-col md:flex-row bg-background h-[100dvh] overflow-hidden">
@@ -75,7 +81,7 @@ export default function AdminLayout() {
       {/* Main App Content Viewport */}
       <BackgroundUploadProvider>
         <main className="aero-workspace-main flex-1 overflow-auto text-text">
-          <Outlet />
+          {hasRouteAccess ? <Outlet /> : <ErrorPage status={403} embedded />}
         </main>
       </BackgroundUploadProvider>
     </div>

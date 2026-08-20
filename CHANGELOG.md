@@ -1,5 +1,11 @@
 # Modification Log
 
+## 2026-08-20 — Font Awesome-only social tree icons
+
+- Standardized every social-tree platform glyph on Font Awesome Brands across the admin tree, editor previews, public social popup, footer, and Coming Soon page.
+- Removed the remaining Lucide brand-icon imports from the shared social renderer and marked rendered glyphs with a consistent Font Awesome icon-family contract.
+- Kept non-brand concepts such as groups, website, email, and phone on Font Awesome Solid, and switched LinkedIn to the correctly proportioned `linkedin-in` brand glyph.
+
 ## 2026-08-19 — Social brand icon rendering fix
 
 - Reworked the shared social icon renderer to use a stable square wrapper and explicit SVG sizing across the footer, Coming Soon page, social popup, and admin previews.
@@ -466,3 +472,16 @@
 - Portfolio rows now start moving automatically as seamless duplicated-track conveyors.
 - Removed automatic hover/touch pausing and the competing reduced-motion mode from this showcase; only the explicit Stop/Continue conveyor button changes playback.
 - Verified live transforms over time, confirmed an unchanged transform while paused, and confirmed movement resumes after continuing.
+## 2026-08-20 — Team invitations and role display reliability
+
+- Fixed the team member query so existing legacy `superadmin`, `super_admin`, uppercase, Admin, Editor, and Viewer role values are normalized and displayed consistently.
+- Added a dedicated Superadmin badge and role filter instead of incorrectly rendering unknown roles as Editor.
+- Hardened invitation and member loading against malformed/non-JSON error responses, and restricted Viewer accounts from creating invitations.
+- Protected Superadmin role assignment, editing, and deletion while preserving at least one active administrative account.
+- Normalized accepted invitation roles server-side to prevent invalid stored role values from being activated.
+## 2026-08-20 — Role-aware admin navigation
+
+- Added one shared admin route permission map for Superadmin, Admin, Editor, and Viewer accounts.
+- Superadmin and Admin retain complete management access; Editors receive operational content, CRM, marketing, and scoped finance access; Viewers see only read-oriented dashboard and content sections.
+- Hid unauthorized sidebar entries and added matching embedded 403 protection for direct admin URLs, including restricted invoice tabs.
+- Normalized legacy role spellings before menu and route permission checks.

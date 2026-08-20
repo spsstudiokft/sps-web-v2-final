@@ -1,13 +1,13 @@
 import React from "react";
 import { SocialPlatformPreset } from "./types";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { IconDefinition } from "@fortawesome/fontawesome-svg-core";
+import type { IconDefinition } from "@fortawesome/fontawesome-svg-core";
 import {
   faInstagram,
   faFacebookF,
   faYoutube,
   faTiktok,
-  faLinkedin,
+  faLinkedinIn,
   faXTwitter,
   faWhatsapp,
   faTelegram,
@@ -38,31 +38,6 @@ import {
   faLayerGroup,
   faWandMagicSparkles
 } from "@fortawesome/free-solid-svg-icons";
-import {
-  Instagram,
-  Facebook,
-  Youtube,
-  Linkedin,
-  Twitter,
-  Globe,
-  Mail,
-  Phone,
-  MessageCircle,
-  Send,
-  Share2,
-  Folder,
-  Briefcase,
-  Layers,
-  Sparkles,
-  Video,
-  Camera,
-  Image,
-  Star,
-  Building,
-  Store,
-  Compass,
-  Link as LinkIcon
-} from "lucide-react";
 
 export const SOCIAL_PLATFORMS: SocialPlatformPreset[] = [
   {
@@ -298,7 +273,7 @@ export function SocialIconRenderer({
     : (supportedIcons.has(normalizedPlatform) ? normalizedPlatform : (type === "group" ? "share-2" : "link"));
   const explicitColorStyle = color ? { color } : undefined;
   const renderIcon = (definition: IconDefinition) => (
-    <span className={`inline-flex shrink-0 items-center justify-center leading-none ${className}`} style={explicitColorStyle} aria-hidden="true" data-social-icon={iconKey}>
+    <span className={`inline-flex shrink-0 items-center justify-center leading-none ${className}`} style={explicitColorStyle} aria-hidden="true" data-social-icon={iconKey} data-icon-family="fontawesome">
       <FontAwesomeIcon icon={definition} className="block h-full w-full" style={{ width: "100%", height: "100%" }} />
     </span>
   );
@@ -347,7 +322,7 @@ export function SocialIconRenderer({
     case "tiktok":
       return renderIcon(faTiktok);
     case "linkedin":
-      return renderIcon(faLinkedin);
+      return renderIcon(faLinkedinIn);
     case "x":
     case "x-twitter":
     case "twitter":

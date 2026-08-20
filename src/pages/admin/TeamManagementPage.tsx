@@ -64,7 +64,7 @@ interface TeamMember {
   email: string;
   name?: string;
   phone?: string;
-  role: "admin" | "editor" | "viewer";
+  role: "superadmin" | "admin" | "editor" | "viewer";
   workspace?: string;
   team_id?: string | null;
   team_name?: string | null;
@@ -134,7 +134,7 @@ export default function TeamManagementPage() {
   // Edit Member Form State
   const [editName, setEditName] = useState("");
   const [editPhone, setEditPhone] = useState("");
-  const [editRole, setEditRole] = useState<"admin" | "editor" | "viewer">("editor");
+  const [editRole, setEditRole] = useState<"superadmin" | "admin" | "editor" | "viewer">("editor");
   const [editWorkspace, setEditWorkspace] = useState("Main Studio");
   const [editTeamId, setEditTeamId] = useState("");
   const [editIsActive, setEditIsActive] = useState(true);
@@ -191,10 +191,9 @@ export default function TeamManagementPage() {
       const res = await fetch(`/api/admin/invitations?${params.toString()}`, {
         headers: authHeaders
       });
-      if (res.ok) {
-        const data = await res.json();
-        setInvitations(data);
-      }
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.error || "Failed to load invitations");
+      setInvitations(Array.isArray(data) ? data : []);
     } catch (e) {
       console.error("Failed to load invitations:", e);
     } finally {
@@ -209,10 +208,9 @@ export default function TeamManagementPage() {
       const res = await fetch("/api/admin/team", {
         headers: authHeaders
       });
-      if (res.ok) {
-        const data = await res.json();
-        setTeamMembers(data);
-      }
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.error || "Failed to load team members");
+      setTeamMembers(Array.isArray(data) ? data : []);
     } catch (e) {
       console.error("Failed to load team members:", e);
     } finally {
@@ -299,10 +297,10 @@ export default function TeamManagementPage() {
         })
       });
 
-      const data = await res.json();
+      const data = await res.json().catch(() => null);
 
       if (!res.ok) {
-        setInviteError(data.error || "Failed to create invitation.");
+        setInviteError(data?.error || "Failed to create invitation.");
       } else {
         // Success
         if (accountCreationMode === "invite") setActionSuccessData({ email: data.invitation.email, accept_link: data.invitation.accept_link, role: data.invitation.role, dispatched: inviteSendEmail && data.emailResult?.success });
@@ -498,7 +496,15 @@ export default function TeamManagementPage() {
   const totalTeamCount = teamMembers.length;
 
   const getRoleBadge = (role: string) => {
-    const r = (role || "").toLowerCase();
+    const r = (role || "").toLowerCase().replace(/[_-]/g, "");
+    if (r === "superadmin") {
+      return (
+        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20">
+          <Shield className="w-3 h-3" />
+          Superadmin
+        </span>
+      );
+    }
     if (r === "admin") {
       return (
         <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border border-indigo-500/20">
@@ -1010,6 +1016,7 @@ export default function TeamManagementPage() {
                 className="h-9 px-3 rounded-lg border border-border bg-background text-xs font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
               >
                 <option value="all">All Roles</option>
+                <option value="superadmin">Superadmins</option>
                 <option value="admin">Administrators</option>
                 <option value="editor">Editors</option>
                 <option value="viewer">Viewers</option>
@@ -1584,6 +1591,7 @@ export default function TeamManagementPage() {
                     onChange={(e) => setEditRole(e.target.value as any)}
                     className="w-full h-9 px-3 rounded-lg border border-border bg-background text-xs font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                   >
+                    {selectedMember.role === "superadmin" && <option value="superadmin">Superadmin (System Owner)</option>}
                     <option value="admin">Administrator (Full Access)</option>
                     <option value="editor">Editor (Content & Project Manager)</option>
                     <option value="viewer">Viewer (Read-only View)</option>

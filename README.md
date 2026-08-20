@@ -72,6 +72,7 @@ SPS Studio is an all-in-one studio management platform designed for architectura
 - **Context-Aware Error Pages**: Aero-styled 401, 403, 404, 500, and 503 states preserve light/dark mode, distinguish login redirects from forbidden roles, keep nested dashboard context, and handle missing public resources without silent homepage redirects.
 - **Coming Soon Mode**: Administrators can immediately gate public marketing routes behind a multilingual Aero countdown with uploaded blurred image/video media, theme-aware branding, social-tree links, and optional footer while operational portals and invoice links remain accessible.
 - **Consistent Social Brand Icons**: A shared normalized renderer keeps Facebook and other social/service glyphs correctly proportioned across public buttons, Coming Soon, popups, footer, and admin previews, including legacy icon aliases.
+- **Font Awesome Social Tree**: Social platforms render exclusively through Font Awesome Brands, while structural groups and non-brand contact actions use matching Font Awesome Solid icons.
 - **Menu Publication Control**: Administrators can show or hide the Properties entry in the public desktop and mobile navigation without disabling direct access to the catalog URL.
 - **Direct Studio Messaging**: In-portal project inquiries and revision requests linked directly to the studio admin.
 
@@ -330,3 +331,5 @@ Every active API prefix has an explicit rewrite. The previous all-in-one `api/in
 ## 📄 License
 
 This project is proprietary software developed for **SPS Studio**. All rights reserved.
+- **Team role management**: Secure invitation onboarding and normalized Superadmin, Admin, Editor, and Viewer role display with protected Superadmin account operations.
+- **Role-aware Admin Navigation**: Shared route permissions keep Superadmin, Admin, Editor, and Viewer menus aligned with direct-URL access controls.

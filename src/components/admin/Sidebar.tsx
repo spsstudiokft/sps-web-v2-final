@@ -4,6 +4,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import { useTheme } from "../ThemeProvider";
 import { useLanguage } from "../../contexts/LanguageContext";
 import { cn } from "../../lib/utils";
+import { ADMIN_ROLES, EDITOR_ROLES, MANAGER_ROLES, normalizeAdminRole } from "../../lib/adminPermissions";
 import { 
   LayoutDashboard, 
   Image as ImageIcon, 
@@ -104,10 +105,10 @@ export function Sidebar({ isMobileOpen = false, onMobileClose }: SidebarProps) {
       title: "Overview",
       translationKey: "admin.nav.overview",
       items: [
-        { to: "/admin", label: "Dashboard", translationKey: "admin.nav.dashboard", icon: LayoutDashboard },
-        { to: "/admin/budget", label: "Budget Manager", translationKey: "admin.nav.budget", icon: Wallet },
-        { to: "/admin/budget?tab=invoices", label: "Invoices & Payments", translationKey: "admin.nav.invoices", icon: Receipt },
-        { to: "/admin/budget?tab=payment-requests", label: "Payment Requests", translationKey: "admin.nav.payment_requests", icon: Send }
+        { to: "/admin", label: "Dashboard", translationKey: "admin.nav.dashboard", icon: LayoutDashboard, roles: ADMIN_ROLES },
+        { to: "/admin/budget", label: "Budget Manager", translationKey: "admin.nav.budget", icon: Wallet, roles: EDITOR_ROLES },
+        { to: "/admin/budget?tab=invoices", label: "Invoices & Payments", translationKey: "admin.nav.invoices", icon: Receipt, roles: MANAGER_ROLES },
+        { to: "/admin/budget?tab=payment-requests", label: "Payment Requests", translationKey: "admin.nav.payment_requests", icon: Send, roles: EDITOR_ROLES }
       ]
     },
     {
@@ -140,13 +141,13 @@ export function Sidebar({ isMobileOpen = false, onMobileClose }: SidebarProps) {
       title: "Users & Clients",
       translationKey: "admin.nav.users_clients",
       items: [
-        { to: "/admin/team", label: "Team & Invites", translationKey: "admin.nav.team_invites", icon: UserPlus },
-        { to: "/admin/referrals", label: "VIP Referral Program", translationKey: "admin.nav.referrals", icon: Gift },
-        { to: "/admin/leads", label: "Leads Pipeline", translationKey: "admin.nav.leads", icon: Target },
-        { to: "/admin/customers", label: "Customers", translationKey: "admin.nav.customers", icon: UserCheck },
-        { to: "/admin/clients", label: "Client Portal Users", translationKey: "admin.nav.clients", icon: Users },
-        { to: "/admin/contacts", label: "Submissions", translationKey: "admin.nav.submissions", icon: MessageSquare },
-        { to: "/admin/marketing-emails", label: "Marketing Emails", translationKey: "admin.nav.marketing_emails", icon: Mail },
+        { to: "/admin/team", label: "Team & Invites", translationKey: "admin.nav.team_invites", icon: UserPlus, roles: MANAGER_ROLES },
+        { to: "/admin/referrals", label: "VIP Referral Program", translationKey: "admin.nav.referrals", icon: Gift, roles: MANAGER_ROLES },
+        { to: "/admin/leads", label: "Leads Pipeline", translationKey: "admin.nav.leads", icon: Target, roles: EDITOR_ROLES },
+        { to: "/admin/customers", label: "Customers", translationKey: "admin.nav.customers", icon: UserCheck, roles: EDITOR_ROLES },
+        { to: "/admin/clients", label: "Client Portal Users", translationKey: "admin.nav.clients", icon: Users, roles: EDITOR_ROLES },
+        { to: "/admin/contacts", label: "Submissions", translationKey: "admin.nav.submissions", icon: MessageSquare, roles: ADMIN_ROLES },
+        { to: "/admin/marketing-emails", label: "Marketing Emails", translationKey: "admin.nav.marketing_emails", icon: Mail, roles: EDITOR_ROLES },
       ]
     },
     {
@@ -154,8 +155,8 @@ export function Sidebar({ isMobileOpen = false, onMobileClose }: SidebarProps) {
       title: "Settings & System",
       translationKey: "admin.nav.settings_system",
       items: [
-        { to: "/admin/themes", label: "Theme & Branding", translationKey: "admin.nav.themes", icon: Palette },
-        { to: "/admin/settings", label: "Site Settings", translationKey: "admin.nav.settings", icon: SettingsIcon },
+        { to: "/admin/themes", label: "Theme & Branding", translationKey: "admin.nav.themes", icon: Palette, roles: MANAGER_ROLES },
+        { to: "/admin/settings", label: "Site Settings", translationKey: "admin.nav.settings", icon: SettingsIcon, roles: MANAGER_ROLES },
       ]
     }
   ];
@@ -199,11 +200,12 @@ export function Sidebar({ isMobileOpen = false, onMobileClose }: SidebarProps) {
   };
 
   // Filter sections by role if specified
+  const currentRole = normalizeAdminRole(user?.role);
   const filteredSections = navSections.map((section) => ({
     ...section,
     items: section.items.filter((item) => {
       if (!item.roles || item.roles.length === 0) return true;
-      return user?.role && item.roles.includes(user.role);
+      return Boolean(currentRole && item.roles.includes(currentRole));
     })
   })).filter((section) => section.items.length > 0);
 

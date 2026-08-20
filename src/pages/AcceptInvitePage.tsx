@@ -190,7 +190,15 @@ export default function AcceptInvitePage() {
   };
 
   const getRoleBadge = (role: string) => {
-    const r = (role || "").toLowerCase();
+    const r = (role || "").toLowerCase().replace(/[_-]/g, "");
+    if (r === "superadmin") {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20">
+          <ShieldCheck className="w-3.5 h-3.5" />
+          Superadmin
+        </span>
+      );
+    }
     if (r === "admin") {
       return (
         <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border border-indigo-500/20">
