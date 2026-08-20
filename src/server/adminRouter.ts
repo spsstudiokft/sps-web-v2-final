@@ -6640,14 +6640,26 @@ adminRouter.put("/teams/:id", async (req, res) => {
   try {
     const existing = await db.execute({ sql: "SELECT * FROM teams WHERE id = ?", args: [req.params.id] });
     if (!existing.rows.length) return res.status(404).json({ error: "Team not found" });
-    const { name, description, color, is_active } = req.body;
+    const { name } = req.body;
     const nextName = String(name ?? existing.rows[0].name).trim();
-    await db.execute({ sql: "UPDATE teams SET name = ?, description = ?, color = ?, is_active = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", args: [nextName, description ?? existing.rows[0].description, color ?? existing.rows[0].color, is_active === false || is_active === 0 ? 0 : 1, req.params.id] });
-    await db.execute({ sql: "UPDATE users SET workspace = ? WHERE team_id = ?", args: [nextName, req.params.id] });
-    await db.execute({ sql: "UPDATE invitations SET workspace = ? WHERE team_id = ? AND status = 'pending'", args: [nextName, req.params.id] });
+    if (!nextName) return res.status(400).json({ error: "Team name is required" });
+    const duplicate = await db.execute({ sql: "SELECT id FROM teams WHERE LOWER(TRIM(name)) = LOWER(TRIM(?)) AND id != ? LIMIT 1", args: [nextName, req.params.id] });
+    if (duplicate.rows.length) return res.status(409).json({ error: "A team with this name already exists" });
+
+    // Renaming must also work with teams tables created by older deployments,
+    // where optional metadata or updated_at columns may not exist yet.
+    await db.execute({ sql: "UPDATE teams SET name = ? WHERE id = ?", args: [nextName, req.params.id] });
+    try { await db.execute({ sql: "UPDATE teams SET updated_at = CURRENT_TIMESTAMP WHERE id = ?", args: [req.params.id] }); } catch {}
+    try { await db.execute({ sql: "UPDATE users SET workspace = ? WHERE team_id = ?", args: [nextName, req.params.id] }); } catch {}
+    try { await db.execute({ sql: "UPDATE users SET admin_workspace = ? WHERE admin_team_id = ?", args: [nextName, req.params.id] }); } catch {}
+    try { await db.execute({ sql: "UPDATE invitations SET workspace = ? WHERE team_id = ? AND status = 'pending'", args: [nextName, req.params.id] }); } catch {}
     const updated = await db.execute({ sql: "SELECT * FROM teams WHERE id = ?", args: [req.params.id] });
     res.json({ team: updated.rows[0] });
-  } catch (error: any) { res.status(500).json({ error: error.message || "Failed to update team" }); }
+  } catch (error: any) {
+    const message = String(error?.message || "");
+    const duplicateName = /unique|constraint/i.test(message);
+    res.status(duplicateName ? 409 : 500).json({ error: duplicateName ? "A team with this name already exists" : message || "Failed to update team" });
+  }
 });
 
 adminRouter.delete("/teams/:id", async (req, res) => {

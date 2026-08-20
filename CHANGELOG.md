@@ -496,3 +496,8 @@
 - Added inline rename, save, cancel, and delete controls to every team category in Team Management.
 - Renaming a category also refreshes assigned member workspace labels.
 - Empty categories can be deleted directly; categories with assigned members remain protected until their members are moved.
+## 2026-08-20 — Team category rename compatibility
+
+- Fixed team category renaming on databases created by older deployments where optional team metadata columns may be missing.
+- Rename operations now update the required name field first and synchronize member, secondary-admin, and pending-invitation workspace labels safely.
+- Duplicate category names return an actionable 409 response instead of a generic 500 error.

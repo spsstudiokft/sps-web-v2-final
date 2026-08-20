@@ -243,6 +243,11 @@ export const setupDatabase = async () => {
       is_active INTEGER DEFAULT 1, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
+  try { await client.execute("ALTER TABLE teams ADD COLUMN description TEXT DEFAULT ''"); } catch {}
+  try { await client.execute("ALTER TABLE teams ADD COLUMN color TEXT DEFAULT '#3B82F6'"); } catch {}
+  try { await client.execute("ALTER TABLE teams ADD COLUMN is_active INTEGER DEFAULT 1"); } catch {}
+  try { await client.execute("ALTER TABLE teams ADD COLUMN created_at DATETIME DEFAULT CURRENT_TIMESTAMP"); } catch {}
+  try { await client.execute("ALTER TABLE teams ADD COLUMN updated_at DATETIME DEFAULT NULL"); } catch {}
   try { await client.execute("ALTER TABLE users ADD COLUMN team_id TEXT DEFAULT NULL"); } catch {}
   try { await client.execute("ALTER TABLE invitations ADD COLUMN team_id TEXT DEFAULT NULL"); } catch {}
   await client.execute(`INSERT OR IGNORE INTO teams (id, name, description, color) VALUES ('team-main-studio', 'Main Studio', 'Primary studio team', '#3B82F6')`);
