@@ -74,6 +74,8 @@ export function Contact({
   const [availabilityError, setAvailabilityError] = useState("");
   const [contactStatus, setContactStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState("");
+  const [hasAcceptedPrivacyPolicy, setHasAcceptedPrivacyPolicy] = useState(false);
+  const [hasAcceptedTerms, setHasAcceptedTerms] = useState(false);
 
   // Pricing, Extras & Fees state
   const [allPlans, setAllPlans] = useState<PricingPlan[]>(initialPlans || []);
@@ -383,6 +385,12 @@ export function Contact({
       return;
     }
 
+    if (!hasAcceptedPrivacyPolicy || !hasAcceptedTerms) {
+      setContactStatus("error");
+      setErrorMessage(tUi("contact.legal_consent_required", currentLang, undefined, defaultLang));
+      return;
+    }
+
     if (showPhone) {
       const err = validatePhone(contactForm.phone);
       if (err) {
@@ -451,6 +459,8 @@ export function Contact({
           estimated_total: selectedPlan && estimatedTotal > 0 ? estimatedTotal : undefined,
           currency: currency,
           cookie_consent: true,
+          privacy_policy_accepted: true,
+          terms_accepted: true,
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -470,6 +480,8 @@ export function Contact({
         setSelectedExtras({});
         setPhoneError("");
         setAvailabilityError("");
+        setHasAcceptedPrivacyPolicy(false);
+        setHasAcceptedTerms(false);
         setIsMessageCustomized(false);
       } else {
         setContactStatus("error");
@@ -1095,6 +1107,23 @@ export function Contact({
                   {errorMessage || tUi("Failed to send message. Please try again.", currentLang, undefined, defaultLang)}
                 </div>
               )}
+
+              <div className="order-7 space-y-3 rounded-xl border border-border bg-surface/50 p-4 text-xs text-muted-text">
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input type="checkbox" required checked={hasAcceptedPrivacyPolicy} onChange={(event) => setHasAcceptedPrivacyPolicy(event.target.checked)} className="mt-0.5 h-4 w-4 shrink-0 accent-primary" />
+                  <span>
+                    {tUi("contact.privacy_consent_prefix", currentLang, undefined, defaultLang)}{" "}
+                    <button type="button" onClick={() => window.dispatchEvent(new CustomEvent("open-legal-document", { detail: "privacy" }))} className="font-semibold text-primary underline underline-offset-2">{tUi("legal.privacy_policy", currentLang, undefined, defaultLang)}</button>.
+                  </span>
+                </label>
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input type="checkbox" required checked={hasAcceptedTerms} onChange={(event) => setHasAcceptedTerms(event.target.checked)} className="mt-0.5 h-4 w-4 shrink-0 accent-primary" />
+                  <span>
+                    {tUi("contact.terms_consent_prefix", currentLang, undefined, defaultLang)}{" "}
+                    <button type="button" onClick={() => window.dispatchEvent(new CustomEvent("open-legal-document", { detail: "terms" }))} className="font-semibold text-primary underline underline-offset-2">{tUi("legal.terms_conditions", currentLang, undefined, defaultLang)}</button>.
+                  </span>
+                </label>
+              </div>
 
               <button
                 disabled={contactStatus === "submitting"}

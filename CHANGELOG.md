@@ -1,5 +1,23 @@
 # Modification Log
 
+## 2026-08-20 — Hungarian translation completion
+
+- Translated 100 remaining English admin and customer-facing strings in the Hungarian dictionary, including branding, customer invitations, FAQ categories, leads, settings, and contact submissions.
+
+## 2026-08-20 — Translation language section markers
+
+- Marked the starting point of each English, Hungarian, German, Spanish, and French translation section in `src/lib/translations.ts`.
+
+## 2026-08-20 — Required privacy and terms acceptance for contact inquiries
+
+- Added separate required checkboxes for the Privacy Policy and Terms and Conditions to the public contact form.
+- Each policy name opens its current public legal document, and the contact API now rejects submissions that do not include both acceptances.
+
+## 2026-08-20 — Deleted default team no longer returns
+
+- Removed the database startup seed and automatic member/invitation reassignment for the `Main Studio` team.
+- Administrators can now delete that team permanently; it is not recreated when the server initializes again.
+
 ## 2026-08-20 — Font Awesome-only social tree icons
 
 - Standardized every social-tree platform glyph on Font Awesome Brands across the admin tree, editor previews, public social popup, footer, and Coming Soon page.

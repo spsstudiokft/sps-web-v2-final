@@ -37,6 +37,15 @@ export function Footer({ settings }: { settings: SiteSettings }) {
     fetch("/api/public/social-links").then((res) => res.ok ? res.json() : []).then((data) => setSocialLinks(Array.isArray(data) ? data.filter((node) => node.type === "link" && node.url) : [])).catch(() => {});
   }, []);
 
+  useEffect(() => {
+    const openDocument = (event: Event) => {
+      const type = (event as CustomEvent<LegalType>).detail;
+      if (legalLinks.some((link) => link.type === type)) setActiveDocument(type);
+    };
+    window.addEventListener("open-legal-document", openDocument);
+    return () => window.removeEventListener("open-legal-document", openDocument);
+  }, []);
+
   const safeSocialUrl = (url?: string | null) => url && /^(https?:|mailto:|tel:)/i.test(url) ? url : "#";
   const version = settings.footer_version || "v2.0.0";
   const aiNotice = t(settings.footer_ai_notice, currentLang, defaultLang) || tUi("footer.ai_notice", currentLang, undefined, defaultLang);

@@ -250,14 +250,14 @@ export const setupDatabase = async () => {
   try { await client.execute("ALTER TABLE teams ADD COLUMN updated_at DATETIME DEFAULT NULL"); } catch {}
   try { await client.execute("ALTER TABLE users ADD COLUMN team_id TEXT DEFAULT NULL"); } catch {}
   try { await client.execute("ALTER TABLE invitations ADD COLUMN team_id TEXT DEFAULT NULL"); } catch {}
-  await client.execute(`INSERT OR IGNORE INTO teams (id, name, description, color) VALUES ('team-main-studio', 'Main Studio', 'Primary studio team', '#3B82F6')`);
-  try { await client.execute(`UPDATE users SET team_id = 'team-main-studio' WHERE role IN ('superadmin','admin','editor','viewer') AND (team_id IS NULL OR team_id = '') AND COALESCE(workspace, 'Main Studio') = 'Main Studio'`); } catch {}
+  // Teams are fully user-managed. Do not seed or restore a default team here:
+  // setupDatabase runs at every server start, so a seed would recreate a team
+  // an administrator had intentionally deleted.
   try { await client.execute("ALTER TABLE users ADD COLUMN admin_role TEXT DEFAULT NULL"); } catch {}
   try { await client.execute("ALTER TABLE users ADD COLUMN admin_password_hash TEXT DEFAULT NULL"); } catch {}
   try { await client.execute("ALTER TABLE users ADD COLUMN admin_is_active INTEGER DEFAULT NULL"); } catch {}
   try { await client.execute("ALTER TABLE users ADD COLUMN admin_workspace TEXT DEFAULT NULL"); } catch {}
   try { await client.execute("ALTER TABLE users ADD COLUMN admin_team_id TEXT DEFAULT NULL"); } catch {}
-  try { await client.execute(`UPDATE invitations SET team_id = 'team-main-studio' WHERE (team_id IS NULL OR team_id = '') AND COALESCE(workspace, 'Main Studio') = 'Main Studio'`); } catch {}
   try { await client.execute("ALTER TABLE email_templates ADD COLUMN token_defaults TEXT NOT NULL DEFAULT '{}'"); } catch {}
 
   // Client account settings were introduced after the v8 initialization

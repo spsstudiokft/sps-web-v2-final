@@ -1698,6 +1698,9 @@ router.post("/public/contact", async (req, res) => {
     if (req.body.cookie_consent !== true) {
       return res.status(403).json({ error: "Cookie consent is required before submitting the contact form" });
     }
+    if (req.body.privacy_policy_accepted !== true || req.body.terms_accepted !== true) {
+      return res.status(403).json({ error: "Privacy Policy and Terms and Conditions acceptance is required before submitting the contact form" });
+    }
     
     // Validate required base fields
     if (!name || typeof name !== "string" || name.trim() === "") {
