@@ -6669,26 +6669,27 @@ adminRouter.get("/team", async (req: any, res) => {
         u.email, 
         u.name, 
         u.phone, 
-        CASE LOWER(REPLACE(REPLACE(TRIM(COALESCE(u.role, '')), '_', ''), '-', ''))
+        CASE LOWER(REPLACE(REPLACE(TRIM(COALESCE(u.admin_role, u.role, '')), '_', ''), '-', ''))
           WHEN 'superadmin' THEN 'superadmin'
           WHEN 'admin' THEN 'admin'
           WHEN 'editor' THEN 'editor'
           WHEN 'viewer' THEN 'viewer'
           ELSE LOWER(TRIM(COALESCE(u.role, 'viewer')))
         END AS role,
-        u.workspace,
-        u.team_id,
+        COALESCE(u.admin_workspace, u.workspace) AS workspace,
+        COALESCE(u.admin_team_id, u.team_id) AS team_id,
         t.name AS team_name,
-        u.is_active, 
+        COALESCE(u.admin_is_active, u.is_active) AS is_active,
+        CASE WHEN u.admin_role IS NOT NULL THEN 1 ELSE 0 END AS is_secondary_admin,
         u.last_login_at, 
         u.created_at, 
         u.updated_at 
       FROM users u
-      LEFT JOIN teams t ON t.id = u.team_id
-      WHERE LOWER(REPLACE(REPLACE(TRIM(COALESCE(u.role, '')), '_', ''), '-', ''))
+      LEFT JOIN teams t ON t.id = COALESCE(u.admin_team_id, u.team_id)
+      WHERE LOWER(REPLACE(REPLACE(TRIM(COALESCE(u.admin_role, u.role, '')), '_', ''), '-', ''))
         IN ('superadmin', 'admin', 'editor', 'viewer')
       ORDER BY 
-        CASE LOWER(REPLACE(REPLACE(TRIM(COALESCE(u.role, '')), '_', ''), '-', ''))
+        CASE LOWER(REPLACE(REPLACE(TRIM(COALESCE(u.admin_role, u.role, '')), '_', ''), '-', ''))
           WHEN 'superadmin' THEN 1
           WHEN 'admin' THEN 2 
           WHEN 'editor' THEN 3 
@@ -6800,7 +6801,8 @@ adminRouter.put("/team/:id", async (req: any, res) => {
 
     const existingUser: any = existingRes.rows[0];
     const requesterRole = String(req.user?.role || "").toLowerCase().replace(/[_-]/g, "");
-    const existingRole = String(existingUser.role || "").toLowerCase().replace(/[_-]/g, "");
+    const isSecondaryAdmin = Boolean(existingUser.admin_role);
+    const existingRole = String(existingUser.admin_role || existingUser.role || "").toLowerCase().replace(/[_-]/g, "");
     const requestedRole = typeof role === "string" ? role.toLowerCase().replace(/[_-]/g, "") : existingRole;
 
     if (existingRole === "superadmin" && requesterRole !== "superadmin") {
@@ -6828,14 +6830,20 @@ adminRouter.put("/team/:id", async (req: any, res) => {
     const targetRole = validRoles.includes(requestedRole) ? requestedRole : existingRole;
     const targetActive = is_active !== undefined ? (is_active ? 1 : 0) : existingUser.is_active;
 
-    let targetTeamId = team_id !== undefined ? (team_id || null) : existingUser.team_id;
-    let targetWorkspace = workspace !== undefined ? workspace : existingUser.workspace;
+    let targetTeamId = team_id !== undefined ? (team_id || null) : (isSecondaryAdmin ? existingUser.admin_team_id : existingUser.team_id);
+    let targetWorkspace = workspace !== undefined ? workspace : (isSecondaryAdmin ? existingUser.admin_workspace : existingUser.workspace);
     if (targetTeamId) {
       const team = await db.execute({ sql: "SELECT name FROM teams WHERE id = ? AND is_active = 1", args: [targetTeamId] });
       if (!team.rows.length) return res.status(400).json({ error: "Selected team does not exist or is inactive" });
       targetWorkspace = team.rows[0].name;
     }
-    await db.execute({
+    if (isSecondaryAdmin) await db.execute({
+      sql: `UPDATE users SET name = ?, phone = ?, admin_role = ?, admin_workspace = ?, admin_team_id = ?,
+            admin_is_active = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+      args: [name !== undefined ? name : existingUser.name, phone !== undefined ? phone : existingUser.phone,
+        targetRole, targetWorkspace, targetTeamId, targetActive, id]
+    });
+    else await db.execute({
       sql: `UPDATE users 
             SET name = ?, phone = ?, role = ?, workspace = ?, team_id = ?, is_active = ?, updated_at = CURRENT_TIMESTAMP 
             WHERE id = ?`,
@@ -6851,7 +6859,11 @@ adminRouter.put("/team/:id", async (req: any, res) => {
     });
 
     const updatedRes = await db.execute({
-      sql: "SELECT id, email, name, phone, role, workspace, team_id, is_active, last_login_at, created_at, updated_at FROM users WHERE id = ?",
+      sql: `SELECT id, email, name, phone, COALESCE(admin_role, role) AS role,
+              COALESCE(admin_workspace, workspace) AS workspace, COALESCE(admin_team_id, team_id) AS team_id,
+              COALESCE(admin_is_active, is_active) AS is_active, last_login_at, created_at, updated_at,
+              CASE WHEN admin_role IS NOT NULL THEN 1 ELSE 0 END AS is_secondary_admin
+            FROM users WHERE id = ?`,
       args: [id]
     });
 
@@ -6883,7 +6895,8 @@ adminRouter.delete("/team/:id", async (req: any, res) => {
 
     const existingUser: any = existingRes.rows[0];
     const requesterRole = String(req.user?.role || "").toLowerCase().replace(/[_-]/g, "");
-    const existingRole = String(existingUser.role || "").toLowerCase().replace(/[_-]/g, "");
+    const isSecondaryAdmin = Boolean(existingUser.admin_role);
+    const existingRole = String(existingUser.admin_role || existingUser.role || "").toLowerCase().replace(/[_-]/g, "");
 
     if (existingRole === "superadmin" && requesterRole !== "superadmin") {
       return res.status(403).json({ error: "Only a Superadmin can remove a Superadmin account." });
@@ -6905,10 +6918,15 @@ adminRouter.delete("/team/:id", async (req: any, res) => {
       }
     }
 
-    await db.execute({
-      sql: "DELETE FROM users WHERE id = ?",
-      args: [id]
-    });
+    if (isSecondaryAdmin) {
+      await db.execute({
+        sql: `UPDATE users SET admin_role = NULL, admin_password_hash = NULL, admin_is_active = NULL,
+              admin_workspace = NULL, admin_team_id = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+        args: [id]
+      });
+    } else {
+      await db.execute({ sql: "DELETE FROM users WHERE id = ?", args: [id] });
+    }
 
     res.json({ success: true, message: "Team member deleted successfully" });
   } catch (error: any) {
@@ -7003,11 +7021,15 @@ adminRouter.post("/invitations", async (req: any, res) => {
 
     // Check if user already exists with this email and is active
     const existingUserRes = await db.execute({
-      sql: "SELECT id, role, is_active FROM users WHERE LOWER(TRIM(email)) = ?",
+      sql: "SELECT id, role, is_active, admin_role, admin_is_active FROM users WHERE LOWER(TRIM(email)) = ?",
       args: [cleanEmail]
     });
 
-    if (existingUserRes.rows.length > 0 && existingUserRes.rows[0].is_active) {
+    const existingAccount: any = existingUserRes.rows[0];
+    const existingPrimaryRole = String(existingAccount?.role || "").toLowerCase().replace(/[_-]/g, "");
+    const hasActivePrimaryAdmin = ["superadmin", "admin", "editor", "viewer"].includes(existingPrimaryRole) && existingAccount?.is_active !== 0;
+    const hasActiveSecondaryAdmin = Boolean(existingAccount?.admin_role) && existingAccount?.admin_is_active !== 0;
+    if (existingAccount && (hasActivePrimaryAdmin || hasActiveSecondaryAdmin)) {
       return res.status(409).json({ error: "This email already belongs to an active team member. Edit the existing member to change their role or team." });
     }
 

@@ -485,3 +485,14 @@
 - Superadmin and Admin retain complete management access; Editors receive operational content, CRM, marketing, and scoped finance access; Viewers see only read-oriented dashboard and content sections.
 - Hid unauthorized sidebar entries and added matching embedded 403 protection for direct admin URLs, including restricted invoice tabs.
 - Normalized legacy role spellings before menu and route permission checks.
+## 2026-08-20 — Client and admin dual-account invitations
+
+- Existing active client email addresses can now receive and accept admin-panel invitations instead of being rejected as existing team members.
+- Added independent secondary admin role, password, active status, workspace, and team fields so accepting an admin invitation does not overwrite the client portal identity or password.
+- Admin and client login now explicitly select their account context while continuing to use the same email address.
+- Team member listings and admin authorization recognize secondary admin access records.
+## 2026-08-20 — Editable team categories
+
+- Added inline rename, save, cancel, and delete controls to every team category in Team Management.
+- Renaming a category also refreshes assigned member workspace labels.
+- Empty categories can be deleted directly; categories with assigned members remain protected until their members are moved.

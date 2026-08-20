@@ -270,6 +270,7 @@ router.post("/setup", async (req, res) => {
 router.post("/auth/login", async (req, res) => {
   try {
     const { email, password } = req.body;
+    const accountContext = req.body?.account_context === "admin" ? "admin" : req.body?.account_context === "client" ? "client" : null;
     const cleanEmail = typeof email === "string" ? email.trim().toLowerCase() : "";
     const result = await db.execute({
       sql: "SELECT * FROM users WHERE LOWER(TRIM(email)) = ?",
@@ -278,15 +279,30 @@ router.post("/auth/login", async (req, res) => {
 
     if (result.rows.length === 0) return res.status(401).json({ error: "Invalid credentials" });
 
-    const user = result.rows[0];
-    const match = await bcrypt.compare(password, user.password_hash as string);
+    const user: any = result.rows[0];
+    const primaryRole = String(user.role || "admin").toLowerCase().replace(/[_-]/g, "");
+    const secondaryAdminRole = String(user.admin_role || "").toLowerCase().replace(/[_-]/g, "");
+    const primaryIsAdmin = ["superadmin", "admin", "editor", "viewer"].includes(primaryRole);
+    const useSecondaryAdmin = accountContext === "admin" && !primaryIsAdmin && ["superadmin", "admin", "editor", "viewer"].includes(secondaryAdminRole);
+    const effectiveRole = useSecondaryAdmin ? secondaryAdminRole : primaryRole;
+    const selectedHash = useSecondaryAdmin ? user.admin_password_hash : user.password_hash;
+
+    if (accountContext === "admin" && !primaryIsAdmin && !useSecondaryAdmin) {
+      return res.status(401).json({ error: "No admin account exists for this email address." });
+    }
+    if (accountContext === "client" && primaryRole !== "client") {
+      return res.status(401).json({ error: "No client account exists for this email address." });
+    }
+
+    const match = await bcrypt.compare(password, String(selectedHash || ""));
 
     if (!match) return res.status(401).json({ error: "Invalid credentials" });
 
-    if (user.is_active === 0) return res.status(403).json({ error: "Account is disabled. Please contact the studio administrator." });
+    const effectiveActive = useSecondaryAdmin ? user.admin_is_active : user.is_active;
+    if (effectiveActive === 0) return res.status(403).json({ error: "Account is disabled. Please contact the studio administrator." });
 
     // If client role, check if associated customer record is inactive
-    if (user.role === 'client') {
+    if (effectiveRole === 'client') {
       const crmCheck = await db.execute({
         sql: "SELECT status FROM crm_records WHERE LOWER(TRIM(email)) = ? AND type = 'customer' LIMIT 1",
         args: [cleanEmail]
@@ -296,8 +312,8 @@ router.post("/auth/login", async (req, res) => {
       }
     }
 
-    const token = jwt.sign({ id: user.id, email: user.email, role: user.role || 'admin', name: user.name || "" }, JWT_SECRET, { expiresIn: "1d" });
-    res.json({ token, user: { id: user.id, email: user.email, role: user.role || 'admin', name: user.name || "" } });
+    const token = jwt.sign({ id: user.id, email: user.email, role: effectiveRole, name: user.name || "" }, JWT_SECRET, { expiresIn: "1d" });
+    res.json({ token, user: { id: user.id, email: user.email, role: effectiveRole, name: user.name || "" } });
   } catch (error: any) {
     console.error("[Login Error]", error);
     res.status(500).json({ error: "Login failed" });
@@ -1039,13 +1055,21 @@ router.post("/invitations/accept", async (req, res) => {
 
     // Check if user record with this email already exists
     const existingUserRes = await db.execute({
-      sql: "SELECT id FROM users WHERE LOWER(TRIM(email)) = ?",
+      sql: "SELECT id, role FROM users WHERE LOWER(TRIM(email)) = ?",
       args: [cleanEmail]
     });
 
     if (existingUserRes.rows.length > 0) {
       userId = existingUserRes.rows[0].id as string;
-      await db.execute({
+      const existingRole = String((existingUserRes.rows[0] as any).role || "").toLowerCase().replace(/[_-]/g, "");
+      if (existingRole === "client") {
+        await db.execute({
+          sql: `UPDATE users SET admin_password_hash = ?, admin_role = ?, admin_is_active = 1,
+                  name = COALESCE(NULLIF(?, ''), name), phone = COALESCE(NULLIF(?, ''), phone),
+                  admin_workspace = ?, admin_team_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+          args: [hash, role, cleanName, cleanPhone, workspace, teamId, userId]
+        });
+      } else await db.execute({
         sql: `UPDATE users 
               SET password_hash = ?, 
                   role = ?, 

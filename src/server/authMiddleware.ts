@@ -43,13 +43,18 @@ export const requireAdmin = (req: any, res: any, next: any) => {
     }
     try {
       const userCheck = await db.execute({
-        sql: "SELECT is_active, role FROM users WHERE id = ?",
+        sql: "SELECT is_active, role, admin_role, admin_is_active FROM users WHERE id = ?",
         args: [req.user.id],
       });
-      if (userCheck.rows.length === 0 || userCheck.rows[0].is_active === 0) {
+      const row: any = userCheck.rows[0];
+      const primaryRole = String(row?.role || "").toLowerCase().replace(/[_-]/g, "");
+      const secondaryRole = String(row?.admin_role || "").toLowerCase().replace(/[_-]/g, "");
+      const tokenRole = String(req.user.role || "").toLowerCase().replace(/[_-]/g, "");
+      const usesSecondaryAdmin = !allowedRoles.includes(primaryRole) && secondaryRole === tokenRole;
+      if (!row || (usesSecondaryAdmin ? row.admin_is_active === 0 : row.is_active === 0)) {
         return res.status(403).json({ error: "Forbidden: Account is disabled" });
       }
-      if (!allowedRoles.includes(String(userCheck.rows[0].role || req.user.role))) {
+      if (!allowedRoles.includes(primaryRole) && !allowedRoles.includes(secondaryRole)) {
         return res.status(403).json({ error: "Forbidden: Admin access required" });
       }
     } catch {}

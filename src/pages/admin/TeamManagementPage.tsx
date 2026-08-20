@@ -72,6 +72,7 @@ interface TeamMember {
   last_login_at?: string;
   created_at: string;
   updated_at?: string;
+  is_secondary_admin?: number | boolean;
 }
 
 interface Team { id: string; name: string; description?: string; color?: string; is_active: number; member_count: number; }
@@ -99,6 +100,9 @@ export default function TeamManagementPage() {
   const [teams, setTeams] = useState<Team[]>([]);
   const [newTeamName, setNewTeamName] = useState("");
   const [creatingTeam, setCreatingTeam] = useState(false);
+  const [editingTeamId, setEditingTeamId] = useState<string | null>(null);
+  const [editingTeamName, setEditingTeamName] = useState("");
+  const [savingTeamId, setSavingTeamId] = useState<string | null>(null);
   const [loadingMembers, setLoadingMembers] = useState(true);
   const [memberSearch, setMemberSearch] = useState("");
   const [memberRoleFilter, setMemberRoleFilter] = useState("all");
@@ -244,6 +248,26 @@ export default function TeamManagementPage() {
     const data = await response.json();
     if (!response.ok) return alert(data.error || "Failed to delete team");
     await fetchTeams();
+  };
+
+  const handleSaveTeam = async (team: Team) => {
+    const name = editingTeamName.trim();
+    if (!name) return alert("Team name is required.");
+    setSavingTeamId(team.id);
+    try {
+      const response = await fetch(`/api/admin/teams/${team.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", ...authHeaders },
+        body: JSON.stringify({ name })
+      });
+      const data = await response.json().catch(() => null);
+      if (!response.ok) return alert(data?.error || "Failed to update team");
+      setEditingTeamId(null);
+      setEditingTeamName("");
+      await Promise.all([fetchTeams(), fetchTeamMembers()]);
+    } finally {
+      setSavingTeamId(null);
+    }
   };
 
   useEffect(() => {
@@ -993,7 +1017,25 @@ export default function TeamManagementPage() {
         <div className="space-y-4">
           <Card className="border-border bg-card">
             <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center gap-3">
-              <div className="flex-1"><div className="text-sm font-bold text-foreground">Teams</div><div className="text-xs text-muted-foreground mt-0.5">Create reusable teams and assign members consistently.</div><div className="flex flex-wrap gap-2 mt-3">{teams.map((team) => <span key={team.id} className="pl-2.5 pr-1 py-1 rounded-full border border-border bg-muted/50 text-xs font-semibold inline-flex items-center gap-1.5">{team.name} · {team.member_count}{Number(team.member_count) === 0 && <button type="button" onClick={() => handleDeleteTeam(team)} className="p-0.5 rounded-full text-muted-foreground hover:text-red-500"><XCircle className="w-3.5 h-3.5" /></button>}</span>)}</div></div>
+              <div className="flex-1">
+                <div className="text-sm font-bold text-foreground">Teams</div>
+                <div className="text-xs text-muted-foreground mt-0.5">Create, rename, and remove reusable team categories.</div>
+                <div className="flex flex-wrap gap-2 mt-3">
+                  {teams.map((team) => editingTeamId === team.id ? (
+                    <span key={team.id} className="p-1 rounded-lg border border-primary/40 bg-background inline-flex items-center gap-1">
+                      <Input value={editingTeamName} onChange={(e) => setEditingTeamName(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); void handleSaveTeam(team); } if (e.key === "Escape") setEditingTeamId(null); }} className="h-7 w-40 text-xs" autoFocus />
+                      <button type="button" disabled={savingTeamId === team.id} onClick={() => void handleSaveTeam(team)} className="p-1 rounded text-emerald-600 hover:bg-emerald-500/10 disabled:opacity-50" title="Save team name"><Check className="w-3.5 h-3.5" /></button>
+                      <button type="button" onClick={() => setEditingTeamId(null)} className="p-1 rounded text-muted-foreground hover:bg-muted" title="Cancel"><X className="w-3.5 h-3.5" /></button>
+                    </span>
+                  ) : (
+                    <span key={team.id} className="pl-2.5 pr-1 py-1 rounded-full border border-border bg-muted/50 text-xs font-semibold inline-flex items-center gap-1.5">
+                      {team.name} · {team.member_count}
+                      <button type="button" onClick={() => { setEditingTeamId(team.id); setEditingTeamName(team.name); }} className="p-0.5 rounded-full text-muted-foreground hover:text-primary" title="Rename team"><Edit2 className="w-3.5 h-3.5" /></button>
+                      <button type="button" onClick={() => void handleDeleteTeam(team)} disabled={Number(team.member_count) > 0} className="p-0.5 rounded-full text-muted-foreground hover:text-red-500 disabled:opacity-35 disabled:cursor-not-allowed" title={Number(team.member_count) > 0 ? "Move all members out before deleting this team" : "Delete team"}><Trash2 className="w-3.5 h-3.5" /></button>
+                    </span>
+                  ))}
+                </div>
+              </div>
               <div className="flex gap-2 sm:w-80"><Input value={newTeamName} onChange={(e) => setNewTeamName(e.target.value)} placeholder="New team name" onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); void handleCreateTeam(); } }} /><Button onClick={handleCreateTeam} disabled={creatingTeam || !newTeamName.trim()}><UserPlus className="w-4 h-4" /></Button></div>
             </CardContent>
           </Card>

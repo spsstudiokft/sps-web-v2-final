@@ -333,3 +333,5 @@ Every active API prefix has an explicit rewrite. The previous all-in-one `api/in
 This project is proprietary software developed for **SPS Studio**. All rights reserved.
 - **Team role management**: Secure invitation onboarding and normalized Superadmin, Admin, Editor, and Viewer role display with protected Superadmin account operations.
 - **Role-aware Admin Navigation**: Shared route permissions keep Superadmin, Admin, Editor, and Viewer menus aligned with direct-URL access controls.
+- **Dual Client/Admin Accounts**: A client can accept an admin invitation under the same email while retaining separate client and admin passwords, roles, and portal access.
+- **Editable Team Categories**: Team groups can be created, renamed inline, and safely deleted after assigned members are moved.
