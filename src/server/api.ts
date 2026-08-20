@@ -1349,7 +1349,9 @@ router.get("/public/portfolio/:slug/media/:index/watermarked", async (req, res) 
   }
 });
 
-router.get("/public/sitemap.xml", async (req, res) => {
+// The Vercel function receives the original /sitemap.xml path after its
+// rewrite, while the local Express API is mounted below /api. Support both.
+router.get(["/public/sitemap.xml", "/sitemap.xml"], async (req, res) => {
   try {
     const origin = getAppUrl(req).replace(/\/$/, "");
     const result = await db.execute(`SELECT slug, COALESCE(updated_at, created_at) AS lastmod

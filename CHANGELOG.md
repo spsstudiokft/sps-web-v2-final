@@ -1,5 +1,9 @@
 # Modification Log
 
+## 2026-08-20 — Sitemap production routing fix
+
+- Added a sitemap route alias for Vercel's rewritten request path so `/sitemap.xml` no longer returns a 404 in production.
+
 ## 2026-08-20 — Hungarian translation completion
 
 - Translated 100 remaining English admin and customer-facing strings in the Hungarian dictionary, including branding, customer invitations, FAQ categories, leads, settings, and contact submissions.
