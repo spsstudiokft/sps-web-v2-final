@@ -467,7 +467,7 @@ export function Sidebar({ isMobileOpen = false, onMobileClose }: SidebarProps) {
       </nav>
 
       {/* Footer Controls */}
-      <div className="p-3 border-t border-border space-y-1.5 bg-background shrink-0">
+      <div className="aero-sidebar-footer p-3 border-t border-border space-y-1.5 bg-background shrink-0">
         
         {/* Language Selector Dropdown */}
         {supportedLangs.length > 1 && (

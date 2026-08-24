@@ -247,6 +247,7 @@ router.post("/setup", async (req, res) => {
       ["studio_name", "SPS Studio"],
       ["hero_headline", "Premium Real Estate Photography"],
       ["hero_subheadline", "Elevating property presentations with stunning visuals."],
+      ["hero_production_card_enabled", "1"],
       ["about_text", "SPS Studio is a premier real estate photography studio dedicated to showcasing properties in their best light. With years of experience and an eye for detail, we provide top-tier visual marketing for realtors and homeowners."],
       ["contact_email", "contact@spsstudio.com"],
       ["contact_phone", "+1 234 567 890"],

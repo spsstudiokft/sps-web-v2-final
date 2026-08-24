@@ -184,7 +184,7 @@ invoiceRouter.get("/clients-lookup", async (req: any, res) => {
 invoiceRouter.get("/summary", async (req: any, res) => {
   try {
     const currentUserId = req.user?.id;
-    const { admin_id, start_date, end_date, currency } = req.query;
+    const { admin_id, client_email, start_date, end_date, currency } = req.query;
 
     let sql = `SELECT * FROM invoices WHERE archived_at IS NULL`;
     const args: any[] = [];
@@ -193,6 +193,10 @@ invoiceRouter.get("/summary", async (req: any, res) => {
     if (admin_id && admin_id !== "all") {
       sql += ` AND owner_admin_id = ?`;
       args.push(admin_id);
+    }
+    if (client_email && typeof client_email === "string") {
+      sql += ` AND LOWER(TRIM(client_email)) = ?`;
+      args.push(normalizeEmail(client_email));
     }
     if (start_date) {
       sql += ` AND issue_date >= ?`;

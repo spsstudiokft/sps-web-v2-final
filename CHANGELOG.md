@@ -1,5 +1,38 @@
 # Modification Log
 
+## 2026-08-24 — Facebook icon namespace compatibility
+
+- Normalized legacy `fa-fab-facebook`, `fa-fab-facebook-f`, and `fa-fab-f` style social-icon values to the Facebook brand icon, so existing saved settings render correctly.
+
+## 2026-08-24 — Toggleable Hero production-areas card
+
+- Added a Site Settings switch for the complete Hero Production Areas card, keeping its Photography, Cinematic film, and Drone & aerial entries together.
+- Left the card enabled by default and added a TODO marker for future menu-item configuration.
+
+## 2026-08-24 — Invoice client-account filter
+
+- Added an invoice filter for selecting a client account by its linked email address, backed by the existing CRM and client-portal lookup.
+- Applied the selected client filter to both the invoice list and invoice summary figures.
+
+## 2026-08-24 — Unified Admin tab selectors
+
+- Standardized the visual states of tab selectors across Admin pages and modals, including legacy underline controls.
+- Active tabs now use the same primary filled state, while inactive tabs share consistent rounded hover and keyboard-focus feedback.
+
+## 2026-08-24 — Hero image readability overlay
+
+- Added a dedicated Hero image readability slider to Site Settings, including an explicit percentage and contrast guidance.
+- The dark overlay now applies to both uploaded and built-in Hero backgrounds, keeping foreground copy readable on bright photos.
+- Added an independent 0–24 px Hero background blur control that leaves foreground copy and controls sharp.
+
+## 2026-08-24 — Stable sidebar footer controls
+
+- Prevented the Admin sidebar's bottom controls from shifting on hover or visible keyboard focus, eliminating the pointer/focus "shake" while preserving their existing styling.
+
+## 2026-08-24 — Categorized Site Settings modal
+
+- Reworked the Site Settings modal into Site & Brand, Content & SEO, and Contact & Email categories with focused sub-tabs, retaining all existing fields and save behaviour.
+
 ## 2026-08-24 — Team and pricing page spacing
 
 - Added responsive outer spacing and a shared maximum content width to Team & Admin Invitations and Pricing & Packages, aligning both pages with the rest of the Admin workspace.

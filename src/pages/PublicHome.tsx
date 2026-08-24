@@ -194,15 +194,23 @@ function PublicHomeContent({ settings, portfolio, services, bootstrap, loading }
   const hasVisualIdeas = settings.visual_ideas_enabled !== "0" && settings.visual_ideas_enabled !== "false" && visibleVisualIdeas.length > 0;
   const sectionMedia = parseSectionMedia(settings.section_media);
   const sectionBackgroundCss = Object.entries(sectionMedia)
-    .filter(([, media]) => Boolean(media.backgroundUrl))
+    .filter(([id, media]) => Boolean(media.backgroundUrl) || id === "home")
     .map(([id, media]) => {
       const safeId = id.replace(/[^a-z0-9_-]/gi, "");
+      const isHero = safeId === "home";
       const safeUrl = encodeURI(String(media.backgroundUrl || ""))
         .replace(/["'()\\]/g, (character) => encodeURIComponent(character));
       const position = ["center", "top", "bottom", "left", "right"].includes(media.backgroundPosition || "")
         ? media.backgroundPosition
         : "center";
       const opacity = Math.min(0.9, Math.max(0, Number(media.overlayOpacity ?? 0.45)));
+      if (isHero) {
+        const blur = Math.min(24, Math.max(0, Number(media.imageBlur ?? 0)));
+        const customImage = safeUrl
+          ? `--hero-image-url:url("${safeUrl}");--hero-image-position:${position};`
+          : "";
+        return `#${safeId}{--hero-image-overlay:${opacity};--hero-image-blur:${blur}px;${customImage}}`;
+      }
       return `#${safeId}{background-image:linear-gradient(rgba(0,0,0,${opacity}),rgba(0,0,0,${opacity})),url("${safeUrl}")!important;background-size:cover!important;background-position:${position}!important;background-repeat:no-repeat!important}`;
     })
     .join("\n");

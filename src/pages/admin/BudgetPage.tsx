@@ -142,6 +142,8 @@ export default function BudgetPage() {
   const [invoicePeriodFilter, setInvoicePeriodFilter] = useState<string>("all");
   const [invoiceStartDate, setInvoiceStartDate] = useState<string>("");
   const [invoiceEndDate, setInvoiceEndDate] = useState<string>("");
+  const [invoiceClientEmailFilter, setInvoiceClientEmailFilter] = useState<string>("");
+  const [invoiceClients, setInvoiceClients] = useState<Array<{ id?: string; name?: string; email: string; source?: string }>>([]);
   const [invoiceSelectedAdminId, setInvoiceSelectedAdminId] = useState<string>("all");
   const [invoiceViewMode, setInvoiceViewMode] = useState<"table" | "analytics">("table");
 
@@ -326,6 +328,7 @@ export default function BudgetPage() {
       const queryParams = new URLSearchParams();
 
       if (invoiceSearch) queryParams.set("search", invoiceSearch);
+      if (invoiceClientEmailFilter) queryParams.set("client_email", invoiceClientEmailFilter);
       if (invoiceStatusFilter !== "all") queryParams.set("status", invoiceStatusFilter);
       if (dateParams.start_date) queryParams.set("start_date", dateParams.start_date);
       if (dateParams.end_date) queryParams.set("end_date", dateParams.end_date);
@@ -380,6 +383,7 @@ export default function BudgetPage() {
     fetchInvoices();
   }, [
     invoiceSearch,
+    invoiceClientEmailFilter,
     invoiceStatusFilter,
     invoicePeriodFilter,
     invoiceStartDate,
@@ -387,6 +391,22 @@ export default function BudgetPage() {
     invoiceSelectedAdminId,
     currentSettings?.default_currency
   ]);
+
+  useEffect(() => {
+    const loadInvoiceClients = async () => {
+      try {
+        const response = await fetch("/api/admin/invoices/clients-lookup", {
+          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        });
+        if (!response.ok) return;
+        const clients = await response.json();
+        setInvoiceClients(Array.isArray(clients) ? clients : []);
+      } catch {
+        setInvoiceClients([]);
+      }
+    };
+    void loadInvoiceClients();
+  }, [token]);
 
   // Unique categories list for filter dropdown
   const categoriesList = useMemo(() => {
@@ -1064,13 +1084,17 @@ export default function BudgetPage() {
             onEndDateChange={setInvoiceEndDate}
             onResetFilters={() => {
               setInvoiceSearch("");
+              setInvoiceClientEmailFilter("");
               setInvoiceStatusFilter("all");
               setInvoicePeriodFilter("all");
               setInvoiceStartDate("");
               setInvoiceEndDate("");
             }}
-            hasActiveFilters={Boolean(invoiceSearch || invoiceStatusFilter !== "all" || invoicePeriodFilter !== "all" || invoiceStartDate || invoiceEndDate)}
+            hasActiveFilters={Boolean(invoiceSearch || invoiceClientEmailFilter || invoiceStatusFilter !== "all" || invoicePeriodFilter !== "all" || invoiceStartDate || invoiceEndDate)}
             totalCount={invoices.length}
+            clientEmailFilter={invoiceClientEmailFilter}
+            onClientEmailChange={setInvoiceClientEmailFilter}
+            clients={invoiceClients}
             selectedAdminId={invoiceSelectedAdminId}
             onAdminChange={setInvoiceSelectedAdminId}
             adminsList={adminsList}

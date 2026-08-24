@@ -499,6 +499,45 @@ html:not(.dark) .aero-site {
   animation: hero-pulse 6s ease-in-out infinite;
 }
 
+/* Controlled from the Hero image readability slider in Site Settings. */
+.aero-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: rgb(0 0 0 / var(--hero-image-overlay, 0));
+}
+
+.aero-hero-media {
+  position: absolute;
+  inset: -36px;
+  z-index: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(90deg, rgba(2, 10, 24, 0.9) 0%, rgba(2, 14, 31, 0.72) 40%, rgba(2, 16, 35, 0.17) 72%),
+    linear-gradient(0deg, rgba(1, 10, 24, 0.82) 0%, transparent 42%),
+    var(--hero-image-url, url('/images/sps-cinematic-hero.png'));
+  background-position: center, center, var(--hero-image-position, right center);
+  background-size: cover, cover, 112% auto;
+  background-repeat: no-repeat;
+  filter: blur(var(--hero-image-blur, 0px));
+  transform: scale(1.04);
+  transform-origin: center;
+  transition: filter 180ms ease;
+}
+
+.dark .aero-hero-media {
+  background-image:
+    linear-gradient(90deg, rgba(1, 8, 20, .94) 0%, rgba(2, 12, 28, .76) 42%, rgba(2, 15, 34, .2) 74%),
+    linear-gradient(0deg, rgba(1, 8, 20, .88) 0%, transparent 44%),
+    var(--hero-image-url, url('/images/sps-cinematic-hero.png'));
+}
+
+@media (min-width: 901px) {
+  .dark .aero-hero-media { background-position: center center, center center, center center; background-size: cover, cover, cover; }
+}
+
 .aero-hero-noise {
   position: absolute;
   inset: 0;
@@ -584,6 +623,7 @@ html:not(.dark) .aero-site {
 
 @media (max-width: 900px) {
   .aero-hero { min-height: 940px; background-position: center center; background-image: linear-gradient(0deg, rgba(2,11,25,.96) 0%, rgba(2,13,29,.72) 58%, rgba(2,15,34,.12) 100%), url('/images/sps-cinematic-hero.png'); }
+  .aero-hero-media { background-position: center center, center center, var(--hero-image-position, center center); background-size: cover, cover, cover; }
   .aero-hero-layout { grid-template-columns: 1fr; gap: 2rem; padding-bottom: 1.5rem; }
   .aero-showreel-card { max-width: 32rem; }
 }
@@ -1699,6 +1739,33 @@ html:not(.dark) .aero-site :focus-visible {
 .aero-admin-shell main th,
 .aero-admin-shell main td { border-color: color-mix(in srgb, var(--admin-glass-border) 70%, transparent); }
 
+/* One visual language for every page and modal tab switcher. Legacy tabs used
+   either underline-only or filled states; all tab buttons now share a stable
+   rounded control with the same hover and keyboard-focus treatment. */
+.aero-admin-shell button.border-b-2 {
+  min-height: 2.5rem;
+  margin-bottom: 0 !important;
+  border: 1px solid transparent !important;
+  border-radius: .7rem;
+  padding: .55rem .85rem !important;
+  transition: color .18s ease, background-color .18s ease, border-color .18s ease, box-shadow .18s ease !important;
+}
+.aero-admin-shell button.border-b-2:hover {
+  background: color-mix(in srgb, var(--theme-primary) 9%, transparent);
+  border-color: color-mix(in srgb, var(--theme-primary) 24%, transparent) !important;
+}
+.aero-admin-shell button.border-b-2.border-primary {
+  color: var(--theme-primary-foreground) !important;
+  background: var(--theme-primary) !important;
+  border-color: var(--theme-primary) !important;
+  box-shadow: 0 5px 14px color-mix(in srgb, var(--theme-primary) 28%, transparent);
+}
+.aero-admin-shell button.border-b-2:focus-visible,
+.aero-admin-shell [role="tab"]:focus-visible {
+  outline: 2px solid var(--theme-primary);
+  outline-offset: 2px;
+}
+
 .aero-admin-shell main .aero-ui-card .bg-background,
 .aero-admin-shell main .aero-ui-card .bg-surface,
 .aero-admin-shell main div.bg-surface.rounded-xl .bg-background,
@@ -1813,6 +1880,12 @@ html:not(.dark) .aero-site :focus-visible {
 .aero-sidebar-item:hover::before { opacity: 1; transform: translateX(0); }
 .aero-sidebar-item:hover::after { opacity: 1; transform: scaleY(1); }
 .aero-sidebar-item:hover svg { color: var(--sidebar-accent) !important; filter: drop-shadow(0 0 5px color-mix(in srgb, var(--sidebar-accent) 48%, transparent)); }
+
+/* Footer controls must not shift below the pointer while their focus ring is visible. */
+.aero-sidebar-footer .aero-sidebar-item:hover,
+.aero-sidebar-footer .aero-sidebar-item:focus-visible {
+  transform: none;
+}
 
 .aero-sidebar-item[aria-current="page"] {
   color: var(--sidebar-active-text) !important;

@@ -6,6 +6,7 @@ import { ArrowDown, ArrowUpRight, Camera, Clapperboard, Play, ScanLine } from "l
 
 export function Hero({ settings }: { settings: SiteSettings }) {
   const { currentLang, defaultLang } = useLanguage();
+  const showProductionCard = settings.hero_production_card_enabled !== "0" && settings.hero_production_card_enabled !== "false";
   return (
     <motion.section 
       id="home" 
@@ -15,6 +16,7 @@ export function Hero({ settings }: { settings: SiteSettings }) {
       transition={{ duration: 0.6, ease: "easeOut" }}
       className="aero-hero min-h-[100svh] pt-32 pb-8 md:pt-40 md:pb-10 px-4 sm:px-6 flex items-end relative"
     >
+      <div className="aero-hero-media" aria-hidden="true" />
       <div className="aero-hero-noise" aria-hidden="true" />
       <div className="relative z-10 w-full max-w-[1480px] mx-auto">
         <div className="aero-hero-layout">
@@ -41,7 +43,9 @@ export function Hero({ settings }: { settings: SiteSettings }) {
             </div>
           </div>
 
+          {showProductionCard && (
           <div className="aero-showreel-card" aria-label={tUi("hero.production_services", currentLang, undefined, defaultLang)}>
+            {/* TODO: Make the production-area menu configurable in Site Settings. */}
             <div className="flex items-center justify-between mb-7">
               <span className="text-[10px] font-bold tracking-[0.22em] uppercase text-white/55">{tUi("hero.production_scope", currentLang, undefined, defaultLang)}</span>
               <ScanLine className="w-4 h-4 text-cyan-300" aria-hidden="true" />
@@ -68,6 +72,7 @@ export function Hero({ settings }: { settings: SiteSettings }) {
               <span className="relative flex h-2 w-2"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-cyan-300 opacity-70"/><span className="relative inline-flex h-2 w-2 rounded-full bg-cyan-300"/></span>
             </div>
           </div>
+          )}
         </div>
 
         <div className="aero-hero-footer">

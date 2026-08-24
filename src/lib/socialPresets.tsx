@@ -256,7 +256,9 @@ export function SocialIconRenderer({
     .replace(/^fa(?=[a-z])/, "")
     .replace(/_/g, "-");
   const aliases: Record<string, string> = {
-    "facebook-f": "facebook", "facebook-square": "facebook", fb: "facebook", meta: "facebook",
+    // Support legacy Font Awesome class-like values saved by older admin forms.
+    "facebook-f": "facebook", "facebook-square": "facebook", "fab-facebook": "facebook",
+    "fab-facebook-f": "facebook", "fab-f": "facebook", fb: "facebook", meta: "facebook",
     "instagram-square": "instagram", "youtube-play": "youtube", "linkedin-in": "linkedin",
     "twitter-x": "x", "x-com": "x", "whats-app": "whatsapp", "telegram-plane": "telegram",
     envelope: "email", mail: "email", tel: "phone", website: "globe", "external-link": "link",

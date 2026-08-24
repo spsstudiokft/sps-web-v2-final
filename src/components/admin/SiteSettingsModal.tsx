@@ -65,6 +65,7 @@ export function SiteSettingsModal({
   const { setCustomTranslationsMap, reloadSettings, tUi, currentLanguage } = useLanguage();
   const [settings, setSettings] = useState<SiteSettings>(initialSettings || {});
   const [activeTab, setActiveTab] = useState<"general" | "branding" | "translations" | "contact" | "content" | "seo" | "email">(initialTab);
+  const [settingsGroup, setSettingsGroup] = useState<"site" | "content" | "communication">("site");
   const [saving, setSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
@@ -97,6 +98,7 @@ export function SiteSettingsModal({
     if (isOpen) {
       setSettings(initialSettings || {});
       setActiveTab(initialTab);
+      setSettingsGroup(["general", "branding", "translations"].includes(initialTab) ? "site" : ["contact", "email"].includes(initialTab) ? "communication" : "content");
       setErrorMessage("");
       setSuccessMessage("");
     }
@@ -114,6 +116,21 @@ export function SiteSettingsModal({
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;
+
+  const settingsTabs = [
+    { id: "general" as const, group: "site", label: tUi("admin.settings.tab_general", currentLanguage) || "General", icon: Sliders },
+    { id: "branding" as const, group: "site", label: tUi("admin.settings.tab_branding", currentLanguage) || "Branding & Logos", icon: ImageIcon },
+    { id: "translations" as const, group: "site", label: tUi("admin.settings.tab_translations", currentLanguage) || "Languages & Translations", icon: Languages },
+    { id: "content" as const, group: "content", label: tUi("admin.settings.tab_content", currentLanguage) || "Hero & About", icon: FileText },
+    { id: "seo" as const, group: "content", label: tUi("admin.settings.tab_seo_keywords", currentLanguage) || "SEO & Keywords", icon: Search },
+    { id: "contact" as const, group: "communication", label: tUi("admin.settings.tab_contact", currentLanguage) || "Contact & Inquiries", icon: Phone },
+    { id: "email" as const, group: "communication", label: tUi("admin.settings.tab_email_resend", currentLanguage) || "Email & Resend", icon: Mail },
+  ];
+  const selectSettingsGroup = (group: "site" | "content" | "communication") => {
+    setSettingsGroup(group);
+    const firstTab = settingsTabs.find((tab) => tab.group === group);
+    if (firstTab) setActiveTab(firstTab.id);
+  };
 
   const handleChange = (key: keyof SiteSettings, value: string) => {
     setSettings((prev) => ({ ...prev, [key]: value }));
@@ -240,105 +257,14 @@ export function SiteSettingsModal({
           </button>
         </div>
 
-        {/* Tabbed Navigation Bar */}
-        <div className="flex items-center gap-2 px-6 pt-3 border-b border-border bg-surface/20 shrink-0 overflow-x-auto">
-          <button
-            type="button"
-            id="tab-btn-general"
-            onClick={() => setActiveTab("general")}
-            className={`pb-2.5 px-3.5 text-xs sm:text-sm font-semibold transition-all border-b-2 flex items-center gap-2 whitespace-nowrap ${
-              activeTab === "general"
-                ? "border-primary text-primary"
-                : "border-transparent text-muted-text hover:text-text"
-            }`}
-          >
-            <Sliders className="w-4 h-4" aria-hidden="true" />
-            <span>{tUi("admin.settings.tab_general", currentLanguage) || "General"}</span>
-          </button>
-
-          <button
-            type="button"
-            id="tab-btn-branding"
-            onClick={() => setActiveTab("branding")}
-            className={`pb-2.5 px-3.5 text-xs sm:text-sm font-semibold transition-all border-b-2 flex items-center gap-2 whitespace-nowrap ${
-              activeTab === "branding"
-                ? "border-primary text-primary"
-                : "border-transparent text-muted-text hover:text-text"
-            }`}
-          >
-            <ImageIcon className="w-4 h-4" aria-hidden="true" />
-            <span>{tUi("admin.settings.tab_branding", currentLanguage) || "Branding & Logos"}</span>
-          </button>
-
-          <button
-            type="button"
-            id="tab-btn-translations"
-            onClick={() => setActiveTab("translations")}
-            className={`pb-2.5 px-3.5 text-xs sm:text-sm font-semibold transition-all border-b-2 flex items-center gap-2 whitespace-nowrap ${
-              activeTab === "translations"
-                ? "border-primary text-primary"
-                : "border-transparent text-muted-text hover:text-text"
-            }`}
-          >
-            <Languages className="w-4 h-4" aria-hidden="true" />
-            <span>{tUi("admin.settings.tab_translations", currentLanguage) || "Languages & Translations"}</span>
-          </button>
-
-          <button
-            type="button"
-            id="tab-btn-contact"
-            onClick={() => setActiveTab("contact")}
-            className={`pb-2.5 px-3.5 text-xs sm:text-sm font-semibold transition-all border-b-2 flex items-center gap-2 whitespace-nowrap ${
-              activeTab === "contact"
-                ? "border-primary text-primary"
-                : "border-transparent text-muted-text hover:text-text"
-            }`}
-          >
-            <Mail className="w-4 h-4" aria-hidden="true" />
-            <span>{tUi("admin.settings.tab_contact", currentLanguage) || "Contact & Inquiries"}</span>
-          </button>
-
-          <button
-            type="button"
-            id="tab-btn-content"
-            onClick={() => setActiveTab("content")}
-            className={`pb-2.5 px-3.5 text-xs sm:text-sm font-semibold transition-all border-b-2 flex items-center gap-2 whitespace-nowrap ${
-              activeTab === "content"
-                ? "border-primary text-primary"
-                : "border-transparent text-muted-text hover:text-text"
-            }`}
-          >
-            <FileText className="w-4 h-4" aria-hidden="true" />
-            <span>{tUi("admin.settings.tab_content", currentLanguage) || "Hero & About"}</span>
-          </button>
-
-          <button
-            type="button"
-            id="tab-btn-seo"
-            onClick={() => setActiveTab("seo")}
-            className={`pb-2.5 px-3.5 text-xs sm:text-sm font-semibold transition-all border-b-2 flex items-center gap-2 whitespace-nowrap ${
-              activeTab === "seo"
-                ? "border-primary text-primary"
-                : "border-transparent text-muted-text hover:text-text"
-            }`}
-          >
-            <Search className="w-4 h-4" aria-hidden="true" />
-            <span>{tUi("admin.settings.tab_seo_keywords", currentLanguage) || "SEO & Keywords"}</span>
-          </button>
-
-          <button
-            type="button"
-            id="tab-btn-email"
-            onClick={() => setActiveTab("email")}
-            className={`pb-2.5 px-3.5 text-xs sm:text-sm font-semibold transition-all border-b-2 flex items-center gap-2 whitespace-nowrap ${
-              activeTab === "email"
-                ? "border-primary text-primary"
-                : "border-transparent text-muted-text hover:text-text"
-            }`}
-          >
-            <Mail className="w-4 h-4" aria-hidden="true" />
-            <span>{tUi("admin.settings.tab_email_resend", currentLanguage) || "Email & Resend"}</span>
-          </button>
+        {/* Two-level navigation keeps all settings discoverable without one long tab row. */}
+        <div className="px-4 sm:px-6 pt-3 border-b border-border bg-surface/20 shrink-0">
+          <div className="grid grid-cols-3 gap-1 rounded-xl bg-background/60 border border-border p-1" role="tablist" aria-label="Settings categories">
+            {[{ id: "site" as const, label: "Site & Brand", icon: SettingsIcon }, { id: "content" as const, label: "Content & SEO", icon: Search }, { id: "communication" as const, label: "Contact & Email", icon: Mail }].map((group) => { const Icon = group.icon; const selected = settingsGroup === group.id; return <button key={group.id} type="button" role="tab" aria-selected={selected} onClick={() => selectSettingsGroup(group.id)} className={`min-w-0 flex items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-[11px] sm:text-xs font-bold transition-colors ${selected ? "bg-primary text-primary-foreground shadow-xs" : "text-muted-text hover:bg-surface hover:text-text"}`}><Icon className="w-3.5 h-3.5 shrink-0" /><span className="truncate">{group.label}</span></button>; })}
+          </div>
+          <div className="flex items-center gap-1 pt-2 overflow-x-auto scrollbar-none">
+            {settingsTabs.filter((tab) => tab.group === settingsGroup).map((tab) => { const Icon = tab.icon; const selected = activeTab === tab.id; return <button key={tab.id} type="button" onClick={() => setActiveTab(tab.id)} className={`flex items-center gap-1.5 whitespace-nowrap rounded-t-lg px-3 py-2 text-xs font-semibold border-b-2 transition-colors ${selected ? "border-primary text-primary" : "border-transparent text-muted-text hover:text-text hover:bg-surface"}`}><Icon className="w-3.5 h-3.5" /><span>{tab.label}</span></button>; })}
+          </div>
         </div>
 
         {/* Modal Form & Scrolling Content Body */}
@@ -968,6 +894,21 @@ export function SiteSettingsModal({
                   isTextarea
                   placeholder="e.g. Delivering high-impact visual media for luxury properties."
                 />
+                <div className="flex items-center justify-between gap-4 rounded-xl border border-border bg-background/50 px-4 py-3">
+                  <div>
+                    <Label className="text-sm font-semibold text-text">{tUi("admin.settings.hero_production_card", currentLanguage) || "Produkciós területek kártya"}</Label>
+                    <p className="mt-1 text-xs text-muted-text">{tUi("admin.settings.hero_production_card_help", currentLanguage) || "A Hero jobb oldalán látható Fotózás, Filmes videó és Drón kártya megjelenítése."}</p>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={settings.hero_production_card_enabled !== "0" && settings.hero_production_card_enabled !== "false"}
+                    onClick={() => handleChange("hero_production_card_enabled", settings.hero_production_card_enabled !== "0" && settings.hero_production_card_enabled !== "false" ? "0" : "1")}
+                    className={`relative h-7 w-12 shrink-0 rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${settings.hero_production_card_enabled !== "0" && settings.hero_production_card_enabled !== "false" ? "bg-primary" : "bg-muted"}`}
+                  >
+                    <span className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${settings.hero_production_card_enabled !== "0" && settings.hero_production_card_enabled !== "false" ? "translate-x-6" : "translate-x-1"}`} />
+                  </button>
+                </div>
               </div>
 
               {/* Vision Section */}

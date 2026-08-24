@@ -2,6 +2,7 @@ export type SectionMediaItem = {
   backgroundUrl?: string;
   backgroundPosition?: string;
   overlayOpacity?: number;
+  imageBlur?: number;
   contentImageUrl?: string;
 };
 

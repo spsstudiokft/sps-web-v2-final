@@ -27,6 +27,9 @@ interface InvoiceFilterBarProps {
   onResetFilters: () => void;
   hasActiveFilters: boolean;
   totalCount: number;
+  clientEmailFilter?: string;
+  onClientEmailChange?: (email: string) => void;
+  clients?: Array<{ id?: string; name?: string; email: string; source?: string }>;
 }
 
 export function InvoiceFilterBar({
@@ -42,7 +45,10 @@ export function InvoiceFilterBar({
   onEndDateChange,
   onResetFilters,
   hasActiveFilters,
-  totalCount
+  totalCount,
+  clientEmailFilter = "",
+  onClientEmailChange,
+  clients = []
 }: InvoiceFilterBarProps) {
   return (
     <div className="bg-surface border border-border rounded-xl p-3.5 shadow-xs space-y-3">
@@ -96,6 +102,26 @@ export function InvoiceFilterBar({
       {/* Secondary Filter Row: Period, Dates & Reset */}
       <div className="flex flex-wrap items-center justify-between gap-2.5 pt-2.5 border-t border-border text-xs">
         <div className="flex flex-wrap items-center gap-2">
+          {/* Client account selector */}
+          {onClientEmailChange && (
+            <div className="flex items-center gap-1.5">
+              <User className="w-3.5 h-3.5 text-muted-text" />
+              <select
+                aria-label="Filter invoices by client account"
+                value={clientEmailFilter}
+                onChange={(e) => onClientEmailChange(e.target.value)}
+                className="max-w-[240px] bg-background border border-border rounded-md px-2.5 py-1 text-xs text-text focus:outline-none focus:ring-1 focus:ring-primary"
+              >
+                <option value="">All client accounts</option>
+                {clients.map((client) => (
+                  <option key={client.id || client.email} value={client.email}>
+                    {client.name || client.email} — {client.email}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           {/* Period selector */}
           <div className="flex items-center gap-1.5">
             <Calendar className="w-3.5 h-3.5 text-muted-text" />

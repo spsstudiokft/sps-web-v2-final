@@ -14,6 +14,7 @@ export type SiteSettings = {
   footer_brand_display?: "logo_only" | "logo_and_name" | "name_only";
   hero_headline?: string;
   hero_subheadline?: string;
+  hero_production_card_enabled?: string;
   vision_headline?: string;
   vision_statement?: string;
   about_text?: string;

@@ -64,6 +64,7 @@ export function SectionMediaManager({
 
       {SECTIONS.map(([id, labelKey]) => {
         const item = media[id] || {};
+        const isHero = id === "home";
         const label = tr(labelKey, id);
         return (
           <div key={id} className="p-5 rounded-2xl bg-surface border border-border space-y-4">
@@ -101,19 +102,72 @@ export function SectionMediaManager({
                   <option value="right">{tr("admin.section_media.position.right", "Right")}</option>
                 </select>
               </div>
-              <div>
-                <Label htmlFor={`section-overlay-${id}`}>{tr("admin.section_media.overlay", "Dark overlay")}: {Math.round((item.overlayOpacity ?? 0.45) * 100)}%</Label>
-                <Input
-                  id={`section-overlay-${id}`}
-                  type="range"
-                  min="0"
-                  max="0.9"
-                  step="0.05"
-                  value={item.overlayOpacity ?? 0.45}
-                  onChange={(e) => updateSection(id, { overlayOpacity: Number(e.target.value) })}
-                  className="mt-1.5"
-                />
-              </div>
+              {isHero ? (
+                <div className="sm:col-span-2 rounded-xl border border-primary/20 bg-primary/5 p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <Label htmlFor={`section-overlay-${id}`}>{tr("admin.section_media.hero_overlay_title", "Hero image readability")}: {Math.round((item.overlayOpacity ?? 0.45) * 100)}%</Label>
+                      <p className="mt-1 text-xs leading-relaxed text-muted-text">
+                        {tr("admin.section_media.hero_overlay_description", "Add a dark layer over the hero image so the heading stays easy to read on bright photos.")}
+                      </p>
+                    </div>
+                    <span className="rounded-full border border-primary/20 bg-background px-2.5 py-1 text-xs font-bold text-primary">
+                      {Math.round((item.overlayOpacity ?? 0.45) * 100)}%
+                    </span>
+                  </div>
+                  <Input
+                    id={`section-overlay-${id}`}
+                    type="range"
+                    min="0"
+                    max="0.9"
+                    step="0.05"
+                    value={item.overlayOpacity ?? 0.45}
+                    onChange={(e) => updateSection(id, { overlayOpacity: Number(e.target.value) })}
+                    className="mt-3"
+                  />
+                  <div className="mt-1 flex justify-between text-[11px] text-muted-text">
+                    <span>{tr("admin.section_media.hero_overlay_low", "Lighter image")}</span>
+                    <span>{tr("admin.section_media.hero_overlay_high", "Stronger contrast")}</span>
+                  </div>
+                  <div className="mt-4 border-t border-primary/15 pt-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div>
+                        <Label htmlFor={`section-blur-${id}`}>{tr("admin.section_media.hero_blur_title", "Hero image blur")}: {item.imageBlur ?? 0} px</Label>
+                        <p className="mt-1 text-xs leading-relaxed text-muted-text">
+                          {tr("admin.section_media.hero_blur_description", "Softens the background image only; the text and controls remain sharp.")}
+                        </p>
+                      </div>
+                      <span className="rounded-full border border-primary/20 bg-background px-2.5 py-1 text-xs font-bold text-primary">
+                        {item.imageBlur ?? 0} px
+                      </span>
+                    </div>
+                    <Input
+                      id={`section-blur-${id}`}
+                      type="range"
+                      min="0"
+                      max="24"
+                      step="1"
+                      value={item.imageBlur ?? 0}
+                      onChange={(e) => updateSection(id, { imageBlur: Number(e.target.value) })}
+                      className="mt-3"
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <Label htmlFor={`section-overlay-${id}`}>{tr("admin.section_media.overlay", "Dark overlay")}: {Math.round((item.overlayOpacity ?? 0.45) * 100)}%</Label>
+                  <Input
+                    id={`section-overlay-${id}`}
+                    type="range"
+                    min="0"
+                    max="0.9"
+                    step="0.05"
+                    value={item.overlayOpacity ?? 0.45}
+                    onChange={(e) => updateSection(id, { overlayOpacity: Number(e.target.value) })}
+                    className="mt-1.5"
+                  />
+                </div>
+              )}
             </div>
 
             {id === "about" && (
@@ -139,7 +193,7 @@ export function SectionMediaManager({
             {(item.backgroundUrl || item.contentImageUrl) && (
               <button
                 type="button"
-                onClick={() => updateSection(id, { backgroundUrl: "", contentImageUrl: "", backgroundPosition: "center", overlayOpacity: 0.45 })}
+                onClick={() => updateSection(id, { backgroundUrl: "", contentImageUrl: "", backgroundPosition: "center", overlayOpacity: 0.45, imageBlur: 0 })}
                 className="inline-flex items-center gap-2 text-xs font-semibold text-muted-text hover:text-text"
               >
                 <RotateCcw className="w-3.5 h-3.5" /> {tr("admin.section_media.reset", "Restore default media")}
