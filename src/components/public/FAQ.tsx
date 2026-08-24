@@ -11,6 +11,7 @@ export function FAQ({
   settings, 
   initialFaqs,
   initialCategories,
+  loadFullData = true,
 }: { 
   settings?: SiteSettings;
   initialFaqs?: FAQItem[];

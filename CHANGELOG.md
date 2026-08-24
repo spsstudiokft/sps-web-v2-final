@@ -35,6 +35,7 @@
 
 - Removed duplicate hero and eager portfolio-media preloads, preventing startup image-decoding contention and reducing first-load jank.
 - Kept only small pricing and FAQ previews in the bootstrap response; their complete datasets now load near the relevant section without altering Appwrite image handling.
+- Fixed the public-home runtime failure caused by the deferred pricing and FAQ loading flag not being passed into its components.
 
 ### About and cookie glass blur
 

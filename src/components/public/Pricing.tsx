@@ -62,6 +62,7 @@ export function Pricing({
   initialPlans,
   initialExtras,
   initialFeeRules,
+  loadFullData = true,
   isPerformanceLite = false,
 }: { 
   initialPlans?: PricingPlan[];
