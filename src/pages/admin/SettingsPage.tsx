@@ -7,10 +7,13 @@ import { Button } from "../../components/ui/Button";
 import { AdminFormSkeleton } from "../../components/admin/AdminSkeleton";
 import { SiteSettingsModal } from "../../components/admin/SiteSettingsModal";
 import { LegalDocumentsManager } from "../../components/admin/LegalDocumentsManager";
+import { RoleMenuPermissionsManager } from "../../components/admin/RoleMenuPermissionsManager";
+import { normalizeAdminRole } from "../../lib/adminPermissions";
 import { usePageTitle } from "../../hooks/usePageTitle";
 import { useApi } from "../../hooks/useApi";
 import { useTheme } from "../../components/ThemeProvider";
 import { useLanguage } from "../../contexts/LanguageContext";
+import { useAuth } from "../../contexts/AuthContext";
 import { 
   Search, 
   FileText, 
@@ -30,6 +33,7 @@ export default function SettingsPage() {
   usePageTitle(tUi("admin.settings.title", currentLanguage));
   const { fetchApi } = useApi();
   const { setThemeColors } = useTheme();
+  const { user } = useAuth();
   
   const [settings, setSettings] = useState<SiteSettings>({});
   const [loading, setLoading] = useState(true);
@@ -549,6 +553,11 @@ export default function SettingsPage() {
           <LegalDocumentsManager languages={parsedLanguages} defaultLanguage={settings.default_language || "en"} />
         </CardContent>
       </Card>
+
+      {normalizeAdminRole(user?.role) === "superadmin" && <Card className="border-border overflow-hidden">
+        <CardHeader className="border-b border-border bg-surface/60"><CardTitle className="text-lg">Szerepkörök és adminpanel-jogosultságok</CardTitle><CardDescription className="mt-1">Válassza ki, hogy az Admin, Editor és Viewer szerepkör mely adminpanel-menüket és oldalakat érheti el.</CardDescription></CardHeader>
+        <CardContent className="p-5 sm:p-6"><RoleMenuPermissionsManager /></CardContent>
+      </Card>}
 
       {/* Modal Dialog */}
       <SiteSettingsModal 

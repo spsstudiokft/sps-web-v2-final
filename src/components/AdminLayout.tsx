@@ -7,6 +7,7 @@ import { Menu, Globe } from "lucide-react";
 import { BackgroundUploadProvider } from "../contexts/BackgroundUploadContext";
 import { useAuth } from "../contexts/AuthContext";
 import { canAccessAdminRoute } from "../lib/adminPermissions";
+import { useAdminMenuPermissions } from "../hooks/useAdminMenuPermissions";
 import { ErrorPage } from "../pages/ErrorPage";
 
 export default function AdminLayout() {
@@ -16,6 +17,7 @@ export default function AdminLayout() {
   const { user } = useAuth();
   const [verifying, setVerifying] = useState(true);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const { permissions, loading: permissionsLoading } = useAdminMenuPermissions();
 
   useEffect(() => {
     fetchApi("/api/admin/verify")
@@ -28,7 +30,7 @@ export default function AdminLayout() {
     setIsMobileOpen(false);
   }, [location.pathname]);
 
-  if (verifying) {
+  if (verifying || permissionsLoading) {
     return (
       <div className="flex bg-background h-[100dvh] items-center justify-center">
         <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
@@ -36,7 +38,7 @@ export default function AdminLayout() {
     );
   }
 
-  const hasRouteAccess = canAccessAdminRoute(user?.role, location.pathname, location.search);
+  const hasRouteAccess = canAccessAdminRoute(user?.role, location.pathname, location.search, permissions);
 
   return (
     <div className="aero-workspace aero-admin-shell flex flex-col md:flex-row bg-background h-[100dvh] overflow-hidden">

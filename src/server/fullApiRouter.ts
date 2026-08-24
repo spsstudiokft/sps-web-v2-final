@@ -12,6 +12,7 @@ import { publicReferralRouter } from "./referralRouter.js";
 import systemRouter from "./systemRouter.js";
 import { db } from "../db.js";
 import { requireAdminOrListingUpload } from "./listingUploadAuth.js";
+import { requireAdminMenuPermission } from "./adminMenuAuthorization.js";
 
 const fullApiRouter = Router();
 
@@ -19,11 +20,11 @@ fullApiRouter.use(systemRouter);
 fullApiRouter.use(coreRouter);
 fullApiRouter.use("/public/invoices", publicInvoiceRouter);
 fullApiRouter.use("/public/referrals", publicReferralRouter);
-fullApiRouter.use("/admin/budgets", requireAdmin, budgetRouter);
-fullApiRouter.use("/admin/invoices", requireAdmin, invoiceRouter);
-fullApiRouter.use("/admin/payment-requests", requireAdmin, paymentRequestRouter);
-fullApiRouter.use("/admin/referrals", requireAdmin, referralRouter);
-fullApiRouter.use("/admin", requireAdminOrListingUpload, adminRouter);
+fullApiRouter.use("/admin/budgets", requireAdmin, requireAdminMenuPermission("budget"), budgetRouter);
+fullApiRouter.use("/admin/invoices", requireAdmin, requireAdminMenuPermission("invoices"), invoiceRouter);
+fullApiRouter.use("/admin/payment-requests", requireAdmin, requireAdminMenuPermission("payment_requests"), paymentRequestRouter);
+fullApiRouter.use("/admin/referrals", requireAdmin, requireAdminMenuPermission("referrals"), referralRouter);
+fullApiRouter.use("/admin", requireAdminOrListingUpload, requireAdminMenuPermission(), adminRouter);
 fullApiRouter.use("/property-manager", (req: any, res, next) => requireAuth(req, res, async () => {
   if (req.user?.role !== "property_client" || req.user?.scope !== "property-listings" || !req.user?.propertyAccountId) {
     return res.status(403).json({ error: "Érvénytelen ingatlanos munkamenet." });

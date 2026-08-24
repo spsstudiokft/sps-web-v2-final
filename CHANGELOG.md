@@ -1,5 +1,10 @@
 # Modification Log
 
+## 2026-08-24 — Superadmin-managed admin menu permissions
+
+- Added a polished role-permission manager to Site Settings so Superadmins can choose each Admin, Editor, and Viewer menu/page access level.
+- Centralized menu access rules with safe defaults, persistent database configuration, sidebar filtering, direct-route 403 protection, and server-side API enforcement; Superadmins retain unrestricted access.
+
 ## 2026-08-20 — SEO-complete dynamic sitemap and robots policy
 
 - Expanded `/sitemap.xml` with the public properties index, enabled property detail pages, published portfolio pages, image sitemap entries, canonical public URLs, validated last-modified dates, crawl priorities, and refresh hints.

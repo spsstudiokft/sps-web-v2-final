@@ -4,7 +4,8 @@ import { useAuth } from "../../contexts/AuthContext";
 import { useTheme } from "../ThemeProvider";
 import { useLanguage } from "../../contexts/LanguageContext";
 import { cn } from "../../lib/utils";
-import { ADMIN_ROLES, EDITOR_ROLES, MANAGER_ROLES, normalizeAdminRole } from "../../lib/adminPermissions";
+import { ADMIN_ROLES, EDITOR_ROLES, MANAGER_ROLES, canAccessAdminMenu, normalizeAdminRole } from "../../lib/adminPermissions";
+import { useAdminMenuPermissions } from "../../hooks/useAdminMenuPermissions";
 import { 
   LayoutDashboard, 
   Image as ImageIcon, 
@@ -59,6 +60,7 @@ export interface NavItemConfig {
   badge?: string | number;
   subItems?: SubNavItem[];
   roles?: string[];
+  permissionKey?: string;
 }
 
 export interface NavSectionConfig {
@@ -78,6 +80,7 @@ export function Sidebar({ isMobileOpen = false, onMobileClose }: SidebarProps) {
   const location = useLocation();
   const { mode, setMode } = useTheme();
   const { currentLang, setLang, supportedLangs, tUi } = useLanguage();
+  const { permissions } = useAdminMenuPermissions();
 
   // Desktop sidebar collapsed (icon-only) state
   const [isCollapsed, setIsCollapsed] = useState<boolean>(() => {
@@ -105,10 +108,10 @@ export function Sidebar({ isMobileOpen = false, onMobileClose }: SidebarProps) {
       title: "Overview",
       translationKey: "admin.nav.overview",
       items: [
-        { to: "/admin", label: "Dashboard", translationKey: "admin.nav.dashboard", icon: LayoutDashboard, roles: ADMIN_ROLES },
-        { to: "/admin/budget", label: "Budget Manager", translationKey: "admin.nav.budget", icon: Wallet, roles: EDITOR_ROLES },
-        { to: "/admin/budget?tab=invoices", label: "Invoices & Payments", translationKey: "admin.nav.invoices", icon: Receipt, roles: MANAGER_ROLES },
-        { to: "/admin/budget?tab=payment-requests", label: "Payment Requests", translationKey: "admin.nav.payment_requests", icon: Send, roles: EDITOR_ROLES }
+        { to: "/admin", label: "Dashboard", translationKey: "admin.nav.dashboard", icon: LayoutDashboard, permissionKey: "dashboard" },
+        { to: "/admin/budget", label: "Budget Manager", translationKey: "admin.nav.budget", icon: Wallet, permissionKey: "budget" },
+        { to: "/admin/budget?tab=invoices", label: "Invoices & Payments", translationKey: "admin.nav.invoices", icon: Receipt, permissionKey: "invoices" },
+        { to: "/admin/budget?tab=payment-requests", label: "Payment Requests", translationKey: "admin.nav.payment_requests", icon: Send, permissionKey: "payment_requests" }
       ]
     },
     {
@@ -116,19 +119,19 @@ export function Sidebar({ isMobileOpen = false, onMobileClose }: SidebarProps) {
       title: "Content",
       translationKey: "admin.nav.content",
       items: [
-        { to: "/admin/portfolio", label: "Portfolio", translationKey: "admin.nav.portfolio", icon: ImageIcon },
-        { to: "/admin/property-listings", label: "Property Listings", translationKey: "admin.nav.property_listings", icon: Building2 },
-        { to: "/admin/projects", label: "Projects", translationKey: "admin.nav.projects", icon: FolderKanban },
-        { to: "/admin/services", label: "Services", translationKey: "admin.nav.services", icon: Sparkles },
-        { to: "/admin/visual-ideas", label: "Visual Ideas", translationKey: "admin.nav.visual_ideas", icon: PanelsTopLeft },
-        { to: "/admin/pricing", label: "Pricing & Packages", translationKey: "admin.nav.pricing", icon: Tag },
-        { to: "/admin/info-bar", label: "Announcement Bar", translationKey: "admin.nav.info_bar", icon: Megaphone },
-        { to: "/admin/social-links", label: "Social Popup Tree", translationKey: "admin.nav.social_links", icon: Share2 },
+        { to: "/admin/portfolio", label: "Portfolio", translationKey: "admin.nav.portfolio", icon: ImageIcon, permissionKey: "portfolio" },
+        { to: "/admin/property-listings", label: "Property Listings", translationKey: "admin.nav.property_listings", icon: Building2, permissionKey: "properties" },
+        { to: "/admin/projects", label: "Projects", translationKey: "admin.nav.projects", icon: FolderKanban, permissionKey: "projects" },
+        { to: "/admin/services", label: "Services", translationKey: "admin.nav.services", icon: Sparkles, permissionKey: "services" },
+        { to: "/admin/visual-ideas", label: "Visual Ideas", translationKey: "admin.nav.visual_ideas", icon: PanelsTopLeft, permissionKey: "visual_ideas" },
+        { to: "/admin/pricing", label: "Pricing & Packages", translationKey: "admin.nav.pricing", icon: Tag, permissionKey: "pricing" },
+        { to: "/admin/info-bar", label: "Announcement Bar", translationKey: "admin.nav.info_bar", icon: Megaphone, permissionKey: "announcements" },
+        { to: "/admin/social-links", label: "Social Popup Tree", translationKey: "admin.nav.social_links", icon: Share2, permissionKey: "social_links" },
         { 
           to: "/admin/faqs", 
           label: "FAQs & Help", 
           translationKey: "admin.nav.faqs",
-          icon: HelpCircle,
+          icon: HelpCircle, permissionKey: "faqs",
           subItems: [
             { to: "/admin/faqs", label: "Questions & Answers", translationKey: "admin.nav.faq_questions", icon: HelpCircle },
             { to: "/admin/faqs/categories", label: "FAQ Categories", translationKey: "admin.nav.faq_categories", icon: FolderTree },
@@ -141,13 +144,13 @@ export function Sidebar({ isMobileOpen = false, onMobileClose }: SidebarProps) {
       title: "Users & Clients",
       translationKey: "admin.nav.users_clients",
       items: [
-        { to: "/admin/team", label: "Team & Invites", translationKey: "admin.nav.team_invites", icon: UserPlus, roles: MANAGER_ROLES },
-        { to: "/admin/referrals", label: "VIP Referral Program", translationKey: "admin.nav.referrals", icon: Gift, roles: MANAGER_ROLES },
-        { to: "/admin/leads", label: "Leads Pipeline", translationKey: "admin.nav.leads", icon: Target, roles: EDITOR_ROLES },
-        { to: "/admin/customers", label: "Customers", translationKey: "admin.nav.customers", icon: UserCheck, roles: EDITOR_ROLES },
-        { to: "/admin/clients", label: "Client Portal Users", translationKey: "admin.nav.clients", icon: Users, roles: EDITOR_ROLES },
-        { to: "/admin/contacts", label: "Submissions", translationKey: "admin.nav.submissions", icon: MessageSquare, roles: ADMIN_ROLES },
-        { to: "/admin/marketing-emails", label: "Marketing Emails", translationKey: "admin.nav.marketing_emails", icon: Mail, roles: EDITOR_ROLES },
+        { to: "/admin/team", label: "Team & Invites", translationKey: "admin.nav.team_invites", icon: UserPlus, permissionKey: "team" },
+        { to: "/admin/referrals", label: "VIP Referral Program", translationKey: "admin.nav.referrals", icon: Gift, permissionKey: "referrals" },
+        { to: "/admin/leads", label: "Leads Pipeline", translationKey: "admin.nav.leads", icon: Target, permissionKey: "leads" },
+        { to: "/admin/customers", label: "Customers", translationKey: "admin.nav.customers", icon: UserCheck, permissionKey: "customers" },
+        { to: "/admin/clients", label: "Client Portal Users", translationKey: "admin.nav.clients", icon: Users, permissionKey: "clients" },
+        { to: "/admin/contacts", label: "Submissions", translationKey: "admin.nav.submissions", icon: MessageSquare, permissionKey: "submissions" },
+        { to: "/admin/marketing-emails", label: "Marketing Emails", translationKey: "admin.nav.marketing_emails", icon: Mail, permissionKey: "marketing_emails" },
       ]
     },
     {
@@ -155,8 +158,8 @@ export function Sidebar({ isMobileOpen = false, onMobileClose }: SidebarProps) {
       title: "Settings & System",
       translationKey: "admin.nav.settings_system",
       items: [
-        { to: "/admin/themes", label: "Theme & Branding", translationKey: "admin.nav.themes", icon: Palette, roles: MANAGER_ROLES },
-        { to: "/admin/settings", label: "Site Settings", translationKey: "admin.nav.settings", icon: SettingsIcon, roles: MANAGER_ROLES },
+        { to: "/admin/themes", label: "Theme & Branding", translationKey: "admin.nav.themes", icon: Palette, permissionKey: "themes" },
+        { to: "/admin/settings", label: "Site Settings", translationKey: "admin.nav.settings", icon: SettingsIcon, permissionKey: "settings" },
       ]
     }
   ];
@@ -204,6 +207,7 @@ export function Sidebar({ isMobileOpen = false, onMobileClose }: SidebarProps) {
   const filteredSections = navSections.map((section) => ({
     ...section,
     items: section.items.filter((item) => {
+      if (item.permissionKey) return canAccessAdminMenu(currentRole, item.permissionKey, permissions);
       if (!item.roles || item.roles.length === 0) return true;
       return Boolean(currentRole && item.roles.includes(currentRole));
     })

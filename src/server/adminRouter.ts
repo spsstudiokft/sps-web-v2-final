@@ -689,6 +689,23 @@ adminRouter.get("/verify", (req, res) => {
   res.json({ valid: true });
 });
 
+const ROLE_MENU_PERMISSION_KEY = "admin_role_menu_permissions";
+const ROLE_MENU_IDS = new Set(["dashboard", "budget", "invoices", "payment_requests", "portfolio", "properties", "projects", "services", "visual_ideas", "pricing", "announcements", "social_links", "faqs", "team", "referrals", "leads", "customers", "clients", "submissions", "marketing_emails", "themes", "settings"]);
+adminRouter.get("/role-menu-permissions", async (_req, res) => {
+  try { const result = await db.execute({ sql: "SELECT value FROM settings WHERE key = ? LIMIT 1", args: [ROLE_MENU_PERMISSION_KEY] }); res.json({ value: result.rows[0]?.value || null }); }
+  catch { res.status(500).json({ error: "Failed to load role menu permissions" }); }
+});
+adminRouter.put("/role-menu-permissions", async (req: any, res) => {
+  const role = String(req.user?.role || "").toLowerCase().replace(/[_-]/g, "");
+  if (role !== "superadmin") return res.status(403).json({ error: "Only Superadmin can update role menu permissions" });
+  const source = req.body?.permissions;
+  if (!source || typeof source !== "object") return res.status(400).json({ error: "Invalid role menu permissions" });
+  const clean: Record<string, string[]> = {};
+  for (const name of ["admin", "editor", "viewer"]) clean[name] = Array.isArray(source[name]) ? Array.from(new Set(source[name].filter((id: unknown) => typeof id === "string" && ROLE_MENU_IDS.has(id)))) : [];
+  try { await db.execute({ sql: "INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)", args: [ROLE_MENU_PERMISSION_KEY, JSON.stringify(clean)] }); res.json({ success: true, value: clean }); }
+  catch { res.status(500).json({ error: "Failed to save role menu permissions" }); }
+});
+
 // Get settings
 adminRouter.get("/settings", async (req, res) => {
   try {
