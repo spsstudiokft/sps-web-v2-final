@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { BudgetAdminItem } from "../../../types";
 import { cn } from "../../../lib/utils";
+import { formatConfiguredCurrency } from "../../../lib/currency";
 
 interface SuperadminConsolidatedBannerProps {
   admins: BudgetAdminItem[];
@@ -23,13 +24,7 @@ export function SuperadminConsolidatedBanner({
   onSelectAdmin,
   currency = "USD"
 }: SuperadminConsolidatedBannerProps) {
-  const formatMoney = (amount: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: currency,
-      maximumFractionDigits: 0
-    }).format(amount);
-  };
+  const formatMoney = (amount: number) => formatConfiguredCurrency(amount, currency, { maximumFractionDigits: 0 });
 
   const totalStudioIncome = admins.reduce((acc, a) => acc + a.totalIncome, 0);
   const totalStudioOutcome = admins.reduce((acc, a) => acc + a.totalOutcome, 0);

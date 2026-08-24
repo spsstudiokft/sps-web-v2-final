@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { Invoice, InvoiceItem, BudgetEntry } from "../../../types";
 import { Button } from "../../ui/Button";
+import { formatConfiguredCurrency } from "../../../lib/currency";
 
 interface InvoiceFormModalProps {
   isOpen: boolean;
@@ -302,14 +303,7 @@ export function InvoiceFormModal({
   const taxAmount = (subtotal * Number(taxRate || 0)) / 100;
   const totalAmount = Math.max(0, subtotal + taxAmount - Number(discountAmount || 0));
 
-  const formatMoney = (val: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: selectedCurrency || "USD",
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }).format(val || 0);
-  };
+  const formatMoney = (val: number) => formatConfiguredCurrency(val, selectedCurrency || "USD", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

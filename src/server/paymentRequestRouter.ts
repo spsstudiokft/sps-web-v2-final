@@ -40,6 +40,7 @@ async function ensurePaymentRequestsTable() {
         link_type TEXT DEFAULT 'none',
         linked_budget_entry_id TEXT DEFAULT NULL,
         linked_invoice_id TEXT DEFAULT NULL,
+        project_id TEXT DEFAULT NULL,
         due_date TEXT DEFAULT '',
         payment_method TEXT DEFAULT 'bank_transfer',
         beneficiary_name TEXT DEFAULT '',
@@ -518,6 +519,47 @@ async function paymentRequestCategoryExists(id: string): Promise<boolean> {
     args: [id]
   });
   return result.rows.length > 0;
+}
+
+/**
+ * Keep the optional payment-request links within one business chain.  Database
+ * constraints are intentionally not used for these legacy-compatible columns,
+ * so validation must happen on every create and update.
+ */
+async function validatePaymentRequestBusinessLinks(projectId: unknown, invoiceId: unknown, budgetEntryId: unknown): Promise<string | null> {
+  const cleanProjectId = String(projectId || "").trim();
+  const cleanInvoiceId = String(invoiceId || "").trim();
+  const cleanBudgetEntryId = String(budgetEntryId || "").trim();
+  let project: any = null;
+
+  if (cleanProjectId) {
+    const result = await db.execute({ sql: "SELECT id, client_id FROM projects WHERE id = ?", args: [cleanProjectId] });
+    project = result.rows[0] as any;
+    if (!project) return "The selected project does not exist";
+  }
+
+  if (cleanInvoiceId) {
+    const result = await db.execute({ sql: "SELECT id, client_id, project_id FROM invoices WHERE id = ?", args: [cleanInvoiceId] });
+    const invoice = result.rows[0] as any;
+    if (!invoice) return "The selected invoice does not exist";
+    if (project?.client_id && invoice.client_id && String(project.client_id) !== String(invoice.client_id)) {
+      return "The selected invoice belongs to a different client than the project";
+    }
+    if (project && invoice.project_id && String(project.id) !== String(invoice.project_id)) {
+      return "The selected invoice is already linked to a different project";
+    }
+  }
+
+  if (cleanBudgetEntryId) {
+    const result = await db.execute({ sql: "SELECT id, project_id FROM budget_entries WHERE id = ?", args: [cleanBudgetEntryId] });
+    const budgetEntry = result.rows[0] as any;
+    if (!budgetEntry) return "The selected budget entry does not exist";
+    if (project && budgetEntry.project_id && String(project.id) !== String(budgetEntry.project_id)) {
+      return "The selected budget entry is already linked to a different project";
+    }
+  }
+
+  return null;
 }
 
 async function requireSuperAdmin(req: any, res: any) {
@@ -1095,10 +1137,8 @@ paymentRequestRouter.post("/", async (req: any, res) => {
     if (!await paymentRequestCategoryExists(String(category).trim())) {
       return res.status(400).json({ error: "Selected payment request category does not exist" });
     }
-    if (project_id) {
-      const project = await db.execute({ sql: "SELECT id FROM projects WHERE id = ?", args: [project_id] });
-      if (!project.rows.length) return res.status(400).json({ error: "The selected project does not exist" });
-    }
+    const linkValidationError = await validatePaymentRequestBusinessLinks(project_id, linked_invoice_id, linked_budget_entry_id);
+    if (linkValidationError) return res.status(400).json({ error: linkValidationError });
 
     const id = crypto.randomUUID();
     const requestNumber = await generateRequestNumber();
@@ -1308,10 +1348,8 @@ paymentRequestRouter.put("/:id", async (req: any, res) => {
     if (!await paymentRequestCategoryExists(String(category).trim())) {
       return res.status(400).json({ error: "Selected payment request category does not exist" });
     }
-    if (project_id) {
-      const project = await db.execute({ sql: "SELECT id FROM projects WHERE id = ?", args: [project_id] });
-      if (!project.rows.length) return res.status(400).json({ error: "The selected project does not exist" });
-    }
+    const linkValidationError = await validatePaymentRequestBusinessLinks(project_id, linked_invoice_id, linked_budget_entry_id);
+    if (linkValidationError) return res.status(400).json({ error: linkValidationError });
 
     let existingHistory = [];
     try {
@@ -1508,8 +1546,8 @@ paymentRequestRouter.post("/:id/review", async (req: any, res) => {
       if (row.linked_budget_entry_id) {
         // Mark existing linked budget entry as confirmed
         await db.execute({
-          sql: "UPDATE budget_entries SET status = 'confirmed', updated_at = CURRENT_TIMESTAMP WHERE id = ?",
-          args: [row.linked_budget_entry_id]
+          sql: "UPDATE budget_entries SET status = 'confirmed', project_id = COALESCE(project_id, ?), updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+          args: [row.project_id || null, row.linked_budget_entry_id]
         });
       } else if (create_budget_outcome) {
         // Create new confirmed outcome budget entry
@@ -1528,9 +1566,10 @@ paymentRequestRouter.post("/:id/review", async (req: any, res) => {
               status,
               description,
               color_code,
+              project_id,
               created_at,
               updated_at
-            ) VALUES (?, ?, 'outcome', ?, ?, ?, ?, 'confirmed', ?, '#EF4444', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            ) VALUES (?, ?, 'outcome', ?, ?, ?, ?, 'confirmed', ?, '#EF4444', ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
           `,
           args: [
             newBudgetId,
@@ -1539,7 +1578,8 @@ paymentRequestRouter.post("/:id/review", async (req: any, res) => {
             row.currency || "USD",
             row.due_date || todayStr,
             row.category || "Payment Request",
-            `Approved [${row.request_number}]: ${row.title}`
+            `Approved [${row.request_number}]: ${row.title}`,
+            row.project_id || null
           ]
         });
         newLinkedBudgetEntryId = newBudgetId;

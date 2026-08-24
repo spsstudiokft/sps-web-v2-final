@@ -13,6 +13,7 @@ import { IncidentStatusWidget } from "./components/common/IncidentStatusWidget";
 import { ErrorPage, RouteErrorBoundary } from "./pages/ErrorPage";
 import { ComingSoonGate } from "./components/public/ComingSoonGate";
 import { BackgroundUploadProvider } from "./contexts/BackgroundUploadContext";
+import { AdminCurrencyProvider } from "./contexts/AdminCurrencyContext";
 
 const AdminLogin = lazy(() => import("./pages/AdminLogin"));
 const AdminSetup = lazy(() => import("./pages/AdminSetup"));
@@ -30,6 +31,8 @@ const ServicesPage = lazy(() => import("./pages/admin/ServicesPage"));
 const PricingPage = lazy(() => import("./pages/admin/PricingPage"));
 const VisualIdeasPage = lazy(() => import("./pages/admin/VisualIdeasPage"));
 const PropertyListingsPage = lazy(() => import("./pages/admin/PropertyListingsPage"));
+const PropertyDetailPage = lazy(() => import("./pages/admin/PropertyDetailPage"));
+const CustomerOverviewPage = lazy(() => import("./pages/admin/CustomerOverviewPage"));
 const SocialLinksPage = lazy(() => import("./pages/admin/SocialLinksPage"));
 const InfoBarPage = lazy(() => import("./pages/admin/InfoBarPage"));
 const FaqsPage = lazy(() => import("./pages/admin/FaqsPage"));
@@ -123,7 +126,7 @@ const ProtectedPropertyRoute = ({ children }: { children: ReactNode }) => {
 
 export default function App() {
   return (
-    <BrowserRouter>
+    <AdminCurrencyProvider><BrowserRouter>
       <ThemeProvider>
         <AuthProvider>
           <LanguageProvider>
@@ -198,6 +201,8 @@ export default function App() {
                 <Route path="pricing" element={<PricingPage />} />
                 <Route path="visual-ideas" element={<VisualIdeasPage />} />
                 <Route path="property-listings" element={<PropertyListingsPage />} />
+                <Route path="properties/:id" element={<PropertyDetailPage />} />
+                <Route path="customers/:id" element={<CustomerOverviewPage />} />
                 <Route path="info-bar" element={<InfoBarPage />} />
                 <Route path="announcements" element={<InfoBarPage />} />
                 <Route path="social-links" element={<SocialLinksPage />} />
@@ -225,6 +230,6 @@ export default function App() {
           </LanguageProvider>
         </AuthProvider>
       </ThemeProvider>
-    </BrowserRouter>
+    </BrowserRouter></AdminCurrencyProvider>
   );
 }

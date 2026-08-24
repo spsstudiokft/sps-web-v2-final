@@ -690,6 +690,27 @@ adminRouter.get("/verify", (req, res) => {
 });
 
 const ROLE_MENU_PERMISSION_KEY = "admin_role_menu_permissions";
+const exchangeRateCache = new Map<string, { expiresAt: number; payload: any }>();
+
+// Latest reference rates are proxied and cached so the admin UI never exposes
+// a third-party dependency directly and does not issue a request per amount.
+adminRouter.get("/exchange-rates", async (req, res) => {
+  const base = String(req.query.base || "EUR").toUpperCase();
+  const quotes = String(req.query.quotes || "HUF,EUR,USD,GBP,CHF").toUpperCase();
+  if (!/^[A-Z]{3}$/.test(base) || !quotes.split(",").every(code => /^[A-Z]{3}$/.test(code.trim()))) return res.status(400).json({ error: "Érvénytelen pénznem." });
+  const key = `${base}:${quotes}`;
+  const cached = exchangeRateCache.get(key);
+  if (cached && cached.expiresAt > Date.now()) return res.json({ ...cached.payload, cached: true });
+  try {
+    const response = await fetch(`https://api.frankfurter.dev/v2/rates?base=${encodeURIComponent(base)}&quotes=${encodeURIComponent(quotes)}`);
+    if (!response.ok) throw new Error(`Frankfurter HTTP ${response.status}`);
+    const rows: any[] = await response.json();
+    const rates = Object.fromEntries(rows.map(row => [row.quote, Number(row.rate)]));
+    const payload = { base, rates: { ...rates, [base]: 1 }, updated_at: rows[0]?.date || null, provider: "Frankfurter" };
+    exchangeRateCache.set(key, { expiresAt: Date.now() + 60 * 60 * 1000, payload });
+    res.json({ ...payload, cached: false });
+  } catch (error) { res.status(503).json({ error: "Az árfolyamforrás átmenetileg nem érhető el." }); }
+});
 const ROLE_MENU_IDS = new Set(["dashboard", "budget", "invoices", "payment_requests", "portfolio", "properties", "projects", "services", "visual_ideas", "pricing", "announcements", "social_links", "faqs", "team", "referrals", "leads", "customers", "clients", "submissions", "marketing_emails", "themes", "settings"]);
 adminRouter.get("/role-menu-permissions", async (_req, res) => {
   try { const result = await db.execute({ sql: "SELECT value FROM settings WHERE key = ? LIMIT 1", args: [ROLE_MENU_PERMISSION_KEY] }); res.json({ value: result.rows[0]?.value || null }); }
@@ -1474,6 +1495,25 @@ function normalizePropertyListingInput(body: any) {
   };
 }
 
+async function resolveListingPropertyId(propertyId: unknown, title: string, location: string): Promise<string> {
+  const requestedId = String(propertyId || "").trim();
+  if (requestedId) {
+    const result = await db.execute({ sql: "SELECT id FROM properties WHERE id = ? AND archived_at IS NULL", args: [requestedId] });
+    if (!result.rows.length) throw new Error("A kiválasztott ingatlan nem létezik vagy archivált.");
+    return requestedId;
+  }
+  const id = crypto.randomUUID();
+  await db.execute({
+    sql: "INSERT INTO properties (id, property_name, address, metadata, created_at, updated_at) VALUES (?, ?, ?, '{\"source\":\"listing\"}', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
+    args: [id, title, location],
+  });
+  return id;
+}
+async function logPropertyActivity(propertyId: string | null | undefined, activityType: string, title: string, details: Record<string, unknown> = {}) {
+  if (!propertyId) return;
+  await db.execute({ sql: "INSERT INTO property_activity (id, property_id, activity_type, title, details) VALUES (?, ?, ?, ?, ?)", args: [crypto.randomUUID(), propertyId, activityType, title, JSON.stringify(details)] });
+}
+
 function collectPropertyListingMediaUrls(images: any[]): string[] {
   const urls = new Set<string>();
   for (const image of images) {
@@ -1487,9 +1527,10 @@ function collectPropertyListingMediaUrls(images: any[]): string[] {
 
 adminRouter.get("/property-listings", async (_req, res) => {
   try {
-    const result = await db.execute(`SELECT pl.*, pla.name AS owner_name, pla.email AS owner_email,
+    const result = await db.execute(`SELECT pl.*, p.archived_at AS property_archived_at, pla.name AS owner_name, pla.email AS owner_email,
       creator.name AS creator_name, creator.email AS creator_email
       FROM property_listings pl
+      LEFT JOIN properties p ON p.id = pl.property_id
       LEFT JOIN property_listing_accounts pla ON pla.id = pl.owner_account_id
       LEFT JOIN users creator ON creator.id = pl.created_by_user_id
       ORDER BY pl.updated_at DESC, pl.created_at DESC`);
@@ -1500,24 +1541,80 @@ adminRouter.get("/property-listings", async (_req, res) => {
   }
 });
 
+// Canonical, independently archivable properties. A property can be associated
+// with zero, one, or many clients through property_clients.
+adminRouter.get("/properties-core", async (_req, res) => {
+  try {
+    const result = await db.execute({ sql: `SELECT p.*, COUNT(DISTINCT pl.id) AS listing_count,
+      COALESCE(json_group_array(DISTINCT pc.client_id), '[]') AS client_ids
+      FROM properties p LEFT JOIN property_listings pl ON pl.property_id = p.id
+      LEFT JOIN property_clients pc ON pc.property_id = p.id
+      GROUP BY p.id ORDER BY p.archived_at IS NOT NULL, p.updated_at DESC`, args: [] });
+    res.json(result.rows.map((row: any) => ({ ...row, listing_count: Number(row.listing_count || 0), client_ids: parsePropertyListingJson(row.client_ids).filter(Boolean) })));
+  } catch (error) { res.status(500).json({ error: "Az ingatlanok betöltése sikertelen." }); }
+});
+
+adminRouter.post("/properties-core", async (req, res) => {
+  try {
+    const propertyName = String(req.body?.property_name || "").trim();
+    const address = String(req.body?.address || "").trim();
+    const clientIds = [...new Set((Array.isArray(req.body?.client_ids) ? req.body.client_ids : []).map(String).map(v => v.trim()).filter(Boolean))];
+    if (propertyName.length < 2 || address.length < 2) return res.status(400).json({ error: "Az ingatlan neve és címe kötelező." });
+    const id = crypto.randomUUID();
+    const statements: any[] = [{ sql: "INSERT INTO properties (id, property_name, address, metadata, created_at, updated_at) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)", args: [id, propertyName, address, JSON.stringify(req.body?.metadata || {})] }];
+    for (const clientId of clientIds) statements.push({ sql: "INSERT INTO property_clients (property_id, client_id, relation_type) VALUES (?, ?, 'owner')", args: [id, clientId] });
+    await db.batch(statements, "write");
+    res.status(201).json({ id, property_name: propertyName, address, client_ids: clientIds, archived_at: null });
+  } catch (error: any) { res.status(500).json({ error: error.message || "Az ingatlan létrehozása sikertelen." }); }
+});
+
+adminRouter.patch("/properties-core/:id/archive", async (req, res) => {
+  try {
+    await db.execute({ sql: "UPDATE properties SET archived_at = CASE WHEN ? THEN CURRENT_TIMESTAMP ELSE NULL END, updated_at = CURRENT_TIMESTAMP WHERE id = ?", args: [req.body?.archived ? 1 : 0, req.params.id] });
+    const result = await db.execute({ sql: "SELECT * FROM properties WHERE id = ?", args: [req.params.id] });
+    if (!result.rows.length) return res.status(404).json({ error: "Az ingatlan nem található." });
+    await logPropertyActivity(req.params.id, req.body?.archived ? "archived" : "restored", req.body?.archived ? "Property archived" : "Property restored");
+    res.json(result.rows[0]);
+  } catch (error) { res.status(500).json({ error: "Az ingatlan archiválása sikertelen." }); }
+});
+
+adminRouter.get("/properties-core/:id/detail", async (req, res) => {
+  try {
+    const id = req.params.id;
+    const [property, clients, projects, listings, invoices, galleries, activity] = await Promise.all([
+      db.execute({ sql: "SELECT * FROM properties WHERE id = ?", args: [id] }),
+      db.execute({ sql: "SELECT u.id, u.name, u.email, pc.relation_type FROM property_clients pc LEFT JOIN users u ON u.id = pc.client_id WHERE pc.property_id = ?", args: [id] }),
+      db.execute({ sql: "SELECT id, name, status, created_at FROM projects WHERE property_id = ? ORDER BY created_at DESC", args: [id] }),
+      db.execute({ sql: "SELECT id, title, listing_status, listing_type, is_enabled, updated_at FROM property_listings WHERE property_id = ? ORDER BY updated_at DESC", args: [id] }),
+      db.execute({ sql: "SELECT id, invoice_number, status, total_amount, currency, created_at FROM invoices WHERE property_id = ? ORDER BY created_at DESC", args: [id] }),
+      db.execute({ sql: "SELECT pi.id, pi.title, pi.media_type FROM portfolio_items pi JOIN project_portfolio_items ppi ON ppi.portfolio_item_id = pi.id JOIN projects p ON p.id = ppi.project_id WHERE p.property_id = ?", args: [id] }),
+      db.execute({ sql: "SELECT * FROM property_activity WHERE property_id = ? ORDER BY created_at DESC", args: [id] })
+    ]);
+    if (!property.rows.length) return res.status(404).json({ error: "Az ingatlan nem található." });
+    res.json({ property: property.rows[0], clients: clients.rows, projects: projects.rows, listings: listings.rows, invoices: invoices.rows, galleries: galleries.rows, activity: activity.rows });
+  } catch (error: any) { res.status(500).json({ error: error.message || "Az ingatlan adatlapja nem tölthető be." }); }
+});
+
 adminRouter.post("/property-listings", async (req, res) => {
   try {
     const item = normalizePropertyListingInput(req.body);
     const id = crypto.randomUUID();
+    const propertyId = await resolveListingPropertyId(req.body?.property_id, item.title, item.location);
     const creator = (req as any).user || {};
     await db.execute({
-      sql: `INSERT INTO property_listings (id, title, location, price_huf, price_text, floor_area_sqm, rooms, bathrooms, description,
+      sql: `INSERT INTO property_listings (id, property_id, title, location, price_huf, price_text, floor_area_sqm, rooms, bathrooms, description,
             listing_status, listing_type, construction_year, floor_count, central_heating, garden_access, floor_plan_available,
             balcony, full_comfort, air_conditioned, new_construction, orientation, view_type, bathroom_toilet, heating_types, image_urls, is_enabled,
             created_by_user_id, created_by_role)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      args: [id, item.title, item.location, item.price_huf, item.price_text, item.floor_area_sqm, item.rooms, item.bathrooms, item.description,
+      args: [id, propertyId, item.title, item.location, item.price_huf, item.price_text, item.floor_area_sqm, item.rooms, item.bathrooms, item.description,
         item.listing_status, item.listing_type, item.construction_year, item.floor_count, item.central_heating, item.garden_access,
         item.floor_plan_available, item.balcony, item.full_comfort, item.air_conditioned, item.new_construction, item.orientation,
         item.view_type, item.bathroom_toilet, JSON.stringify(item.heating_types), JSON.stringify(item.image_urls), item.is_enabled,
         String(creator.id || "") || null, "admin"],
     });
     const created = await db.execute({ sql: "SELECT * FROM property_listings WHERE id = ?", args: [id] });
+    await logPropertyActivity(propertyId, "listing_created", "Listing linked", { listing_id: id, title: item.title });
     res.status(201).json(normalizePropertyListing(created.rows[0]));
   } catch (error: any) {
     console.error("Failed to create property listing", error);
@@ -1527,24 +1624,26 @@ adminRouter.post("/property-listings", async (req, res) => {
 
 adminRouter.put("/property-listings/:id", async (req, res) => {
   try {
-    const current = await db.execute({ sql: "SELECT image_urls FROM property_listings WHERE id = ?", args: [req.params.id] });
+    const current = await db.execute({ sql: "SELECT image_urls, property_id FROM property_listings WHERE id = ?", args: [req.params.id] });
     if (current.rows.length === 0) return res.status(404).json({ error: "Az ingatlanhirdetés nem található." });
     const item = normalizePropertyListingInput(req.body);
+    const propertyId = await resolveListingPropertyId(req.body?.property_id || current.rows[0].property_id, item.title, item.location);
     const previousUrls = collectPropertyListingMediaUrls(parsePropertyListingJson(current.rows[0].image_urls));
     const nextUrlSet = new Set(collectPropertyListingMediaUrls(item.image_urls));
     const removedUrls = previousUrls.filter(url => !nextUrlSet.has(url));
     if (removedUrls.length > 0) await deletePortfolioMediaUrls(removedUrls);
     await db.execute({
-      sql: `UPDATE property_listings SET title=?, location=?, price_huf=?, price_text=?, floor_area_sqm=?, rooms=?, bathrooms=?, description=?,
+      sql: `UPDATE property_listings SET property_id=?, title=?, location=?, price_huf=?, price_text=?, floor_area_sqm=?, rooms=?, bathrooms=?, description=?,
             listing_status=?, listing_type=?, construction_year=?, floor_count=?, central_heating=?, garden_access=?, floor_plan_available=?,
             balcony=?, full_comfort=?, air_conditioned=?, new_construction=?, orientation=?, view_type=?, bathroom_toilet=?, heating_types=?,
             image_urls=?, is_enabled=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`,
-      args: [item.title, item.location, item.price_huf, item.price_text, item.floor_area_sqm, item.rooms, item.bathrooms, item.description,
+      args: [propertyId, item.title, item.location, item.price_huf, item.price_text, item.floor_area_sqm, item.rooms, item.bathrooms, item.description,
         item.listing_status, item.listing_type, item.construction_year, item.floor_count, item.central_heating, item.garden_access,
         item.floor_plan_available, item.balcony, item.full_comfort, item.air_conditioned, item.new_construction, item.orientation,
         item.view_type, item.bathroom_toilet, JSON.stringify(item.heating_types), JSON.stringify(item.image_urls), item.is_enabled, req.params.id],
     });
     const updated = await db.execute({ sql: "SELECT * FROM property_listings WHERE id = ?", args: [req.params.id] });
+    await logPropertyActivity(propertyId, "listing_updated", "Listing updated", { listing_id: req.params.id, title: item.title });
     res.json(normalizePropertyListing(updated.rows[0]));
   } catch (error: any) {
     console.error("Failed to update property listing", error);
@@ -1554,11 +1653,12 @@ adminRouter.put("/property-listings/:id", async (req, res) => {
 
 adminRouter.delete("/property-listings/:id", async (req, res) => {
   try {
-    const current = await db.execute({ sql: "SELECT image_urls FROM property_listings WHERE id = ?", args: [req.params.id] });
+    const current = await db.execute({ sql: "SELECT image_urls, property_id, title FROM property_listings WHERE id = ?", args: [req.params.id] });
     if (current.rows.length === 0) return res.status(404).json({ error: "Az ingatlanhirdetés nem található." });
     const urls = collectPropertyListingMediaUrls(parsePropertyListingJson(current.rows[0].image_urls));
     if (urls.length > 0) await deletePortfolioMediaUrls(urls);
     await db.execute({ sql: "DELETE FROM property_listings WHERE id = ?", args: [req.params.id] });
+    await logPropertyActivity(current.rows[0].property_id as string, "listing_deleted", "Listing deleted", { listing_id: req.params.id, title: current.rows[0].title });
     res.json({ success: true });
   } catch (error: any) {
     console.error("Failed to delete property listing", error);
@@ -1568,9 +1668,11 @@ adminRouter.delete("/property-listings/:id", async (req, res) => {
 
 adminRouter.patch("/property-listings/:id/visibility", async (req, res) => {
   try {
+    const before = await db.execute({ sql: "SELECT property_id, title FROM property_listings WHERE id = ?", args: [req.params.id] });
     await db.execute({ sql: "UPDATE property_listings SET is_enabled = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", args: [req.body?.is_enabled ? 1 : 0, req.params.id] });
     const updated = await db.execute({ sql: "SELECT * FROM property_listings WHERE id = ?", args: [req.params.id] });
     if (updated.rows.length === 0) return res.status(404).json({ error: "Az ingatlanhirdetés nem található." });
+    await logPropertyActivity(before.rows[0]?.property_id as string, req.body?.is_enabled ? "listing_enabled" : "listing_disabled", req.body?.is_enabled ? "Listing enabled" : "Listing disabled", { listing_id: req.params.id, title: before.rows[0]?.title });
     res.json(normalizePropertyListing(updated.rows[0]));
   } catch (error) {
     console.error("Failed to update property visibility", error);
@@ -3837,21 +3939,35 @@ adminRouter.get("/projects", async (req, res) => {
 
 adminRouter.post("/projects", async (req, res) => {
   try {
-    const { name, description, status, client_id, property_id, portfolio_ids, keywords } = req.body;
+    const { name, description, status, client_id, property_id, new_property, portfolio_ids, keywords } = req.body;
     if (!name || name.trim() === "") {
       return res.status(400).json({ error: "Project name is required" });
     }
     
     const id = crypto.randomUUID();
     if (!client_id) return res.status(400).json({ error: "A client is required for every project" });
-    if (property_id) {
-      const property = await db.execute({ sql: "SELECT id FROM client_properties WHERE id = ? AND client_id = ?", args: [property_id, client_id] });
+    let resolvedPropertyId = property_id || null;
+    if (!resolvedPropertyId && new_property?.address) {
+      const address = String(new_property.address).trim();
+      const existing = await db.execute({ sql: "SELECT id FROM properties WHERE lower(trim(address)) = lower(?) AND archived_at IS NULL LIMIT 1", args: [address] });
+      if (existing.rows.length) return res.status(409).json({ error: "Már létezik aktív Property ezen a címen. Válaszd ki a meglévő ingatlant." });
+      resolvedPropertyId = crypto.randomUUID();
+      const propertyName = String(new_property.property_name || address).trim();
+      await db.batch([
+        { sql: "INSERT INTO properties (id, property_name, address, city, postal_code, primary_client_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)", args: [resolvedPropertyId, propertyName, address, String(new_property.city || "").trim(), String(new_property.postal_code || "").trim(), client_id] },
+        { sql: "INSERT INTO property_clients (property_id, client_id, relation_type) VALUES (?, ?, 'owner')", args: [resolvedPropertyId, client_id] },
+        { sql: "INSERT INTO client_properties (id, client_id, property_name, address, sort_order, created_at, updated_at) VALUES (?, ?, ?, ?, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)", args: [resolvedPropertyId, client_id, propertyName, address] },
+        { sql: "INSERT INTO property_activity (id, property_id, activity_type, title, details) VALUES (?, ?, 'created_from_project', 'Property created from project', ?)", args: [crypto.randomUUID(), resolvedPropertyId, JSON.stringify({ project_name: name })] }
+      ], "write");
+    }
+    if (resolvedPropertyId) {
+      const property = await db.execute({ sql: "SELECT id FROM client_properties WHERE id = ? AND client_id = ?", args: [resolvedPropertyId, client_id] });
       if (!property.rows.length) return res.status(400).json({ error: "The selected property does not belong to the selected client" });
     }
     await db.execute({
       sql: `INSERT INTO projects (id, name, description, status, client_id, property_id, keywords, created_at, updated_at) 
             VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
-      args: [id, name.trim(), description || "", status || "active", client_id, property_id || null, keywords || ""]
+      args: [id, name.trim(), description || "", status || "active", client_id, resolvedPropertyId, keywords || ""]
     });
     
     if (Array.isArray(portfolio_ids) && portfolio_ids.length > 0) {
@@ -4136,16 +4252,34 @@ adminRouter.get("/business-relations/audit", async (_req, res) => {
       db.execute({ sql: `SELECT p.id, p.name FROM projects p LEFT JOIN client_properties cp ON cp.id = p.property_id WHERE p.property_id IS NOT NULL AND (cp.id IS NULL OR cp.client_id <> p.client_id)`, args: [] }),
       db.execute({ sql: "SELECT i.id, i.invoice_number FROM invoices i LEFT JOIN projects p ON p.id = i.project_id WHERE i.project_id IS NOT NULL AND p.id IS NULL", args: [] }),
       db.execute({ sql: `SELECT i.id, i.invoice_number FROM invoices i JOIN projects p ON p.id = i.project_id WHERE i.project_id IS NOT NULL AND (i.client_id IS NULL OR i.client_id <> p.client_id)`, args: [] }),
+      db.execute({ sql: "SELECT i.id, i.invoice_number FROM invoices i LEFT JOIN client_properties cp ON cp.id = i.property_id WHERE i.property_id IS NOT NULL AND cp.id IS NULL", args: [] }),
+      db.execute({ sql: `SELECT i.id, i.invoice_number FROM invoices i JOIN client_properties cp ON cp.id = i.property_id WHERE i.property_id IS NOT NULL AND (i.client_id IS NULL OR i.client_id <> cp.client_id)`, args: [] }),
+      db.execute({ sql: `SELECT i.id, i.invoice_number FROM invoices i JOIN projects p ON p.id = i.project_id WHERE i.project_id IS NOT NULL AND i.property_id IS NOT NULL AND p.property_id IS NOT NULL AND p.property_id <> i.property_id`, args: [] }),
       db.execute({ sql: "SELECT b.id, b.description FROM budget_entries b LEFT JOIN projects p ON p.id = b.project_id WHERE b.project_id IS NOT NULL AND p.id IS NULL", args: [] }),
       db.execute({ sql: "SELECT pr.id, pr.request_number FROM payment_requests pr LEFT JOIN projects p ON p.id = pr.project_id WHERE pr.project_id IS NOT NULL AND p.id IS NULL", args: [] }),
+      db.execute({ sql: "SELECT pr.id, pr.request_number FROM payment_requests pr LEFT JOIN invoices i ON i.id = pr.linked_invoice_id WHERE pr.linked_invoice_id IS NOT NULL AND i.id IS NULL", args: [] }),
+      db.execute({ sql: `SELECT pr.id, pr.request_number FROM payment_requests pr JOIN projects p ON p.id = pr.project_id JOIN invoices i ON i.id = pr.linked_invoice_id WHERE pr.project_id IS NOT NULL AND pr.linked_invoice_id IS NOT NULL AND ((i.project_id IS NOT NULL AND i.project_id <> p.id) OR (i.client_id IS NOT NULL AND i.client_id <> p.client_id))`, args: [] }),
+      db.execute({ sql: "SELECT pr.id, pr.request_number FROM payment_requests pr LEFT JOIN budget_entries b ON b.id = pr.linked_budget_entry_id WHERE pr.linked_budget_entry_id IS NOT NULL AND b.id IS NULL", args: [] }),
+      db.execute({ sql: `SELECT pr.id, pr.request_number FROM payment_requests pr JOIN budget_entries b ON b.id = pr.linked_budget_entry_id WHERE pr.project_id IS NOT NULL AND b.project_id IS NOT NULL AND b.project_id <> pr.project_id`, args: [] }),
+      db.execute({ sql: "SELECT ppi.project_id, ppi.portfolio_item_id FROM project_portfolio_items ppi LEFT JOIN projects p ON p.id = ppi.project_id WHERE p.id IS NULL", args: [] }),
+      db.execute({ sql: "SELECT ppi.project_id, ppi.portfolio_item_id FROM project_portfolio_items ppi LEFT JOIN portfolio_items pi ON pi.id = ppi.portfolio_item_id WHERE pi.id IS NULL", args: [] }),
     ]);
     const issues = [
       ["project_without_client", "Assign a client before editing the project.", checks[0].rows],
       ["project_property_client_mismatch", "Reassign the property or project client.", checks[1].rows],
       ["invoice_missing_project", "Remove or replace the invalid project reference.", checks[2].rows],
       ["invoice_project_client_mismatch", "Align the invoice client with its project.", checks[3].rows],
-      ["budget_missing_project", "Remove or replace the invalid project reference.", checks[4].rows],
-      ["payment_request_missing_project", "Remove or replace the invalid project reference.", checks[5].rows],
+      ["invoice_missing_property", "Remove or replace the invalid property reference.", checks[4].rows],
+      ["invoice_property_client_mismatch", "Align the invoice client with its property.", checks[5].rows],
+      ["invoice_project_property_mismatch", "Align the invoice property with its project property.", checks[6].rows],
+      ["budget_missing_project", "Remove or replace the invalid project reference.", checks[7].rows],
+      ["payment_request_missing_project", "Remove or replace the invalid project reference.", checks[8].rows],
+      ["payment_request_missing_invoice", "Remove or replace the invalid invoice reference.", checks[9].rows],
+      ["payment_request_invoice_project_mismatch", "Align the payment request, invoice, and project.", checks[10].rows],
+      ["payment_request_missing_budget_entry", "Remove or replace the invalid budget entry reference.", checks[11].rows],
+      ["payment_request_budget_project_mismatch", "Align the payment request and budget-entry project.", checks[12].rows],
+      ["gallery_missing_project", "Remove the gallery link or restore its project.", checks[13].rows],
+      ["gallery_missing_portfolio_item", "Remove the gallery link or restore its portfolio item.", checks[14].rows],
     ].flatMap(([type, remediation, rows]) => (rows as any[]).map((row) => ({ type, remediation, ...row })));
     res.json({ valid: issues.length === 0, issue_count: issues.length, issues });
   } catch (error: any) {
@@ -4260,6 +4394,71 @@ async function logAuditEvent({
   }
 }
 
+// Customer 360 is intentionally read-only: it consolidates existing CRM, portal,
+// project, property and finance records without introducing a second customer ledger.
+adminRouter.get("/crm/customers/:id/overview", async (req, res) => {
+  try {
+    const customerResult = await db.execute({
+      sql: `SELECT c.*, u.id AS portal_user_id, u.is_active AS portal_user_is_active
+            FROM crm_records c LEFT JOIN users u
+              ON LOWER(TRIM(c.email)) = LOWER(TRIM(u.email)) AND u.role = 'client'
+            WHERE c.id = ? AND c.type = 'customer' LIMIT 1`,
+      args: [req.params.id],
+    });
+    if (!customerResult.rows.length) return res.status(404).json({ error: "Ügyfél nem található." });
+    const customer: any = customerResult.rows[0];
+    const userId = String(customer.portal_user_id || customer.id);
+    const customerId = String(customer.id);
+    const email = String(customer.email || "").trim();
+    const projectFilter = "p.client_id IN (?, ?)";
+    const invoiceFilter = "(i.client_id IN (?, ?) OR (i.client_email IS NOT NULL AND lower(trim(i.client_email)) = lower(?)))";
+    const [projectsResult, invoicesResult, paymentRequestsResult, propertiesResult, timelineResults, securityResult] = await Promise.all([
+      db.execute({ sql: `SELECT p.* FROM projects p WHERE ${projectFilter} ORDER BY p.created_at DESC`, args: [userId, customerId] }),
+      db.execute({ sql: `SELECT i.* FROM invoices i WHERE ${invoiceFilter} ORDER BY COALESCE(i.issue_date, i.created_at) DESC`, args: [userId, customerId, email] }),
+      db.execute({ sql: `SELECT pr.* FROM payment_requests pr WHERE pr.project_id IN (SELECT p.id FROM projects p WHERE ${projectFilter}) OR pr.linked_invoice_id IN (SELECT i.id FROM invoices i WHERE ${invoiceFilter}) ORDER BY pr.created_at DESC`, args: [userId, customerId, userId, customerId, email] }),
+      db.execute({ sql: `SELECT DISTINCT p.*, (SELECT COUNT(*) FROM projects pr WHERE pr.property_id = p.id) AS project_count, (SELECT COUNT(*) FROM property_listings pl WHERE pl.property_id = p.id) AS listing_count, (SELECT COUNT(*) FROM project_portfolio_items ppi JOIN projects pr ON pr.id = ppi.project_id WHERE pr.property_id = p.id) AS media_count, (SELECT COALESCE(SUM(i.total_amount), 0) FROM invoices i WHERE i.property_id = p.id) AS billed_total, (SELECT COALESCE(SUM(i.amount_paid), 0) FROM invoices i WHERE i.property_id = p.id) AS paid_total FROM properties p LEFT JOIN property_clients pc ON pc.property_id = p.id WHERE pc.client_id IN (?, ?) OR p.primary_client_id IN (?, ?) ORDER BY p.archived_at IS NOT NULL, p.updated_at DESC`, args: [userId, customerId, userId, customerId] }),
+      Promise.all([
+        db.execute({ sql: `SELECT p.id, p.name, p.created_at AS occurred_at, 'project_created' AS type, 'Projekt létrehozva' AS title FROM projects p WHERE ${projectFilter}`, args: [userId, customerId] }),
+        db.execute({ sql: `SELECT u.id, p.name, u.created_at AS occurred_at, 'project_update' AS type, u.title AS title FROM project_updates u JOIN projects p ON p.id = u.project_id WHERE ${projectFilter}`, args: [userId, customerId] }),
+        db.execute({ sql: `SELECT m.id, p.name, COALESCE(m.completed_at, m.created_at) AS occurred_at, 'milestone' AS type, m.title AS title FROM project_milestones m JOIN projects p ON p.id = m.project_id WHERE ${projectFilter}`, args: [userId, customerId] }),
+        db.execute({ sql: `SELECT i.id, i.invoice_number AS name, i.created_at AS occurred_at, 'invoice' AS type, 'Számla létrehozva' AS title FROM invoices i WHERE ${invoiceFilter}`, args: [userId, customerId, email] }),
+        db.execute({ sql: `SELECT ip.id, i.invoice_number AS name, ip.created_at AS occurred_at, 'payment' AS type, 'Fizetés rögzítve' AS title FROM invoice_payments ip JOIN invoices i ON i.id = ip.invoice_id WHERE ${invoiceFilter}`, args: [userId, customerId, email] }),
+        db.execute({ sql: `SELECT pr.id, pr.request_number AS name, pr.created_at AS occurred_at, 'payment_request' AS type, 'Payment Request létrehozva' AS title FROM payment_requests pr WHERE pr.project_id IN (SELECT p.id FROM projects p WHERE ${projectFilter}) OR pr.linked_invoice_id IN (SELECT i.id FROM invoices i WHERE ${invoiceFilter})`, args: [userId, customerId, userId, customerId, email] }),
+        db.execute({ sql: `SELECT g.project_id AS id, p.name, COALESCE(g.pin_email_sent_at, g.issued_at) AS occurred_at, 'gallery_delivery' AS type, 'Gallery PIN kiküldve' AS title FROM gallery_download_access g JOIN projects p ON p.id = g.project_id WHERE ${projectFilter} AND g.pin_email_sent_at IS NOT NULL`, args: [userId, customerId] }),
+        db.execute({ sql: "SELECT id, subject AS name, created_at AS occurred_at, 'email' AS type, 'E-mail esemény' AS title FROM email_logs WHERE lower(trim(recipient)) = lower(?)", args: [email] }),
+      ]),
+      db.execute({ sql: "SELECT id, action, created_at, details FROM audit_logs WHERE entity_id = ? ORDER BY created_at DESC", args: [customerId] }),
+    ]);
+    const projects: any[] = projectsResult.rows as any[];
+    const invoices: any[] = invoicesResult.rows as any[];
+    const financialCurrency = String(invoices[0]?.currency || "HUF");
+    const totalBilled = invoices.reduce((sum, invoice) => sum + Number(invoice.total_amount || 0), 0);
+    const totalPaid = invoices.reduce((sum, invoice) => sum + Number(invoice.amount_paid || 0), 0);
+    const outstanding = invoices.reduce((sum, invoice) => sum + Math.max(0, Number(invoice.total_amount || 0) - Number(invoice.amount_paid || 0)), 0);
+    const completedStatuses = new Set(["completed", "complete", "closed", "done"]);
+    const paidInvoices = invoices.filter(invoice => String(invoice.status || "").toLowerCase() === "paid" || Number(invoice.amount_paid || 0) >= Number(invoice.total_amount || 0));
+    const dates = invoices.map(invoice => invoice.issue_date || invoice.created_at).filter(Boolean).sort();
+    const timeline = (timelineResults.flatMap((result: any) => result.rows as any[]) as any[]).concat((securityResult.rows as any[]).map((item: any) => ({ ...item, occurred_at: item.created_at, type: "security", title: item.action }))).filter(item => item.occurred_at).sort((a, b) => String(b.occurred_at).localeCompare(String(a.occurred_at)));
+    const paymentDays = paidInvoices.map(invoice => {
+      if (!invoice.paid_at || !invoice.issue_date) return null;
+      return Math.max(0, (new Date(invoice.paid_at).getTime() - new Date(invoice.issue_date).getTime()) / 86400000);
+    }).filter((value): value is number => value !== null);
+    const overdue = invoices.reduce((sum, invoice) => invoice.due_date && new Date(invoice.due_date) < new Date() && Number(invoice.amount_paid || 0) < Number(invoice.total_amount || 0) ? sum + Math.max(0, Number(invoice.total_amount || 0) - Number(invoice.amount_paid || 0)) : sum, 0);
+    res.json({
+      customer,
+      kpis: { total_projects: projects.length, active_projects: projects.filter(project => !completedStatuses.has(String(project.status || "").toLowerCase())).length, completed_projects: projects.filter(project => completedStatuses.has(String(project.status || "").toLowerCase())).length, total_billed: totalBilled, total_paid: totalPaid, outstanding, average_order_value: invoices.length ? totalBilled / invoices.length : 0, lifetime_value: totalPaid, first_order: dates[0] || null, last_order: dates[dates.length - 1] || null, currency: financialCurrency },
+      financial: { invoices, paid_invoices: paidInvoices, open_invoices: invoices.filter(invoice => Number(invoice.amount_paid || 0) < Number(invoice.total_amount || 0)), payment_requests: paymentRequestsResult.rows, total_revenue: totalBilled, average_payment_days: paymentDays.length ? paymentDays.reduce((sum, value) => sum + value, 0) / paymentDays.length : null, overdue, currency: financialCurrency, is_vip: Boolean(customer.is_vip), custom_price_list: customer.custom_price_list || "" },
+      properties: propertiesResult.rows,
+      projects,
+      timeline: timeline.slice(0, 150),
+      last_activity: timeline[0]?.occurred_at || customer.updated_at,
+    });
+  } catch (error: any) {
+    console.error("Failed to load Customer 360 overview", error);
+    res.status(500).json({ error: error.message || "Az ügyfélösszefoglaló betöltése sikertelen." });
+  }
+});
+
 adminRouter.get("/crm/:type", async (req, res) => {
   try {
     const type = req.params.type;
@@ -4333,7 +4532,7 @@ adminRouter.get("/crm/:type", async (req, res) => {
 
 adminRouter.post("/crm", async (req, res) => {
   try {
-    const { type, name, email, phone, source, status, notes, owner_id, property_address, advertisement_link, linked_contact_id, properties, links } = req.body;
+    const { type, name, email, phone, source, status, notes, owner_id, property_address, advertisement_link, is_vip, custom_price_list, linked_contact_id, properties, links } = req.body;
     if (!name || name.trim() === '') {
       return res.status(400).json({ error: "Name is required" });
     }
@@ -4359,10 +4558,10 @@ adminRouter.post("/crm", async (req, res) => {
 
     await db.execute({
       sql: `INSERT INTO crm_records 
-            (id, type, name, email, phone, source, status, notes, owner_id, property_address, advertisement_link, 
+            (id, type, name, email, phone, source, status, notes, owner_id, property_address, advertisement_link, is_vip, custom_price_list,
              portal_access_disabled_at, portal_access_disabled_reason, portal_access_disabled_by,
              created_at, updated_at) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
       args: [
         id,
         type || 'lead',
@@ -4375,6 +4574,8 @@ adminRouter.post("/crm", async (req, res) => {
         owner_id || '',
         primaryAddr,
         primaryLink,
+        is_vip ? 1 : 0,
+        typeof custom_price_list === 'string' ? custom_price_list.trim() : '',
         isInitiallyInactive ? new Date().toISOString() : null,
         isInitiallyInactive ? 'Customer created with inactive status' : '',
         isInitiallyInactive ? (actorUser.email || 'admin') : ''
@@ -4527,7 +4728,7 @@ adminRouter.post("/crm", async (req, res) => {
 
 adminRouter.put("/crm/:id", async (req, res) => {
   try {
-    const { type, name, email, phone, source, status, notes, owner_id, property_address, advertisement_link, re_enable_portal, properties, links } = req.body || {};
+    const { type, name, email, phone, source, status, notes, owner_id, property_address, advertisement_link, is_vip, custom_price_list, re_enable_portal, properties, links } = req.body || {};
     if (advertisement_link !== undefined && advertisement_link !== null && !isValidUrl(advertisement_link)) {
       return res.status(400).json({ error: "Advertisement link must be a valid URL starting with http:// or https://" });
     }
@@ -4594,6 +4795,8 @@ adminRouter.put("/crm/:id", async (req, res) => {
             owner_id = COALESCE(?, owner_id),
             property_address = ?,
             advertisement_link = ?,
+            is_vip = COALESCE(?, is_vip),
+            custom_price_list = COALESCE(?, custom_price_list),
             portal_access_disabled_at = ?,
             portal_access_disabled_reason = ?,
             portal_access_disabled_by = ?,
@@ -4610,6 +4813,8 @@ adminRouter.put("/crm/:id", async (req, res) => {
         owner_id !== undefined ? owner_id : null,
         cleanPropertyAddress,
         cleanAdvertisementLink,
+        is_vip === undefined ? null : (is_vip ? 1 : 0),
+        custom_price_list === undefined ? null : String(custom_price_list).trim(),
         portalDisabledAt,
         portalDisabledReason,
         portalDisabledBy,

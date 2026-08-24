@@ -10,6 +10,26 @@
 - Reconciled legacy single-value client property/listing data into the normalized tables without duplicate inserts, and added a read-only business-relation integrity report.
 - Added project-aware financial editing: invoices can select a client-owned project and property, while budgets and payment requests can select a project.
 - Corrected payment-request creation so its explicit pending status is persisted alongside the selected invoice and project links.
+- Validated payment-request invoice, budget, and project links as a single business chain; approval now preserves the project on its budget outcome.
+- Extended the relation audit to detect invoice-property, payment-request, and gallery-link inconsistencies.
+- Aligned fresh-database table definitions with the migrations, so project and property relationship columns are available from first startup.
+
+### Property Core
+
+- Added independent, archivable Properties with optional many-client ownership and linked every listing to a Property.
+- Preserved legacy property and listing records during the migration; archived Properties now automatically hide their listings from the public catalog.
+- Added Property profile fields and a consolidated detail endpoint; new projects can create a client-linked Property while preventing duplicate active addresses.
+- Added an admin Property detail page and automatic activity records for Property archiving and Listing lifecycle changes.
+- Added archive and restore controls to the Property detail page, with the refreshed activity timeline visible immediately after each action.
+
+### Customer 360
+
+- Added a consolidated customer profile with account metadata, calculated project and financial KPIs, a unified activity timeline, financial summaries, and per-property operational and financial context.
+- Added CRM-managed VIP status and an optional custom price-list label, available in the customer editor and Customer 360 profile.
+
+### Admin currency conversion
+
+- Added a global admin display-currency selector and a cached Frankfurter reference-rate proxy; Customer 360 financial values now convert from their stored currency without changing accounting records.
 
 ### About and cookie glass blur
 

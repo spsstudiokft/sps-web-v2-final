@@ -29,13 +29,26 @@ export function formatConfiguredCurrency(
   options: { minimumFractionDigits?: number; maximumFractionDigits?: number } = {}
 ): string {
   const code = normalizeCurrency(currency);
-  return new Intl.NumberFormat(CURRENCY_LOCALES[code] || "en-US", {
+  // The selected admin currency is presentation-only. Stored amounts and the
+  // original record currency remain untouched for accounting and exports.
+  let displayCode = code;
+  let displayAmount = Number(amount) || 0;
+  if (typeof window !== "undefined") {
+    try {
+      const selected = normalizeCurrency(localStorage.getItem("admin_display_currency") || code);
+      const rates = JSON.parse(localStorage.getItem("admin_exchange_rates_eur") || "{}") as Record<string, number>;
+      const sourceRate = Number(rates[code] || (code === "EUR" ? 1 : 0));
+      const targetRate = Number(rates[selected] || (selected === "EUR" ? 1 : 0));
+      if (sourceRate > 0 && targetRate > 0) { displayAmount = displayAmount / sourceRate * targetRate; displayCode = selected; }
+    } catch {}
+  }
+  return new Intl.NumberFormat(CURRENCY_LOCALES[displayCode] || "en-US", {
     style: "currency",
-    currency: code,
+    currency: displayCode,
     currencyDisplay: "narrowSymbol",
     minimumFractionDigits: options.minimumFractionDigits,
     maximumFractionDigits: options.maximumFractionDigits
-  }).format(Number(amount) || 0);
+  }).format(displayAmount);
 }
 
 export function getCurrencySymbol(currency?: string): string {

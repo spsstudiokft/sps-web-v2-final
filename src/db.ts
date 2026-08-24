@@ -139,6 +139,10 @@ export const setupDatabase = async () => {
   try { await client.execute("ALTER TABLE invoices ADD COLUMN property_id TEXT DEFAULT NULL"); } catch {}
   try { await client.execute("ALTER TABLE budget_entries ADD COLUMN project_id TEXT DEFAULT NULL"); } catch {}
   try { await client.execute("ALTER TABLE payment_requests ADD COLUMN project_id TEXT DEFAULT NULL"); } catch {}
+  // Customer 360 fields were introduced after the v8 initialization marker,
+  // so existing local and Turso databases must receive them on every startup.
+  try { await client.execute("ALTER TABLE crm_records ADD COLUMN is_vip INTEGER DEFAULT 0"); } catch {}
+  try { await client.execute("ALTER TABLE crm_records ADD COLUMN custom_price_list TEXT DEFAULT ''"); } catch {}
   try {
     await client.batch([
       "CREATE INDEX IF NOT EXISTS idx_projects_client_property ON projects(client_id, property_id)",
@@ -226,8 +230,45 @@ export const setupDatabase = async () => {
   // remains locked. Keep this table in the lightweight phase so existing
   // production databases receive it without replaying the full initializer.
   await client.execute(`
+    CREATE TABLE IF NOT EXISTS properties (
+      id TEXT PRIMARY KEY,
+      property_name TEXT NOT NULL,
+      address TEXT NOT NULL,
+      metadata TEXT DEFAULT '{}',
+      archived_at DATETIME DEFAULT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS property_clients (
+      property_id TEXT NOT NULL,
+      client_id TEXT NOT NULL,
+      relation_type TEXT DEFAULT 'owner',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (property_id, client_id)
+    )
+  `);
+  await client.execute("CREATE INDEX IF NOT EXISTS idx_properties_archived ON properties(archived_at, updated_at DESC)");
+  await client.execute("CREATE INDEX IF NOT EXISTS idx_property_clients_client ON property_clients(client_id, property_id)");
+  await client.execute(`CREATE TABLE IF NOT EXISTS property_activity (
+    id TEXT PRIMARY KEY, property_id TEXT NOT NULL, activity_type TEXT NOT NULL, title TEXT NOT NULL,
+    details TEXT DEFAULT '{}', created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )`);
+  try { await client.batch([
+    "ALTER TABLE properties ADD COLUMN city TEXT DEFAULT ''", "ALTER TABLE properties ADD COLUMN postal_code TEXT DEFAULT ''",
+    "ALTER TABLE properties ADD COLUMN latitude REAL DEFAULT NULL", "ALTER TABLE properties ADD COLUMN longitude REAL DEFAULT NULL",
+    "ALTER TABLE properties ADD COLUMN property_type TEXT DEFAULT ''", "ALTER TABLE properties ADD COLUMN floor_area_sqm REAL DEFAULT NULL",
+    "ALTER TABLE properties ADD COLUMN rooms REAL DEFAULT NULL", "ALTER TABLE properties ADD COLUMN lot_size_sqm REAL DEFAULT NULL",
+    "ALTER TABLE properties ADD COLUMN construction_year INTEGER DEFAULT NULL", "ALTER TABLE properties ADD COLUMN condition_status TEXT DEFAULT ''",
+    "ALTER TABLE properties ADD COLUMN primary_client_id TEXT DEFAULT NULL", "ALTER TABLE properties ADD COLUMN agency_name TEXT DEFAULT ''",
+    "ALTER TABLE properties ADD COLUMN agent_name TEXT DEFAULT ''"
+  ], "write"); } catch {}
+  await client.execute("CREATE INDEX IF NOT EXISTS idx_property_activity_property ON property_activity(property_id, created_at DESC)");
+  await client.execute(`
     CREATE TABLE IF NOT EXISTS property_listings (
       id TEXT PRIMARY KEY,
+      property_id TEXT DEFAULT NULL,
       title TEXT NOT NULL,
       location TEXT NOT NULL,
       price_huf INTEGER DEFAULT 0,
@@ -276,13 +317,31 @@ export const setupDatabase = async () => {
     const listingSchema = await client.execute("PRAGMA table_info(property_listings)");
     const listingColumns = new Set(listingSchema.rows.map((column: any) => String(column.name)));
     const listingMigrations = [
+      ["property_id", "ALTER TABLE property_listings ADD COLUMN property_id TEXT DEFAULT NULL"],
       ["owner_account_id", "ALTER TABLE property_listings ADD COLUMN owner_account_id TEXT DEFAULT NULL"],
       ["created_by_user_id", "ALTER TABLE property_listings ADD COLUMN created_by_user_id TEXT DEFAULT NULL"],
       ["created_by_role", "ALTER TABLE property_listings ADD COLUMN created_by_role TEXT DEFAULT 'admin'"],
     ].filter(([name]) => !listingColumns.has(name)).map(([, sql]) => sql);
     if (listingMigrations.length) await client.batch(listingMigrations, "write");
   } catch {}
+  // Migrate the prior client-scoped property records without changing their
+  // identifiers, so current project and invoice links remain valid while the
+  // new Property model becomes the canonical source for listings.
+  try {
+    await client.batch([
+      `INSERT OR IGNORE INTO properties (id, property_name, address, metadata, created_at, updated_at)
+       SELECT id, COALESCE(NULLIF(TRIM(property_name), ''), 'Property'), address, metadata, created_at, updated_at FROM client_properties`,
+      `INSERT OR IGNORE INTO property_clients (property_id, client_id, relation_type)
+       SELECT id, client_id, 'owner' FROM client_properties`,
+      `INSERT OR IGNORE INTO properties (id, property_name, address, metadata)
+       SELECT id, title, location, '{"source":"legacy_listing"}' FROM property_listings WHERE property_id IS NULL`,
+      `UPDATE property_listings SET property_id = id WHERE property_id IS NULL`
+    ], "write");
+  } catch (error) {
+    console.warn("[DB Setup] Property Core migration notice:", error);
+  }
   await client.execute("CREATE INDEX IF NOT EXISTS idx_property_listings_owner ON property_listings(owner_account_id, updated_at DESC)");
+  await client.execute("CREATE INDEX IF NOT EXISTS idx_property_listings_property ON property_listings(property_id, updated_at DESC)");
 
   await client.execute(`
     CREATE TABLE IF NOT EXISTS gallery_download_access (
@@ -401,6 +460,7 @@ export const setupDatabase = async () => {
         link_type TEXT DEFAULT 'none',
         linked_budget_entry_id TEXT DEFAULT NULL,
         linked_invoice_id TEXT DEFAULT NULL,
+        project_id TEXT DEFAULT NULL,
         due_date TEXT DEFAULT '',
         payment_method TEXT DEFAULT 'bank_transfer',
         beneficiary_name TEXT DEFAULT '',
@@ -454,6 +514,8 @@ export const setupDatabase = async () => {
         budget_entry_id TEXT DEFAULT NULL,
         owner_admin_id TEXT NOT NULL,
         client_id TEXT DEFAULT NULL,
+        project_id TEXT DEFAULT NULL,
+        property_id TEXT DEFAULT NULL,
         client_name TEXT NOT NULL,
         client_email TEXT NOT NULL,
         client_phone TEXT DEFAULT '',
@@ -625,6 +687,8 @@ export const setupDatabase = async () => {
           portal_access_disabled_at DATETIME DEFAULT NULL,
           portal_access_disabled_reason TEXT DEFAULT '',
           portal_access_disabled_by TEXT DEFAULT '',
+          is_vip INTEGER DEFAULT 0,
+          custom_price_list TEXT DEFAULT '',
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )`,
@@ -941,6 +1005,8 @@ export const setupDatabase = async () => {
       owner_id TEXT,
       property_address TEXT DEFAULT '',
       advertisement_link TEXT DEFAULT '',
+      is_vip INTEGER DEFAULT 0,
+      custom_price_list TEXT DEFAULT '',
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
@@ -956,6 +1022,8 @@ export const setupDatabase = async () => {
   } catch (e) {
     // Column might already exist
   }
+  try { await client.execute("ALTER TABLE crm_records ADD COLUMN is_vip INTEGER DEFAULT 0"); } catch (e) {}
+  try { await client.execute("ALTER TABLE crm_records ADD COLUMN custom_price_list TEXT DEFAULT ''"); } catch (e) {}
 
   // Client Properties table (unlimited properties for clients/leads/customers)
   await client.execute(`
@@ -1638,6 +1706,7 @@ export const setupDatabase = async () => {
       description TEXT,
       status TEXT DEFAULT 'active',
       client_id TEXT,
+      property_id TEXT DEFAULT NULL,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
@@ -3628,6 +3697,7 @@ export const setupDatabase = async () => {
       status TEXT NOT NULL DEFAULT 'planned',
       description TEXT DEFAULT '',
       color_code TEXT DEFAULT '#3B82F6',
+      project_id TEXT DEFAULT NULL,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (owner_admin_id) REFERENCES users(id) ON DELETE CASCADE
@@ -3682,6 +3752,7 @@ export const setupDatabase = async () => {
       link_type TEXT DEFAULT 'none',
       linked_budget_entry_id TEXT DEFAULT NULL,
       linked_invoice_id TEXT DEFAULT NULL,
+      project_id TEXT DEFAULT NULL,
       due_date TEXT DEFAULT '',
       payment_method TEXT DEFAULT 'bank_transfer',
       beneficiary_name TEXT DEFAULT '',

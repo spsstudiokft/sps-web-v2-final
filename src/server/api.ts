@@ -167,6 +167,7 @@ router.get("/public/properties", async (_req, res) => {
                    COALESCE(NULLIF(pla.email, ''), NULLIF(owner.email, ''), NULLIF(creator.email, ''),
                      (SELECT value FROM settings WHERE key = 'contact_email' LIMIT 1)) AS contact_email
             FROM property_listings pl
+            JOIN properties p ON p.id = pl.property_id AND p.archived_at IS NULL
             LEFT JOIN property_listing_accounts pla ON pla.id = pl.owner_account_id
             LEFT JOIN users owner ON owner.id = pla.portal_user_id
             LEFT JOIN users creator ON creator.id = pl.created_by_user_id
@@ -196,6 +197,7 @@ router.get("/public/properties/:id", async (req, res) => {
                    COALESCE(NULLIF(pla.email, ''), NULLIF(owner.email, ''), NULLIF(creator.email, ''),
                      (SELECT value FROM settings WHERE key = 'contact_email' LIMIT 1)) AS contact_email
             FROM property_listings pl
+            JOIN properties p ON p.id = pl.property_id AND p.archived_at IS NULL
             LEFT JOIN property_listing_accounts pla ON pla.id = pl.owner_account_id
             LEFT JOIN users owner ON owner.id = pla.portal_user_id
             LEFT JOIN users creator ON creator.id = pl.created_by_user_id

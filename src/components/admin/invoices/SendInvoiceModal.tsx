@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { Invoice } from "../../../types";
 import { Button } from "../../ui/Button";
+import { formatConfiguredCurrency } from "../../../lib/currency";
 
 interface SendInvoiceModalProps {
   isOpen: boolean;
@@ -36,14 +37,7 @@ export function SendInvoiceModal({
 
   const amountDue = Math.max(0, Number(invoice.total_amount) - Number(invoice.amount_paid));
 
-  const formatMoney = (val: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: invoice.currency || "USD",
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }).format(val || 0);
-  };
+  const formatMoney = (val: number) => formatConfiguredCurrency(val, invoice.currency || "USD", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();

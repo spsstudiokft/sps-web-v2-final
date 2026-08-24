@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { Invoice, InvoiceStatus } from "../../../types";
 import { Button } from "../../ui/Button";
+import { formatConfiguredCurrency } from "../../../lib/currency";
 
 interface InvoiceTableProps {
   invoices: Invoice[];
@@ -89,14 +90,7 @@ export function InvoiceTable({
     }
   };
 
-  const formatMoney = (amount: number, curr: string = currency) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: curr || "USD",
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }).format(amount || 0);
-  };
+  const formatMoney = (amount: number, curr: string = currency) => formatConfiguredCurrency(amount, curr, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   const getStatusBadge = (status: InvoiceStatus) => {
     switch (status) {

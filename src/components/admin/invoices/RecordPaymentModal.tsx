@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { Invoice } from "../../../types";
 import { Button } from "../../ui/Button";
+import { formatConfiguredCurrency } from "../../../lib/currency";
 
 interface RecordPaymentModalProps {
   isOpen: boolean;
@@ -39,14 +40,7 @@ export function RecordPaymentModal({
   const [sendReceipt, setSendReceipt] = useState(true);
   const [loading, setLoading] = useState(false);
 
-  const formatMoney = (val: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: invoice.currency || "USD",
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }).format(val || 0);
-  };
+  const formatMoney = (val: number) => formatConfiguredCurrency(val, invoice.currency || "USD", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

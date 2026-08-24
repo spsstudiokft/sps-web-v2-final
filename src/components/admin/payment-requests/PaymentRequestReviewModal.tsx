@@ -15,6 +15,7 @@ import {
   AlertCircle
 } from "lucide-react";
 import { PaymentRequest } from "../../../types";
+import { formatConfiguredCurrency } from "../../../lib/currency";
 
 interface PaymentRequestReviewModalProps {
   isOpen: boolean;
@@ -43,13 +44,7 @@ export function PaymentRequestReviewModal({
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const formatMoney = (amount: number, curr: string = request.currency || currency) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: curr || "USD",
-      maximumFractionDigits: 2
-    }).format(amount);
-  };
+  const formatMoney = (amount: number, curr: string = request.currency || currency) => formatConfiguredCurrency(amount, curr || "USD", { maximumFractionDigits: 2 });
 
   const formatDate = (dateStr: string) => {
     if (!dateStr) return "–";

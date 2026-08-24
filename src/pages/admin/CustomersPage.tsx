@@ -849,6 +849,7 @@ export default function CustomersPage() {
                         </Button>
                       )}
 
+                      <Link to={`/admin/customers/${customer.id}`} className="inline-flex h-8 items-center rounded-md border border-border px-2 text-xs font-medium text-primary hover:bg-primary/10" title="Customer 360">360</Link>
                       <Button variant="secondary" size="sm" onClick={() => setViewingCustomer(customer)} title={tUi("admin.customers.view_details", currentLanguage)}>
                         <Eye size={16} />
                       </Button>

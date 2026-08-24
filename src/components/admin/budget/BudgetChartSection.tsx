@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { BudgetSummary } from "../../../types";
 import { cn } from "../../../lib/utils";
+import { formatConfiguredCurrency } from "../../../lib/currency";
 
 interface BudgetChartSectionProps {
   summary: BudgetSummary | null;
@@ -50,13 +51,7 @@ export function BudgetChartSection({
 
   if (!summary) return null;
 
-  const formatCurrency = (val: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: currency,
-      maximumFractionDigits: 0
-    }).format(val);
-  };
+  const formatCurrency = (val: number) => formatConfiguredCurrency(val, currency, { maximumFractionDigits: 0 });
 
   // Status pie chart data
   const statusData = [

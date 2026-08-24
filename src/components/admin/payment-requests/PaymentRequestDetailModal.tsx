@@ -18,6 +18,7 @@ import {
   History
 } from "lucide-react";
 import { PaymentRequest } from "../../../types";
+import { formatConfiguredCurrency } from "../../../lib/currency";
 
 interface PaymentRequestDetailModalProps {
   isOpen: boolean;
@@ -47,13 +48,7 @@ export function PaymentRequestDetailModal({
   const isDenied = request.status === "denied";
   const isOnHold = request.status === "on_hold";
 
-  const formatMoney = (amount: number, curr: string = request.currency || currency) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: curr || "USD",
-      maximumFractionDigits: 2
-    }).format(amount);
-  };
+  const formatMoney = (amount: number, curr: string = request.currency || currency) => formatConfiguredCurrency(amount, curr || "USD", { maximumFractionDigits: 2 });
 
   const formatDate = (dateStr: string) => {
     if (!dateStr) return "–";

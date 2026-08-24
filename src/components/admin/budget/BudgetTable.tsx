@@ -21,6 +21,7 @@ import {
 import { BudgetEntry, BudgetStatus } from "../../../types";
 import { Button } from "../../ui/Button";
 import { cn } from "../../../lib/utils";
+import { formatConfiguredCurrency } from "../../../lib/currency";
 
 interface BudgetTableProps {
   entries: BudgetEntry[];
@@ -49,14 +50,7 @@ export function BudgetTable({
 }: BudgetTableProps) {
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
 
-  const formatMoney = (amount: number, curr: string = currency) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: curr,
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }).format(amount);
-  };
+  const formatMoney = (amount: number, curr: string = currency) => formatConfiguredCurrency(amount, curr, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   const getStatusBadge = (status: BudgetStatus) => {
     switch (status) {

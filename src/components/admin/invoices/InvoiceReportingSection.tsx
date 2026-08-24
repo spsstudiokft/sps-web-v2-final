@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { InvoiceSummary, Invoice } from "../../../types";
 import { Button } from "../../ui/Button";
+import { formatConfiguredCurrency } from "../../../lib/currency";
 
 interface InvoiceReportingSectionProps {
   summary: InvoiceSummary | null;
@@ -25,14 +26,7 @@ export function InvoiceReportingSection({
   invoices,
   currency = "USD"
 }: InvoiceReportingSectionProps) {
-  const formatMoney = (amount: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: currency || "USD",
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }).format(amount || 0);
-  };
+  const formatMoney = (amount: number) => formatConfiguredCurrency(amount, currency || "USD", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   const handleExportCSV = () => {
     if (!invoices || invoices.length === 0) return;

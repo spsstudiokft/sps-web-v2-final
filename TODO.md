@@ -25,4 +25,18 @@ Target: reduce the current approximately two-minute Vercel deployment while pres
 - [x] Kapcsolatellenőrzés számla-, költség- és Payment Request-mentéskor.
 - [x] Projekt- és ingatlanválasztás a pénzügyi szerkesztőkben: számla, költség és Payment Request.
 - [x] Helyi end-to-end ellenőrzés: ügyfél → ingatlan → projekt → galéria → költség → számla → Payment Request lánc, projekt- és számlakapcsolattal.
+- [x] Payment Request–számla–projekt és Payment Request–költség kapcsolat konzisztencia-ellenőrzése, jóváhagyáskori projektörökléssel.
+- [x] Kapcsolati audit kibővítése számla–ingatlan, Payment Request–számla/költség és galéria árva kapcsolatokra.
+- [x] Új, üres adatbázis sémája is tartalmazza a konszolidált projekt- és ingatlankapcsolatokat.
 - [ ] A régi mezők UI-ból való teljes kivezetése, az adatok kézi ellenőrzése után.
+
+## 1. Property Core – az ingatlan legyen önálló központi objektum
+
+- [x] Önálló `Property` modell és több ügyfélhez rendelhető `property_clients` kapcsolat.
+- [x] Egy Property-hez több Listing kapcsolható; a régi hirdetések automatikusan saját Property-t kaptak.
+- [x] Property archiválási API és Listing külön láthatóság-/aktiváláskapcsoló.
+- [x] Archivált Property hirdetése nem jelenik meg publikus oldalon, de a Property és a korábbi Listing rekordok megmaradnak.
+- [ ] Property- és Listing-specifikus mezők teljes fizikai szétbontása a régi hirdetési adatok kézi ellenőrzése után.
+- [x] Property adatlap backend: alapadat-mezők, kapcsolati listák és activity timeline tárolás.
+- [x] Projektből új Property létrehozása cím-alapú duplikációvédelemmel és kompatibilis ügyfélkapcsolattal.
+- [x] Önálló admin Property adatlap kapcsolati listákkal és automatikus Property activity timeline eseményekkel.

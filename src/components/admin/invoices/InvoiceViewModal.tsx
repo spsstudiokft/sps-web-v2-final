@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { Invoice, InvoiceStatus } from "../../../types";
 import { Button } from "../../ui/Button";
+import { formatConfiguredCurrency } from "../../../lib/currency";
 
 interface InvoiceViewModalProps {
   isOpen: boolean;
@@ -53,14 +54,7 @@ export function InvoiceViewModal({
     }
   };
 
-  const formatMoney = (amount: number, curr: string = invoice.currency) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: curr || "USD",
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }).format(amount || 0);
-  };
+  const formatMoney = (amount: number, curr: string = invoice.currency) => formatConfiguredCurrency(amount, curr || "USD", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   const handlePrint = () => {
     window.print();

@@ -20,7 +20,7 @@ const booleanFields = [
 
 type ListingDraft = Omit<PropertyListing, "id" | "created_at" | "updated_at">;
 const emptyDraft = (): ListingDraft => ({
-  title: "", location: "", price_huf: 0, price_text: "", floor_area_sqm: 0, rooms: 0, bathrooms: 0,
+  property_id: null, title: "", location: "", price_huf: 0, price_text: "", floor_area_sqm: 0, rooms: 0, bathrooms: 0,
   description: "", listing_status: "active", listing_type: "sale", construction_year: null, floor_count: null,
   central_heating: 0, garden_access: 0, floor_plan_available: 0, balcony: 0, full_comfort: 0,
   air_conditioned: 0, new_construction: 0, orientation: "", view_type: "", bathroom_toilet: "",
@@ -122,8 +122,13 @@ export function PropertyListingModal({ initial, onClose, onSaved, apiBase = "/ap
   const { fetchApi: contextFetchApi } = useApi(); const { token: contextToken } = useAuth();
   const fetchApi = fetcher || contextFetchApi; const token = authToken || contextToken;
   const [draft, setDraft] = useState<ListingDraft>(() => initial ? { ...initial, heating_types: [...initial.heating_types], image_urls: [...initial.image_urls] } : emptyDraft());
+  const [properties, setProperties] = useState<Array<{ id: string; property_name: string; address: string; archived_at?: string | null }>>([]);
   const [files, setFiles] = useState<File[]>([]); const [saving, setSaving] = useState(false); const [progress, setProgress] = useState(0); const [error, setError] = useState("");
   const patch = <K extends keyof ListingDraft>(key: K, value: ListingDraft[K]) => setDraft(current => ({ ...current, [key]: value }));
+  useEffect(() => {
+    if (apiBase !== "/api/admin/property-listings") return;
+    fetchApi("/api/admin/properties-core").then(response => response.ok ? response.json() : []).then(data => setProperties(Array.isArray(data) ? data.filter(item => !item.archived_at) : [])).catch(() => {});
+  }, [apiBase]);
   const submit = async (event: FormEvent) => {
     event.preventDefault(); setSaving(true); setError("");
     try {
@@ -142,6 +147,7 @@ export function PropertyListingModal({ initial, onClose, onSaved, apiBase = "/ap
       <form onSubmit={submit} className="flex min-h-0 flex-1 flex-col"><div className="flex-1 space-y-8 overflow-y-auto p-5 sm:p-6">
         {error && <div className="rounded-xl border border-red-500/25 bg-red-500/10 px-4 py-3 text-sm text-red-600 dark:text-red-400">{error}</div>}
         <FormSection title="Alapadatok" icon={<Home className="h-5 w-5" />}><div className="grid gap-4 sm:grid-cols-2">
+          {apiBase === "/api/admin/property-listings" && <Field label="Központi ingatlan" className="sm:col-span-2"><select value={draft.property_id || ""} onChange={e => patch("property_id", e.target.value || null)} className="block w-full rounded-lg border border-border bg-surface px-4 py-2 text-sm text-text outline-none focus:border-primary"><option value="">Új önálló ingatlan létrehozása a cím és helyszín alapján</option>{properties.map(property => <option key={property.id} value={property.id}>{property.property_name} — {property.address}</option>)}</select><p className="mt-1 text-xs text-muted-text">Egy ingatlanhoz több, külön aktiválható hirdetés kapcsolható.</p></Field>}
           <Field label="Cím *" className="sm:col-span-2"><Input required value={draft.title} onChange={e => patch("title", e.target.value)} maxLength={180} /></Field>
           <Field label="Helyszín *" className="sm:col-span-2"><Input required value={draft.location} onChange={e => patch("location", e.target.value)} maxLength={220} /></Field>
           <NumberField label="Ár (Ft)" value={draft.price_huf} onChange={value => patch("price_huf", value)} step="1" />

@@ -6,6 +6,7 @@ import { useLanguage } from "../../contexts/LanguageContext";
 import { cn } from "../../lib/utils";
 import { ADMIN_ROLES, EDITOR_ROLES, MANAGER_ROLES, canAccessAdminMenu, normalizeAdminRole } from "../../lib/adminPermissions";
 import { useAdminMenuPermissions } from "../../hooks/useAdminMenuPermissions";
+import { useAdminCurrency } from "../../contexts/AdminCurrencyContext";
 import { 
   LayoutDashboard, 
   Image as ImageIcon, 
@@ -82,6 +83,7 @@ export function Sidebar({ isMobileOpen = false, onMobileClose }: SidebarProps) {
   const { mode, setMode } = useTheme();
   const { currentLang, setLang, supportedLangs, tUi } = useLanguage();
   const { permissions } = useAdminMenuPermissions();
+  const { currency, setCurrency, updatedAt } = useAdminCurrency();
 
   // Desktop sidebar collapsed (icon-only) state
   const [isCollapsed, setIsCollapsed] = useState<boolean>(() => {
@@ -506,6 +508,8 @@ export function Sidebar({ isMobileOpen = false, onMobileClose }: SidebarProps) {
             </select>
           </div>
         )}
+
+        {!isCollapsed && <div className="rounded-xl border border-border bg-surface p-2"><label className="block text-[10px] font-bold uppercase tracking-wider text-muted-text">Megjelenítési pénznem</label><select aria-label="Admin megjelenítési pénznem" value={currency} onChange={(e) => setCurrency(e.target.value)} className="mt-1 w-full rounded-lg border border-border bg-background px-2 py-1.5 text-sm text-text"><option value="HUF">HUF (Ft)</option><option value="EUR">EUR (€)</option><option value="USD">USD ($)</option><option value="GBP">GBP (£)</option><option value="CHF">CHF (Fr)</option></select><p className="mt-1 text-[10px] text-muted-text">Referenciaárfolyam: {updatedAt || "betöltés…"}</p></div>}
 
         {/* Theme Mode Toggle Button */}
         <button

@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { BudgetEntry, BudgetStatus } from "../../../types";
 import { cn } from "../../../lib/utils";
+import { formatConfiguredCurrency } from "../../../lib/currency";
 
 interface BudgetKanbanViewProps {
   entries: BudgetEntry[];
@@ -36,14 +37,7 @@ export function BudgetKanbanView({
   onOpenNewModal,
   currency = "USD"
 }: BudgetKanbanViewProps) {
-  const formatMoney = (amount: number, curr: string = currency) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: curr,
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 2
-    }).format(amount);
-  };
+  const formatMoney = (amount: number, curr: string = currency) => formatConfiguredCurrency(amount, curr, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 
   const columns: {
     id: BudgetStatus;

@@ -19,6 +19,7 @@ import {
   Send
 } from "lucide-react";
 import { PaymentRequest, PaymentRequestStatus } from "../../../types";
+import { formatConfiguredCurrency } from "../../../lib/currency";
 
 interface PaymentRequestsTableProps {
   requests: PaymentRequest[];
@@ -47,13 +48,7 @@ export function PaymentRequestsTable({
 }: PaymentRequestsTableProps) {
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
 
-  const formatMoney = (amount: number, curr: string = currency) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: curr || "USD",
-      maximumFractionDigits: 2
-    }).format(amount);
-  };
+  const formatMoney = (amount: number, curr: string = currency) => formatConfiguredCurrency(amount, curr, { maximumFractionDigits: 2 });
 
   const formatDate = (dateStr: string) => {
     if (!dateStr) return "–";

@@ -422,6 +422,8 @@ export interface CRMRecord {
   owner_id: string;
   property_address?: string | null;
   advertisement_link?: string | null;
+  is_vip?: number | boolean;
+  custom_price_list?: string | null;
   properties_count?: number;
   links_count?: number;
   properties?: ClientProperty[];
@@ -477,6 +479,8 @@ export interface PropertyListingImage {
 
 export interface PropertyListing {
   id: string;
+  property_id?: string | null;
+  property_archived_at?: string | null;
   title: string;
   location: string;
   price_huf: number;

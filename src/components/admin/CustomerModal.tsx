@@ -44,6 +44,8 @@ export function CustomerModal({
     status: 'active',
     property_address: '',
     advertisement_link: '',
+    is_vip: false,
+    custom_price_list: '',
     notes: '',
     source: '',
     owner_id: ''
@@ -136,6 +138,8 @@ export function CustomerModal({
         phone: initial.phone || '',
         property_address: initial.property_address || '',
         advertisement_link: initial.advertisement_link || '',
+        is_vip: Boolean(initial.is_vip),
+        custom_price_list: initial.custom_price_list || '',
         status: initial.status || 'active',
         source: initial.source || (linkedContactId ? 'Website Contact Form' : ''),
         owner_id: initial.owner_id || '',
@@ -273,6 +277,8 @@ export function CustomerModal({
         phone: typeof formData.phone === "string" ? (formData.phone.trim() || null) : null,
         property_address: primaryAddress,
         advertisement_link: primaryLink,
+        is_vip: Boolean(formData.is_vip),
+        custom_price_list: typeof formData.custom_price_list === "string" ? formData.custom_price_list.trim() : '',
         properties: cleanProperties,
         links: cleanLinks,
         source: typeof formData.source === "string" ? (formData.source.trim() || null) : null,
@@ -558,6 +564,14 @@ export function CustomerModal({
                   onChange={(e) => setFormData({ ...formData, source: e.target.value })} 
                 />
               </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <label className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 text-sm text-text">
+                <input type="checkbox" checked={Boolean(formData.is_vip)} onChange={(e) => setFormData({ ...formData, is_vip: e.target.checked })} />
+                VIP ügyfél
+              </label>
+              <div className="space-y-1.5"><label className="text-xs font-semibold text-muted-text uppercase tracking-wider block">Egyedi árlista</label><Input value={formData.custom_price_list || ''} onChange={(e) => setFormData({ ...formData, custom_price_list: e.target.value })} placeholder="Pl. Partner 2026" /></div>
             </div>
 
             {/* AUTOMATIC PORTAL DISABLE WARNING / RE-ENABLE OPTION */}
