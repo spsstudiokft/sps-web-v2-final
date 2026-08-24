@@ -1,5 +1,19 @@
 # Modification Log
 
+## 2026-08-24 — Dashboard operational cards
+
+- Added reorderable and toggleable payment-request status, project-status, and recent-project cards to the Admin Dashboard.
+- Added a superadmin-only recent-client-accounts card, backed by the existing protected client-management data.
+
+## 2026-08-24 — Dashboard clock and calendar preferences
+
+- Added persistent 12/24-hour clock formatting and Monday/Sunday week-start options to the Dashboard card manager.
+
+## 2026-08-24 — Personalizable Admin Dashboard
+
+- Added clock, monthly calendar, and persistent personal-notes cards to the Admin Dashboard.
+- Made every dashboard card sortable with drag and drop, aligned to a consistent card size, and added a card manager for toggling individual cards on or off.
+
 ## 2026-08-24 — Facebook icon namespace compatibility
 
 - Normalized legacy `fa-fab-facebook`, `fa-fab-facebook-f`, and `fa-fab-f` style social-icon values to the Facebook brand icon, so existing saved settings render correctly.

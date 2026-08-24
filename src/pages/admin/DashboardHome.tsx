@@ -1,177 +1,84 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { PageHeader } from "../../components/admin/PageHeader";
-import { Card, CardContent } from "../../components/ui/Card";
 import { usePageTitle } from "../../hooks/usePageTitle";
 import { useApi } from "../../hooks/useApi";
 import { useLanguage } from "../../contexts/LanguageContext";
+import { useAuth } from "../../contexts/AuthContext";
 import { Link } from "react-router-dom";
-import { 
-  Sparkles, 
-  Image as ImageIcon, 
-  FolderKanban, 
-  MessageSquare, 
-  Settings, 
-  ArrowRight,
-  HelpCircle,
-  Wallet,
-  Users
-} from "lucide-react";
+import { DndContext, PointerSensor, closestCenter, useSensor, useSensors } from "@dnd-kit/core";
+import { SortableContext, arrayMove, rectSortingStrategy, useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { Sparkles, Image as ImageIcon, FolderKanban, MessageSquare, Settings, ArrowRight, HelpCircle, Wallet, Clock3, CalendarDays, NotebookPen, GripVertical, SlidersHorizontal, RotateCcw, Eye, EyeOff, CreditCard, ListChecks, UserPlus } from "lucide-react";
+
+type CardId = "services" | "projects" | "portfolio" | "contacts" | "budget" | "faqs" | "clock" | "calendar" | "notes" | "settings" | "paymentRequests" | "projectStatus" | "recentProjects" | "recentClients";
+type DashboardPreferences = { order: CardId[]; hidden: CardId[]; note: string; timeFormat: "12" | "24"; weekStartsOn: "monday" | "sunday" };
+const KEY = "sps-admin-dashboard-preferences-v1";
+const DEFAULT_ORDER: CardId[] = ["services", "projects", "projectStatus", "recentProjects", "portfolio", "contacts", "paymentRequests", "budget", "faqs", "clock", "calendar", "notes", "recentClients", "settings"];
+
+function readPreferences(): DashboardPreferences {
+  try {
+    const raw = JSON.parse(localStorage.getItem(KEY) || "{}") as Partial<DashboardPreferences>;
+    const validOrder = Array.isArray(raw.order) ? raw.order.filter((id): id is CardId => DEFAULT_ORDER.includes(id as CardId)) : [];
+    return { order: [...validOrder, ...DEFAULT_ORDER.filter(id => !validOrder.includes(id))], hidden: Array.isArray(raw.hidden) ? raw.hidden.filter((id): id is CardId => DEFAULT_ORDER.includes(id)) : [], note: typeof raw.note === "string" ? raw.note : "", timeFormat: raw.timeFormat === "12" ? "12" : "24", weekStartsOn: raw.weekStartsOn === "sunday" ? "sunday" : "monday" };
+  } catch { return { order: DEFAULT_ORDER, hidden: [], note: "", timeFormat: "24", weekStartsOn: "monday" }; }
+}
+
+function SortableCard({ id, children }: { id: CardId; children: React.ReactNode }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  return <div ref={setNodeRef} style={{ transform: CSS.Transform.toString(transform), transition }} className={`relative min-h-[214px] ${isDragging ? "z-20 opacity-60" : ""}`}>
+    <button type="button" aria-label="Kártya átrendezése" title="Átrendezés" {...attributes} {...listeners} className="absolute right-3 top-3 z-10 inline-flex h-8 w-8 cursor-grab items-center justify-center rounded-lg text-muted-text transition-colors hover:bg-surface/90 hover:text-text active:cursor-grabbing focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"><GripVertical className="h-4 w-4" /></button>
+    {children}
+  </div>;
+}
 
 export default function DashboardHome() {
   const { currentLanguage, tUi } = useLanguage();
+  const { user } = useAuth();
   usePageTitle(tUi("admin.dashboard.title", currentLanguage));
   const { fetchApi } = useApi();
-  const [stats, setStats] = useState({
-    services: 0,
-    faqs: 0,
-    portfolio: 0,
-    projects: 0,
-    contacts: 0,
-    leads: 0,
-    budgetEntries: 0,
-  });
+  const [stats, setStats] = useState({ services: 0, faqs: 0, portfolio: 0, projects: 0, contacts: 0, budgetEntries: 0 });
   const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    Promise.all([
-      fetchApi("/api/admin/services").then(r => r.ok ? r.json() : []).catch(() => []),
-      fetchApi("/api/admin/faqs").then(r => r.ok ? r.json() : []).catch(() => []),
-      fetchApi("/api/admin/portfolio").then(r => r.ok ? r.json() : []).catch(() => []),
-      fetchApi("/api/admin/projects").then(r => r.ok ? r.json() : []).catch(() => []),
-      fetchApi("/api/admin/contacts").then(r => r.ok ? r.json() : []).catch(() => []),
-      fetchApi("/api/admin/crm/leads").then(r => r.ok ? r.json() : []).catch(() => []),
-      fetchApi("/api/admin/budget/entries").then(r => r.ok ? r.json() : []).catch(() => []),
-    ]).then(([services, faqs, portfolio, projects, contacts, leads, budgetEntries]) => {
-      setStats({
-        services: Array.isArray(services) ? services.length : 0,
-        faqs: Array.isArray(faqs) ? faqs.length : 0,
-        portfolio: Array.isArray(portfolio) ? portfolio.length : 0,
-        projects: Array.isArray(projects) ? projects.length : 0,
-        contacts: Array.isArray(contacts) ? contacts.length : 0,
-        leads: Array.isArray(leads) ? leads.length : 0,
-        budgetEntries: Array.isArray(budgetEntries) ? budgetEntries.length : 0,
-      });
-      setLoading(false);
-    }).catch(() => setLoading(false));
-  }, []);
-
-  const cards = [
-    {
-      title: tUi("admin.dashboard.services_title", currentLanguage) || "Services",
-      description: tUi("admin.dashboard.services_desc", currentLanguage) || "Manage studio services and packages",
-      count: stats.services,
-      icon: Sparkles,
-      to: "/admin/services",
-      color: "text-amber-500 bg-amber-500/10 border-amber-500/20",
-    },
-    {
-      title: tUi("admin.dashboard.projects_title", currentLanguage) || "Projects",
-      description: tUi("admin.dashboard.projects_desc", currentLanguage) || "Active shoots and deliverables",
-      count: stats.projects,
-      icon: FolderKanban,
-      to: "/admin/projects",
-      color: "text-indigo-500 bg-indigo-500/10 border-indigo-500/20",
-    },
-    {
-      title: tUi("admin.dashboard.portfolio_title", currentLanguage) || "Portfolio",
-      description: tUi("admin.dashboard.portfolio_desc", currentLanguage) || "Showcased gallery assets",
-      count: stats.portfolio,
-      icon: ImageIcon,
-      to: "/admin/portfolio",
-      color: "text-emerald-500 bg-emerald-500/10 border-emerald-500/20",
-    },
-    {
-      title: tUi("admin.dashboard.submissions_title", currentLanguage) || "Inquiries",
-      description: tUi("admin.dashboard.submissions_desc", currentLanguage) || "Contact and booking inquiries",
-      count: stats.contacts,
-      icon: MessageSquare,
-      to: "/admin/contacts",
-      color: "text-blue-500 bg-blue-500/10 border-blue-500/20",
-    },
-    {
-      title: "Budget & Cashflow",
-      description: "Manage incomes, outcomes, and financial tracking",
-      count: stats.budgetEntries,
-      icon: Wallet,
-      to: "/admin/budget",
-      color: "text-purple-500 bg-purple-500/10 border-purple-500/20",
-    },
-    {
-      title: tUi("admin.dashboard.faqs_title", currentLanguage) || "FAQs",
-      description: tUi("admin.dashboard.faqs_desc", currentLanguage) || "Client questions & answers",
-      count: stats.faqs,
-      icon: HelpCircle,
-      to: "/admin/faqs",
-      color: "text-sky-500 bg-sky-500/10 border-sky-500/20",
-    },
-  ];
-
-  return (
-    <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-8">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <PageHeader
-            title={tUi("admin.dashboard.title", currentLanguage)}
-            description={tUi("admin.dashboard.subtitle", currentLanguage)}
-          />
-        </div>
-        <Link
-          to="/"
-          target="_blank"
-          className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
-        >
-          <span>{tUi("admin.dashboard.open_live_site", currentLanguage)}</span>
-          <ArrowRight className="w-4 h-4" />
-        </Link>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {cards.map((card) => {
-          const Icon = card.icon;
-          return (
-            <Link
-              key={card.to}
-              to={card.to}
-              className="group block p-6 rounded-2xl bg-surface border border-border hover:border-primary/40 hover:shadow-md transition-all duration-200"
-            >
-              <div className="flex items-center justify-between mb-4">
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center border ${card.color}`}>
-                  <Icon className="w-6 h-6" />
-                </div>
-                <span className="text-2xl font-bold text-text">
-                  {loading ? "..." : card.count}
-                </span>
-              </div>
-              <h3 className="text-base font-semibold text-text mb-1 group-hover:text-primary transition-colors">
-                {card.title}
-              </h3>
-              <p className="text-xs text-muted-text leading-relaxed">
-                {card.description}
-              </p>
-            </Link>
-          );
-        })}
-      </div>
-
-      <Card className="border-border">
-        <CardContent className="p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-          <div>
-            <h4 className="text-base font-semibold text-text mb-1">
-              {tUi("admin.dashboard.settings_card_title", currentLanguage)}
-            </h4>
-            <p className="text-sm text-muted-text">
-              {tUi("admin.dashboard.settings_card_desc", currentLanguage)}
-            </p>
-          </div>
-          <Link
-            to="/admin/settings"
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-surface hover:bg-surface/80 border border-border text-sm font-medium text-text transition-colors"
-          >
-            <Settings className="w-4 h-4" />
-            <span>{tUi("admin.dashboard.manage_settings", currentLanguage)}</span>
-          </Link>
-        </CardContent>
-      </Card>
-    </div>
-  );
+  const [preferences, setPreferences] = useState<DashboardPreferences>(readPreferences);
+  const [showCustomizer, setShowCustomizer] = useState(false);
+  const [now, setNow] = useState(() => new Date());
+  const [projects, setProjects] = useState<Array<{ id: string; name: string; status?: string; client_email?: string; created_at?: string }>>([]);
+  const [paymentSummary, setPaymentSummary] = useState({ totalCount: 0, pendingCount: 0, approvedCount: 0, deniedCount: 0, onHoldCount: 0 });
+  const [recentClients, setRecentClients] = useState<Array<{ id: string; name?: string; email: string; created_at?: string }>>([]);
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
+  useEffect(() => { const timer = window.setInterval(() => setNow(new Date()), 1000); return () => window.clearInterval(timer); }, []);
+  useEffect(() => { localStorage.setItem(KEY, JSON.stringify(preferences)); }, [preferences]);
+  const isSuperadmin = String(user?.role || "").toLowerCase().replace(/[_-]/g, "") === "superadmin";
+  useEffect(() => { Promise.all([fetchApi("/api/admin/services").then(r => r.ok ? r.json() : []).catch(() => []), fetchApi("/api/admin/faqs").then(r => r.ok ? r.json() : []).catch(() => []), fetchApi("/api/admin/portfolio").then(r => r.ok ? r.json() : []).catch(() => []), fetchApi("/api/admin/projects").then(r => r.ok ? r.json() : []).catch(() => []), fetchApi("/api/admin/contacts").then(r => r.ok ? r.json() : []).catch(() => []), fetchApi("/api/admin/budget/entries").then(r => r.ok ? r.json() : []).catch(() => []), fetchApi("/api/admin/payment-requests/summary").then(r => r.ok ? r.json() : null).catch(() => null), isSuperadmin ? fetchApi("/api/admin/clients").then(r => r.ok ? r.json() : []).catch(() => []) : Promise.resolve([])]).then(([services, faqs, portfolio, projectRows, contacts, budgetEntries, requestSummary, clientRows]) => { const nextProjects = Array.isArray(projectRows) ? projectRows : []; setProjects(nextProjects); setPaymentSummary(requestSummary && typeof requestSummary === "object" ? { totalCount: Number(requestSummary.totalCount || 0), pendingCount: Number(requestSummary.pendingCount || 0), approvedCount: Number(requestSummary.approvedCount || 0), deniedCount: Number(requestSummary.deniedCount || 0), onHoldCount: Number(requestSummary.onHoldCount || 0) } : { totalCount: 0, pendingCount: 0, approvedCount: 0, deniedCount: 0, onHoldCount: 0 }); setRecentClients(Array.isArray(clientRows) ? clientRows.slice(0, 3) : []); setStats({ services: Array.isArray(services) ? services.length : 0, faqs: Array.isArray(faqs) ? faqs.length : 0, portfolio: Array.isArray(portfolio) ? portfolio.length : 0, projects: nextProjects.length, contacts: Array.isArray(contacts) ? contacts.length : 0, budgetEntries: Array.isArray(budgetEntries) ? budgetEntries.length : 0 }); setLoading(false); }).catch(() => setLoading(false)); }, [fetchApi, isSuperadmin]);
+  const locale = currentLanguage === "hu" ? "hu-HU" : currentLanguage === "de" ? "de-DE" : currentLanguage === "es" ? "es-ES" : currentLanguage === "fr" ? "fr-FR" : "en-US";
+  const calendarDays = useMemo(() => { const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).getDay(); const weekStart = preferences.weekStartsOn === "monday" ? 1 : 0; const start = (firstDay - weekStart + 7) % 7; const days = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate(); return Array.from({ length: start + days }, (_, index) => index < start ? null : index - start + 1); }, [now, preferences.weekStartsOn]);
+  const weekdayLabels = preferences.weekStartsOn === "monday" ? ["H", "K", "Sze", "Cs", "P", "Szo", "V"] : ["V", "H", "K", "Sze", "Cs", "P", "Szo"];
+  const projectStatus = projects.reduce<Record<string, number>>((summary, project) => { const status = String(project.status || "active").toLowerCase(); summary[status] = (summary[status] || 0) + 1; return summary; }, {});
+  const recentProjectRows = [...projects].sort((a, b) => String(b.created_at || "").localeCompare(String(a.created_at || ""))).slice(0, 3);
+  const cards = {
+    services: { title: tUi("admin.dashboard.services_title", currentLanguage) || "Szolgáltatások", description: tUi("admin.dashboard.services_desc", currentLanguage) || "Stúdió szolgáltatások és csomagok", count: stats.services, icon: Sparkles, to: "/admin/services", color: "text-amber-500 bg-amber-500/10 border-amber-500/20" },
+    projects: { title: tUi("admin.dashboard.projects_title", currentLanguage) || "Projektek", description: tUi("admin.dashboard.projects_desc", currentLanguage) || "Aktív forgatások és átadások", count: stats.projects, icon: FolderKanban, to: "/admin/projects", color: "text-indigo-500 bg-indigo-500/10 border-indigo-500/20" },
+    portfolio: { title: tUi("admin.dashboard.portfolio_title", currentLanguage) || "Portfólió", description: tUi("admin.dashboard.portfolio_desc", currentLanguage) || "Bemutatott galériaelemek", count: stats.portfolio, icon: ImageIcon, to: "/admin/portfolio", color: "text-emerald-500 bg-emerald-500/10 border-emerald-500/20" },
+    contacts: { title: tUi("admin.dashboard.submissions_title", currentLanguage) || "Megkeresések", description: tUi("admin.dashboard.submissions_desc", currentLanguage) || "Kapcsolati és foglalási igények", count: stats.contacts, icon: MessageSquare, to: "/admin/contacts", color: "text-blue-500 bg-blue-500/10 border-blue-500/20" },
+    budget: { title: "Költségvetés és cashflow", description: "Bevételek, kiadások és pénzügyi követés", count: stats.budgetEntries, icon: Wallet, to: "/admin/budget", color: "text-purple-500 bg-purple-500/10 border-purple-500/20" },
+    faqs: { title: tUi("admin.dashboard.faqs_title", currentLanguage) || "GYIK", description: tUi("admin.dashboard.faqs_desc", currentLanguage) || "Ügyfélkérdések és válaszok", count: stats.faqs, icon: HelpCircle, to: "/admin/faqs", color: "text-sky-500 bg-sky-500/10 border-sky-500/20" },
+  } as const;
+  const labels: Record<CardId, string> = { services: "Szolgáltatások", projects: "Projektek", portfolio: "Portfólió", contacts: "Megkeresések", budget: "Költségvetés", faqs: "GYIK", clock: "Óra", calendar: "Naptár", notes: "Saját jegyzet", settings: "Beállítások", paymentRequests: "Fizetési kérelmek", projectStatus: "Projekt státuszok", recentProjects: "Legutóbbi projektek", recentClients: "Legutóbb regisztrált ügyfelek" };
+  const toggle = (id: CardId) => setPreferences(value => ({ ...value, hidden: value.hidden.includes(id) ? value.hidden.filter(item => item !== id) : [...value.hidden, id] }));
+  const renderCard = (id: CardId) => {
+    if (id in cards) { const card = cards[id as keyof typeof cards]; const Icon = card.icon; return <Link to={card.to} className="group flex h-full min-h-[214px] flex-col rounded-2xl border border-border bg-surface p-6 pr-12 shadow-sm transition-all duration-200 hover:border-primary/40 hover:shadow-md"><div className="mb-5 flex items-center justify-between"><div className={`flex h-12 w-12 items-center justify-center rounded-xl border ${card.color}`}><Icon className="h-6 w-6" /></div><span className="text-2xl font-bold text-text">{loading ? "..." : card.count}</span></div><h3 className="mb-1 text-base font-semibold text-text group-hover:text-primary">{card.title}</h3><p className="text-xs leading-relaxed text-muted-text">{card.description}</p></Link>; }
+    if (id === "clock") return <div className="flex h-full min-h-[214px] flex-col rounded-2xl border border-border bg-surface p-6 pr-12 shadow-sm"><div className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl border border-cyan-500/20 bg-cyan-500/10 text-cyan-500"><Clock3 className="h-6 w-6" /></div><p className="text-3xl font-bold tracking-tight text-text">{now.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit", hour12: preferences.timeFormat === "12" })}</p><p className="mt-1 text-sm capitalize text-muted-text">{now.toLocaleDateString(locale, { weekday: "long", month: "long", day: "numeric" })}</p></div>;
+    if (id === "calendar") return <div className="flex h-full min-h-[214px] flex-col rounded-2xl border border-border bg-surface p-5 pr-12 shadow-sm"><div className="mb-3 flex items-center gap-2"><div className="flex h-9 w-9 items-center justify-center rounded-lg border border-rose-500/20 bg-rose-500/10 text-rose-500"><CalendarDays className="h-4 w-4" /></div><h3 className="text-sm font-semibold text-text">{now.toLocaleDateString(locale, { month: "long", year: "numeric" })}</h3></div><div className="grid grid-cols-7 gap-1 text-center text-[10px] text-muted-text">{weekdayLabels.map(day => <span key={day}>{day}</span>)}{calendarDays.map((day, index) => <span key={`${day}-${index}`} className={`flex aspect-square items-center justify-center rounded-md ${day === now.getDate() ? "bg-primary font-semibold text-primary-foreground" : "text-text"}`}>{day}</span>)}</div></div>;
+    if (id === "paymentRequests") return <Link to="/admin/budget?tab=payment-requests" className="group flex h-full min-h-[214px] flex-col rounded-2xl border border-border bg-surface p-5 pr-12 shadow-sm transition-all hover:border-primary/40 hover:shadow-md"><div className="mb-4 flex items-center justify-between"><div className="flex h-10 w-10 items-center justify-center rounded-xl border border-lime-500/20 bg-lime-500/10 text-lime-500"><CreditCard className="h-5 w-5" /></div><span className="text-2xl font-bold text-text">{paymentSummary.pendingCount}</span></div><h3 className="text-sm font-semibold text-text group-hover:text-primary">Fizetési kérelmek</h3><p className="mb-3 text-xs text-muted-text">Függőben lévő jóváhagyások</p><div className="mt-auto flex gap-3 text-[11px]"><span className="text-emerald-500">Jóváhagyva: {paymentSummary.approvedCount}</span><span className="text-rose-500">Elutasítva: {paymentSummary.deniedCount}</span></div></Link>;
+    if (id === "projectStatus") return <Link to="/admin/projects" className="group flex h-full min-h-[214px] flex-col rounded-2xl border border-border bg-surface p-5 pr-12 shadow-sm transition-all hover:border-primary/40 hover:shadow-md"><div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl border border-violet-500/20 bg-violet-500/10 text-violet-500"><ListChecks className="h-5 w-5" /></div><h3 className="mb-3 text-sm font-semibold text-text group-hover:text-primary">Projekt státuszok</h3><div className="space-y-2 text-xs">{[["Aktív", projectStatus.active || 0, "bg-emerald-500"], ["Kész", projectStatus.completed || 0, "bg-blue-500"], ["Archivált", projectStatus.archived || 0, "bg-zinc-500"]].map(([label, count, color]) => <div key={String(label)} className="flex items-center justify-between"><span className="flex items-center gap-2 text-muted-text"><i className={`h-2 w-2 rounded-full ${color}`} />{label}</span><strong className="text-text">{count}</strong></div>)}</div></Link>;
+    if (id === "recentProjects") return <Link to="/admin/projects" className="group flex h-full min-h-[214px] flex-col rounded-2xl border border-border bg-surface p-5 pr-12 shadow-sm transition-all hover:border-primary/40 hover:shadow-md"><div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl border border-indigo-500/20 bg-indigo-500/10 text-indigo-500"><FolderKanban className="h-5 w-5" /></div><h3 className="mb-2 text-sm font-semibold text-text group-hover:text-primary">Legutóbbi projektek</h3><div className="space-y-2">{recentProjectRows.length ? recentProjectRows.map(project => <div key={project.id} className="truncate text-xs text-muted-text"><span className="font-medium text-text">{project.name || "Névtelen projekt"}</span><span className="ml-2 text-[10px] capitalize">{project.status || "aktív"}</span></div>) : <p className="text-xs text-muted-text">Még nincs projekt.</p>}</div></Link>;
+    if (id === "recentClients") return <Link to="/admin/clients" className="group flex h-full min-h-[214px] flex-col rounded-2xl border border-border bg-surface p-5 pr-12 shadow-sm transition-all hover:border-primary/40 hover:shadow-md"><div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl border border-fuchsia-500/20 bg-fuchsia-500/10 text-fuchsia-500"><UserPlus className="h-5 w-5" /></div><h3 className="mb-2 text-sm font-semibold text-text group-hover:text-primary">Új ügyfélfiókok</h3><div className="space-y-2">{recentClients.length ? recentClients.map(client => <div key={client.id} className="truncate text-xs text-muted-text"><span className="font-medium text-text">{client.name || client.email}</span>{client.name && <span className="ml-2 text-[10px]">{client.email}</span>}</div>) : <p className="text-xs text-muted-text">Még nincs ügyfélfiók.</p>}</div></Link>;
+    if (id === "notes") return <div className="flex h-full min-h-[214px] flex-col rounded-2xl border border-border bg-surface p-5 pr-12 shadow-sm"><div className="mb-3 flex items-center gap-2"><div className="flex h-9 w-9 items-center justify-center rounded-lg border border-orange-500/20 bg-orange-500/10 text-orange-500"><NotebookPen className="h-4 w-4" /></div><h3 className="text-sm font-semibold text-text">Saját jegyzet</h3></div><textarea value={preferences.note} onChange={event => setPreferences(value => ({ ...value, note: event.target.value }))} placeholder="Ide írhatod a mai teendőidet…" className="min-h-0 flex-1 resize-none rounded-xl border border-border bg-background/40 p-3 text-sm text-text outline-none transition-colors placeholder:text-muted-text focus:border-primary focus:ring-2 focus:ring-primary/20" /></div>;
+    return <Link to="/admin/settings" className="group flex h-full min-h-[214px] flex-col rounded-2xl border border-border bg-surface p-6 pr-12 shadow-sm transition-all duration-200 hover:border-primary/40 hover:shadow-md"><div className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl border border-slate-500/20 bg-slate-500/10 text-slate-500"><Settings className="h-6 w-6" /></div><h3 className="mb-1 text-base font-semibold text-text group-hover:text-primary">{tUi("admin.dashboard.settings_card_title", currentLanguage) || "Beállítások"}</h3><p className="text-xs leading-relaxed text-muted-text">{tUi("admin.dashboard.settings_card_desc", currentLanguage) || "Webhely- és rendszerbeállítások kezelése"}</p></Link>;
+  };
+  const availableOrder = preferences.order.filter(id => isSuperadmin || id !== "recentClients");
+  const visible = availableOrder.filter(id => !preferences.hidden.includes(id));
+  return <div className="mx-auto max-w-7xl space-y-8 p-6 md:p-8"><div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center"><PageHeader title={tUi("admin.dashboard.title", currentLanguage)} description={tUi("admin.dashboard.subtitle", currentLanguage)} /><div className="flex flex-wrap items-center gap-3"><Link to="/" target="_blank" className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"><span>{tUi("admin.dashboard.open_live_site", currentLanguage)}</span><ArrowRight className="h-4 w-4" /></Link><button type="button" onClick={() => setShowCustomizer(value => !value)} className="inline-flex items-center gap-2 rounded-xl border border-border bg-surface px-3 py-2 text-sm font-medium text-text transition-colors hover:border-primary/40 hover:text-primary"><SlidersHorizontal className="h-4 w-4" />Kártyák</button></div></div>
+    {showCustomizer && <section className="rounded-2xl border border-border bg-surface p-4 shadow-sm"><div className="mb-3 flex items-center justify-between gap-3"><div><h2 className="text-sm font-semibold text-text">Vezérlőpult kártyái</h2><p className="text-xs text-muted-text">Kapcsold ki a felesleges elemeket, a sorrendet pedig húzással módosíthatod.</p></div><button type="button" onClick={() => setPreferences({ order: DEFAULT_ORDER, hidden: [], note: "", timeFormat: "24", weekStartsOn: "monday" })} className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium text-muted-text transition-colors hover:bg-background hover:text-text"><RotateCcw className="h-3.5 w-3.5" />Alaphelyzet</button></div><div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{availableOrder.map(id => { const enabled = !preferences.hidden.includes(id); return <button type="button" key={id} onClick={() => toggle(id)} className={`flex items-center justify-between rounded-xl border px-3 py-2.5 text-left text-sm transition-colors ${enabled ? "border-primary/25 bg-primary/5 text-text" : "border-border bg-background/40 text-muted-text"}`}><span>{labels[id]}</span>{enabled ? <Eye className="h-4 w-4 text-primary" /> : <EyeOff className="h-4 w-4" />}</button>; })}</div><div className="mt-4 grid gap-3 border-t border-border pt-4 sm:grid-cols-2"><div><p className="mb-2 text-xs font-semibold text-text">Óra formátuma</p><div className="inline-flex rounded-xl border border-border bg-background/40 p-1"><button type="button" onClick={() => setPreferences(value => ({ ...value, timeFormat: "24" }))} className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${preferences.timeFormat === "24" ? "bg-primary text-primary-foreground" : "text-muted-text hover:text-text"}`}>24 órás</button><button type="button" onClick={() => setPreferences(value => ({ ...value, timeFormat: "12" }))} className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${preferences.timeFormat === "12" ? "bg-primary text-primary-foreground" : "text-muted-text hover:text-text"}`}>12 órás</button></div></div><div><p className="mb-2 text-xs font-semibold text-text">Naptár hétkezdete</p><div className="inline-flex rounded-xl border border-border bg-background/40 p-1"><button type="button" onClick={() => setPreferences(value => ({ ...value, weekStartsOn: "monday" }))} className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${preferences.weekStartsOn === "monday" ? "bg-primary text-primary-foreground" : "text-muted-text hover:text-text"}`}>Hétfő</button><button type="button" onClick={() => setPreferences(value => ({ ...value, weekStartsOn: "sunday" }))} className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${preferences.weekStartsOn === "sunday" ? "bg-primary text-primary-foreground" : "text-muted-text hover:text-text"}`}>Vasárnap</button></div></div></div></section>}
+    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={({ active, over }) => { if (over && active.id !== over.id) setPreferences(value => ({ ...value, order: arrayMove(value.order, value.order.indexOf(active.id as CardId), value.order.indexOf(over.id as CardId)) })); }}><SortableContext items={visible} strategy={rectSortingStrategy}><div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">{visible.map(id => <SortableCard key={id} id={id}>{renderCard(id)}</SortableCard>)}</div></SortableContext></DndContext>
+  </div>;
 }
