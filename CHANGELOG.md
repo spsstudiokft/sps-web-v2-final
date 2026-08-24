@@ -4,7 +4,7 @@
 
 ### About and cookie glass blur
 
-- Restored the frosted blur surface behind the About copy and strengthened the cookie banner and cookie-settings backdrop blur.
+- Restored the frosted blur surface behind the About copy and reinforced the cookie banner and cookie-settings backdrop blur directly in the rendered components so production CSS optimisation cannot remove it.
 
 ### Sidebar footer controls
 

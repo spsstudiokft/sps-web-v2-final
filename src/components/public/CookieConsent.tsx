@@ -73,6 +73,10 @@ function CookieConsentBanner({ isOpen, onClose }: { isOpen: boolean; onClose: ()
   const [cookieDocuments, setCookieDocuments] = useState<Record<string, { title: string; content: string; updated_at?: string }>>({});
   const [isPolicyOpen, setIsPolicyOpen] = useState(false);
   const tr = (key: string) => tUi(key, currentLang, undefined, defaultLang);
+  const bannerBlurStyle: React.CSSProperties = {
+    backdropFilter: "blur(26px) saturate(165%)",
+    WebkitBackdropFilter: "blur(26px) saturate(165%)",
+  };
 
   useEffect(() => {
     fetch("/api/public/legal-documents")
@@ -99,6 +103,7 @@ function CookieConsentBanner({ isOpen, onClose }: { isOpen: boolean; onClose: ()
             exit={{ opacity: 0, y: 24, scale: 0.98 }}
             transition={{ duration: 0.28, ease: "easeOut" }}
             className="aero-cookie-banner fixed z-[95] left-4 right-4 bottom-4 sm:left-6 sm:right-6 lg:left-1/2 lg:right-auto lg:-translate-x-1/2 lg:w-[min(920px,calc(100vw-3rem))] rounded-3xl overflow-hidden"
+            style={bannerBlurStyle}
           >
             <div className="aero-cookie-shine" aria-hidden="true" />
             <div className="relative z-10 p-5 sm:p-6 flex flex-col lg:flex-row lg:items-center gap-5">
@@ -140,7 +145,7 @@ function CookieConsentBanner({ isOpen, onClose }: { isOpen: boolean; onClose: ()
       </AnimatePresence>
 
       {!isOpen && (
-        <button type="button" onClick={openPreferences} className="aero-cookie-settings fixed z-[80] left-4 bottom-4 sm:left-6 sm:bottom-6 w-11 h-11 rounded-2xl flex items-center justify-center" aria-label={tr("cookie_banner.settings")} title={tr("cookie_banner.settings")}>
+        <button type="button" onClick={openPreferences} style={bannerBlurStyle} className="aero-cookie-settings fixed z-[80] left-4 bottom-4 sm:left-6 sm:bottom-6 w-11 h-11 rounded-2xl flex items-center justify-center" aria-label={tr("cookie_banner.settings")} title={tr("cookie_banner.settings")}>
           <Settings2 className="w-4.5 h-4.5" />
         </button>
       )}
