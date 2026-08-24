@@ -405,6 +405,7 @@ export function PortfolioModal({
           ...prev,
           image_urls: JSON.stringify([...getNormalizedGallery(prev.image_urls), ...newItems]),
           media_url: prev.media_url || newItems[0]?.url || "",
+          thumbnail_url: prev.thumbnail_url || newItems[0]?.thumbnail_url || "",
           media_type: "video",
         }));
       } catch (err: any) {
@@ -444,6 +445,7 @@ export function PortfolioModal({
         id: `video-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
         url: result.url,
         filename: result.filename,
+        thumbnail_url: result.thumbnailUrl || "",
         item_number: formatItemNumber(seqNumber),
         project_name: sanitizeNameForFilename(projName),
         category_name: category,
@@ -458,6 +460,7 @@ export function PortfolioModal({
         ...prev,
         image_urls: JSON.stringify(updated),
         media_url: prev.media_url || result.url,
+        thumbnail_url: prev.thumbnail_url || result.thumbnailUrl || "",
         media_type: "video",
       }));
     } catch (err: any) {

@@ -54,6 +54,9 @@ import {
 } from "lucide-react";
 import { useApi } from "../../../hooks/useApi";
 import { GalleryItemType } from "../../../lib/mediaUtils";
+import { parseVideoUrl } from "../../../lib/mediaUtils";
+import { createVideoPosterFromUrl, uploadMediaFile } from "../../../lib/uploadHelper";
+import { useAuth } from "../../../contexts/AuthContext";
 
 interface Props {
   images: GalleryMediaItem[];
@@ -79,12 +82,14 @@ export function ImageGalleryManager({
   portfolioItemId
 }: Props) {
   const { fetchApi } = useApi();
+  const { token } = useAuth();
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState("");
   const [mediaTypeFilter, setMediaTypeFilter] = useState<"all" | "photos" | "drone" | "interior" | "drone_photos" | "videos">("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [isEmbedModalOpen, setIsEmbedModalOpen] = useState(false);
   const [isBatchRestructuring, setIsBatchRestructuring] = useState(false);
+  const [isGeneratingVideoPosters, setIsGeneratingVideoPosters] = useState(false);
   const [restructureFeedback, setRestructureFeedback] = useState<{
     type: "success" | "error" | "info";
     message: string;
@@ -112,6 +117,56 @@ export function ImageGalleryManager({
       return !v.valid || v.parsed?.is10Mb;
     }).length;
   }, [images]);
+
+  const missingVideoPosterCount = useMemo(() => images.filter((image) => {
+    const isVideo = image.type === "video" || isVideoMedia(image) || image.item_type?.includes("video");
+    return isVideo && !image.thumbnail_url?.trim() && parseVideoUrl(image.url).type === "upload";
+  }).length, [images]);
+
+  const handleGenerateMissingVideoPosters = async () => {
+    if (!portfolioItemId || isGeneratingVideoPosters || missingVideoPosterCount === 0) return;
+    setIsGeneratingVideoPosters(true);
+    setRestructureFeedback({ type: "info", message: `${missingVideoPosterCount} videóhoz készül automatikus poster-kép…` });
+    let updatedImages = [...images];
+    let generated = 0;
+    let failed = 0;
+
+    for (const image of images) {
+      const isVideo = image.type === "video" || isVideoMedia(image) || image.item_type?.includes("video");
+      if (!isVideo || image.thumbnail_url?.trim() || parseVideoUrl(image.url).type !== "upload") continue;
+      try {
+        const posterFile = await createVideoPosterFromUrl(image.url, image.filename || "video.mp4");
+        if (!posterFile) throw new Error("A böngésző nem tudott képkockát kinyerni ebből a videóból.");
+        const result = await uploadMediaFile(posterFile, {
+          token,
+          projectName,
+          categoryName: "posters",
+          itemType: "video-poster",
+          itemNumber: generated + 1,
+          useStructuredName: true,
+        });
+        const updatedItem = { ...image, thumbnail_url: result.thumbnailUrl || result.compressedUrl || result.url };
+        const response = await fetchApi(`/api/admin/portfolio/${encodeURIComponent(portfolioItemId)}/media`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ item: updatedItem }),
+        });
+        if (!response.ok) throw new Error("A poster-kép nem menthető a galériához.");
+        updatedImages = updatedImages.map((current) => current.id === image.id ? updatedItem : current);
+        onChange(updatedImages);
+        generated += 1;
+      } catch (error) {
+        console.warn("Could not generate a video poster", error);
+        failed += 1;
+      }
+    }
+
+    setIsGeneratingVideoPosters(false);
+    setRestructureFeedback({
+      type: failed ? "error" : "success",
+      message: failed ? `${generated} poster elkészült, ${failed} videóhoz nem sikerült képkockát készíteni.` : `${generated} hiányzó videó-poster sikeresen elkészült.`,
+    });
+  };
 
   // Batch auto-structure filenames: renames unstructured files in bucket and creates under 10MB images
   const handleBatchStandardizeFilenames = async () => {
@@ -445,6 +500,19 @@ export function ImageGalleryManager({
                   </span>
                 </>
               )}
+            </Button>
+          )}
+
+          {missingVideoPosterCount > 0 && portfolioItemId && (
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={isGeneratingVideoPosters || isUploading}
+              onClick={handleGenerateMissingVideoPosters}
+              className="h-8.5 border-purple-500/30 bg-purple-500/5 px-3 text-xs text-purple-600 hover:border-purple-500 hover:bg-purple-500/10 dark:text-purple-300"
+              title="Képkocka kinyerése az összes poster nélküli, közvetlenül feltöltött videóból"
+            >
+              {isGeneratingVideoPosters ? <><Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />Poster készítése…</> : <><Film className="mr-1.5 h-3.5 w-3.5" />Hiányzó videó-posterek ({missingVideoPosterCount})</>}
             </Button>
           )}
 

@@ -1,5 +1,14 @@
 # Modification Log
 
+## 2026-08-24 — Backfill missing video posters
+
+- Added an Admin Gallery action that generates and saves poster frames for existing direct-upload video items without posters, while leaving existing manual and embedded-video thumbnails untouched.
+
+## 2026-08-24 — Automatic video poster frames
+
+- Video uploads now extract a representative frame in the browser, upload it as a poster image, and automatically use it for the gallery item and portfolio feature cover.
+- If a browser cannot decode a particular video codec, the video upload still completes normally and remains editable with an optional manual poster.
+
 ## 2026-08-24 — Persistent background media uploads
 
 - Moved the media upload queue and its live status window to the application root, so uploads and progress remain available while navigating away from Admin pages.

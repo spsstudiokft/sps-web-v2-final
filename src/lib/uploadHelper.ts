@@ -98,6 +98,29 @@ export async function uploadMediaFile(
     file.name,
   );
   if (storageDirectResult) {
+    const videoPosterFile = await createVideoPosterImageFile(storageFile);
+    if (videoPosterFile) {
+      try {
+        const posterResult = await uploadDirectToConfiguredStorage(
+          videoPosterFile,
+          token,
+          (percent) => onProgress?.(75 + Math.round(percent * 0.25), file.size, file.size),
+          file.name,
+        );
+        if (posterResult) {
+          onProgress?.(100, file.size, file.size);
+          return {
+            ...storageDirectResult,
+            thumbnailUrl: posterResult.url,
+            thumbnailFilename: videoPosterFile.name,
+            thumbnailSize: videoPosterFile.size,
+          };
+        }
+      } catch (error) {
+        // The original video remains usable even if a poster cannot be stored.
+        console.warn(`[Video Poster] Could not upload an automatic poster for "${file.name}":`, error);
+      }
+    }
     const optimizedFile = await createOptimizedImageFile(storageFile);
     if (optimizedFile) {
       try {
@@ -177,6 +200,74 @@ async function createCardPreviewImageFile(file: File): Promise<File | null> {
   } finally {
     bitmap.close();
   }
+}
+
+async function createVideoPosterImageFile(file: File): Promise<File | null> {
+  if (!file.type.startsWith("video/")) return null;
+
+  const objectUrl = URL.createObjectURL(file);
+  const video = document.createElement("video");
+  video.preload = "metadata";
+  video.muted = true;
+  video.playsInline = true;
+
+  const waitFor = (event: "loadedmetadata" | "seeked") => new Promise<void>((resolve, reject) => {
+    const timeout = window.setTimeout(() => reject(new Error(`Timed out while waiting for video ${event}.`)), 15_000);
+    const cleanup = () => {
+      window.clearTimeout(timeout);
+      video.removeEventListener(event, onSuccess);
+      video.removeEventListener("error", onError);
+    };
+    const onSuccess = () => { cleanup(); resolve(); };
+    const onError = () => { cleanup(); reject(new Error("The browser could not decode this video for poster generation.")); };
+    video.addEventListener(event, onSuccess, { once: true });
+    video.addEventListener("error", onError, { once: true });
+  });
+
+  try {
+    const metadataReady = waitFor("loadedmetadata");
+    video.src = objectUrl;
+    await metadataReady;
+    const duration = Number(video.duration);
+    const targetTime = Number.isFinite(duration) && duration > 0.6
+      ? Math.min(8, Math.max(0.5, duration * 0.12), Math.max(0.25, duration - 0.25))
+      : 0;
+    if (targetTime > 0) {
+      video.currentTime = targetTime;
+      await waitFor("seeked");
+    }
+
+    const sourceWidth = video.videoWidth;
+    const sourceHeight = video.videoHeight;
+    if (!sourceWidth || !sourceHeight) return null;
+    const maxDimension = 1280;
+    const scale = Math.min(1, maxDimension / Math.max(sourceWidth, sourceHeight));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(sourceWidth * scale));
+    canvas.height = Math.max(1, Math.round(sourceHeight * scale));
+    const context = canvas.getContext("2d", { alpha: false });
+    if (!context) return null;
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.86));
+    if (!blob) return null;
+    const baseName = file.name.replace(/\.[^.]+$/, "");
+    return new File([blob], `${baseName}_poster.jpg`, { type: "image/jpeg", lastModified: Date.now() });
+  } catch (error) {
+    console.warn(`[Video Poster] Could not extract a frame from "${file.name}":`, error);
+    return null;
+  } finally {
+    video.removeAttribute("src");
+    video.load();
+    URL.revokeObjectURL(objectUrl);
+  }
+}
+
+export async function createVideoPosterFromUrl(videoUrl: string, fileName = "video.mp4"): Promise<File | null> {
+  const response = await fetch(videoUrl);
+  if (!response.ok) throw new Error(`A videó nem tölthető le poster-generáláshoz (HTTP ${response.status}).`);
+  const blob = await response.blob();
+  const mimeType = blob.type.startsWith("video/") ? blob.type : "video/mp4";
+  return createVideoPosterImageFile(new File([blob], fileName, { type: mimeType, lastModified: Date.now() }));
 }
 
 function createStructuredUploadFile(file: File, options: UploadOptions): File {

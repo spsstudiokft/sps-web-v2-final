@@ -96,6 +96,7 @@ export function BackgroundUploadProvider({ children }: { children: React.ReactNo
             id: `video-${Date.now()}-${index}-${Math.random().toString(36).slice(2, 6)}`,
             url: result.url,
             filename: result.filename,
+            thumbnail_url: result.thumbnailUrl || "",
             item_number: formatItemNumber(sequence),
             project_name: sanitizeNameForFilename(options.portfolioName || "project"),
             category_name: options.categoryName,
