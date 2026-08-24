@@ -1288,9 +1288,11 @@ export default function BudgetPage() {
           setInitialInvoiceData(null);
         }}
         onSave={handleSaveInvoice}
-        invoiceToEdit={invoiceToEdit}
+        editingInvoice={invoiceToEdit}
+        budgetEntries={entries}
+        currency={currentSettings?.default_currency || "USD"}
+        clientsLookup={invoiceClients}
         initialData={initialInvoiceData}
-        defaultCurrency={currentSettings?.default_currency || "USD"}
         showToast={showToast}
       />
 

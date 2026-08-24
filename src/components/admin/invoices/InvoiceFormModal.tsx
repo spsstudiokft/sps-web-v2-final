@@ -29,6 +29,7 @@ interface InvoiceFormModalProps {
   budgetEntries?: BudgetEntry[];
   currency?: string;
   clientsLookup?: any[];
+  initialData?: Partial<Invoice> | null;
   showToast: (message: string, type?: "success" | "error") => void;
 }
 
@@ -50,6 +51,7 @@ export function InvoiceFormModal({
   budgetEntries = [],
   currency = "USD",
   clientsLookup = [],
+  initialData = null,
   showToast
 }: InvoiceFormModalProps) {
   const [loading, setLoading] = useState(false);
@@ -60,6 +62,10 @@ export function InvoiceFormModal({
   const [clientPhone, setClientPhone] = useState("");
   const [clientAddress, setClientAddress] = useState("");
   const [propertyAddress, setPropertyAddress] = useState("");
+  const [projectId, setProjectId] = useState("");
+  const [propertyId, setPropertyId] = useState("");
+  const [projects, setProjects] = useState<Array<{ id: string; name: string; client_id?: string | null }>>([]);
+  const [clientProperties, setClientProperties] = useState<Array<{ id: string; property_name?: string; address: string }>>([]);
   const [selectedCurrency, setSelectedCurrency] = useState(currency || "USD");
   const [issueDate, setIssueDate] = useState(new Date().toISOString().split("T")[0]);
   const [dueDate, setDueDate] = useState(
@@ -100,6 +106,8 @@ export function InvoiceFormModal({
       setClientPhone(editingInvoice.client_phone || "");
       setClientAddress(editingInvoice.client_address || "");
       setPropertyAddress(editingInvoice.property_address || "");
+      setProjectId(editingInvoice.project_id || "");
+      setPropertyId(editingInvoice.property_id || "");
       setSelectedCurrency(editingInvoice.currency || currency);
       setIssueDate(editingInvoice.issue_date);
       setDueDate(editingInvoice.due_date);
@@ -144,12 +152,46 @@ export function InvoiceFormModal({
           total: Number(budgetEntryToConvert.amount || 0)
         }
       ]);
+    } else if (initialData) {
+      setInvoiceNumber("");
+      fetchNextNumber();
+      setClientId(initialData.client_id || "");
+      setClientName(initialData.client_name || "");
+      setClientEmail(initialData.client_email || "");
+      setClientPhone(initialData.client_phone || "");
+      setClientAddress(initialData.client_address || "");
+      setPropertyAddress(initialData.property_address || "");
+      setProjectId(initialData.project_id || "");
+      setPropertyId(initialData.property_id || "");
+      setSelectedCurrency(initialData.currency || currency);
+      setIssueDate(initialData.issue_date || new Date().toISOString().split("T")[0]);
+      setDueDate(initialData.due_date || new Date(Date.now() + 14 * 86400000).toISOString().split("T")[0]);
+      setStatus(initialData.status || "draft");
+      setItems(initialData.items?.length ? initialData.items.map((item) => ({ ...item, quantity: Number(item.quantity || 1), unit_price: Number(item.unit_price || 0), tax_rate: Number(item.tax_rate || 0), total: Number(item.total || 0) })) : [{ description: initialData.notes || "Real Estate Media Production", quantity: 1, unit_price: Number(initialData.total_amount || 0), tax_rate: 0, total: Number(initialData.total_amount || 0) }]);
     } else {
       // Clean new invoice
       resetForm();
       fetchNextNumber();
     }
-  }, [isOpen, editingInvoice, budgetEntryToConvert]);
+  }, [isOpen, editingInvoice, budgetEntryToConvert, initialData]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const token = localStorage.getItem("admin_token") || localStorage.getItem("token");
+    void fetch("/api/admin/projects", { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+      .then((res) => res.ok ? res.json() : [])
+      .then((rows) => setProjects(Array.isArray(rows) ? rows : []))
+      .catch(() => setProjects([]));
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!clientId) { setClientProperties([]); return; }
+    const token = localStorage.getItem("admin_token") || localStorage.getItem("token");
+    void fetch(`/api/admin/clients/${clientId}/properties`, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+      .then((res) => res.ok ? res.json() : [])
+      .then((rows) => setClientProperties(Array.isArray(rows) ? rows : []))
+      .catch(() => setClientProperties([]));
+  }, [clientId]);
 
   const resetForm = () => {
     setInvoiceNumber("");
@@ -159,6 +201,8 @@ export function InvoiceFormModal({
     setClientPhone("");
     setClientAddress("");
     setPropertyAddress("");
+    setProjectId("");
+    setPropertyId("");
     setSelectedCurrency(currency || "USD");
     setIssueDate(new Date().toISOString().split("T")[0]);
     setDueDate(new Date(Date.now() + 14 * 86400000).toISOString().split("T")[0]);
@@ -206,6 +250,8 @@ export function InvoiceFormModal({
       setClientName(found.name || "");
       setClientEmail(found.email || "");
       setClientPhone(found.phone || "");
+      setProjectId("");
+      setPropertyId("");
       if (found.property_address && !propertyAddress) {
         setPropertyAddress(found.property_address);
       }
@@ -287,6 +333,8 @@ export function InvoiceFormModal({
         client_phone: clientPhone.trim(),
         client_address: clientAddress.trim(),
         property_address: propertyAddress.trim(),
+        project_id: projectId || null,
+        property_id: propertyId || null,
         issue_date: issueDate,
         due_date: dueDate,
         currency: selectedCurrency,
@@ -410,6 +458,28 @@ export function InvoiceFormModal({
                   placeholder="client@example.com"
                   className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-xs text-text focus:outline-none focus:ring-1 focus:ring-primary"
                 />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-[11px] font-semibold text-text mb-1">Linked Project (Optional)</label>
+                <select value={projectId} disabled={!clientId} onChange={(e) => setProjectId(e.target.value)} className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-xs text-text focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-60">
+                  <option value="">-- No project linked --</option>
+                  {projects.filter((project) => project.client_id === clientId).map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-[11px] font-semibold text-text mb-1">Normalized Property (Optional)</label>
+                <select value={propertyId} disabled={!clientId} onChange={(e) => {
+                  const nextId = e.target.value;
+                  setPropertyId(nextId);
+                  const property = clientProperties.find((item) => item.id === nextId);
+                  if (property) setPropertyAddress(property.address);
+                }} className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-xs text-text focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-60">
+                  <option value="">-- No property linked --</option>
+                  {clientProperties.map((property) => <option key={property.id} value={property.id}>{property.property_name || property.address}{property.property_name ? ` · ${property.address}` : ""}</option>)}
+                </select>
               </div>
             </div>
 

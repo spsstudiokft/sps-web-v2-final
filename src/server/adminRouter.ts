@@ -3455,6 +3455,16 @@ adminRouter.put("/clients/:id", async (req, res) => {
 
 adminRouter.delete("/clients/:id", async (req, res) => {
   try {
+    const dependencies = await db.execute({
+      sql: `SELECT
+        (SELECT COUNT(*) FROM projects WHERE client_id = ?) AS projects,
+        (SELECT COUNT(*) FROM invoices WHERE client_id = ?) AS invoices`,
+      args: [req.params.id, req.params.id],
+    });
+    const dependency = dependencies.rows[0] as any;
+    if (Number(dependency?.projects || 0) || Number(dependency?.invoices || 0)) {
+      return res.status(409).json({ error: "This client has linked projects or invoices and cannot be deleted. Archive or reassign the records first." });
+    }
     const listingAccount = await db.execute({ sql: "SELECT id FROM property_listing_accounts WHERE portal_user_id = ? LIMIT 1", args: [req.params.id] });
     if (listingAccount.rows.length > 0) {
       const accountId = String(listingAccount.rows[0].id);
@@ -3584,6 +3594,16 @@ adminRouter.put("/clients/:id/properties/:propertyId", async (req, res) => {
 
 adminRouter.delete("/clients/:id/properties/:propertyId", async (req, res) => {
   try {
+    const dependencies = await db.execute({
+      sql: `SELECT
+        (SELECT COUNT(*) FROM projects WHERE property_id = ?) AS projects,
+        (SELECT COUNT(*) FROM invoices WHERE property_id = ?) AS invoices`,
+      args: [req.params.propertyId, req.params.propertyId],
+    });
+    const dependency = dependencies.rows[0] as any;
+    if (Number(dependency?.projects || 0) || Number(dependency?.invoices || 0)) {
+      return res.status(409).json({ error: "This property is linked to projects or invoices and cannot be deleted. Reassign the records first." });
+    }
     await db.execute({
       sql: "DELETE FROM client_properties WHERE id = ?",
       args: [req.params.propertyId]
@@ -3786,9 +3806,10 @@ async function sendProjectTimelineEmail(projectId: string, input: { title: strin
 adminRouter.get("/projects", async (req, res) => {
   try {
     const result = await db.execute(`
-      SELECT p.*, u.email as client_email 
+      SELECT p.*, u.email as client_email, cp.property_name, cp.address as property_address
       FROM projects p 
       LEFT JOIN users u ON p.client_id = u.id 
+      LEFT JOIN client_properties cp ON p.property_id = cp.id
       ORDER BY p.created_at DESC
     `);
     
@@ -3816,16 +3837,21 @@ adminRouter.get("/projects", async (req, res) => {
 
 adminRouter.post("/projects", async (req, res) => {
   try {
-    const { name, description, status, client_id, portfolio_ids, keywords } = req.body;
+    const { name, description, status, client_id, property_id, portfolio_ids, keywords } = req.body;
     if (!name || name.trim() === "") {
       return res.status(400).json({ error: "Project name is required" });
     }
     
     const id = crypto.randomUUID();
+    if (!client_id) return res.status(400).json({ error: "A client is required for every project" });
+    if (property_id) {
+      const property = await db.execute({ sql: "SELECT id FROM client_properties WHERE id = ? AND client_id = ?", args: [property_id, client_id] });
+      if (!property.rows.length) return res.status(400).json({ error: "The selected property does not belong to the selected client" });
+    }
     await db.execute({
-      sql: `INSERT INTO projects (id, name, description, status, client_id, keywords, created_at, updated_at) 
-            VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
-      args: [id, name.trim(), description || "", status || "active", client_id || null, keywords || ""]
+      sql: `INSERT INTO projects (id, name, description, status, client_id, property_id, keywords, created_at, updated_at) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+      args: [id, name.trim(), description || "", status || "active", client_id, property_id || null, keywords || ""]
     });
     
     if (Array.isArray(portfolio_ids) && portfolio_ids.length > 0) {
@@ -3846,14 +3872,19 @@ adminRouter.post("/projects", async (req, res) => {
 
 adminRouter.put("/projects/:id", async (req, res) => {
   try {
-    const { name, description, status, client_id, portfolio_ids, keywords } = req.body;
+    const { name, description, status, client_id, property_id, portfolio_ids, keywords } = req.body;
     if (!name || name.trim() === "") {
       return res.status(400).json({ error: "Project name is required" });
     }
     
+    if (!client_id) return res.status(400).json({ error: "A client is required for every project" });
+    if (property_id) {
+      const property = await db.execute({ sql: "SELECT id FROM client_properties WHERE id = ? AND client_id = ?", args: [property_id, client_id] });
+      if (!property.rows.length) return res.status(400).json({ error: "The selected property does not belong to the selected client" });
+    }
     await db.execute({
-      sql: `UPDATE projects SET name = ?, description = ?, status = ?, client_id = ?, keywords = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
-      args: [name.trim(), description || "", status || "active", client_id || null, keywords || "", req.params.id]
+      sql: `UPDATE projects SET name = ?, description = ?, status = ?, client_id = ?, property_id = ?, keywords = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+      args: [name.trim(), description || "", status || "active", client_id, property_id || null, keywords || "", req.params.id]
     });
     
     // Clear old links
@@ -4065,6 +4096,17 @@ adminRouter.delete("/projects/:id/updates/:updateId", async (req, res) => {
 
 adminRouter.delete("/projects/:id", async (req, res) => {
   try {
+    const dependencies = await db.execute({
+      sql: `SELECT
+        (SELECT COUNT(*) FROM invoices WHERE project_id = ?) AS invoices,
+        (SELECT COUNT(*) FROM budget_entries WHERE project_id = ?) AS budget_entries,
+        (SELECT COUNT(*) FROM payment_requests WHERE project_id = ?) AS payment_requests`,
+      args: [req.params.id, req.params.id, req.params.id],
+    });
+    const dependency = dependencies.rows[0] as any;
+    if (Number(dependency?.invoices || 0) || Number(dependency?.budget_entries || 0) || Number(dependency?.payment_requests || 0)) {
+      return res.status(409).json({ error: "This project has financial records and cannot be deleted. Archive it instead to preserve the audit trail." });
+    }
     await db.execute({ sql: "DELETE FROM project_updates WHERE project_id = ?", args: [req.params.id] });
     await db.execute({ sql: "DELETE FROM project_milestones WHERE project_id = ?", args: [req.params.id] });
     await db.execute({
@@ -4081,6 +4123,33 @@ adminRouter.delete("/projects/:id", async (req, res) => {
   } catch (error) {
     console.error("Failed to delete project", error);
     res.status(500).json({ error: "Failed to delete project" });
+  }
+});
+
+// Read-only integrity report for the consolidated Client → Property → Project
+// → Gallery → Invoice → Payment chain.  It deliberately returns identifiers
+// and remediation hints instead of silently mutating historical records.
+adminRouter.get("/business-relations/audit", async (_req, res) => {
+  try {
+    const checks = await Promise.all([
+      db.execute({ sql: "SELECT id, name FROM projects WHERE client_id IS NULL OR TRIM(client_id) = ''", args: [] }),
+      db.execute({ sql: `SELECT p.id, p.name FROM projects p LEFT JOIN client_properties cp ON cp.id = p.property_id WHERE p.property_id IS NOT NULL AND (cp.id IS NULL OR cp.client_id <> p.client_id)`, args: [] }),
+      db.execute({ sql: "SELECT i.id, i.invoice_number FROM invoices i LEFT JOIN projects p ON p.id = i.project_id WHERE i.project_id IS NOT NULL AND p.id IS NULL", args: [] }),
+      db.execute({ sql: `SELECT i.id, i.invoice_number FROM invoices i JOIN projects p ON p.id = i.project_id WHERE i.project_id IS NOT NULL AND (i.client_id IS NULL OR i.client_id <> p.client_id)`, args: [] }),
+      db.execute({ sql: "SELECT b.id, b.description FROM budget_entries b LEFT JOIN projects p ON p.id = b.project_id WHERE b.project_id IS NOT NULL AND p.id IS NULL", args: [] }),
+      db.execute({ sql: "SELECT pr.id, pr.request_number FROM payment_requests pr LEFT JOIN projects p ON p.id = pr.project_id WHERE pr.project_id IS NOT NULL AND p.id IS NULL", args: [] }),
+    ]);
+    const issues = [
+      ["project_without_client", "Assign a client before editing the project.", checks[0].rows],
+      ["project_property_client_mismatch", "Reassign the property or project client.", checks[1].rows],
+      ["invoice_missing_project", "Remove or replace the invalid project reference.", checks[2].rows],
+      ["invoice_project_client_mismatch", "Align the invoice client with its project.", checks[3].rows],
+      ["budget_missing_project", "Remove or replace the invalid project reference.", checks[4].rows],
+      ["payment_request_missing_project", "Remove or replace the invalid project reference.", checks[5].rows],
+    ].flatMap(([type, remediation, rows]) => (rows as any[]).map((row) => ({ type, remediation, ...row })));
+    res.json({ valid: issues.length === 0, issue_count: issues.length, issues });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message || "Failed to audit business relations" });
   }
 });
 

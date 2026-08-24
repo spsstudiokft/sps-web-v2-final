@@ -26,6 +26,25 @@ async function findPortalClientIdByEmail(email: string): Promise<string | null> 
   return result.rows.length > 0 ? String(result.rows[0].id) : null;
 }
 
+async function validateInvoiceBusinessLinks(clientId: string | null, projectId: unknown, propertyId: unknown) {
+  const cleanProjectId = String(projectId || "").trim();
+  const cleanPropertyId = String(propertyId || "").trim();
+  let project: any = null;
+  if (cleanProjectId) {
+    const result = await db.execute({ sql: "SELECT id, client_id, property_id FROM projects WHERE id = ?", args: [cleanProjectId] });
+    project = result.rows[0] as any;
+    if (!project) throw new Error("The selected project does not exist");
+    if (!clientId || String(project.client_id || "") !== clientId) throw new Error("The selected project does not belong to the invoice client");
+  }
+  if (cleanPropertyId) {
+    const result = await db.execute({ sql: "SELECT id, client_id FROM client_properties WHERE id = ?", args: [cleanPropertyId] });
+    const property = result.rows[0] as any;
+    if (!property) throw new Error("The selected property does not exist");
+    if (!clientId || String(property.client_id || "") !== clientId) throw new Error("The selected property does not belong to the invoice client");
+    if (project?.property_id && String(project.property_id) !== cleanPropertyId) throw new Error("The selected property conflicts with the project property");
+  }
+}
+
 // Helper to format currency for email and display
 function formatCurrency(amount: number, currency: string = "USD"): string {
   try {
@@ -513,6 +532,8 @@ invoiceRouter.post("/", async (req: any, res) => {
       client_phone = "",
       client_address = "",
       property_address = "",
+      project_id = null,
+      property_id = null,
       issue_date,
       due_date,
       currency = "USD",
@@ -532,6 +553,7 @@ invoiceRouter.post("/", async (req: any, res) => {
 
     const normalizedClientEmail = normalizeEmail(client_email);
     const portalClientId = await findPortalClientIdByEmail(normalizedClientEmail);
+    await validateInvoiceBusinessLinks(portalClientId, project_id, property_id);
 
     const id = crypto.randomUUID();
     const accessToken = crypto.randomBytes(24).toString("hex");
@@ -628,13 +650,13 @@ invoiceRouter.post("/", async (req: any, res) => {
     await db.execute({
       sql: `
         INSERT INTO invoices (
-          id, invoice_number, budget_entry_id, owner_admin_id, client_id,
+          id, invoice_number, budget_entry_id, owner_admin_id, client_id, project_id, property_id,
           client_name, client_email, client_phone, client_address, property_address,
           issue_date, due_date, currency, status,
           subtotal, tax_rate, tax_amount, discount_amount, total_amount, amount_paid,
           payment_terms, notes, payment_method_instructions, payment_link,
           access_token, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
       `,
       args: [
         id,
@@ -642,6 +664,8 @@ invoiceRouter.post("/", async (req: any, res) => {
         linkedBudgetId,
         currentUserId,
         portalClientId,
+        project_id || null,
+        property_id || null,
         client_name.trim(),
         normalizedClientEmail,
         client_phone.trim(),
@@ -722,6 +746,8 @@ invoiceRouter.put("/:id", async (req: any, res) => {
       client_phone = "",
       client_address = "",
       property_address = "",
+      project_id = null,
+      property_id = null,
       issue_date,
       due_date,
       currency = "USD",
@@ -741,6 +767,7 @@ invoiceRouter.put("/:id", async (req: any, res) => {
 
     const normalizedClientEmail = normalizeEmail(client_email);
     const portalClientId = await findPortalClientIdByEmail(normalizedClientEmail);
+    await validateInvoiceBusinessLinks(portalClientId, project_id, property_id);
 
     // Compute line items
     let subtotal = 0;
@@ -780,6 +807,8 @@ invoiceRouter.put("/:id", async (req: any, res) => {
           client_phone = ?,
           client_address = ?,
           property_address = ?,
+          project_id = ?,
+          property_id = ?,
           issue_date = ?,
           due_date = ?,
           currency = ?,
@@ -804,6 +833,8 @@ invoiceRouter.put("/:id", async (req: any, res) => {
         client_phone.trim(),
         client_address.trim(),
         property_address.trim(),
+        project_id || null,
+        property_id || null,
         issue_date || existingRes.rows[0].issue_date,
         due_date || existingRes.rows[0].due_date,
         currency,
@@ -861,6 +892,12 @@ invoiceRouter.put("/:id", async (req: any, res) => {
 invoiceRouter.delete("/:id", async (req: any, res) => {
   try {
     const { id } = req.params;
+
+    const dependencies = await db.execute({ sql: "SELECT (SELECT COUNT(*) FROM invoice_payments WHERE invoice_id = ?) AS payments, (SELECT COUNT(*) FROM payment_requests WHERE linked_invoice_id = ?) AS payment_requests", args: [id, id] });
+    const dependency = dependencies.rows[0] as any;
+    if (Number(dependency?.payments || 0) || Number(dependency?.payment_requests || 0)) {
+      return res.status(409).json({ error: "This invoice has payments or payment requests and cannot be deleted. Archive it instead." });
+    }
 
     await db.execute({ sql: "DELETE FROM invoice_items WHERE invoice_id = ?", args: [id] });
     await db.execute({ sql: "DELETE FROM invoice_payments WHERE invoice_id = ?", args: [id] });

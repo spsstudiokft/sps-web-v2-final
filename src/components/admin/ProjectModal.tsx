@@ -61,6 +61,7 @@ export function ProjectModal({
     description: "",
     status: "active",
     client_id: null,
+    property_id: null,
     keywords: "",
     portfolio_ids: [],
   });
@@ -69,6 +70,7 @@ export function ProjectModal({
   const [saving, setSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [portfolioSearch, setPortfolioSearch] = useState("");
+  const [clientProperties, setClientProperties] = useState<Array<{ id: string; property_name?: string; address: string }>>([]);
   const [notifyingClient, setNotifyingClient] = useState(false);
   const [notifySuccess, setNotifySuccess] = useState<string | null>(null);
 
@@ -110,6 +112,7 @@ export function ProjectModal({
           description: project.description || "",
           status: project.status || "active",
           client_id: project.client_id || null,
+          property_id: project.property_id || null,
           keywords: project.keywords || "",
           portfolio_ids: project.portfolio_ids || project.portfolios?.map((p) => p.id) || [],
         });
@@ -119,6 +122,7 @@ export function ProjectModal({
           description: "",
           status: "active",
           client_id: null,
+          property_id: null,
           keywords: "",
           portfolio_ids: [],
         });
@@ -127,6 +131,14 @@ export function ProjectModal({
       setPortfolioSearch("");
     }
   }, [isOpen, project]);
+
+  useEffect(() => {
+    if (!formData.client_id) { setClientProperties([]); return; }
+    void fetchApi(`/api/admin/clients/${formData.client_id}/properties`)
+      .then((res) => res.ok ? res.json() : [])
+      .then((rows) => setClientProperties(Array.isArray(rows) ? rows : []))
+      .catch(() => setClientProperties([]));
+  }, [formData.client_id, fetchApi]);
 
   // Handle ESC key to dismiss modal
   useEffect(() => {
@@ -312,10 +324,11 @@ export function ProjectModal({
                     setFormData((prev) => ({
                       ...prev,
                       client_id: e.target.value ? e.target.value : null,
+                      property_id: null,
                     }))
                   }
                 >
-                  <option value="">-- No Client Assigned --</option>
+                  <option value="">-- Select Client --</option>
                   {clients.map((client) => (
                     <option key={client.id} value={client.id}>
                       {client.email}
@@ -323,6 +336,13 @@ export function ProjectModal({
                   ))}
                 </select>
               </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="project-property-select" className="text-sm font-semibold text-text">Linked Property <span className="text-muted-text font-normal">(optional)</span></Label>
+              <select id="project-property-select" disabled={!formData.client_id} className="w-full px-3.5 py-2.5 border border-border bg-surface text-text rounded-xl focus:ring-2 focus:ring-primary focus:border-primary outline-none sm:text-sm transition-all disabled:opacity-60" value={formData.property_id || ""} onChange={(e) => setFormData((prev) => ({ ...prev, property_id: e.target.value || null }))}>
+                <option value="">-- No Property Linked --</option>
+                {clientProperties.map((property) => <option key={property.id} value={property.id}>{property.property_name || property.address}{property.property_name ? ` · ${property.address}` : ""}</option>)}
+              </select>
             </div>
           </div>
 

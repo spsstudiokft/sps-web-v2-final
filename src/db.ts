@@ -131,6 +131,62 @@ export const setupDatabase = async () => {
     // Table/column may not exist yet or the column already exists.
   }
 
+  // Core business-object chain migrations.  These deliberately use nullable
+  // references for legacy records, while new writes validate the relationship
+  // in the relevant router.  Financial records are never cascade-deleted.
+  try { await client.execute("ALTER TABLE projects ADD COLUMN property_id TEXT DEFAULT NULL"); } catch {}
+  try { await client.execute("ALTER TABLE invoices ADD COLUMN project_id TEXT DEFAULT NULL"); } catch {}
+  try { await client.execute("ALTER TABLE invoices ADD COLUMN property_id TEXT DEFAULT NULL"); } catch {}
+  try { await client.execute("ALTER TABLE budget_entries ADD COLUMN project_id TEXT DEFAULT NULL"); } catch {}
+  try { await client.execute("ALTER TABLE payment_requests ADD COLUMN project_id TEXT DEFAULT NULL"); } catch {}
+  try {
+    await client.batch([
+      "CREATE INDEX IF NOT EXISTS idx_projects_client_property ON projects(client_id, property_id)",
+      "CREATE INDEX IF NOT EXISTS idx_invoices_project ON invoices(project_id)",
+      "CREATE INDEX IF NOT EXISTS idx_invoices_property ON invoices(property_id)",
+      "CREATE INDEX IF NOT EXISTS idx_budget_entries_project ON budget_entries(project_id)",
+      "CREATE INDEX IF NOT EXISTS idx_payment_requests_project ON payment_requests(project_id)",
+    ], "write");
+  } catch {}
+
+  // Keep legacy single-value client fields compatible while making the
+  // normalized tables the canonical multi-value source.  Each insert is
+  // idempotent, so this also repairs records imported from older releases.
+  try {
+    await client.batch([
+      `INSERT INTO client_properties (id, client_id, property_name, address, metadata, sort_order)
+       SELECT lower(hex(randomblob(16))), u.id, 'Primary property', TRIM(u.property_address), '{"source":"legacy_users"}', 0
+       FROM users u
+       WHERE u.role = 'client' AND u.property_address IS NOT NULL AND TRIM(u.property_address) <> ''
+         AND NOT EXISTS (SELECT 1 FROM client_properties cp WHERE cp.client_id = u.id AND TRIM(cp.address) = TRIM(u.property_address))`,
+      `INSERT INTO client_links (id, client_id, label, url, metadata, sort_order)
+       SELECT lower(hex(randomblob(16))), u.id, 'Primary listing link', TRIM(u.advertisement_link), '{"source":"legacy_users"}', 0
+       FROM users u
+       WHERE u.role = 'client' AND u.advertisement_link IS NOT NULL AND TRIM(u.advertisement_link) <> ''
+         AND NOT EXISTS (SELECT 1 FROM client_links cl WHERE cl.client_id = u.id AND TRIM(cl.url) = TRIM(u.advertisement_link))`,
+      `INSERT INTO client_properties (id, client_id, property_name, address, metadata, sort_order)
+       SELECT lower(hex(randomblob(16))), c.id, COALESCE(NULLIF(TRIM(c.name), ''), 'Primary property'), TRIM(c.property_address), '{"source":"legacy_crm"}', 0
+       FROM crm_records c
+       WHERE c.property_address IS NOT NULL AND TRIM(c.property_address) <> ''
+         AND NOT EXISTS (SELECT 1 FROM client_properties cp WHERE cp.client_id = c.id AND TRIM(cp.address) = TRIM(c.property_address))`,
+      `INSERT INTO client_links (id, client_id, label, url, metadata, sort_order)
+       SELECT lower(hex(randomblob(16))), c.id, 'Primary listing link', TRIM(c.advertisement_link), '{"source":"legacy_crm"}', 0
+       FROM crm_records c
+       WHERE c.advertisement_link IS NOT NULL AND TRIM(c.advertisement_link) <> ''
+         AND NOT EXISTS (SELECT 1 FROM client_links cl WHERE cl.client_id = c.id AND TRIM(cl.url) = TRIM(c.advertisement_link))`,
+      `CREATE TABLE IF NOT EXISTS business_relation_audits (
+        id TEXT PRIMARY KEY, entity_type TEXT NOT NULL, entity_id TEXT NOT NULL,
+        issue_type TEXT NOT NULL, details TEXT DEFAULT '', resolved_at DATETIME DEFAULT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )`,
+      "CREATE UNIQUE INDEX IF NOT EXISTS idx_business_relation_audit_open ON business_relation_audits(entity_type, entity_id, issue_type)",
+    ], "write");
+  } catch (error) {
+    // Some tables are created later on a brand-new database; the next startup
+    // runs the same safe reconciliation after initialization.
+    console.warn("Business relation legacy reconciliation notice:", error);
+  }
+
   // Review automation was added after the v8 initialization marker, so it must
   // be created before the initialized-database fast path.
   await client.execute(`

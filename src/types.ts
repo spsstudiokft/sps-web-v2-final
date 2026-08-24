@@ -120,6 +120,9 @@ export type Project = {
   status: string;
   client_id: string | null;
   client_email?: string | null;
+  property_id?: string | null;
+  property_name?: string | null;
+  property_address?: string | null;
   keywords?: string | null;
   created_at: string;
   updated_at: string;
@@ -164,6 +167,8 @@ export interface BudgetEntry {
   status: BudgetStatus;
   description?: string;
   color_code?: string;
+  project_id?: string | null;
+  project_name?: string | null;
   created_at: string;
   updated_at: string;
   isOwner?: boolean;
@@ -290,6 +295,8 @@ export interface Invoice {
   budget_entry_id?: string | null;
   owner_admin_id: string;
   client_id?: string | null;
+  project_id?: string | null;
+  property_id?: string | null;
   client_name: string;
   client_email: string;
   client_phone?: string;
@@ -392,6 +399,8 @@ export interface PaymentRequest {
   link_type?: 'none' | 'budget_entry' | 'invoice' | 'expense';
   linked_budget_entry_id?: string | null;
   linked_invoice_id?: string | null;
+  project_id?: string | null;
+  project_name?: string | null;
   due_date?: string;
   payment_method?: string;
   beneficiary_name?: string;

@@ -79,6 +79,8 @@ export function BudgetEntryModal({
   const [status, setStatus] = useState<BudgetStatus>("confirmed");
   const [description, setDescription] = useState<string>("");
   const [colorCode, setColorCode] = useState<string>(defaultAdminColor);
+  const [projectId, setProjectId] = useState<string>("");
+  const [projects, setProjects] = useState<Array<{ id: string; name: string }>>([]);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string>("");
 
@@ -101,6 +103,7 @@ export function BudgetEntryModal({
       setStatus(entryToEdit.status || "planned");
       setDescription(entryToEdit.description || "");
       setColorCode(entryToEdit.color_code || defaultAdminColor);
+      setProjectId(entryToEdit.project_id || "");
     } else {
       setType("income");
       setAmount("");
@@ -111,9 +114,19 @@ export function BudgetEntryModal({
       setStatus("confirmed");
       setDescription("");
       setColorCode(defaultAdminColor);
+      setProjectId("");
     }
     setErrorMessage("");
   }, [entryToEdit, isOpen, defaultCurrency, defaultAdminColor]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const token = localStorage.getItem("admin_token") || localStorage.getItem("token");
+    void fetch("/api/admin/projects", { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+      .then((res) => res.ok ? res.json() : [])
+      .then((rows) => setProjects(Array.isArray(rows) ? rows : []))
+      .catch(() => setProjects([]));
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -163,7 +176,8 @@ export function BudgetEntryModal({
         category: finalCategory,
         status,
         description: description.trim(),
-        color_code: colorCode
+        color_code: colorCode,
+        project_id: projectId || null
       });
       onClose();
     } catch (err: any) {
@@ -353,6 +367,14 @@ export function BudgetEntryModal({
                 />
               )}
             </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-text mb-1.5">Linked Project <span className="font-normal text-muted-text">(optional)</span></label>
+            <select value={projectId} onChange={(e) => setProjectId(e.target.value)} className="w-full px-3 py-2 bg-background border border-border rounded-xl text-sm text-text focus:ring-2 focus:ring-primary focus:outline-none">
+              <option value="">-- No project linked --</option>
+              {projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
+            </select>
           </div>
 
           {/* Status Selection */}

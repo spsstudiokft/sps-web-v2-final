@@ -62,6 +62,8 @@ export function PaymentRequestModal({
   const [linkType, setLinkType] = useState<"none" | "budget_entry" | "invoice">("none");
   const [linkedBudgetEntryId, setLinkedBudgetEntryId] = useState<string>("");
   const [linkedInvoiceId, setLinkedInvoiceId] = useState<string>("");
+  const [projectId, setProjectId] = useState<string>("");
+  const [projects, setProjects] = useState<Array<{ id: string; name: string }>>([]);
   const [availableBudgetEntries, setAvailableBudgetEntries] = useState<any[]>([]);
   const [availableInvoices, setAvailableInvoices] = useState<any[]>([]);
 
@@ -95,6 +97,10 @@ export function PaymentRequestModal({
     };
 
     fetchLinks();
+    void fetch("/api/admin/projects", { headers: { Authorization: `Bearer ${token}` } })
+      .then((res) => res.ok ? res.json() : [])
+      .then((rows) => setProjects(Array.isArray(rows) ? rows : []))
+      .catch(() => setProjects([]));
   }, [isOpen, token]);
 
   // Initialize form state
@@ -112,6 +118,7 @@ export function PaymentRequestModal({
       setLinkType((requestToEdit.link_type as any) || (requestToEdit.linked_budget_entry_id ? "budget_entry" : requestToEdit.linked_invoice_id ? "invoice" : "none"));
       setLinkedBudgetEntryId(requestToEdit.linked_budget_entry_id || "");
       setLinkedInvoiceId(requestToEdit.linked_invoice_id || "");
+      setProjectId(requestToEdit.project_id || "");
       setAttachments(requestToEdit.attachments || []);
     } else {
       setTitle("");
@@ -126,6 +133,7 @@ export function PaymentRequestModal({
       setLinkType("none");
       setLinkedBudgetEntryId("");
       setLinkedInvoiceId("");
+      setProjectId("");
       setAttachments([]);
     }
     setErrorMsg(null);
@@ -203,6 +211,7 @@ export function PaymentRequestModal({
       link_type: linkType,
       linked_budget_entry_id: linkType === "budget_entry" && linkedBudgetEntryId ? linkedBudgetEntryId : null,
       linked_invoice_id: linkType === "invoice" && linkedInvoiceId ? linkedInvoiceId : null,
+      project_id: projectId || null,
       due_date: dueDate,
       payment_method: paymentMethod,
       beneficiary_name: beneficiaryName.trim(),
@@ -470,6 +479,14 @@ export function PaymentRequestModal({
           </div>
 
           {/* 5. Payment Details (Due Date, Beneficiary, Method) */}
+          <div>
+            <label className="block text-xs font-semibold text-text mb-1">Linked Project <span className="font-normal text-muted-text">(optional)</span></label>
+            <select value={projectId} onChange={(e) => setProjectId(e.target.value)} className="w-full px-3 py-2 text-xs rounded-lg border border-border bg-background text-text focus:outline-none focus:ring-1 focus:ring-primary">
+              <option value="">-- No project linked --</option>
+              {projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
+            </select>
+          </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-semibold text-text mb-1">

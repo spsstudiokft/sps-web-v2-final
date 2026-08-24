@@ -523,7 +523,8 @@ budgetRouter.post("/", async (req: any, res) => {
       category = "General",
       status = "planned",
       description = "",
-      color_code
+      color_code,
+      project_id
     } = req.body;
 
     // Validation
@@ -557,11 +558,15 @@ budgetRouter.post("/", async (req: any, res) => {
     const cleanCategory = typeof category === "string" && category.trim() ? category.trim() : "General";
     const cleanDescription = typeof description === "string" ? description.trim() : "";
     const cleanCurrency = typeof currency === "string" ? currency.trim().toUpperCase().slice(0, 5) : "USD";
+    if (project_id) {
+      const project = await db.execute({ sql: "SELECT id FROM projects WHERE id = ?", args: [project_id] });
+      if (!project.rows.length) return res.status(400).json({ error: "The selected project does not exist" });
+    }
 
     await db.execute({
       sql: `INSERT INTO budget_entries (
-        id, owner_admin_id, type, amount, currency, date, category, status, description, color_code, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+        id, owner_admin_id, type, amount, currency, date, category, status, description, color_code, project_id, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
       args: [
         newId,
         currentUserId,
@@ -572,7 +577,8 @@ budgetRouter.post("/", async (req: any, res) => {
         cleanCategory,
         finalStatus,
         cleanDescription,
-        finalColor
+        finalColor,
+        project_id || null
       ]
     });
 
@@ -689,10 +695,14 @@ budgetRouter.put("/:id", async (req: any, res, next) => {
     const targetCategory = category !== undefined ? String(category).trim() : existing.category;
     const targetDescription = description !== undefined ? String(description).trim() : existing.description;
     const targetColor = color_code ? String(color_code).trim() : existing.color_code;
+    if (project_id) {
+      const project = await db.execute({ sql: "SELECT id FROM projects WHERE id = ?", args: [project_id] });
+      if (!project.rows.length) return res.status(400).json({ error: "The selected project does not exist" });
+    }
 
     await db.execute({
       sql: `UPDATE budget_entries 
-            SET type = ?, amount = ?, currency = ?, date = ?, category = ?, status = ?, description = ?, color_code = ?, updated_at = CURRENT_TIMESTAMP 
+            SET type = ?, amount = ?, currency = ?, date = ?, category = ?, status = ?, description = ?, color_code = ?, project_id = ?, updated_at = CURRENT_TIMESTAMP 
             WHERE id = ?`,
       args: [
         targetType,
@@ -703,6 +713,7 @@ budgetRouter.put("/:id", async (req: any, res, next) => {
         targetStatus,
         targetDescription,
         targetColor,
+        project_id === undefined ? existing.project_id || null : project_id || null,
         id
       ]
     });
@@ -797,6 +808,11 @@ budgetRouter.delete("/:id", async (req: any, res) => {
       return res.status(403).json({
         error: "Permission denied: Superadmins and other administrators have read-only access and cannot delete another admin's budget entries."
       });
+    }
+
+    const dependencies = await db.execute({ sql: "SELECT COUNT(*) AS payment_requests FROM payment_requests WHERE linked_budget_entry_id = ?", args: [id] });
+    if (Number((dependencies.rows[0] as any)?.payment_requests || 0)) {
+      return res.status(409).json({ error: "This budget entry is linked to payment requests and cannot be deleted." });
     }
 
     await db.execute({

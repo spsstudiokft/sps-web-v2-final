@@ -848,10 +848,12 @@ paymentRequestRouter.get("/", async (req: any, res) => {
         i.client_name AS linked_invoice_client_name,
         i.total_amount AS linked_invoice_total_amount,
         i.currency AS linked_invoice_currency,
-        i.status AS linked_invoice_status
+        i.status AS linked_invoice_status,
+        project.name AS project_name
       FROM payment_requests p
       LEFT JOIN budget_entries b ON p.linked_budget_entry_id = b.id
       LEFT JOIN invoices i ON p.linked_invoice_id = i.id
+      LEFT JOIN projects project ON p.project_id = project.id
       ${whereClause}
       ORDER BY 
         CASE 
@@ -899,6 +901,8 @@ paymentRequestRouter.get("/", async (req: any, res) => {
         link_type: row.link_type || "none",
         linked_budget_entry_id: row.linked_budget_entry_id,
         linked_invoice_id: row.linked_invoice_id,
+        project_id: row.project_id || null,
+        project_name: row.project_name || null,
         due_date: row.due_date || "",
         payment_method: row.payment_method || "bank_transfer",
         beneficiary_name: row.beneficiary_name || "",
@@ -1072,6 +1076,7 @@ paymentRequestRouter.post("/", async (req: any, res) => {
       link_type = "none",
       linked_budget_entry_id = null,
       linked_invoice_id = null,
+      project_id = null,
       due_date = "",
       payment_method = "bank_transfer",
       beneficiary_name = "",
@@ -1089,6 +1094,10 @@ paymentRequestRouter.post("/", async (req: any, res) => {
     }
     if (!await paymentRequestCategoryExists(String(category).trim())) {
       return res.status(400).json({ error: "Selected payment request category does not exist" });
+    }
+    if (project_id) {
+      const project = await db.execute({ sql: "SELECT id FROM projects WHERE id = ?", args: [project_id] });
+      if (!project.rows.length) return res.status(400).json({ error: "The selected project does not exist" });
     }
 
     const id = crypto.randomUUID();
@@ -1126,6 +1135,7 @@ paymentRequestRouter.post("/", async (req: any, res) => {
           link_type,
           linked_budget_entry_id,
           linked_invoice_id,
+          project_id,
           due_date,
           payment_method,
           beneficiary_name,
@@ -1152,6 +1162,7 @@ paymentRequestRouter.post("/", async (req: any, res) => {
         link_type,
         linked_budget_entry_id || null,
         linked_invoice_id || null,
+        project_id || null,
         due_date || "",
         payment_method || "bank_transfer",
         beneficiary_name.trim(),
@@ -1281,6 +1292,7 @@ paymentRequestRouter.put("/:id", async (req: any, res) => {
       link_type = "none",
       linked_budget_entry_id = null,
       linked_invoice_id = null,
+      project_id = null,
       due_date = "",
       payment_method = "bank_transfer",
       beneficiary_name = "",
@@ -1294,6 +1306,10 @@ paymentRequestRouter.put("/:id", async (req: any, res) => {
     }
     if (!await paymentRequestCategoryExists(String(category).trim())) {
       return res.status(400).json({ error: "Selected payment request category does not exist" });
+    }
+    if (project_id) {
+      const project = await db.execute({ sql: "SELECT id FROM projects WHERE id = ?", args: [project_id] });
+      if (!project.rows.length) return res.status(400).json({ error: "The selected project does not exist" });
     }
 
     let existingHistory = [];
@@ -1335,6 +1351,7 @@ paymentRequestRouter.put("/:id", async (req: any, res) => {
           link_type = ?,
           linked_budget_entry_id = ?,
           linked_invoice_id = ?,
+          project_id = ?,
           due_date = ?,
           payment_method = ?,
           beneficiary_name = ?,
@@ -1354,6 +1371,7 @@ paymentRequestRouter.put("/:id", async (req: any, res) => {
         link_type || row.link_type,
         linked_budget_entry_id || null,
         linked_invoice_id || null,
+        project_id || null,
         due_date || "",
         payment_method || "bank_transfer",
         beneficiary_name ? beneficiary_name.trim() : row.beneficiary_name,

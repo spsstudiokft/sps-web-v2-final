@@ -2,6 +2,14 @@
 
 ## 2026-08-24
 
+### Business object chain and deletion safety
+
+- Added optional project references to projects, invoices, budget entries, and payment requests, plus an optional property reference on invoices.
+- Made client selection mandatory for new and updated projects; the project editor now offers the selected client's properties.
+- Protected client, property, project, invoice, and budget deletion when linked operational or financial records exist, preserving the financial audit trail.
+- Reconciled legacy single-value client property/listing data into the normalized tables without duplicate inserts, and added a read-only business-relation integrity report.
+- Added project-aware financial editing: invoices can select a client-owned project and property, while budgets and payment requests can select a project.
+
 ### About and cookie glass blur
 
 - Restored the frosted blur surface behind the About copy and reinforced the cookie banner and cookie-settings backdrop blur directly in the rendered components so production CSS optimisation cannot remove it.

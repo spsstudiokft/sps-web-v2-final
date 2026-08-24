@@ -192,6 +192,7 @@ export default function ProjectsPage() {
                       <div className="flex items-center gap-2 text-text">
                         <User size={14} className="text-muted-text" />
                         {project.client_email}
+                        {project.property_address && <span className="text-xs text-muted-text">· {project.property_address}</span>}
                       </div>
                     ) : (
                       <span className="text-muted-text italic">{tUi("admin.projects.unassigned", currentLanguage)}</span>
