@@ -40,6 +40,7 @@ export default function SettingsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalTab, setModalTab] = useState<"general" | "branding" | "translations" | "contact" | "content" | "seo" | "email">("general");
   const [saveBanner, setSaveBanner] = useState<string | null>(null);
+  const [activeSettingsGroup, setActiveSettingsGroup] = useState<"site" | "content" | "communication" | "governance">("site");
 
   const fetchSettings = async () => {
     try {
@@ -154,11 +155,26 @@ export default function SettingsPage() {
         </div>
       )}
 
+      <div className="rounded-2xl border border-border bg-surface/60 p-2 flex flex-wrap gap-2" role="tablist" aria-label="Settings categories">
+        {[
+          { id: "site", label: "Site & Brand", icon: Sliders },
+          { id: "content", label: "Content & SEO", icon: Search },
+          { id: "communication", label: "Contact & Email", icon: Mail },
+          { id: "governance", label: "Legal & Access", icon: FileText },
+        ].map((group) => {
+          const Icon = group.icon;
+          const active = activeSettingsGroup === group.id;
+          return <button key={group.id} type="button" role="tab" aria-selected={active} onClick={() => setActiveSettingsGroup(group.id as typeof activeSettingsGroup)} className={`flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-semibold transition-colors ${active ? "bg-primary text-primary-foreground shadow-xs" : "text-muted-text hover:bg-background hover:text-text"}`}>
+            <Icon className="w-4 h-4" aria-hidden="true" />{group.label}
+          </button>;
+        })}
+      </div>
+
       {/* Main Settings Overview Bento Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         
         {/* Card: Site Identity & Branding (NEW) */}
-        <Card className="border-border hover:border-primary/40 transition-colors flex flex-col justify-between md:col-span-2 lg:col-span-2">
+        <Card className={`${activeSettingsGroup === "site" ? "" : "!hidden"} border-border hover:border-primary/40 transition-colors flex flex-col justify-between md:col-span-2 lg:col-span-2`}>
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
@@ -238,7 +254,7 @@ export default function SettingsPage() {
         </Card>
 
         {/* Card 1: General & Studio Identity */}
-        <Card className="border-border hover:border-primary/40 transition-colors flex flex-col justify-between">
+        <Card className={`${activeSettingsGroup === "site" ? "" : "!hidden"} border-border hover:border-primary/40 transition-colors flex flex-col justify-between`}>
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
@@ -276,7 +292,7 @@ export default function SettingsPage() {
         </Card>
 
         {/* Card 2: Languages & Translations */}
-        <Card className="border-border hover:border-primary/40 transition-colors flex flex-col justify-between">
+        <Card className={`${activeSettingsGroup === "site" ? "" : "!hidden"} border-border hover:border-primary/40 transition-colors flex flex-col justify-between`}>
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
@@ -365,7 +381,7 @@ export default function SettingsPage() {
         </Card>
 
         {/* Card 3: Contact & Inquiries */}
-        <Card className="border-border hover:border-primary/40 transition-colors flex flex-col justify-between">
+        <Card className={`${activeSettingsGroup === "communication" ? "" : "!hidden"} border-border hover:border-primary/40 transition-colors flex flex-col justify-between`}>
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center">
@@ -411,7 +427,7 @@ export default function SettingsPage() {
         </Card>
 
         {/* Card 4: SEO & Metadata */}
-        <Card className="border-border hover:border-primary/40 transition-colors flex flex-col justify-between">
+        <Card className={`${activeSettingsGroup === "content" ? "" : "!hidden"} border-border hover:border-primary/40 transition-colors flex flex-col justify-between`}>
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <div className="w-10 h-10 rounded-xl bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 flex items-center justify-center">
@@ -445,7 +461,7 @@ export default function SettingsPage() {
         </Card>
 
         {/* Card 4: SEO & Metadata */}
-        <Card className="border-border hover:border-primary/40 transition-colors flex flex-col justify-between">
+        <Card className={`${activeSettingsGroup === "content" ? "" : "!hidden"} border-border hover:border-primary/40 transition-colors flex flex-col justify-between`}>
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center">
@@ -485,7 +501,7 @@ export default function SettingsPage() {
         </Card>
 
         {/* Card 5: Resend Email Integration & Deliverability */}
-        <Card className="border-border hover:border-primary/40 transition-colors flex flex-col justify-between md:col-span-2 lg:col-span-2">
+        <Card className={`${activeSettingsGroup === "communication" ? "" : "!hidden"} border-border hover:border-primary/40 transition-colors flex flex-col justify-between md:col-span-2 lg:col-span-2`}>
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
@@ -542,7 +558,7 @@ export default function SettingsPage() {
 
       </div>
 
-      <Card className="border-border overflow-hidden">
+      <Card className={`${activeSettingsGroup === "governance" ? "" : "!hidden"} border-border overflow-hidden`}>
         <CardHeader className="border-b border-border bg-surface/60">
           <div className="flex items-start gap-3">
             <div className="w-11 h-11 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0"><FileText className="w-5 h-5" /></div>
@@ -554,7 +570,7 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
-      {normalizeAdminRole(user?.role) === "superadmin" && <Card className="border-border overflow-hidden">
+      {normalizeAdminRole(user?.role) === "superadmin" && <Card className={`${activeSettingsGroup === "governance" ? "" : "!hidden"} border-border overflow-hidden`}>
         <CardHeader className="border-b border-border bg-surface/60"><CardTitle className="text-lg">Szerepkörök és adminpanel-jogosultságok</CardTitle><CardDescription className="mt-1">Válassza ki, hogy az Admin, Editor és Viewer szerepkör mely adminpanel-menüket és oldalakat érheti el.</CardDescription></CardHeader>
         <CardContent className="p-5 sm:p-6"><RoleMenuPermissionsManager /></CardContent>
       </Card>}

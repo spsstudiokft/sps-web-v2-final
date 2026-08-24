@@ -925,7 +925,7 @@ export default function PricingPage() {
   };
 
   return (
-    <div className="space-y-8 max-w-7xl mx-auto pb-16">
+    <div className="max-w-7xl mx-auto space-y-8 p-4 sm:p-8 pb-16">
       {/* Toast Notification */}
       {toastMessage && (
         <div

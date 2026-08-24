@@ -67,6 +67,7 @@ export interface NavSectionConfig {
   id: string;
   title: string;
   translationKey: string;
+  icon: LucideIcon;
   items: NavItemConfig[];
 }
 
@@ -105,8 +106,9 @@ export function Sidebar({ isMobileOpen = false, onMobileClose }: SidebarProps) {
   const navSections: NavSectionConfig[] = [
     {
       id: "overview",
-      title: "Overview",
-      translationKey: "admin.nav.overview",
+      title: "Dashboard & Finance",
+      translationKey: "admin.nav.dashboard",
+      icon: LayoutDashboard,
       items: [
         { to: "/admin", label: "Dashboard", translationKey: "admin.nav.dashboard", icon: LayoutDashboard, permissionKey: "dashboard" },
         { to: "/admin/budget", label: "Budget Manager", translationKey: "admin.nav.budget", icon: Wallet, permissionKey: "budget" },
@@ -118,6 +120,7 @@ export function Sidebar({ isMobileOpen = false, onMobileClose }: SidebarProps) {
       id: "content",
       title: "Content",
       translationKey: "admin.nav.content",
+      icon: ImageIcon,
       items: [
         { to: "/admin/portfolio", label: "Portfolio", translationKey: "admin.nav.portfolio", icon: ImageIcon, permissionKey: "portfolio" },
         { to: "/admin/property-listings", label: "Property Listings", translationKey: "admin.nav.property_listings", icon: Building2, permissionKey: "properties" },
@@ -143,6 +146,7 @@ export function Sidebar({ isMobileOpen = false, onMobileClose }: SidebarProps) {
       id: "users-clients",
       title: "Users & Clients",
       translationKey: "admin.nav.users_clients",
+      icon: Users,
       items: [
         { to: "/admin/team", label: "Team & Invites", translationKey: "admin.nav.team_invites", icon: UserPlus, permissionKey: "team" },
         { to: "/admin/referrals", label: "VIP Referral Program", translationKey: "admin.nav.referrals", icon: Gift, permissionKey: "referrals" },
@@ -157,6 +161,7 @@ export function Sidebar({ isMobileOpen = false, onMobileClose }: SidebarProps) {
       id: "settings",
       title: "Settings & System",
       translationKey: "admin.nav.settings_system",
+      icon: SettingsIcon,
       items: [
         { to: "/admin/themes", label: "Theme & Branding", translationKey: "admin.nav.themes", icon: Palette, permissionKey: "themes" },
         { to: "/admin/settings", label: "Site Settings", translationKey: "admin.nav.settings", icon: SettingsIcon, permissionKey: "settings" },
@@ -171,6 +176,16 @@ export function Sidebar({ isMobileOpen = false, onMobileClose }: SidebarProps) {
       initial["/admin/faqs"] = true;
     }
     return initial;
+  });
+
+  // Keep the sidebar compact: only the category containing the active page is
+  // opened automatically. Individual category states remain under user control.
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>(() => {
+    const activeSection = navSections.find((section) => section.items.some((item) => {
+      const [path, query] = item.to.split("?");
+      return location.pathname === path && (!query || location.search.includes(query));
+    }));
+    return { [activeSection?.id || "overview"]: true };
   });
 
   // Automatically expand parent menu if current location matches any child
@@ -189,6 +204,16 @@ export function Sidebar({ isMobileOpen = false, onMobileClose }: SidebarProps) {
     });
   }, [location.pathname]);
 
+  useEffect(() => {
+    const activeSection = navSections.find((section) => section.items.some((item) => {
+      const [path, query] = item.to.split("?");
+      return location.pathname === path || (location.pathname.startsWith(`${path}/`) && (!query || location.search.includes(query)));
+    }));
+    if (activeSection) {
+      setExpandedSections((previous) => previous[activeSection.id] ? previous : { ...previous, [activeSection.id]: true });
+    }
+  }, [location.pathname, location.search]);
+
   // Close mobile sidebar on route change
   useEffect(() => {
     if (onMobileClose) {
@@ -200,6 +225,10 @@ export function Sidebar({ isMobileOpen = false, onMobileClose }: SidebarProps) {
     e.preventDefault();
     e.stopPropagation();
     setExpandedMenus((prev) => ({ ...prev, [to]: !prev[to] }));
+  };
+
+  const toggleSection = (sectionId: string) => {
+    setExpandedSections((previous) => previous[sectionId] ? {} : { [sectionId]: true });
   };
 
   // Filter sections by role if specified
@@ -285,30 +314,40 @@ export function Sidebar({ isMobileOpen = false, onMobileClose }: SidebarProps) {
         )}
       </div>
 
-      {/* Main Categorized Navigation List */}
+      {/* Category tabs keep the complete menu quickly scannable without hiding routes. */}
       <nav 
-        className="flex-1 px-3 py-3 space-y-5 overflow-y-auto overflow-x-hidden scrollbar-thin" 
+        className="flex-1 px-3 py-3 space-y-2 overflow-y-auto overflow-x-hidden scrollbar-thin" 
         aria-label="Admin Categorized Navigation"
       >
         {filteredSections.map((section, sIdx) => {
           const sectionTitle = tUi(section.translationKey) || section.title;
+          const SectionIcon = section.icon;
+          const isSectionExpanded = expandedSections[section.id] ?? false;
+          const hasActiveItem = section.items.some((item) => isLinkActive(item.to) || Boolean(item.subItems?.some((sub) => isLinkActive(sub.to))));
 
           return (
-            <div key={section.id} className="space-y-1">
-              {/* Section Header / Label */}
+            <div key={section.id} className="aero-sidebar-category rounded-2xl">
               {!isCollapsed ? (
-                <div className="px-3 pt-1 pb-1 flex items-center justify-between">
-                  <span className="text-[10.5px] font-bold uppercase tracking-wider text-muted-text/80 truncate">
-                    {sectionTitle}
-                  </span>
-                  <div className="h-[1px] flex-1 bg-border/40 ml-2.5" />
-                </div>
+                <button
+                  type="button"
+                  onClick={() => toggleSection(section.id)}
+                  className={cn(
+                    "aero-sidebar-category-tab flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left transition-colors",
+                    "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                    hasActiveItem ? "text-primary" : "text-muted-text hover:text-text hover:bg-surface"
+                  )}
+                  aria-expanded={isSectionExpanded}
+                  aria-controls={`admin-nav-section-${section.id}`}
+                >
+                  <SectionIcon className="h-4 w-4 shrink-0" aria-hidden="true" />
+                  <span className="min-w-0 flex-1 truncate text-[11px] font-bold uppercase tracking-wider">{sectionTitle}</span>
+                  <ChevronDown className={cn("h-3.5 w-3.5 shrink-0 transition-transform duration-200", isSectionExpanded && "rotate-180")} aria-hidden="true" />
+                </button>
               ) : (
                 sIdx > 0 && <div className="my-2 border-t border-border/60 mx-2" />
               )}
 
-              {/* Section Items */}
-              <div className="space-y-1">
+              <div id={`admin-nav-section-${section.id}`} className={cn("space-y-1", !isCollapsed && "px-1 pb-1", !isCollapsed && !isSectionExpanded && "hidden")}>
                 {section.items.map((link) => {
                   const hasSubItems = Boolean(link.subItems && link.subItems.length > 0);
                   const isExpanded = expandedMenus[link.to] ?? false;

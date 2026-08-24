@@ -272,6 +272,8 @@ export const setupDatabase = async () => {
       ["password_auth_enabled", "ALTER TABLE users ADD COLUMN password_auth_enabled INTEGER DEFAULT 1"],
       ["password_updated_at", "ALTER TABLE users ADD COLUMN password_updated_at DATETIME DEFAULT NULL"],
       ["tfa_enabled", "ALTER TABLE users ADD COLUMN tfa_enabled INTEGER DEFAULT 0"],
+      ["last_login_at", "ALTER TABLE users ADD COLUMN last_login_at DATETIME DEFAULT NULL"],
+      ["last_activity_at", "ALTER TABLE users ADD COLUMN last_activity_at DATETIME DEFAULT NULL"],
     ].filter(([name]) => !existingUserColumns.has(name)).map(([, sql]) => sql);
     if (missingUserColumns.length > 0) await client.batch(missingUserColumns, "write");
   } catch {
@@ -487,6 +489,7 @@ export const setupDatabase = async () => {
           password_updated_at DATETIME DEFAULT NULL,
           tfa_enabled INTEGER DEFAULT 0,
           last_login_at DATETIME DEFAULT NULL,
+          last_activity_at DATETIME DEFAULT NULL,
           updated_at DATETIME DEFAULT NULL,
           portal_access_disabled_at DATETIME DEFAULT NULL,
           portal_access_disabled_reason TEXT DEFAULT '',
@@ -651,6 +654,11 @@ export const setupDatabase = async () => {
   try { await client.execute("ALTER TABLE users ADD COLUMN team_id TEXT DEFAULT NULL"); } catch {}
   try {
     await client.execute("ALTER TABLE users ADD COLUMN last_login_at DATETIME DEFAULT NULL");
+  } catch (e) {
+    // Column might already exist
+  }
+  try {
+    await client.execute("ALTER TABLE users ADD COLUMN last_activity_at DATETIME DEFAULT NULL");
   } catch (e) {
     // Column might already exist
   }

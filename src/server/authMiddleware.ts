@@ -2,6 +2,27 @@ import jwt from "jsonwebtoken";
 import { db } from "../db.js";
 
 const JWT_SECRET = process.env.JWT_SECRET || "supersecretjwtstring";
+const ACTIVITY_UPDATE_INTERVAL_MS = 5 * 60 * 1000;
+const recentActivityUpdates = new Map<string, number>();
+
+function recordUserActivity(userId: unknown) {
+  const id = typeof userId === "string" ? userId.trim() : "";
+  if (!id) return;
+
+  const now = Date.now();
+  const previousUpdate = recentActivityUpdates.get(id) || 0;
+  if (now - previousUpdate < ACTIVITY_UPDATE_INTERVAL_MS) return;
+  recentActivityUpdates.set(id, now);
+
+  // Activity tracking must never delay or block an authenticated request.
+  void db.execute({
+    sql: "UPDATE users SET last_activity_at = CURRENT_TIMESTAMP WHERE id = ?",
+    args: [id],
+  }).catch((error) => {
+    recentActivityUpdates.delete(id);
+    console.warn("User activity update warning:", error);
+  });
+}
 
 export const requireAuth = (req: any, res: any, next: any) => {
   const authHeader = req.headers.authorization;
@@ -26,6 +47,7 @@ export const requireAuth = (req: any, res: any, next: any) => {
 
   try {
     req.user = jwt.verify(token, JWT_SECRET);
+    recordUserActivity(req.user?.id);
     next();
   } catch (error: any) {
     const message = error.name === "TokenExpiredError"

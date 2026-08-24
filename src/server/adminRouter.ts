@@ -6710,7 +6710,8 @@ adminRouter.get("/team", async (req: any, res) => {
         t.name AS team_name,
         COALESCE(u.admin_is_active, u.is_active) AS is_active,
         CASE WHEN u.admin_role IS NOT NULL THEN 1 ELSE 0 END AS is_secondary_admin,
-        u.last_login_at, 
+        u.last_login_at,
+        u.last_activity_at,
         u.created_at, 
         u.updated_at 
       FROM users u
@@ -6890,7 +6891,7 @@ adminRouter.put("/team/:id", async (req: any, res) => {
     const updatedRes = await db.execute({
       sql: `SELECT id, email, name, phone, COALESCE(admin_role, role) AS role,
               COALESCE(admin_workspace, workspace) AS workspace, COALESCE(admin_team_id, team_id) AS team_id,
-              COALESCE(admin_is_active, is_active) AS is_active, last_login_at, created_at, updated_at,
+              COALESCE(admin_is_active, is_active) AS is_active, last_login_at, last_activity_at, created_at, updated_at,
               CASE WHEN admin_role IS NOT NULL THEN 1 ELSE 0 END AS is_secondary_admin
             FROM users WHERE id = ?`,
       args: [id]

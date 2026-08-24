@@ -312,6 +312,10 @@ router.post("/auth/login", async (req, res) => {
       }
     }
 
+    await db.execute({
+      sql: "UPDATE users SET last_login_at = CURRENT_TIMESTAMP, last_activity_at = CURRENT_TIMESTAMP WHERE id = ?",
+      args: [user.id],
+    });
     const token = jwt.sign({ id: user.id, email: user.email, role: effectiveRole, name: user.name || "" }, JWT_SECRET, { expiresIn: "1d" });
     res.json({ token, user: { id: user.id, email: user.email, role: effectiveRole, name: user.name || "" } });
   } catch (error: any) {
@@ -343,6 +347,10 @@ router.post("/property-auth/login", async (req, res) => {
       id: String(account.portal_user_id), propertyAccountId: String(account.property_account_id),
       email: String(account.email), name: String(account.name || ""), role: "property_client", scope: "property-listings",
     }, JWT_SECRET, { expiresIn: "12h" });
+    await db.execute({
+      sql: "UPDATE users SET last_login_at = CURRENT_TIMESTAMP, last_activity_at = CURRENT_TIMESTAMP WHERE id = ?",
+      args: [account.portal_user_id],
+    });
     res.json({ token, user: { id: account.property_account_id, email: account.email, name: account.name || "", role: "property_client" } });
   } catch (error) {
     console.error("[Property Login Error]", error);
@@ -662,6 +670,10 @@ router.post("/auth/verify-magic-link", async (req, res) => {
     });
 
     // 6. Generate authenticated JWT Session
+    await db.execute({
+      sql: "UPDATE users SET last_login_at = CURRENT_TIMESTAMP, last_activity_at = CURRENT_TIMESTAMP WHERE id = ?",
+      args: [userRow.id],
+    });
     const userRole = userRow.role || "client";
     const sessionToken = jwt.sign(
       { id: userRow.id, email: userRow.email, role: userRole, name: userRow.name || "" },
@@ -826,6 +838,10 @@ router.post("/auth/register", async (req, res) => {
       console.error("Failed to send password-registration welcome email:", welcomeEmail.error);
     }
 
+    await db.execute({
+      sql: "UPDATE users SET last_login_at = CURRENT_TIMESTAMP, last_activity_at = CURRENT_TIMESTAMP WHERE id = ?",
+      args: [id],
+    });
     const token = jwt.sign({ id, email: cleanEmail, role: 'client' }, JWT_SECRET, { expiresIn: "1d" });
     res.json({
       token,
@@ -1129,6 +1145,10 @@ router.post("/invitations/accept", async (req, res) => {
     }).catch(e => console.error("Failed to send welcome confirmation email:", e));
 
     // Generate JWT session token for seamless automatic login
+    await db.execute({
+      sql: "UPDATE users SET last_login_at = CURRENT_TIMESTAMP, last_activity_at = CURRENT_TIMESTAMP WHERE id = ?",
+      args: [userId],
+    });
     const sessionToken = jwt.sign(
       { 
         id: userId, 

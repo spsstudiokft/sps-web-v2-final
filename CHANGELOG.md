@@ -1,5 +1,29 @@
 # Modification Log
 
+## 2026-08-24 — Team and pricing page spacing
+
+- Added responsive outer spacing and a shared maximum content width to Team & Admin Invitations and Pricing & Packages, aligning both pages with the rest of the Admin workspace.
+- Matched the exact `p-4 sm:p-8` spacing convention used by the primary wide Admin pages.
+
+## 2026-08-24 — Admin responsive layout audit
+
+- Corrected the Team & Admin Invitations tab row so its three controls stack cleanly on narrow screens instead of causing horizontal overflow and clipped labels.
+
+## 2026-08-24 — Categorized Site Settings workspace
+
+- Grouped the Site Settings workspace into focused Site & Brand, Content & SEO, Contact & Email, and Legal & Access tabs while retaining every existing settings card and editor flow.
+
+## 2026-08-24 — Categorized Admin navigation tabs
+
+- Reorganized the Admin sidebar into compact, collapsible category tabs for Dashboard & Finance, Content, Users & Clients, and Settings & System.
+- The category containing the active page opens automatically, while the existing role-based menu and direct-route permissions remain unchanged.
+
+## 2026-08-24 — Team login and activity tracking
+
+- Fixed team-member login timestamps across password login, magic-link login, invitation activation, client registration, and property-account login.
+- Added throttled last-activity tracking for authenticated requests and displayed it separately from the last successful login in Team & Invitations.
+- Moved the timestamp schema updates into the always-run lightweight migration phase so existing databases receive them before authentication begins.
+
 ## 2026-08-24 — Backfill missing video posters
 
 - Added an Admin Gallery action that generates and saves poster frames for existing direct-upload video items without posters, while leaving existing manual and embedded-video thumbnails untouched.

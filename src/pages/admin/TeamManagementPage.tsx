@@ -70,6 +70,7 @@ interface TeamMember {
   team_name?: string | null;
   is_active: number | boolean;
   last_login_at?: string;
+  last_activity_at?: string;
   created_at: string;
   updated_at?: string;
   is_secondary_admin?: number | boolean;
@@ -608,7 +609,7 @@ export default function TeamManagementPage() {
   });
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-200">
+    <div className="max-w-7xl mx-auto space-y-6 p-4 sm:p-8 pb-16 animate-in fade-in duration-200">
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -756,17 +757,17 @@ export default function TeamManagementPage() {
       )}
 
       {/* Navigation Tabs */}
-      <div className="flex items-center gap-2 border-b border-border pb-2">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 border-b border-border pb-2">
         <button
           onClick={() => setActiveTab("invitations")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
+          className={`flex min-w-0 items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
             activeTab === "invitations"
               ? "bg-primary text-primary-foreground shadow-sm"
               : "text-muted-foreground hover:text-foreground hover:bg-muted"
           }`}
         >
           <Mail className="w-4 h-4" />
-          <span>Invitations</span>
+          <span className="truncate">Invitations</span>
           <span className="px-2 py-0.5 text-xs rounded-full bg-background/20 font-bold">
             {invitations.length}
           </span>
@@ -774,14 +775,14 @@ export default function TeamManagementPage() {
 
         <button
           onClick={() => setActiveTab("members")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
+          className={`flex min-w-0 items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
             activeTab === "members"
               ? "bg-primary text-primary-foreground shadow-sm"
               : "text-muted-foreground hover:text-foreground hover:bg-muted"
           }`}
         >
           <Users className="w-4 h-4" />
-          <span>Active Team</span>
+          <span className="truncate">Active Team</span>
           <span className="px-2 py-0.5 text-xs rounded-full bg-background/20 font-bold">
             {teamMembers.length}
           </span>
@@ -789,14 +790,14 @@ export default function TeamManagementPage() {
 
         <button
           onClick={() => setActiveTab("template")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
+          className={`flex min-w-0 items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
             activeTab === "template"
               ? "bg-primary text-primary-foreground shadow-sm"
               : "text-muted-foreground hover:text-foreground hover:bg-muted"
           }`}
         >
           <FileText className="w-4 h-4" />
-          <span>Email Template Preview</span>
+          <span className="truncate">Email Template Preview</span>
         </button>
       </div>
 
@@ -1157,12 +1158,14 @@ export default function TeamManagementPage() {
 
                         <td className="py-3.5 px-4 space-y-0.5 text-muted-foreground">
                           <div>
-                            {member.last_login_at
-                              ? new Date(member.last_login_at).toLocaleString()
-                              : "No recorded login"}
+                            {member.last_activity_at
+                              ? new Date(member.last_activity_at).toLocaleString()
+                              : "No recorded activity"}
                           </div>
                           <div className="text-[11px]">
-                            Joined {new Date(member.created_at).toLocaleDateString()}
+                            {member.last_login_at
+                              ? `Last login ${new Date(member.last_login_at).toLocaleString()}`
+                              : "No recorded login"}
                           </div>
                         </td>
 

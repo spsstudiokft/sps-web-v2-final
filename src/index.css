@@ -1825,6 +1825,18 @@ html:not(.dark) .aero-site :focus-visible {
 .aero-sidebar-subitem { position: relative; }
 .aero-sidebar-danger:hover::after { background: #ef4444; box-shadow: 0 0 14px rgba(239,68,68,.65); }
 
+.aero-sidebar-category {
+  border: 1px solid transparent;
+  background: color-mix(in srgb, var(--sidebar-hover) 38%, transparent);
+}
+.aero-sidebar-category-tab:hover {
+  background: color-mix(in srgb, var(--sidebar-hover) 92%, transparent);
+}
+.aero-sidebar-category:has(.aero-sidebar-item[aria-current="page"]) {
+  border-color: color-mix(in srgb, var(--sidebar-accent) 26%, transparent);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.08);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .aero-sidebar-item,
   .aero-sidebar-item::before,
