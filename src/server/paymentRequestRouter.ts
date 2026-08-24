@@ -1144,7 +1144,7 @@ paymentRequestRouter.post("/", async (req: any, res) => {
           action_history,
           created_at,
           updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
       `,
       args: [
         id,
@@ -1159,6 +1159,7 @@ paymentRequestRouter.post("/", async (req: any, res) => {
         (currency || "USD").toUpperCase(),
         category.trim(),
         description.trim(),
+        "pending",
         link_type,
         linked_budget_entry_id || null,
         linked_invoice_id || null,

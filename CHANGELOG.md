@@ -9,6 +9,7 @@
 - Protected client, property, project, invoice, and budget deletion when linked operational or financial records exist, preserving the financial audit trail.
 - Reconciled legacy single-value client property/listing data into the normalized tables without duplicate inserts, and added a read-only business-relation integrity report.
 - Added project-aware financial editing: invoices can select a client-owned project and property, while budgets and payment requests can select a project.
+- Corrected payment-request creation so its explicit pending status is persisted alongside the selected invoice and project links.
 
 ### About and cookie glass blur
 

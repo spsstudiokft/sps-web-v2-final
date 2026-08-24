@@ -679,7 +679,8 @@ budgetRouter.put("/:id", async (req: any, res, next) => {
       category,
       status,
       description,
-      color_code
+      color_code,
+      project_id
     } = req.body;
 
     const targetType = (type === "income" || type === "outcome") ? type : existing.type;

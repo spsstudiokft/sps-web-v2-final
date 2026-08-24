@@ -24,4 +24,5 @@ Target: reduce the current approximately two-minute Vercel deployment while pres
 - [x] Hiányzó vagy inkonzisztens üzleti kapcsolatok olvasható auditja: `GET /api/admin/business-relations/audit`.
 - [x] Kapcsolatellenőrzés számla-, költség- és Payment Request-mentéskor.
 - [x] Projekt- és ingatlanválasztás a pénzügyi szerkesztőkben: számla, költség és Payment Request.
+- [x] Helyi end-to-end ellenőrzés: ügyfél → ingatlan → projekt → galéria → költség → számla → Payment Request lánc, projekt- és számlakapcsolattal.
 - [ ] A régi mezők UI-ból való teljes kivezetése, az adatok kézi ellenőrzése után.
