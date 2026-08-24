@@ -2,6 +2,10 @@
 
 ## 2026-08-24
 
+### About and cookie glass blur
+
+- Restored the frosted blur surface behind the About copy and strengthened the cookie banner and cookie-settings backdrop blur.
+
 ### Sidebar footer controls
 
 - Fixed the Sign Out button incorrectly treating its click event as an expired-session request.
