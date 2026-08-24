@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { PortfolioItem } from "../../../lib/types";
 import { MediaCard, ShowcaseMediaCardItem } from "./MediaCard";
 
@@ -22,6 +22,8 @@ export function InfiniteMarqueeRow({
   isStaticScroll = false,
 }: InfiniteMarqueeRowProps) {
   const [isRowHovered, setIsRowHovered] = useState(false);
+  const viewportRef = useRef<HTMLDivElement>(null); const [isVisible, setIsVisible] = useState(false);
+  useEffect(() => { const node = viewportRef.current; if (!node) return; const observer = new IntersectionObserver(([entry]) => setIsVisible(entry.isIntersecting), { rootMargin: "160px" }); observer.observe(node); return () => observer.disconnect(); }, []);
   const staticMode = isReducedMotion || isStaticScroll;
   const [visibleStaticItems, setVisibleStaticItems] = useState(2);
 
@@ -80,14 +82,14 @@ export function InfiniteMarqueeRow({
   }
 
   const animationClass = direction === "right" ? "animate-marquee-right" : "animate-marquee-left";
-  const shouldPause = isPaused || isRowHovered;
+  const shouldPause = isPaused || isRowHovered || !isVisible;
 
   // Scale duration proportionally to track length for smooth, natural uniform velocity
   const computedDuration = Math.max(25, (baseSequence.length / 6) * speedSeconds);
 
   return (
     <div
-      className="aero-marquee-viewport relative w-full overflow-hidden py-2 select-none"
+      ref={viewportRef} className="aero-marquee-viewport relative w-full overflow-hidden py-2 select-none"
       onMouseEnter={() => setIsRowHovered(true)}
       onMouseLeave={() => setIsRowHovered(false)}
     >

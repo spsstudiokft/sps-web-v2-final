@@ -34,6 +34,7 @@
 ### Public homepage performance
 
 - Removed duplicate hero and eager portfolio-media preloads, preventing startup image-decoding contention and reducing first-load jank.
+- Kept only small pricing and FAQ previews in the bootstrap response; their complete datasets now load near the relevant section without altering Appwrite image handling.
 
 ### About and cookie glass blur
 

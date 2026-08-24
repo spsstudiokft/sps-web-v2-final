@@ -67,6 +67,7 @@ export function Pricing({
   initialPlans?: PricingPlan[];
   initialExtras?: ExtraService[];
   initialFeeRules?: PricingFeeRule[];
+  loadFullData?: boolean;
   isPerformanceLite?: boolean;
 }) {
   const { currentLang, defaultLang } = useLanguage();
@@ -80,7 +81,7 @@ export function Pricing({
   const [testDistance, setTestDistance] = useState<number>(25);
 
   useEffect(() => {
-    if (initialPlans !== undefined && initialExtras !== undefined && initialFeeRules !== undefined) {
+    if (!loadFullData && initialPlans !== undefined && initialExtras !== undefined && initialFeeRules !== undefined) {
       setLoading(false);
       return;
     }
@@ -106,7 +107,7 @@ export function Pricing({
     return () => {
       isMounted = false;
     };
-  }, [initialPlans, initialExtras, initialFeeRules]);
+  }, [initialPlans, initialExtras, initialFeeRules, loadFullData]);
 
   // Filter plans based on active tab
   const filteredPlans = useMemo(() => {

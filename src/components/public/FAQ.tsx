@@ -15,6 +15,7 @@ export function FAQ({
   settings?: SiteSettings;
   initialFaqs?: FAQItem[];
   initialCategories?: FAQCategory[];
+  loadFullData?: boolean;
 }) {
   const [faqs, setFaqs] = useState<Array<FAQItem | Partial<FAQItem>>>(
     initialFaqs || []
@@ -25,7 +26,7 @@ export function FAQ({
   const { currentLang, defaultLang } = useLanguage();
 
   useEffect(() => {
-    if (initialFaqs !== undefined && initialCategories !== undefined) return;
+    if (!loadFullData && initialFaqs !== undefined && initialCategories !== undefined) return;
     let isMounted = true;
     Promise.all([
       fetch("/api/public/faqs").then((res) => (res.ok ? res.json() : [])),
@@ -46,7 +47,7 @@ export function FAQ({
     return () => {
       isMounted = false;
     };
-  }, [initialFaqs, initialCategories]);
+  }, [initialFaqs, initialCategories, loadFullData]);
 
   const resolveText = (val: string | null | undefined, fallbackKey = ""): string => {
     if (!val) return fallbackKey ? tUi(fallbackKey, currentLang) : "";

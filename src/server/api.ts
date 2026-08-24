@@ -114,13 +114,13 @@ async function loadPublicBootstrap() {
   publicBootstrapPending = (async () => {
     const results = await getDb().batch([
       "SELECT key, value FROM settings",
-      `SELECT p.*, c.name as category_name, c.slug as category_slug FROM portfolio_items p LEFT JOIN categories c ON p.category_id = c.id WHERE p.is_published = 1 ORDER BY p.sort_order ASC, p.created_at DESC`,
+      `SELECT p.*, c.name as category_name, c.slug as category_slug FROM portfolio_items p LEFT JOIN categories c ON p.category_id = c.id WHERE p.is_published = 1 ORDER BY p.sort_order ASC, p.created_at DESC LIMIT 6`,
       "SELECT * FROM services WHERE is_published = 1 ORDER BY sort_order ASC, created_at ASC",
-      "SELECT * FROM pricing_plans ORDER BY sort_order ASC, created_at ASC",
-      "SELECT * FROM pricing_extra_services WHERE is_enabled = 1 AND (show_on_pricing_page IS NULL OR show_on_pricing_page = 1) ORDER BY sort_order ASC, created_at ASC",
-      "SELECT * FROM pricing_fee_rules WHERE is_enabled = 1 AND (show_on_pricing_page IS NULL OR show_on_pricing_page = 1) ORDER BY sort_order ASC, created_at ASC",
-      `SELECT f.*, fc.name as category_name, fc.slug as category_slug, fc.sort_order as category_sort_order FROM faqs f LEFT JOIN faq_categories fc ON f.category_id = fc.id WHERE f.is_published = 1 AND (fc.is_published = 1 OR fc.is_published IS NULL OR f.category_id IS NULL) ORDER BY COALESCE(fc.sort_order, 999) ASC, f.sort_order ASC, f.created_at ASC`,
-      "SELECT * FROM faq_categories WHERE is_published = 1 ORDER BY sort_order ASC, created_at ASC",
+      "SELECT * FROM pricing_plans ORDER BY sort_order ASC, created_at ASC LIMIT 3",
+      "SELECT * FROM pricing_extra_services WHERE is_enabled = 1 AND (show_on_pricing_page IS NULL OR show_on_pricing_page = 1) ORDER BY sort_order ASC, created_at ASC LIMIT 3",
+      "SELECT * FROM pricing_fee_rules WHERE is_enabled = 1 AND (show_on_pricing_page IS NULL OR show_on_pricing_page = 1) ORDER BY sort_order ASC, created_at ASC LIMIT 3",
+      `SELECT f.*, fc.name as category_name, fc.slug as category_slug, fc.sort_order as category_sort_order FROM faqs f LEFT JOIN faq_categories fc ON f.category_id = fc.id WHERE f.is_published = 1 AND (fc.is_published = 1 OR fc.is_published IS NULL OR f.category_id IS NULL) ORDER BY COALESCE(fc.sort_order, 999) ASC, f.sort_order ASC, f.created_at ASC LIMIT 4`,
+      "SELECT * FROM faq_categories WHERE is_published = 1 ORDER BY sort_order ASC LIMIT 4",
     ], "read");
 
     const settings = (results[0]?.rows || []).reduce((acc: any, row: any) => {

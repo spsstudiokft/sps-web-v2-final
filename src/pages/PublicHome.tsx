@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { SiteSettings, PortfolioItem, Service, PricingPlan, ExtraService, PricingFeeRule, FAQItem, FAQCategory } from "../lib/types";
 import { Header } from "../components/public/Header";
 import { Hero } from "../components/public/Hero";
@@ -120,6 +120,7 @@ export default function PublicHome() {
   const [services, setServices] = useState<Service[]>([]);
   const [bootstrap, setBootstrap] = useState<PublicBootstrapData | null>(null);
   const [loading, setLoading] = useState(true);
+  const portfolioLoaded = useRef(false);
 
   useEffect(() => {
     const cached = readCachedBootstrap();
@@ -155,6 +156,14 @@ export default function PublicHome() {
       });
   }, []);
 
+  useEffect(() => {
+    if (loading || portfolioLoaded.current) return;
+    const target = document.getElementById("portfolio");
+    if (!target) return;
+    const observer = new IntersectionObserver(([entry]) => { if (!entry.isIntersecting || portfolioLoaded.current) return; portfolioLoaded.current = true; fetch("/api/public/portfolio").then(r => r.ok ? r.json() : null).then(data => { if (Array.isArray(data)) setPortfolio(data); }).catch(() => {}); observer.disconnect(); }, { rootMargin: "600px" });
+    observer.observe(target); return () => observer.disconnect();
+  }, [loading]);
+
   if (loading) return <PublicSkeleton />;
 
   return (
@@ -167,6 +176,10 @@ export default function PublicHome() {
 function PublicHomeContent({ settings, portfolio, services, bootstrap, loading }: { settings: SiteSettings, portfolio: PortfolioItem[], services: Service[], bootstrap: PublicBootstrapData | null, loading: boolean }) {
   const [activeSection, setActiveSection] = useState("Home");
   const [isSocialPopupOpen, setIsSocialPopupOpen] = useState(false);
+  const [loadFullPricing, setLoadFullPricing] = useState(false);
+  const [loadFullFaqs, setLoadFullFaqs] = useState(false);
+  const pricingLoaded = useRef(false);
+  const faqsLoaded = useRef(false);
   const { currentLang, defaultLang } = useLanguage();
   const [litePerformanceMode, setLitePerformanceMode] = useState(shouldUseLitePerformanceMode);
   const visibleServices = services.filter((service) => service.is_published !== 0);
@@ -185,6 +198,33 @@ function PublicHomeContent({ settings, portfolio, services, bootstrap, loading }
   const hasPricing = visiblePlans.length > 0 || visibleExtras.length > 0;
   const hasFaq = visibleFaqs.length > 0;
   const hasVisualIdeas = settings.visual_ideas_enabled !== "0" && settings.visual_ideas_enabled !== "false" && visibleVisualIdeas.length > 0;
+  useEffect(() => {
+    if (pricingLoaded.current) return;
+    const target = document.getElementById("pricing");
+    if (!target) return;
+    const observer = new IntersectionObserver(([entry]) => {
+      if (!entry.isIntersecting || pricingLoaded.current) return;
+      pricingLoaded.current = true;
+      setLoadFullPricing(true);
+      observer.disconnect();
+    }, { rootMargin: "600px" });
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (faqsLoaded.current) return;
+    const target = document.getElementById("faq");
+    if (!target) return;
+    const observer = new IntersectionObserver(([entry]) => {
+      if (!entry.isIntersecting || faqsLoaded.current) return;
+      faqsLoaded.current = true;
+      setLoadFullFaqs(true);
+      observer.disconnect();
+    }, { rootMargin: "600px" });
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, []);
   const sectionMedia = parseSectionMedia(settings.section_media);
   const sectionBackgroundCss = Object.entries(sectionMedia)
     .filter(([id, media]) => Boolean(media.backgroundUrl) || id === "home")
@@ -291,9 +331,9 @@ function PublicHomeContent({ settings, portfolio, services, bootstrap, loading }
         {visibleServices.length > 0 && <Services settings={settings} initialServices={visibleServices} />}
         {visiblePortfolio.length > 0 && <Portfolio items={visiblePortfolio} isPerformanceLite={litePerformanceMode} />}
         {hasVisualIdeas && <VisualIdeas settings={settings} isPerformanceLite={litePerformanceMode} />}
-        {hasPricing && <Pricing initialPlans={visiblePlans} initialExtras={visibleExtras} initialFeeRules={bootstrap?.feeRules || []} isPerformanceLite={litePerformanceMode} />}
+        {hasPricing && <Pricing initialPlans={visiblePlans} initialExtras={visibleExtras} initialFeeRules={bootstrap?.feeRules || []} loadFullData={loadFullPricing} isPerformanceLite={litePerformanceMode} />}
         <Contact settings={settings} initialPlans={bootstrap?.pricing} initialExtras={bootstrap?.extraServices} initialFeeRules={bootstrap?.feeRules} />
-        {hasFaq && <FAQ settings={settings} initialFaqs={visibleFaqs} initialCategories={bootstrap?.faqCategories || []} />}
+        {hasFaq && <FAQ settings={settings} initialFaqs={visibleFaqs} initialCategories={bootstrap?.faqCategories || []} loadFullData={loadFullFaqs} />}
         <Footer settings={settings} />
 
         {/* Manual Fixed Floating Button in Bottom-Right Corner */}
