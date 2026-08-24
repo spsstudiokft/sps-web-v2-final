@@ -126,9 +126,9 @@ const ProtectedPropertyRoute = ({ children }: { children: ReactNode }) => {
 
 export default function App() {
   return (
-    <AdminCurrencyProvider><BrowserRouter>
+    <BrowserRouter>
       <ThemeProvider>
-        <AuthProvider>
+        <AuthProvider><AdminCurrencyProvider>
           <LanguageProvider>
             <BackgroundUploadProvider>
               <IncidentStatusWidget />
@@ -228,8 +228,8 @@ export default function App() {
               </RouteErrorBoundary>
             </BackgroundUploadProvider>
           </LanguageProvider>
-        </AuthProvider>
+        </AdminCurrencyProvider></AuthProvider>
       </ThemeProvider>
-    </BrowserRouter></AdminCurrencyProvider>
+    </BrowserRouter>
   );
 }
