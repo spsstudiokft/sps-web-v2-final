@@ -472,7 +472,7 @@ export function Sidebar({ isMobileOpen = false, onMobileClose }: SidebarProps) {
         {/* Language Selector Dropdown */}
         {supportedLangs.length > 1 && (
           <div className={cn(
-            "flex items-center w-full py-1.5 text-xs rounded-xl bg-surface/50 border border-border transition-all",
+            "aero-sidebar-item aero-sidebar-footer-control relative flex items-center w-full py-1.5 text-xs rounded-xl bg-surface/50 border border-border transition-all",
             isCollapsed ? "justify-center px-1" : "px-3 justify-between"
           )}>
             <div className="flex items-center gap-2 min-w-0">
@@ -559,7 +559,7 @@ export function Sidebar({ isMobileOpen = false, onMobileClose }: SidebarProps) {
         <button
           id="admin-logout-btn"
           type="button"
-          onClick={logout}
+          onClick={() => logout()}
           className={cn(
             "aero-sidebar-item aero-sidebar-danger flex items-center w-full py-2 text-xs font-medium text-muted-text hover:text-red-600 dark:hover:text-red-400 hover:bg-red-500/10 rounded-xl border border-transparent hover:border-red-500/20 transition-all",
             "focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 focus-visible:ring-offset-background group",

@@ -1,153 +1,198 @@
 # Modification Log
 
-## 2026-08-24 — Dashboard operational cards
+## 2026-08-24
+
+### Sidebar footer controls
+
+- Fixed the Sign Out button incorrectly treating its click event as an expired-session request.
+- Unified the language selector with the sidebar menu treatment and restored stable hover animation for all footer controls without blocking clicks.
+
+### Dashboard operational cards
 
 - Added reorderable and toggleable payment-request status, project-status, and recent-project cards to the Admin Dashboard.
 - Added a superadmin-only recent-client-accounts card, backed by the existing protected client-management data.
 
-## 2026-08-24 — Dashboard clock and calendar preferences
+### Dashboard clock and calendar preferences
 
 - Added persistent 12/24-hour clock formatting and Monday/Sunday week-start options to the Dashboard card manager.
 
-## 2026-08-24 — Personalizable Admin Dashboard
+### Personalizable Admin Dashboard
 
 - Added clock, monthly calendar, and persistent personal-notes cards to the Admin Dashboard.
 - Made every dashboard card sortable with drag and drop, aligned to a consistent card size, and added a card manager for toggling individual cards on or off.
 
-## 2026-08-24 — Facebook icon namespace compatibility
+### Facebook icon namespace compatibility
 
 - Normalized legacy `fa-fab-facebook`, `fa-fab-facebook-f`, and `fa-fab-f` style social-icon values to the Facebook brand icon, so existing saved settings render correctly.
 
-## 2026-08-24 — Toggleable Hero production-areas card
+### Toggleable Hero production-areas card
 
 - Added a Site Settings switch for the complete Hero Production Areas card, keeping its Photography, Cinematic film, and Drone & aerial entries together.
 - Left the card enabled by default and added a TODO marker for future menu-item configuration.
 
-## 2026-08-24 — Invoice client-account filter
+### Invoice client-account filter
 
 - Added an invoice filter for selecting a client account by its linked email address, backed by the existing CRM and client-portal lookup.
 - Applied the selected client filter to both the invoice list and invoice summary figures.
 
-## 2026-08-24 — Unified Admin tab selectors
+### Unified Admin tab selectors
 
 - Standardized the visual states of tab selectors across Admin pages and modals, including legacy underline controls.
 - Active tabs now use the same primary filled state, while inactive tabs share consistent rounded hover and keyboard-focus feedback.
 
-## 2026-08-24 — Hero image readability overlay
+### Hero image readability overlay
 
 - Added a dedicated Hero image readability slider to Site Settings, including an explicit percentage and contrast guidance.
 - The dark overlay now applies to both uploaded and built-in Hero backgrounds, keeping foreground copy readable on bright photos.
 - Added an independent 0–24 px Hero background blur control that leaves foreground copy and controls sharp.
 
-## 2026-08-24 — Stable sidebar footer controls
+### Stable sidebar footer controls
 
 - Prevented the Admin sidebar's bottom controls from shifting on hover or visible keyboard focus, eliminating the pointer/focus "shake" while preserving their existing styling.
 
-## 2026-08-24 — Categorized Site Settings modal
+### Categorized Site Settings modal
 
 - Reworked the Site Settings modal into Site & Brand, Content & SEO, and Contact & Email categories with focused sub-tabs, retaining all existing fields and save behaviour.
 
-## 2026-08-24 — Team and pricing page spacing
+### Team and pricing page spacing
 
 - Added responsive outer spacing and a shared maximum content width to Team & Admin Invitations and Pricing & Packages, aligning both pages with the rest of the Admin workspace.
 - Matched the exact `p-4 sm:p-8` spacing convention used by the primary wide Admin pages.
 
-## 2026-08-24 — Admin responsive layout audit
+### Admin responsive layout audit
 
 - Corrected the Team & Admin Invitations tab row so its three controls stack cleanly on narrow screens instead of causing horizontal overflow and clipped labels.
 
-## 2026-08-24 — Categorized Site Settings workspace
+### Categorized Site Settings workspace
 
 - Grouped the Site Settings workspace into focused Site & Brand, Content & SEO, Contact & Email, and Legal & Access tabs while retaining every existing settings card and editor flow.
 
-## 2026-08-24 — Categorized Admin navigation tabs
+### Categorized Admin navigation tabs
 
 - Reorganized the Admin sidebar into compact, collapsible category tabs for Dashboard & Finance, Content, Users & Clients, and Settings & System.
 - The category containing the active page opens automatically, while the existing role-based menu and direct-route permissions remain unchanged.
 
-## 2026-08-24 — Team login and activity tracking
+### Team login and activity tracking
 
 - Fixed team-member login timestamps across password login, magic-link login, invitation activation, client registration, and property-account login.
 - Added throttled last-activity tracking for authenticated requests and displayed it separately from the last successful login in Team & Invitations.
 - Moved the timestamp schema updates into the always-run lightweight migration phase so existing databases receive them before authentication begins.
 
-## 2026-08-24 — Backfill missing video posters
+### Backfill missing video posters
 
 - Added an Admin Gallery action that generates and saves poster frames for existing direct-upload video items without posters, while leaving existing manual and embedded-video thumbnails untouched.
 
-## 2026-08-24 — Automatic video poster frames
+### Automatic video poster frames
 
 - Video uploads now extract a representative frame in the browser, upload it as a poster image, and automatically use it for the gallery item and portfolio feature cover.
 - If a browser cannot decode a particular video codec, the video upload still completes normally and remains editable with an optional manual poster.
 
-## 2026-08-24 — Persistent background media uploads
+### Persistent background media uploads
 
 - Moved the media upload queue and its live status window to the application root, so uploads and progress remain available while navigating away from Admin pages.
 - Extended reuse of the direct Appwrite upload session for long-running, backgrounded upload batches to avoid unnecessary session recreation.
 
-## 2026-08-24 — Automatic error-page redirect
+### Automatic error-page redirect
 
 - All application error pages now display a three-second countdown and automatically return visitors to the homepage.
 
-## 2026-08-24 — Session-end portal chooser
+### Session-end portal chooser
 
 - Added a dedicated session-end screen for automatic sign-outs, allowing users to choose Admin or Client login and highlighting the portal used most recently.
 - Stored the last successful portal context for password, magic-link, and registration-based sign-ins, while keeping manual logout behaviour unchanged.
 
-## 2026-08-24 — Info bar category colours and single dismiss
+### Info bar category colours and single dismiss
 
 - The public info bar now renders each announcement using its configured category background and text colours instead of a fixed blue override.
 - Dismissing one announcement now closes the complete rotating info bar for the applicable session or permanent dismissal scope.
 
-## 2026-08-24 — Gallery item-type selector layout
+### Gallery item-type selector layout
 
 - Reworked the per-item gallery type selector into a responsive two-column grid, keeping every option inside its media card without horizontal overflow.
 
-## 2026-08-24 — Superadmin-managed admin menu permissions
+### Superadmin-managed admin menu permissions
 
 - Added a polished role-permission manager to Site Settings so Superadmins can choose each Admin, Editor, and Viewer menu/page access level.
 - Centralized menu access rules with safe defaults, persistent database configuration, sidebar filtering, direct-route 403 protection, and server-side API enforcement; Superadmins retain unrestricted access.
 
-## 2026-08-20 — SEO-complete dynamic sitemap and robots policy
+## 2026-08-20
+
+### SEO-complete dynamic sitemap and robots policy
 
 - Expanded `/sitemap.xml` with the public properties index, enabled property detail pages, published portfolio pages, image sitemap entries, canonical public URLs, validated last-modified dates, crawl priorities, and refresh hints.
 - Added a dynamic `/robots.txt` that points crawlers to the canonical sitemap and excludes private admin, client, authentication, invitation, invoice, API, and listing-management areas.
 
-## 2026-08-20 — Sitemap production routing fix
+### Sitemap production routing fix
 
 - Added a sitemap route alias for Vercel's rewritten request path so `/sitemap.xml` no longer returns a 404 in production.
 
-## 2026-08-20 — Hungarian translation completion
+### Hungarian translation completion
 
 - Translated 100 remaining English admin and customer-facing strings in the Hungarian dictionary, including branding, customer invitations, FAQ categories, leads, settings, and contact submissions.
 
-## 2026-08-20 — Translation language section markers
+### Translation language section markers
 
 - Marked the starting point of each English, Hungarian, German, Spanish, and French translation section in `src/lib/translations.ts`.
 
-## 2026-08-20 — Required privacy and terms acceptance for contact inquiries
+### Required privacy and terms acceptance for contact inquiries
 
 - Added separate required checkboxes for the Privacy Policy and Terms and Conditions to the public contact form.
 - Each policy name opens its current public legal document, and the contact API now rejects submissions that do not include both acceptances.
 
-## 2026-08-20 — Deleted default team no longer returns
+### Deleted default team no longer returns
 
 - Removed the database startup seed and automatic member/invitation reassignment for the `Main Studio` team.
 - Administrators can now delete that team permanently; it is not recreated when the server initializes again.
 
-## 2026-08-20 — Font Awesome-only social tree icons
+### Font Awesome-only social tree icons
 
 - Standardized every social-tree platform glyph on Font Awesome Brands across the admin tree, editor previews, public social popup, footer, and Coming Soon page.
 - Removed the remaining Lucide brand-icon imports from the shared social renderer and marked rendered glyphs with a consistent Font Awesome icon-family contract.
 - Kept non-brand concepts such as groups, website, email, and phone on Font Awesome Solid, and switched LinkedIn to the correctly proportioned `linkedin-in` brand glyph.
 
-## 2026-08-19 — Social brand icon rendering fix
+### Team invitations and role display reliability
+
+- Fixed the team member query so existing legacy `superadmin`, `super_admin`, uppercase, Admin, Editor, and Viewer role values are normalized and displayed consistently.
+- Added a dedicated Superadmin badge and role filter instead of incorrectly rendering unknown roles as Editor.
+- Hardened invitation and member loading against malformed/non-JSON error responses, and restricted Viewer accounts from creating invitations.
+- Protected Superadmin role assignment, editing, and deletion while preserving at least one active administrative account.
+- Normalized accepted invitation roles server-side to prevent invalid stored role values from being activated.
+
+### Role-aware admin navigation
+
+- Added one shared admin route permission map for Superadmin, Admin, Editor, and Viewer accounts.
+- Superadmin and Admin retain complete management access; Editors receive operational content, CRM, marketing, and scoped finance access; Viewers see only read-oriented dashboard and content sections.
+- Hid unauthorized sidebar entries and added matching embedded 403 protection for direct admin URLs, including restricted invoice tabs.
+- Normalized legacy role spellings before menu and route permission checks.
+
+### Client and admin dual-account invitations
+
+- Existing active client email addresses can now receive and accept admin-panel invitations instead of being rejected as existing team members.
+- Added independent secondary admin role, password, active status, workspace, and team fields so accepting an admin invitation does not overwrite the client portal identity or password.
+- Admin and client login now explicitly select their account context while continuing to use the same email address.
+- Team member listings and admin authorization recognize secondary admin access records.
+
+### Editable team categories
+
+- Added inline rename, save, cancel, and delete controls to every team category in Team Management.
+- Renaming a category also refreshes assigned member workspace labels.
+- Empty categories can be deleted directly; categories with assigned members remain protected until their members are moved.
+
+### Team category rename compatibility
+
+- Fixed team category renaming on databases created by older deployments where optional team metadata columns may be missing.
+- Rename operations now update the required name field first and synchronize member, secondary-admin, and pending-invitation workspace labels safely.
+- Duplicate category names return an actionable 409 response instead of a generic 500 error.
+
+## 2026-08-19
+
+### Social brand icon rendering fix
 
 - Reworked the shared social icon renderer to use a stable square wrapper and explicit SVG sizing across the footer, Coming Soon page, social popup, and admin previews.
 - Switched Facebook to the correct standalone `f` brand glyph so it no longer appears as an incorrectly nested or distorted emblem inside rounded controls.
 - Added compatibility aliases for legacy Font Awesome/platform values such as `facebook-f`, `facebook-square`, `fb`, `linkedin-in`, `youtube-play`, and `telegram-plane`.
 
-## 2026-08-19 — Admin-controlled Coming Soon mode
+### Admin-controlled Coming Soon mode
 
 - Added a Coming Soon configuration card to Site & System Settings with multilingual title/description, target date, enable switch, footer/social visibility controls, blur strength, and overlay opacity.
 - Added direct Appwrite/R2 upload support for optimized background images and MP4/WebM background videos, including progress, preview, direct URL, replacement, and removal controls.
@@ -156,7 +201,7 @@
 - Scoped the mode to public marketing routes (home, portfolio galleries, and properties) while keeping admin, client portal, advertiser manager, authentication, invitations, invoices, and error pages accessible.
 - Added editable Coming Soon translations for English, Hungarian, German, Spanish, and French.
 
-## 2026-08-19 — Context-aware Aero error pages
+### Context-aware Aero error pages
 
 - Added responsive, light/dark-aware 401, 403, 404, 500, and 503 pages matching the public Aero visual system.
 - Unknown public, admin, and client routes now render a real 404 view instead of silently redirecting to the homepage; nested admin/client 404s remain inside their respective layouts.
@@ -164,32 +209,32 @@
 - Added a route-level React error boundary for unexpected rendering failures and status-aware errors for missing portfolio galleries, property listings, and unavailable public invoices.
 - Added editable error-page translations for all five supported locales.
 
-## 2026-08-19 — Section media and property translation completion
+### Section media and property translation completion
 
 - Replaced the section media editor's identity translation callback and hard-coded Hungarian labels with editable `admin.section_media.*` translation keys.
 - Added complete English, Hungarian, German, Spanish, and French values for section names, image controls, positions, overlays, defaults, and upload previews.
 - Synchronized all missing built-in translation rows, including the recently added property-listing navigation and client account settings keys, into the translation database without overwriting existing admin customizations.
 
-## 2026-08-19 — Built-in section image previews
+### Built-in section image previews
 
 - Section media cards now display their hard-coded public-site background or content image before an admin uploads an override.
 - Built-in previews are clearly labelled and remain separate from saved media, so they do not incorrectly mark a section as configured or expose a clear action.
 
-## 2026-08-19 — Section image upload pipeline fix
+### Section image upload pipeline fix
 
 - Replaced section background/content-image uploads through the legacy 5 MB branding endpoint with the direct Appwrite/R2 media pipeline.
 - Section images now use the configured storage provider without sending image bytes through the Vercel serverless function and automatically prefer the generated optimized image URL.
 - Resolved the UI/server mismatch where section cards accepted files up to 15 MB but the branding endpoint rejected anything above 5 MB.
 - Improved branding-upload error parsing so non-JSON and HTTP 413 responses no longer collapse into the generic `Upload failed` message.
 
-## 2026-08-19 — Client property-listing media upload authorization
+### Client property-listing media upload authorization
 
 - Fixed Vercel property-client image uploads returning `Forbidden: Admin access required` from `/api/admin/media/upload/*`.
 - Added a shared upload authorization middleware used by both the full Node server and the Vercel admin function.
 - Limited the exception strictly to media-upload routes and require a valid `property-listings` scope plus a matching, active linked listing account for property-client sessions.
 - Preserved normal admin-role and active-account validation for every admin request, including uploads.
 
-## 2026-08-19 — Unified property-site and client-manager design
+### Unified property-site and client-manager design
 
 - Replaced the separate property-page navbar with the same responsive Header component used by the public homepage, including configured light/dark logos, brand display mode, language selector, theme switch, account menu, and mobile drawer.
 - Made homepage section links route correctly from standalone property, login, and manager pages instead of targeting missing local anchors.
@@ -197,19 +242,19 @@
 - Redesigned the property login as a responsive branded two-panel experience with clearer authentication guidance and mobile-first form controls.
 - Redesigned the client listing manager header, search/status toolbar, loading/empty states, listing cards, publication badges, and actions to match the public Aero visual language in both themes.
 
-## 2026-08-19 — Immediate public property visibility
+### Immediate public property visibility
 
 - Disabled browser and Vercel CDN caching for the public property list and detail endpoints so newly enabled listings appear immediately instead of leaving a cached empty catalog visible.
 - Forced the `/properties` client to bypass its HTTP cache whenever it loads or revisits the catalog.
 - Verified against the production API that the enabled listing exists and identified the previous response as an aged Vercel cache hit.
 
-## 2026-08-19 — Vercel property login and manager routing
+### Vercel property login and manager routing
 
 - Added the missing `/api/property-auth/*` Vercel rewrite to the authentication serverless function, fixing the text 404 response that caused the `Unexpected token 'T'` JSON parsing error.
 - Added a dedicated `/api/property-manager/*` serverless function and rewrite with the same scoped-token and active-account checks as the full Node server.
 - Hardened the property login and manager clients against non-JSON infrastructure responses so they now show an actionable message instead of leaking a JSON parser exception.
 
-## 2026-08-19 — Public property catalog and advertiser contact
+### Public property catalog and advertiser contact
 
 - Added the public `/properties` catalog and `/properties/:id` detail routes for enabled property listings.
 - Added responsive property cards with optimized thumbnail media, title, price, description, sale/rental and status labels, plus icon badges for enabled amenity switches.
@@ -218,18 +263,18 @@
 - Replaced the former disabled “Coming soon” navigation item with a working Properties link on desktop and mobile.
 - Added an admin listing-page switch that controls whether the Properties link appears in the main navigation while keeping `/properties` directly accessible.
 
-## 2026-08-19 — Linked listing-account deletion integrity
+### Linked listing-account deletion integrity
 
 - Extended admin client deletion to remove the linked property-listing account, all owned listings, and their tracked original/optimized/thumbnail media before deleting the portal user.
 - Prevented orphaned listing-account and ownership records when a migrated client is removed.
 
-## 2026-08-19 — English property-manager URLs
+### English property-manager URLs
 
 - Added `/property-listings/login` as the canonical direct property-account login URL.
 - Added `/property-listings/manager` as the canonical protected listing-manager URL.
 - Kept the previous Hungarian paths as redirect-only compatibility aliases so existing bookmarks remain valid.
 
-## 2026-08-19 — Dedicated property-manager email/password login
+### Dedicated property-manager email/password login
 
 - Added a direct `/ingatlanos/bejelentkezes` login page and `/api/property-auth/login` endpoint for previously migrated property-listing accounts.
 - The login validates the migrated email against the linked portal user's current bcrypt password and requires password sign-in to be enabled; magic-link users must add a password before migration.
@@ -238,7 +283,7 @@
 - Removed direct switching from the client portal. The portal now only performs and reports the one-time migration; users subsequently sign in through the dedicated property-manager login.
 - Every property-manager request revalidates both the linked listing account and original portal user as active, while scoped sessions are rejected by unrelated client/admin endpoints.
 
-## 2026-08-19 — Linked client property-listing accounts
+### Linked client property-listing accounts
 
 - Added a separate `property_listing_accounts` table linked one-to-one to existing client-portal users, with an idempotent one-time migration that copies the registered email address and display name.
 - Added a client-portal migration gateway and an explicit transition into a dedicated personal property-listing manager; reverse migration/switching remains reserved for the later phase.
@@ -249,7 +294,7 @@
 - Client display-name changes synchronize to the linked listing account while the original portal and listing-account records remain separate.
 - Added the client navigation entry in English, Hungarian, German, Spanish, and French; the public property website remains locked.
 
-## 2026-08-19 — Admin property listing and management system
+### Admin property listing and management system
 
 - Added a dedicated admin Property Listings area with searchable responsive cards, listing status/type badges, edit/delete actions, and an independent publication switch.
 - Added a production-safe `property_listings` schema and authenticated admin CRUD endpoints for core details, pricing, dimensions, room counts, description, construction details, orientation, view, bathroom/WC arrangement, multiple heating types, amenities, media, and visibility.
@@ -259,27 +304,27 @@
 - The public real-estate page remains locked and unchanged; only enabled listings are prepared for its later implementation.
 - Added the property-listing navigation label in English, Hungarian, German, Spanish, and French.
 
-## 2026-08-19 — Client settings endpoint production migration fix
+### Client settings endpoint production migration fix
 
 - Moved the client profile/password/TFA compatibility columns into the lightweight migration phase that always runs before the initialized-database fast path.
 - Fixed existing Vercel/Turso databases returning `Failed to load account settings` because the settings endpoint selected columns that had not been added after an earlier initialization.
 - Added a rolling-deployment compatibility query so the registered email address remains available while additive schema migration finishes.
 - Reduced repeated Turso cold-start migration traffic by checking the user schema once and batching only genuinely missing columns.
 
-## 2026-08-19 — Admin client account creation date display
+### Admin client account creation date display
 
 - Fixed SQLite UTC timestamps being interpreted as local timestamps in the admin client portal list.
 - Account creation now shows a stable localized date and time in the Budapest timezone, with safe handling for missing, invalid, ISO, and numeric timestamp values.
 - Zero-valued timestamps are treated as missing data, preventing the Unix epoch (`1970-01-01`) from appearing as an account creation date.
 
-## 2026-08-19 — Client account change notification emails
+### Client account change notification emails
 
 - Added an editable `client_account_changed` security email template to the admin email template manager.
 - Client display-name changes, password changes, and first-password setup for magic-link accounts now send a security notification email.
 - Notifications include a safe change summary, timestamp, request IP address, and direct account-settings link; passwords are never included.
 - Unchanged profile submissions do not produce duplicate notification emails.
 
-## 2026-08-19 — Client account settings and password onboarding
+### Client account settings and password onboarding
 
 - Added a dedicated `/client/settings` portal page and responsive navigation entry for profile and account-security management.
 - Clients can save a 2–100 character display name; the authenticated session updates immediately, future password/magic-link sessions include the name, and admin client search/list/detail responses now expose it independently from the CRM name.
@@ -290,7 +335,7 @@
 - Added a disabled two-factor authentication settings card and API status contract so TFA enrollment can be added later without redesigning account settings.
 - Added editable English, Hungarian, German, Spanish, and French translation keys; the existing missing-key synchronizer persists them to the database during setup.
 
-## 2026-08-19 — Client password-registration email audit
+### Client password-registration email audit
 
 - Prevented duplicate public signup/login magic-link emails with a synchronous client submit lock plus an atomic 45-second server-side idempotency window keyed by normalized email and link type.
 - Only the request that inserts the fresh magic-link record may dispatch an email; Vercel retries and simultaneous instances now return success without generating or sending a second token.
@@ -301,7 +346,7 @@
 - Kept account creation successful when the email provider reports a delivery failure, while recording the delivery result in email logs and returning a non-sensitive delivery status with the registration response.
 - Preserved the existing `account_verification` template and admin invitation workflow unchanged.
 
-## 2026-08-19 — Persistent admin gallery background uploads
+### Persistent admin gallery background uploads
 
 - Portfolio records can now be created and saved before any gallery media is attached, providing the persistent gallery id required for subsequent background uploads.
 - Published-but-empty portfolio records remain available in the admin CMS but are excluded from the public portfolio and its navigation until they receive media.
@@ -311,7 +356,7 @@
 - Kept uploads sequential across batches to protect Appwrite/R2 endpoints from avoidable concurrent rate-limit pressure, and added a browser-tab close warning while transfers are active.
 - New, not-yet-saved portfolio records retain the foreground workflow because no persistent gallery id exists until their first save.
 
-## 2026-08-19 — Vercel build pipeline optimization
+### Vercel build pipeline optimization
 
 - Split the frontend and standalone Express server builds into explicit `build:client` and `build:server` tasks while preserving the complete local/standalone `npm run build` workflow.
 - Added a Vercel-specific build task that emits only the Vite frontend because Vercel packages the `api/*.ts` serverless entrypoints independently.
@@ -319,7 +364,7 @@
 - Removed the unused direct `uuid` and `zod` dependencies from the npm manifest and lockfile, reducing installation and dependency-tracing work without changing application behavior.
 - Regenerated `package-lock.json` from a clean npm state after dependency pruning so optional Tailwind WASI packages (`@emnapi/core` and `@emnapi/wasi-threads`) remain represented and Vercel's strict `npm ci` validation succeeds.
 
-## 2026-08-19 — Portfolio media lifecycle, optimized delivery, and showcase refinements
+### Portfolio media lifecycle, optimized delivery, and showcase refinements
 
 ### Upload and storage reliability
 
@@ -607,32 +652,3 @@
 - Portfolio rows now start moving automatically as seamless duplicated-track conveyors.
 - Removed automatic hover/touch pausing and the competing reduced-motion mode from this showcase; only the explicit Stop/Continue conveyor button changes playback.
 - Verified live transforms over time, confirmed an unchanged transform while paused, and confirmed movement resumes after continuing.
-## 2026-08-20 — Team invitations and role display reliability
-
-- Fixed the team member query so existing legacy `superadmin`, `super_admin`, uppercase, Admin, Editor, and Viewer role values are normalized and displayed consistently.
-- Added a dedicated Superadmin badge and role filter instead of incorrectly rendering unknown roles as Editor.
-- Hardened invitation and member loading against malformed/non-JSON error responses, and restricted Viewer accounts from creating invitations.
-- Protected Superadmin role assignment, editing, and deletion while preserving at least one active administrative account.
-- Normalized accepted invitation roles server-side to prevent invalid stored role values from being activated.
-## 2026-08-20 — Role-aware admin navigation
-
-- Added one shared admin route permission map for Superadmin, Admin, Editor, and Viewer accounts.
-- Superadmin and Admin retain complete management access; Editors receive operational content, CRM, marketing, and scoped finance access; Viewers see only read-oriented dashboard and content sections.
-- Hid unauthorized sidebar entries and added matching embedded 403 protection for direct admin URLs, including restricted invoice tabs.
-- Normalized legacy role spellings before menu and route permission checks.
-## 2026-08-20 — Client and admin dual-account invitations
-
-- Existing active client email addresses can now receive and accept admin-panel invitations instead of being rejected as existing team members.
-- Added independent secondary admin role, password, active status, workspace, and team fields so accepting an admin invitation does not overwrite the client portal identity or password.
-- Admin and client login now explicitly select their account context while continuing to use the same email address.
-- Team member listings and admin authorization recognize secondary admin access records.
-## 2026-08-20 — Editable team categories
-
-- Added inline rename, save, cancel, and delete controls to every team category in Team Management.
-- Renaming a category also refreshes assigned member workspace labels.
-- Empty categories can be deleted directly; categories with assigned members remain protected until their members are moved.
-## 2026-08-20 — Team category rename compatibility
-
-- Fixed team category renaming on databases created by older deployments where optional team metadata columns may be missing.
-- Rename operations now update the required name field first and synchronize member, secondary-admin, and pending-invitation workspace labels safely.
-- Duplicate category names return an actionable 409 response instead of a generic 500 error.

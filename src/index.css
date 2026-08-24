@@ -1855,6 +1855,7 @@ html:not(.dark) .aero-site :focus-visible {
   opacity: 0;
   transform: translateX(-24%);
   transition: opacity .24s ease, transform .32s cubic-bezier(.22,1,.36,1);
+  pointer-events: none;
 }
 .aero-sidebar-item::after {
   content: "";
@@ -1869,6 +1870,7 @@ html:not(.dark) .aero-site :focus-visible {
   opacity: 0;
   transform: scaleY(.35);
   transition: opacity .22s ease, transform .28s cubic-bezier(.22,1,.36,1);
+  pointer-events: none;
 }
 .aero-sidebar-item:hover {
   color: var(--sidebar-text) !important;
@@ -1881,8 +1883,10 @@ html:not(.dark) .aero-site :focus-visible {
 .aero-sidebar-item:hover::after { opacity: 1; transform: scaleY(1); }
 .aero-sidebar-item:hover svg { color: var(--sidebar-accent) !important; filter: drop-shadow(0 0 5px color-mix(in srgb, var(--sidebar-accent) 48%, transparent)); }
 
-/* Footer controls must not shift below the pointer while their focus ring is visible. */
-.aero-sidebar-footer .aero-sidebar-item:hover,
+/* Footer controls retain the navigation hover motion without moving on keyboard focus. */
+.aero-sidebar-footer .aero-sidebar-item:hover {
+  transform: translateX(2px);
+}
 .aero-sidebar-footer .aero-sidebar-item:focus-visible {
   transform: none;
 }
