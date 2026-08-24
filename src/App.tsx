@@ -5,13 +5,14 @@
 
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { lazy, ReactNode, Suspense } from "react";
-import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import { AuthProvider, SESSION_ENDED_KEY, useAuth } from "./contexts/AuthContext";
 import { ThemeProvider } from "./components/ThemeProvider";
 import { LanguageProvider } from "./contexts/LanguageContext";
 import PublicHome from "./pages/PublicHome";
 import { IncidentStatusWidget } from "./components/common/IncidentStatusWidget";
 import { ErrorPage, RouteErrorBoundary } from "./pages/ErrorPage";
 import { ComingSoonGate } from "./components/public/ComingSoonGate";
+import { BackgroundUploadProvider } from "./contexts/BackgroundUploadContext";
 
 const AdminLogin = lazy(() => import("./pages/AdminLogin"));
 const AdminSetup = lazy(() => import("./pages/AdminSetup"));
@@ -43,6 +44,7 @@ const ClientRegister = lazy(() => import("./pages/ClientRegister"));
 const ForgotPasswordPage = lazy(() => import("./pages/ForgotPasswordPage"));
 const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"));
 const VerifyMagicLinkPage = lazy(() => import("./pages/VerifyMagicLinkPage"));
+const SessionEndedPage = lazy(() => import("./pages/SessionEndedPage"));
 const ClientLayout = lazy(() => import("./components/ClientLayout"));
 const ClientDashboardHome = lazy(() => import("./pages/client/ClientDashboardHome"));
 const ClientProjectsPage = lazy(() => import("./pages/client/ClientProjectsPage"));
@@ -61,7 +63,7 @@ const ProtectedClientRoute = ({ children }: { children: ReactNode }) => {
   const location = useLocation();
   
   if (!token) {
-    return <Navigate to="/client/login" state={{ from: location }} replace />;
+    return <Navigate to={sessionStorage.getItem(SESSION_ENDED_KEY) ? "/session-ended" : "/client/login"} state={{ from: location }} replace />;
   }
   
   let role = user?.role;
@@ -86,7 +88,7 @@ const ProtectedRoute = ({ children }: { children: ReactNode }) => {
   const location = useLocation();
   
   if (!token) {
-    return <Navigate to="/admin/login" state={{ from: location }} replace />;
+    return <Navigate to={sessionStorage.getItem(SESSION_ENDED_KEY) ? "/session-ended" : "/admin/login"} state={{ from: location }} replace />;
   }
 
   let role = user?.role;
@@ -125,10 +127,11 @@ export default function App() {
       <ThemeProvider>
         <AuthProvider>
           <LanguageProvider>
-            <IncidentStatusWidget />
-            <RouteErrorBoundary>
-            <Suspense fallback={<div className="min-h-screen bg-background" aria-busy="true" />}>
-            <Routes>
+            <BackgroundUploadProvider>
+              <IncidentStatusWidget />
+              <RouteErrorBoundary>
+              <Suspense fallback={<div className="min-h-screen bg-background" aria-busy="true" />}>
+              <Routes>
               <Route element={<ComingSoonGate />}>
                 <Route path="/" element={<PublicHome />} />
                 <Route path="/portfolio/:slug" element={<PortfolioGalleryPage />} />
@@ -152,6 +155,7 @@ export default function App() {
               <Route path="/invoices/:id" element={<PublicInvoicePage />} />
 
               <Route path="/client/login" element={<ClientLogin />} />
+              <Route path="/session-ended" element={<SessionEndedPage />} />
               <Route path="/client/register" element={<ClientRegister />} />
               <Route path="/property-listings/login" element={<PropertyListingLoginPage />} />
               <Route path="/property-listings/manager" element={<ProtectedPropertyRoute><ClientPropertyListingsPage /></ProtectedPropertyRoute>} />
@@ -214,9 +218,10 @@ export default function App() {
               <Route path="/500" element={<ErrorPage status={500} />} />
               <Route path="/503" element={<ErrorPage status={503} />} />
               <Route path="*" element={<ErrorPage status={404} />} />
-            </Routes>
-            </Suspense>
-            </RouteErrorBoundary>
+              </Routes>
+              </Suspense>
+              </RouteErrorBoundary>
+            </BackgroundUploadProvider>
           </LanguageProvider>
         </AuthProvider>
       </ThemeProvider>

@@ -9,10 +9,14 @@ export interface User {
   workspace?: string;
 }
 
+export type LoginPortal = "admin" | "client";
+export const LAST_LOGIN_PORTAL_KEY = "sps_last_login_portal";
+export const SESSION_ENDED_KEY = "sps_auth_session_ended";
+
 export const AuthContext = React.createContext<{
   token: string | null;
   user: User | null;
-  login: (token: string, user?: User) => void;
+  login: (token: string, user?: User, portal?: LoginPortal) => void;
   updateUser: (patch: Partial<User>) => void;
   logout: (expired?: boolean) => void;
 }>({
@@ -52,6 +56,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (saved) {
         localStorage.removeItem("admin_token");
         localStorage.removeItem("token");
+        sessionStorage.setItem(SESSION_ENDED_KEY, "true");
       }
       return null;
     }
@@ -86,7 +91,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return null;
   });
 
-  const login = (newToken: string, newUser?: User) => {
+  const login = (newToken: string, newUser?: User, portal?: LoginPortal) => {
     if (!isValidJwt(newToken)) {
       console.error("[Auth] Attempted to login with invalid token format");
       return;
@@ -94,6 +99,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     localStorage.setItem("admin_token", newToken);
     sessionStorage.removeItem("admin_token_expired");
+    sessionStorage.removeItem(SESSION_ENDED_KEY);
     setToken(newToken);
 
     let resolvedUser: User | null = null;
@@ -119,6 +125,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     if (resolvedUser) {
       localStorage.setItem("user_info", JSON.stringify(resolvedUser));
       setUser(resolvedUser);
+      localStorage.setItem(LAST_LOGIN_PORTAL_KEY, portal || (resolvedUser.role === "client" ? "client" : "admin"));
     }
   };
 
@@ -128,6 +135,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     localStorage.removeItem("user_info");
     if (expired) {
       sessionStorage.setItem("admin_token_expired", "true");
+      sessionStorage.setItem(SESSION_ENDED_KEY, "true");
     }
     setToken(null);
     setUser(null);

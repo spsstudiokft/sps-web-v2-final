@@ -174,7 +174,7 @@ export default function ClientRegister() {
 
       if (res.ok && (data.success || data.token)) {
         if (registrationMethod === "password" && data.token) {
-          login(data.token, data.user); navigate("/client", { replace: true });
+          login(data.token, data.user, "client"); navigate("/client", { replace: true });
         } else { setSentSuccess(true); setCooldown(60); }
       } else {
         setError(data.error || "Failed to send registration link. Please try again.");

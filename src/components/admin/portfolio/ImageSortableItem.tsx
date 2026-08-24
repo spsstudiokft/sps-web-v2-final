@@ -469,15 +469,15 @@ export function ImageSortableItem({
       </div>
 
       {/* Per-Item Media Type Selector Bar */}
-      <div className="px-2.5 py-1.5 bg-surface/50 border-t border-border flex items-center justify-between gap-1 text-[10px]">
+      <div className="px-2.5 py-1.5 bg-surface/50 border-t border-border flex items-start gap-2 text-[10px]">
         <span className="text-muted-text font-semibold uppercase tracking-wider text-[9px] shrink-0">
           Type:
         </span>
-        <div className="inline-flex rounded-lg bg-background p-0.5 border border-border flex-1 justify-between gap-0.5">
+        <div className="grid min-w-0 flex-1 grid-cols-2 gap-0.5 rounded-lg border border-border bg-background p-0.5">
           <button
             type="button"
             onClick={() => handleTypeChange("image")}
-            className={`px-1.5 py-0.5 rounded-md font-semibold transition-all flex items-center gap-1 cursor-pointer truncate ${
+            className={`min-w-0 justify-center px-1.5 py-0.5 rounded-md font-semibold transition-all flex items-center gap-1 cursor-pointer truncate ${
               resolvedItemType === "image"
                 ? "bg-sky-500 text-white shadow-xs"
                 : "text-muted-text hover:text-text"
@@ -490,7 +490,7 @@ export function ImageSortableItem({
           <button
             type="button"
             onClick={() => handleTypeChange("drone_video")}
-            className={`px-1.5 py-0.5 rounded-md font-semibold transition-all flex items-center gap-1 cursor-pointer truncate ${
+            className={`min-w-0 justify-center px-1.5 py-0.5 rounded-md font-semibold transition-all flex items-center gap-1 cursor-pointer truncate ${
               resolvedItemType === "drone_video"
                 ? "bg-purple-600 text-white shadow-xs"
                 : "text-muted-text hover:text-text"
@@ -503,7 +503,7 @@ export function ImageSortableItem({
           <button
             type="button"
             onClick={() => handleTypeChange("interior_video")}
-            className={`px-1.5 py-0.5 rounded-md font-semibold transition-all flex items-center gap-1 cursor-pointer truncate ${
+            className={`min-w-0 justify-center px-1.5 py-0.5 rounded-md font-semibold transition-all flex items-center gap-1 cursor-pointer truncate ${
               resolvedItemType === "interior_video"
                 ? "bg-amber-600 text-white shadow-xs"
                 : "text-muted-text hover:text-text"
@@ -516,7 +516,7 @@ export function ImageSortableItem({
           <button
             type="button"
             onClick={() => handleTypeChange("drone_photo")}
-            className={`px-1.5 py-0.5 rounded-md font-semibold transition-all flex items-center gap-1 cursor-pointer truncate ${
+            className={`min-w-0 justify-center px-1.5 py-0.5 rounded-md font-semibold transition-all flex items-center gap-1 cursor-pointer truncate ${
               resolvedItemType === "drone_photo"
                 ? "bg-emerald-600 text-white shadow-xs"
                 : "text-muted-text hover:text-text"

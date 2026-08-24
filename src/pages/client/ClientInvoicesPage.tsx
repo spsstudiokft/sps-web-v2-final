@@ -14,9 +14,11 @@ import {
 import { Button } from "../../components/ui/Button";
 import { Invoice } from "../../types";
 import { useLanguage } from "../../contexts/LanguageContext";
+import { useApi } from "../../hooks/useApi";
 
 export default function ClientInvoicesPage() {
   const { tUi, currentLanguage } = useLanguage();
+  const { fetchApi } = useApi();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -29,10 +31,7 @@ export default function ClientInvoicesPage() {
     setLoading(true);
     setError(null);
     try {
-      const token = localStorage.getItem("admin_token") || localStorage.getItem("client_token") || localStorage.getItem("token");
-      const res = await fetch("/api/client/invoices", {
-        headers: token ? { Authorization: `Bearer ${token}` } : {}
-      });
+      const res = await fetchApi("/api/client/invoices");
       if (!res.ok) {
         throw new Error("Failed to load invoices");
       }

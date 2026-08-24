@@ -30,9 +30,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../..
 import { ClientReferralProfile, ReferralTier } from "../../lib/types";
 import { formatCurrency } from "../../lib/currency";
 import { useLanguage } from "../../contexts/LanguageContext";
+import { useApi } from "../../hooks/useApi";
 
 export default function ClientReferralsPage() {
   const { tUi } = useLanguage();
+  const { fetchApi } = useApi();
   const [profile, setProfile] = useState<ClientReferralProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -58,10 +60,7 @@ export default function ClientReferralsPage() {
     setLoading(true);
     setError(null);
     try {
-      const token = localStorage.getItem("admin_token") || localStorage.getItem("client_token") || localStorage.getItem("token");
-      const res = await fetch("/api/client/referrals/profile", {
-        headers: token ? { Authorization: `Bearer ${token}` } : {}
-      });
+      const res = await fetchApi("/api/client/referrals/profile");
       if (!res.ok) {
         let errMsg = "Failed to load referral details";
         try {
@@ -112,12 +111,10 @@ export default function ClientReferralsPage() {
     setInviteError(null);
 
     try {
-      const token = localStorage.getItem("admin_token") || localStorage.getItem("client_token") || localStorage.getItem("token");
-      const res = await fetch("/api/client/referrals/invite-email", {
+      const res = await fetchApi("/api/client/referrals/invite-email", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {})
+          "Content-Type": "application/json"
         },
         body: JSON.stringify({
           recipient_email: inviteEmail.trim(),

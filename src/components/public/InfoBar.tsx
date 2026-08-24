@@ -121,24 +121,20 @@ export function InfoBar({ className = "" }: InfoBarProps) {
     };
   }, [settings.info_bar_enabled, settings.info_bar_rotation_interval, activeMessages.length, isPaused, loading, goToNext]);
 
-  // Dismiss a message
-  const handleDismiss = (msg: InfoBarMessage) => {
-    const scope = msg.dismiss_scope || "session";
+  // The public bar is a single rotating surface, not a stack: dismissing it hides every active announcement.
+  const handleDismiss = () => {
     try {
-      if (scope === "permanent") {
-        const perm: string[] = JSON.parse(localStorage.getItem(PERMANENT_DISMISSED_KEY) || "[]");
-        if (!perm.includes(msg.id)) {
-          localStorage.setItem(PERMANENT_DISMISSED_KEY, JSON.stringify([...perm, msg.id]));
-        }
-      } else {
-        const sess: string[] = JSON.parse(sessionStorage.getItem(SESSION_DISMISSED_KEY) || "[]");
-        if (!sess.includes(msg.id)) {
-          sessionStorage.setItem(SESSION_DISMISSED_KEY, JSON.stringify([...sess, msg.id]));
-        }
-      }
-    } catch {}
+      const sessionIds = activeMessages.filter((message) => (message.dismiss_scope || "session") !== "permanent").map((message) => message.id);
+      const permanentIds = activeMessages.filter((message) => message.dismiss_scope === "permanent").map((message) => message.id);
+      const existingSession: string[] = JSON.parse(sessionStorage.getItem(SESSION_DISMISSED_KEY) || "[]");
+      const existingPermanent: string[] = JSON.parse(localStorage.getItem(PERMANENT_DISMISSED_KEY) || "[]");
+      if (sessionIds.length) sessionStorage.setItem(SESSION_DISMISSED_KEY, JSON.stringify(Array.from(new Set([...existingSession, ...sessionIds]))));
+      if (permanentIds.length) localStorage.setItem(PERMANENT_DISMISSED_KEY, JSON.stringify(Array.from(new Set([...existingPermanent, ...permanentIds]))));
+    } catch {
+      // The in-memory dismissal below still hides the bar when storage is unavailable.
+    }
 
-    setDismissedIds(prev => [...prev, msg.id]);
+    setDismissedIds((previous) => Array.from(new Set([...previous, ...activeMessages.map((message) => message.id)])));
   };
 
   // Keyboard navigation
@@ -243,6 +239,7 @@ export function InfoBar({ className = "" }: InfoBarProps) {
               initial="initial"
               animate="animate"
               exit="exit"
+              style={{ color: textColor }}
               className="flex flex-wrap items-center justify-center text-center gap-x-2.5 gap-y-1.5 text-xs sm:text-sm font-medium w-full"
             >
               {/* Category Icon & Badge */}
@@ -263,7 +260,7 @@ export function InfoBar({ className = "" }: InfoBarProps) {
               </div>
 
               {/* Text Message */}
-              <span className="leading-snug tracking-tight text-text font-medium max-w-2xl break-words">
+              <span className="leading-snug tracking-tight font-medium max-w-2xl break-words">
                 {messageText}
               </span>
 
@@ -320,7 +317,7 @@ export function InfoBar({ className = "" }: InfoBarProps) {
           {/* Dismiss Button */}
           {Boolean(currentMessage.is_dismissible) && (
             <button
-              onClick={() => handleDismiss(currentMessage)}
+              onClick={handleDismiss}
               title="Dismiss notice"
               aria-label="Dismiss this announcement"
               className="cinematic-infobar-control shrink-0 w-8 h-8 md:w-7 md:h-7 rounded-full flex items-center justify-center active:scale-95 transition-all text-current opacity-80 hover:opacity-100 focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none ml-0.5"

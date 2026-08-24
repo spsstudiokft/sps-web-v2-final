@@ -69,7 +69,7 @@ export default function AdminLogin() {
       });
       if (res.ok) {
         const data = await res.json();
-        login(data.token, data.user);
+        login(data.token, data.user, "admin");
         const role = data.user?.role || "admin";
         if (role === "admin" || role === "editor" || role === "viewer") {
           const from = (location.state as any)?.from?.pathname || "/admin";

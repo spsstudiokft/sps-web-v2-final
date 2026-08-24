@@ -1,4 +1,4 @@
-import { Component, ErrorInfo, ReactNode } from "react";
+import { Component, ErrorInfo, ReactNode, useEffect, useState } from "react";
 import { ArrowLeft, Home, LockKeyhole, RefreshCw, SearchX, ServerCrash, ShieldAlert } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useLanguage } from "../contexts/LanguageContext";
@@ -20,9 +20,19 @@ export function ErrorPage({ status = 404, embedded = false }: { status?: ErrorSt
   const navigate = useNavigate();
   const location = useLocation();
   const Icon = statusIcon[status];
+  const [secondsRemaining, setSecondsRemaining] = useState(3);
   const tr = (suffix: string, fallback: string) => tUi(`error.${status}.${suffix}`, currentLang, fallback);
   const title = tr("title", status === 404 ? "Page not found" : "Something went wrong");
   usePageTitle(`${status} — ${title}`, "SPS Studio");
+
+  useEffect(() => {
+    const redirectTimer = window.setTimeout(() => navigate("/", { replace: true }), 3000);
+    const countdownTimer = window.setInterval(() => setSecondsRemaining((seconds) => Math.max(0, seconds - 1)), 1000);
+    return () => {
+      window.clearTimeout(redirectTimer);
+      window.clearInterval(countdownTimer);
+    };
+  }, [navigate]);
 
   return (
     <main className={`relative isolate flex items-center justify-center overflow-hidden bg-background px-4 ${embedded ? "min-h-[70vh] py-12" : "min-h-screen py-20"}`}>
@@ -35,6 +45,7 @@ export function ErrorPage({ status = 404, embedded = false }: { status?: ErrorSt
         <div className="mt-7 text-sm font-black uppercase tracking-[.35em] text-primary">HTTP {status}</div>
         <h1 className="mt-3 text-4xl font-black tracking-[-.04em] text-text sm:text-5xl">{title}</h1>
         <p className="mx-auto mt-5 max-w-xl text-base leading-7 text-muted-text sm:text-lg">{tr("description", "The requested page is unavailable.")}</p>
+        <p className="mt-3 text-sm font-semibold text-primary">Automatikus átirányítás a főoldalra: {secondsRemaining} mp</p>
         {status === 404 && <p className="mx-auto mt-3 max-w-xl truncate rounded-xl border border-border bg-background/70 px-4 py-2 font-mono text-xs text-muted-text" title={location.pathname}>{location.pathname}</p>}
         <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
           <button type="button" onClick={() => navigate(-1)} className="inline-flex items-center justify-center rounded-xl border border-border bg-background px-5 py-3 text-sm font-bold text-text transition hover:border-primary/50 hover:bg-surface-hover">

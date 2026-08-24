@@ -214,10 +214,10 @@ html:not(.dark) .aero-site {
 }
 
 #public-info-bar {
-  background: linear-gradient(115deg, #075fa8, #008fbd 54%, #1677d2) !important;
-  color: #f8fdff !important;
-  border-color: rgba(190, 235, 255, .42) !important;
-  box-shadow: 0 14px 38px rgba(4, 94, 157, .26), inset 0 1px rgba(255,255,255,.28);
+  background: var(--infobar-accent, #075fa8) !important;
+  color: var(--infobar-category-text, #f8fdff) !important;
+  border-color: color-mix(in srgb, var(--infobar-accent, #075fa8) 72%, white) !important;
+  box-shadow: 0 14px 38px color-mix(in srgb, var(--infobar-accent, #075fa8) 32%, transparent), inset 0 1px rgba(255,255,255,.28);
 }
 
 .aero-site [class*="text-purple"],

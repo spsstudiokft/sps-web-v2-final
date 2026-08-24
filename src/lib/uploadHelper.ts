@@ -41,7 +41,9 @@ export interface UploadResult {
 // 2.5 MB per chunk: optimal size that prevents reverse proxy timeouts and HTTP/2 socket drops
 const DEFAULT_CHUNK_SIZE = 2.5 * 1024 * 1024;
 const MAX_RETRIES_PER_CHUNK = 4;
-const APPWRITE_SESSION_REUSE_MS = 12 * 60 * 1000;
+// A direct-storage session is valid far longer than a single file request. Keep it
+// while a long batch runs so a backgrounded tab does not repeatedly create sessions.
+const APPWRITE_SESSION_REUSE_MS = 2 * 60 * 60 * 1000;
 
 let appwriteSessionCache: {
   client: any;

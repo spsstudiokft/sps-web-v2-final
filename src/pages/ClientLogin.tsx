@@ -136,7 +136,7 @@ export default function ClientLogin() {
 
       if (res.ok) {
         const data = await res.json();
-        login(data.token, data.user);
+        login(data.token, data.user, "client");
         const role = data.user?.role || "client";
         if (role === "admin" || role === "editor" || role === "viewer") {
           navigate("/admin", { replace: true });

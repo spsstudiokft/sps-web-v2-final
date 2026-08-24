@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { useApi } from "../hooks/useApi";
 import { useLanguage } from "../contexts/LanguageContext";
 import { Menu, Globe } from "lucide-react";
-import { BackgroundUploadProvider } from "../contexts/BackgroundUploadContext";
 import { useAuth } from "../contexts/AuthContext";
 import { canAccessAdminRoute } from "../lib/adminPermissions";
 import { useAdminMenuPermissions } from "../hooks/useAdminMenuPermissions";
@@ -81,11 +80,9 @@ export default function AdminLayout() {
       />
 
       {/* Main App Content Viewport */}
-      <BackgroundUploadProvider>
-        <main className="aero-workspace-main flex-1 overflow-auto text-text">
-          {hasRouteAccess ? <Outlet /> : <ErrorPage status={403} embedded />}
-        </main>
-      </BackgroundUploadProvider>
+      <main className="aero-workspace-main flex-1 overflow-auto text-text">
+        {hasRouteAccess ? <Outlet /> : <ErrorPage status={403} embedded />}
+      </main>
     </div>
   );
 }

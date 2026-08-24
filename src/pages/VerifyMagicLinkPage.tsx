@@ -57,7 +57,7 @@ export default function VerifyMagicLinkPage() {
         if (!isMounted) return;
 
         if (res.ok && data.success && data.token) {
-          login(data.token, data.user);
+          login(data.token, data.user, data.user?.role === "client" ? "client" : "admin");
           setStatus("success");
           setUserEmail(data.user?.email || "");
 

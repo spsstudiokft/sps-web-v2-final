@@ -1,5 +1,28 @@
 # Modification Log
 
+## 2026-08-24 — Persistent background media uploads
+
+- Moved the media upload queue and its live status window to the application root, so uploads and progress remain available while navigating away from Admin pages.
+- Extended reuse of the direct Appwrite upload session for long-running, backgrounded upload batches to avoid unnecessary session recreation.
+
+## 2026-08-24 — Automatic error-page redirect
+
+- All application error pages now display a three-second countdown and automatically return visitors to the homepage.
+
+## 2026-08-24 — Session-end portal chooser
+
+- Added a dedicated session-end screen for automatic sign-outs, allowing users to choose Admin or Client login and highlighting the portal used most recently.
+- Stored the last successful portal context for password, magic-link, and registration-based sign-ins, while keeping manual logout behaviour unchanged.
+
+## 2026-08-24 — Info bar category colours and single dismiss
+
+- The public info bar now renders each announcement using its configured category background and text colours instead of a fixed blue override.
+- Dismissing one announcement now closes the complete rotating info bar for the applicable session or permanent dismissal scope.
+
+## 2026-08-24 — Gallery item-type selector layout
+
+- Reworked the per-item gallery type selector into a responsive two-column grid, keeping every option inside its media card without horizontal overflow.
+
 ## 2026-08-24 — Superadmin-managed admin menu permissions
 
 - Added a polished role-permission manager to Site Settings so Superadmins can choose each Admin, Editor, and Viewer menu/page access level.
