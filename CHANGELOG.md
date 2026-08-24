@@ -31,6 +31,10 @@
 
 - Added a global admin display-currency selector and a cached Frankfurter reference-rate proxy; Customer 360 financial values now convert from their stored currency without changing accounting records.
 
+### Public homepage performance
+
+- Removed duplicate hero and eager portfolio-media preloads, preventing startup image-decoding contention and reducing first-load jank.
+
 ### About and cookie glass blur
 
 - Restored the frosted blur surface behind the About copy and reinforced the cookie banner and cookie-settings backdrop blur directly in the rendered components so production CSS optimisation cannot remove it.

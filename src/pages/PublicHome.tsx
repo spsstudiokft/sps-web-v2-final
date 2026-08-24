@@ -89,15 +89,8 @@ function preloadCriticalMedia(data: PublicBootstrapData) {
   const heroBackground = sectionMedia.home?.backgroundUrl;
   if (heroBackground) urls.add(heroBackground);
 
-  // Avoid competing with the hero/LCP request on constrained devices. Their
-  // portfolio images remain lazy-loaded as the section approaches the screen.
-  if (!shouldUseLitePerformanceMode()) {
-    for (const item of data.portfolio.slice(0, 4)) {
-      const first = getNormalizedGallery(item.image_urls)[0];
-      const url = first?.compressed_url || first?.thumbnail_url || item.thumbnail_url;
-      if (url) urls.add(url);
-    }
-  }
+  // Portfolio media is intentionally not preloaded. The interactive showcase
+  // lazy-loads it near the viewport; eager decoding caused main-thread jank.
   urls.forEach((url) => {
     const image = new Image();
     image.decoding = "async";
