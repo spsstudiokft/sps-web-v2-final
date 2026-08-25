@@ -4,6 +4,8 @@
 
 ### Shared internal calendar
 
+- Moved all-day entries into a dedicated sticky lane below the day headers, keeping them visible independently of vertical timeline scrolling.
+- Expanded the scrollable timeline to the full 00:00–24:00 day, converted team assignment to a compact dropdown multiselect, kept modal actions permanently visible, and added a translucent blurred hover-detail surface.
 - Added multi-member assignment for calendar entries and tasks, with active admin-role selection, visible assignee details, and independent reminder-email delivery to every assigned team member.
 - Simplified calendar cards to title-only display and added a full-data hover preview, while removing the competing admin-page scrollbar that caused unreliable vertical timeline scrolling.
 - Fixed the calendar to fill the available admin viewport with its own responsive scroll area, sticky day/time headers, automatic scroll to the current hour, and a live Notion-style current-time indicator.
