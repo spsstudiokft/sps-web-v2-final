@@ -43,6 +43,7 @@ export default function CalendarPage() {
   const [selection, setSelection] = useState<{ day: Date; start: number; end: number } | null>(null);
   const [now, setNow] = useState(() => new Date());
   const drag = useRef<{ day: Date; origin: number; column: HTMLDivElement } | null>(null);
+  const calendarViewportRef = useRef<HTMLDivElement | null>(null);
   const days = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)), [weekStart]);
   const weekEnd = useMemo(() => addDays(weekStart, 7), [weekStart]);
 
@@ -57,7 +58,15 @@ export default function CalendarPage() {
     finally { setLoading(false); }
   }, [fetchApi, weekStart, weekEnd]);
   useEffect(() => { void loadEvents(); }, [loadEvents]);
-  useEffect(() => { const timer = window.setInterval(() => setNow(new Date()), 60000); return () => window.clearInterval(timer); }, []);
+  useEffect(() => { const timer = window.setInterval(() => setNow(new Date()), 30000); return () => window.clearInterval(timer); }, []);
+  useEffect(() => {
+    const viewport = calendarViewportRef.current;
+    if (!viewport || !days.some(day => sameDay(day, new Date()))) return;
+    const currentMinutes = (new Date().getHours() - START_HOUR) * 60 + new Date().getMinutes();
+    const target = Math.max(0, currentMinutes / 60 * HOUR_HEIGHT - viewport.clientHeight * 0.38);
+    const frame = window.requestAnimationFrame(() => viewport.scrollTo({ top: target, behavior: "smooth" }));
+    return () => window.cancelAnimationFrame(frame);
+  }, [weekStart]);
 
   const minutesAt = (clientY: number, column: HTMLDivElement) => {
     const rect = column.getBoundingClientRect();
@@ -109,9 +118,12 @@ export default function CalendarPage() {
   };
 
   const today = new Date();
+  const currentTimeMinutes = (now.getHours() - START_HOUR) * 60 + now.getMinutes() + now.getSeconds() / 60;
+  const currentTimeTop = currentTimeMinutes / 60 * HOUR_HEIGHT;
+  const currentTimeVisible = currentTimeMinutes >= 0 && currentTimeMinutes <= (END_HOUR - START_HOUR) * 60 && days.some(day => sameDay(day, now));
   const dueReminders = events.filter(event => event.event_type === "reminder" && Boolean(event.can_edit) && !event.is_completed && event.reminder_at && new Date(event.reminder_at) <= now && new Date(event.reminder_at).getTime() > now.getTime() - 86400000);
-  return <div className="min-h-full bg-background text-text">
-    <header className="flex flex-col gap-4 border-b border-border bg-surface/80 px-4 py-4 backdrop-blur-xl lg:flex-row lg:items-center lg:justify-between lg:px-6">
+  return <div className="flex h-full min-h-0 flex-col overflow-hidden bg-background text-text">
+    <header className="shrink-0 flex flex-col gap-4 border-b border-border bg-surface/80 px-4 py-3 backdrop-blur-xl lg:flex-row lg:items-center lg:justify-between lg:px-6">
       <div className="flex items-center gap-3"><div className="rounded-xl bg-primary/10 p-2.5 text-primary"><CalendarDays size={23}/></div><div><h1 className="text-xl font-bold">Belső naptár</h1><p className="text-xs text-muted-text">Közös időbeosztás · saját események szerkesztése</p></div></div>
       <div className="flex flex-wrap items-center gap-2">
         <button className="rounded-lg border border-border bg-background px-3 py-2 text-sm font-semibold hover:bg-surface" onClick={() => setWeekStart(mondayOf(new Date()))}>Ma</button>
@@ -124,16 +136,17 @@ export default function CalendarPage() {
     </header>
     {error && <div className="mx-4 mt-4 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-500">{error}</div>}
     {dueReminders.length>0&&<button onClick={()=>setActive({...dueReminders[0],start_at:dueReminders[0].series_start_at||dueReminders[0].start_at,end_at:dueReminders[0].series_end_at||dueReminders[0].end_at})} className="mx-4 mt-4 flex items-center gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-left text-sm text-amber-600"><Bell size={18}/><span><strong>{dueReminders.length} esedékes emlékeztetőd van.</strong> {dueReminders[0].title}</span></button>}
-    <div className="overflow-x-auto">
-      <div className="min-w-[980px]">
+    <div ref={calendarViewportRef} className="min-h-0 flex-1 overflow-auto overscroll-contain [scrollbar-gutter:stable]">
+      <div className="min-w-[900px]">
         <div className="sticky top-0 z-20 grid border-b border-border bg-surface/95 backdrop-blur" style={{gridTemplateColumns:"64px repeat(7, minmax(130px, 1fr))"}}>
-          <div className="border-r border-border"/>{days.map(day => <div key={day.toISOString()} className={`border-r border-border px-2 py-3 text-center ${sameDay(day,today)?"bg-primary/5":""}`}><div className="text-[11px] font-bold uppercase tracking-widest text-muted-text">{dayLabel.format(day)}</div><div className={`mx-auto mt-1 flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold ${sameDay(day,today)?"bg-primary text-white":""}`}>{day.getDate()}</div></div>)}
+          <div className="sticky left-0 z-30 border-r border-border bg-surface/95"/>{days.map(day => <div key={day.toISOString()} className={`border-r border-border px-2 py-2 text-center ${sameDay(day,today)?"bg-primary/5":""}`}><div className="text-[11px] font-bold uppercase tracking-widest text-muted-text">{dayLabel.format(day)}</div><div className={`mx-auto mt-0.5 flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold ${sameDay(day,today)?"bg-primary text-white":""}`}>{day.getDate()}</div></div>)}
         </div>
         <div className="grid" style={{gridTemplateColumns:"64px repeat(7, minmax(130px, 1fr))"}}>
-          <div className="relative border-r border-border" style={{height:(END_HOUR-START_HOUR)*HOUR_HEIGHT}}>{Array.from({length:END_HOUR-START_HOUR+1},(_,i)=><span key={i} className="absolute right-2 -translate-y-2 text-[10px] font-medium text-muted-text" style={{top:i*HOUR_HEIGHT}}>{pad(START_HOUR+i)}:00</span>)}</div>
+          <div className="sticky left-0 z-20 border-r border-border bg-background" style={{height:(END_HOUR-START_HOUR)*HOUR_HEIGHT}}>{Array.from({length:END_HOUR-START_HOUR+1},(_,i)=><span key={i} className="absolute right-2 -translate-y-2 text-[10px] font-medium text-muted-text" style={{top:i*HOUR_HEIGHT}}>{pad(START_HOUR+i)}:00</span>)}{currentTimeVisible&&<div className="absolute inset-x-0 z-30 flex -translate-y-1/2 items-center" style={{top:currentTimeTop}}><span className="ml-1 rounded bg-red-500 px-1.5 py-0.5 text-[9px] font-bold tabular-nums text-white shadow-sm">{pad(now.getHours())}:{pad(now.getMinutes())}</span></div>}</div>
           {days.map(day => <div key={day.toISOString()} className={`relative select-none border-r border-border ${sameDay(day,today)?"bg-primary/[0.025]":""}`} style={{height:(END_HOUR-START_HOUR)*HOUR_HEIGHT}} onPointerDown={e=>beginSelection(e,day)}>
             {Array.from({length:(END_HOUR-START_HOUR)*2},(_,i)=><div key={i} className={`absolute left-0 right-0 border-t ${i%2===0?"border-border":"border-border/40"}`} style={{top:i*HOUR_HEIGHT/2}}/>)}
             {selection && sameDay(selection.day,day) && <div className="pointer-events-none absolute inset-x-1 z-10 rounded-md border border-primary bg-primary/20" style={{top:selection.start/60*HOUR_HEIGHT,height:Math.max(16,(selection.end-selection.start)/60*HOUR_HEIGHT)}}/>}
+            {currentTimeVisible&&sameDay(day,now)&&<div aria-label={`Aktuális idő ${pad(now.getHours())}:${pad(now.getMinutes())}`} className="pointer-events-none absolute inset-x-0 z-30 h-px bg-red-500 shadow-[0_0_5px_rgba(239,68,68,0.65)]" style={{top:currentTimeTop}}><span className="absolute -left-1.5 -top-1.5 h-3 w-3 rounded-full border-2 border-background bg-red-500"/></div>}
             {events.filter(ev=>sameDay(new Date(ev.start_at),day)).map(ev=>{ const start=new Date(ev.start_at), end=new Date(ev.end_at); const top=ev.is_all_day?0:Math.max(0,((start.getHours()+start.getMinutes()/60)-START_HOUR)*HOUR_HEIGHT); const height=ev.is_all_day?30:Math.max(28,(end.getTime()-start.getTime())/3600000*HOUR_HEIGHT); return <button data-event key={ev.occurrence_key||ev.id} onClick={e=>{e.stopPropagation();setActive({...ev,start_at:ev.series_start_at||ev.start_at,end_at:ev.series_end_at||ev.end_at})}} className={`absolute inset-x-1 z-10 overflow-hidden rounded-md border-l-4 px-2 py-1.5 text-left text-white shadow-md transition hover:z-20 hover:brightness-110 ${ev.is_completed?"opacity-60":""}`} style={{top,height,backgroundColor:`${ev.color}dd`,borderLeftColor:ev.color}}><div className={`flex items-center gap-1 truncate text-xs font-bold ${ev.is_completed?"line-through":""}`}>{ev.event_type==="reminder"&&<Bell size={11}/>} {ev.event_type==="task"&&<CheckSquare size={11}/>} {ev.title}{ev.recurrence_rule!=="none"&&<Repeat2 size={10}/>}</div><div className="mt-0.5 flex items-center gap-1 truncate text-[10px] opacity-90"><Clock3 size={10}/>{ev.is_all_day?"Egész napos":`${pad(start.getHours())}:${pad(start.getMinutes())}`} · {ev.owner_name}</div></button>})}
           </div>)}
         </div>

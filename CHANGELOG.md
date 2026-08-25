@@ -4,6 +4,7 @@
 
 ### Shared internal calendar
 
+- Fixed the calendar to fill the available admin viewport with its own responsive scroll area, sticky day/time headers, automatic scroll to the current hour, and a live Notion-style current-time indicator.
 - Added server-side calendar reminder emails with an editable transactional template, retry-safe delivery queue, local background worker, and authenticated Vercel cron processing so reminders work while the admin page is closed.
 - Added simple events, reminders, completable tasks, all-day scheduling, and daily/weekly/monthly recurring entries alongside project and portfolio creation.
 - Added a creation choice to each new calendar event: automatically create either an internal project or an unpublished portfolio gallery draft.
