@@ -80,7 +80,7 @@ export default function AdminLayout() {
       />
 
       {/* Main App Content Viewport */}
-      <main className="aero-workspace-main min-h-0 min-w-0 flex-1 overflow-auto text-text">
+      <main className={`aero-workspace-main min-h-0 min-w-0 flex-1 text-text ${location.pathname === "/admin/calendar" ? "overflow-hidden" : "overflow-auto"}`}>
         {hasRouteAccess ? <Outlet /> : <ErrorPage status={403} embedded />}
       </main>
     </div>

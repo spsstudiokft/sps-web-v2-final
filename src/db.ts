@@ -161,6 +161,27 @@ export const setupDatabase = async () => {
     UNIQUE(event_id, occurrence_start)
   )`);
   await client.execute("CREATE INDEX IF NOT EXISTS idx_calendar_reminder_jobs_due ON calendar_reminder_jobs(status, scheduled_at)");
+  await client.execute(`CREATE TABLE IF NOT EXISTS calendar_event_assignees (
+    event_id TEXT NOT NULL, user_id TEXT NOT NULL, assigned_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (event_id, user_id)
+  )`);
+  await client.execute("CREATE INDEX IF NOT EXISTS idx_calendar_event_assignees_user ON calendar_event_assignees(user_id, event_id)");
+  await client.execute(`CREATE TABLE IF NOT EXISTS calendar_notification_jobs (
+    id TEXT PRIMARY KEY, event_id TEXT NOT NULL, recipient_id TEXT NOT NULL,
+    occurrence_start DATETIME NOT NULL, scheduled_at DATETIME NOT NULL,
+    status TEXT DEFAULT 'pending', attempts INTEGER DEFAULT 0, processing_started_at DATETIME,
+    sent_at DATETIME, last_error TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, UNIQUE(event_id, recipient_id, occurrence_start)
+  )`);
+  await client.execute("CREATE INDEX IF NOT EXISTS idx_calendar_notification_jobs_due ON calendar_notification_jobs(status, scheduled_at)");
+  try {
+    await client.execute(`INSERT INTO calendar_notification_jobs
+      (id, event_id, recipient_id, occurrence_start, scheduled_at, status, attempts, processing_started_at, sent_at, last_error, created_at, updated_at)
+      SELECT j.id, j.event_id, e.owner_id, j.occurrence_start, j.scheduled_at, j.status, j.attempts,
+             j.processing_started_at, j.sent_at, j.last_error, j.created_at, j.updated_at
+      FROM calendar_reminder_jobs j JOIN calendar_events e ON e.id = j.event_id
+      ON CONFLICT(event_id, recipient_id, occurrence_start) DO NOTHING`);
+  } catch {}
 
   // Lightweight migrations must run before the initialized-database fast path.
   try {

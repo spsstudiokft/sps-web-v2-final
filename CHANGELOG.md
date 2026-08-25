@@ -4,6 +4,8 @@
 
 ### Shared internal calendar
 
+- Added multi-member assignment for calendar entries and tasks, with active admin-role selection, visible assignee details, and independent reminder-email delivery to every assigned team member.
+- Simplified calendar cards to title-only display and added a full-data hover preview, while removing the competing admin-page scrollbar that caused unreliable vertical timeline scrolling.
 - Fixed the calendar to fill the available admin viewport with its own responsive scroll area, sticky day/time headers, automatic scroll to the current hour, and a live Notion-style current-time indicator.
 - Added server-side calendar reminder emails with an editable transactional template, retry-safe delivery queue, local background worker, and authenticated Vercel cron processing so reminders work while the admin page is closed.
 - Added simple events, reminders, completable tasks, all-day scheduling, and daily/weekly/monthly recurring entries alongside project and portfolio creation.

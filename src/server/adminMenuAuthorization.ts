@@ -23,7 +23,7 @@ async function permissionForAdminEndpoint(req: any): Promise<Permission> {
   if (/^\/(categories|portfolio)(?:\/|$)/.test(path)) return "portfolio";
   if (/^\/property-listings(?:\/|$)/.test(path)) return "properties";
   if (/^\/projects(?:\/|$)/.test(path)) return "projects";
-  if (/^\/calendar-events(?:\/|$)/.test(path)) return "calendar";
+  if (/^\/calendar-(?:events|team-members)(?:\/|$)/.test(path)) return "calendar";
   if (/^\/(services|visual-ideas)(?:\/|$)/.test(path)) return path.startsWith("/visual-ideas") ? "visual_ideas" : "services";
   if (/^\/(pricing|extra-services|fee-rules)(?:\/|$)/.test(path)) return "pricing";
   if (/^\/(faq-categories|faqs)(?:\/|$)/.test(path)) return "faqs";
