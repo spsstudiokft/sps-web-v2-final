@@ -2,6 +2,12 @@
 
 ## 2026-08-25
 
+### Admin list performance
+
+- Added backward-compatible server-side pagination, server filtering, and compact pagination controls to the CRM customer/lead, contact submission, project, property listing, budget, and invoice admin views, limiting each request and rendered list to 24–25 records.
+- Limited the sortable admin portfolio gallery to 24 mounted cards per page while retaining the complete dataset for global filtering and ordering, reducing drag-and-drop DOM and media work.
+- Added window-count metadata to paginated LibSQL queries while preserving the original unpaginated response formats for existing callers and modal data sources.
+
 ### Public homepage performance
 
 - Reduced hero paint cost by eliminating the duplicated background image and generated noise layer, replaced the portfolio's large blur filter with a radial gradient, capped each marquee row to eight representative previews, and instantiate video players only on actual hover while preserving existing Appwrite/WebP media URLs.

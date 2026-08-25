@@ -5,6 +5,7 @@ import { usePageTitle } from "../../hooks/usePageTitle";
 import { CRMRecord, AuditLog } from "../../lib/types";
 import { PageHeader } from "../../components/admin/PageHeader";
 import { AdminListSkeleton } from "../../components/admin/AdminSkeleton";
+import { AdminPagination, AdminPaginationMeta } from "../../components/admin/AdminPagination";
 import { Card, CardContent } from "../../components/ui/Card";
 import { Button } from "../../components/ui/Button";
 import { Input } from "../../components/ui/Input";
@@ -142,6 +143,8 @@ export default function CustomersPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [portalFilter, setPortalFilter] = useState("all");
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState<AdminPaginationMeta>({ page: 1, page_size: 25, total: 0, total_pages: 1 });
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Partial<CRMRecord> | null>(null);
@@ -192,10 +195,14 @@ export default function CustomersPage() {
   const fetchCustomers = async () => {
     setLoading(true);
     try {
-      const res = await fetchApi(`/api/admin/crm/customer?search=${encodeURIComponent(search)}`);
+      const portal = portalFilter === "has_portal" ? "exists" : portalFilter === "no_portal" ? "none" : "all";
+      const params = new URLSearchParams({ search, status: statusFilter, portal, page: String(page), page_size: "25" });
+      const res = await fetchApi(`/api/admin/crm/customer?${params}`);
       if (res.ok) {
-        const data = await res.json();
+        const body = await res.json();
+        const data = body.items || [];
         setCustomers(data);
+        setPagination(body.pagination);
         // If details modal is open, refresh viewing customer data reactively
         if (viewingCustomer) {
           const fresh = data.find((c: CRMRecord) => c.id === viewingCustomer.id);
@@ -238,7 +245,9 @@ export default function CustomersPage() {
 
   useEffect(() => {
     fetchCustomers();
-  }, [search]);
+  }, [search, statusFilter, portalFilter, page]);
+
+  useEffect(() => { setPage(1); }, [search, statusFilter, portalFilter]);
 
   const handleDelete = async (id: string) => {
     if (!confirm(tUi("admin.customers.confirm_delete", currentLanguage))) return;
@@ -344,15 +353,7 @@ export default function CustomersPage() {
     }
   };
 
-  const filteredCustomers = customers.filter(c => {
-    const matchesStatus = statusFilter === "all" || c.status === statusFilter;
-    const hasPortal = isPortalAccount(c);
-    const matchesPortal = 
-      portalFilter === "all" || 
-      (portalFilter === "has_portal" && hasPortal) || 
-      (portalFilter === "no_portal" && !hasPortal);
-    return matchesStatus && matchesPortal;
-  });
+  const filteredCustomers = customers;
 
   // Calculate selection and eligibility
   const eligibleSelectedCustomers = filteredCustomers.filter(
@@ -873,6 +874,7 @@ export default function CustomersPage() {
             </tbody>
           </table>
         </div>
+        <AdminPagination meta={pagination} onPageChange={setPage} />
       </div>
 
       {/* Details View Modal */}

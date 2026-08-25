@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { PortfolioItem, Category } from "../../../lib/types";
 import { 
   DndContext, 
@@ -35,6 +35,7 @@ import {
   Plane
 } from "lucide-react";
 import { getNormalizedGallery, isVideoMedia } from "../../../lib/mediaUtils";
+import { AdminPagination } from "../AdminPagination";
 
 interface Props {
   items: PortfolioItem[];
@@ -52,6 +53,8 @@ export function PortfolioGallery({ items: initialItems, onEdit, onDelete, onReor
   const [searchQuery, setSearchQuery] = useState("");
   const [filterItemType, setFilterItemType] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [page, setPage] = useState(1);
+  const pageSize = 24;
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -65,7 +68,7 @@ export function PortfolioGallery({ items: initialItems, onEdit, onDelete, onReor
   );
 
   // Sync state if initialItems change
-  useMemo(() => {
+  useEffect(() => {
     setItems(initialItems);
   }, [initialItems]);
 
@@ -138,6 +141,10 @@ export function PortfolioGallery({ items: initialItems, onEdit, onDelete, onReor
       return matchesSearch && matchesItemType && matchesStatus;
     });
   }, [items, searchQuery, filterItemType, filterStatus]);
+
+  useEffect(() => { setPage(1); }, [searchQuery, filterItemType, filterStatus]);
+  const visibleItems = useMemo(() => filteredItems.slice((page - 1) * pageSize, page * pageSize), [filteredItems, page]);
+  const pagination = { page, page_size: pageSize, total: filteredItems.length, total_pages: Math.max(1, Math.ceil(filteredItems.length / pageSize)) };
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
@@ -361,11 +368,11 @@ export function PortfolioGallery({ items: initialItems, onEdit, onDelete, onReor
         onDragEnd={handleDragEnd}
       >
         <SortableContext 
-          items={filteredItems.map(i => i.id)}
+          items={visibleItems.map(i => i.id)}
           strategy={rectSortingStrategy}
         >
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {filteredItems.map((item) => (
+            {visibleItems.map((item) => (
               <PortfolioSortableItem
                 key={item.id}
                 item={item}
@@ -379,6 +386,7 @@ export function PortfolioGallery({ items: initialItems, onEdit, onDelete, onReor
           </div>
         </SortableContext>
       </DndContext>
+      <AdminPagination meta={pagination} onPageChange={setPage} />
 
       {filteredItems.length === 0 && (
         <div className="text-center py-16 bg-surface/50 rounded-2xl border-2 border-dashed border-border text-muted-text space-y-3">

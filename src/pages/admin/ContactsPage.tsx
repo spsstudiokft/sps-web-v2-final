@@ -6,6 +6,7 @@ import { Button } from "../../components/ui/Button";
 import { Input } from "../../components/ui/Input";
 import { cn } from "../../lib/utils";
 import { AdminListSkeleton } from "../../components/admin/AdminSkeleton";
+import { AdminPagination, AdminPaginationMeta } from "../../components/admin/AdminPagination";
 import { CustomerModal } from "../../components/admin/CustomerModal";
 import { usePageTitle } from "../../hooks/usePageTitle";
 import { useApi } from "../../hooks/useApi";
@@ -58,6 +59,8 @@ export default function ContactsPage() {
   const [activeTab, setActiveTab] = useState<TabType>("active");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState<AdminPaginationMeta>({ page: 1, page_size: 25, total: 0, total_pages: 1 });
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [viewContact, setViewContact] = useState<ContactSubmission | null>(null);
 
@@ -67,9 +70,8 @@ export default function ContactsPage() {
   const [linkedContactId, setLinkedContactId] = useState<string | null>(null);
   const [viewingCustomer, setViewingCustomer] = useState<CRMRecord | null>(null);
 
-  useEffect(() => {
-    fetchContacts();
-  }, []);
+  useEffect(() => { const timer = setTimeout(fetchContacts, 250); return () => clearTimeout(timer); }, [activeTab, search, statusFilter, page]);
+  useEffect(() => { setPage(1); }, [activeTab, search, statusFilter]);
 
   // Clear feedback after 4 seconds
   useEffect(() => {
@@ -82,14 +84,18 @@ export default function ContactsPage() {
   const fetchContacts = async () => {
     setLoading(true);
     try {
-      const res = await fetchApi("/api/admin/contacts");
+      const archived = activeTab === "active" ? "false" : activeTab === "archived" ? "true" : "all";
+      const params = new URLSearchParams({ archived, search, status: statusFilter, page: String(page), page_size: "25" });
+      const res = await fetchApi(`/api/admin/contacts?${params}`);
       if (!res.ok) throw new Error("Failed to fetch contacts");
       const data = await res.json();
-      setContacts(data);
+      const rows = data.items || [];
+      setContacts(rows);
+      setPagination(data.pagination);
       
       // If we are currently viewing a contact, update its state from fresh list
       if (viewContact) {
-        const updatedView = data.find((c: ContactSubmission) => c.id === viewContact.id);
+        const updatedView = rows.find((c: ContactSubmission) => c.id === viewContact.id);
         if (updatedView) {
           setViewContact(updatedView);
         }
@@ -365,35 +371,7 @@ export default function ContactsPage() {
   const allCount = contacts.length;
 
   // Filter contacts based on activeTab, search, statusFilter
-  const filteredContacts = useMemo(() => {
-    return contacts.filter(c => {
-      // 1. Tab filter
-      const isArchived = Boolean(c.is_archived);
-      if (activeTab === "active" && isArchived) return false;
-      if (activeTab === "archived" && !isArchived) return false;
-
-      // 2. Status filter
-      if (statusFilter !== "all" && c.status !== statusFilter) return false;
-
-      // 3. Search query
-      if (search.trim()) {
-        const q = search.toLowerCase();
-        const matchName = c.name?.toLowerCase().includes(q);
-        const matchEmail = c.email?.toLowerCase().includes(q);
-        const matchPhone = c.phone?.toLowerCase().includes(q);
-        const matchSubject = c.subject?.toLowerCase().includes(q);
-        const matchAddress = c.property_address?.toLowerCase().includes(q);
-        const matchMsg = c.message?.toLowerCase().includes(q);
-        const matchNotes = c.notes?.toLowerCase().includes(q);
-
-        if (!matchName && !matchEmail && !matchPhone && !matchSubject && !matchAddress && !matchMsg && !matchNotes) {
-          return false;
-        }
-      }
-
-      return true;
-    });
-  }, [contacts, activeTab, statusFilter, search]);
+  const filteredContacts = contacts;
 
   const toggleSelectAll = () => {
     if (selectedIds.size === filteredContacts.length && filteredContacts.length > 0) {
@@ -1214,6 +1192,7 @@ export default function ContactsPage() {
               )}
             </tbody>
           </table>
+          <AdminPagination meta={pagination} onPageChange={setPage} />
         </div>
       </div>
 

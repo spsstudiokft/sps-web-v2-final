@@ -58,6 +58,7 @@ import { RecordPaymentModal } from "../../components/admin/invoices/RecordPaymen
 import { InvoiceReportingSection } from "../../components/admin/invoices/InvoiceReportingSection";
 import { PaymentRequestsSection } from "../../components/admin/payment-requests/PaymentRequestsSection";
 import { normalizeAdminRole } from "../../lib/adminPermissions";
+import { AdminPagination, AdminPaginationMeta } from "../../components/admin/AdminPagination";
 
 export default function BudgetPage() {
   const { user, token } = useAuth();
@@ -128,6 +129,8 @@ export default function BudgetPage() {
   const [endDate, setEndDate] = useState<string>("");
   const [selectedAdminId, setSelectedAdminId] = useState<string>("all");
   const [viewMode, setViewMode] = useState<"table" | "kanban">("table");
+  const [budgetPage, setBudgetPage] = useState(1);
+  const [budgetPagination, setBudgetPagination] = useState<AdminPaginationMeta>({ page: 1, page_size: 25, total: 0, total_pages: 1 });
 
   // Modals State for Budget
   const [isEntryModalOpen, setIsEntryModalOpen] = useState<boolean>(false);
@@ -154,6 +157,8 @@ export default function BudgetPage() {
   const [invoiceClients, setInvoiceClients] = useState<Array<{ id?: string; name?: string; email: string; source?: string }>>([]);
   const [invoiceSelectedAdminId, setInvoiceSelectedAdminId] = useState<string>("all");
   const [invoiceViewMode, setInvoiceViewMode] = useState<"table" | "analytics">("table");
+  const [invoicePage, setInvoicePage] = useState(1);
+  const [invoicePagination, setInvoicePagination] = useState<AdminPaginationMeta>({ page: 1, page_size: 25, total: 0, total_pages: 1 });
 
   // Modals State for Invoices
   const [isInvoiceFormOpen, setIsInvoiceFormOpen] = useState<boolean>(false);
@@ -266,6 +271,8 @@ export default function BudgetPage() {
 
       const dateParams = resolveDateParams();
       const queryParams = new URLSearchParams();
+      queryParams.set("page", String(budgetPage));
+      queryParams.set("page_size", "25");
 
       if (search) queryParams.set("search", search);
       if (typeFilter !== "all") queryParams.set("type", typeFilter);
@@ -306,6 +313,7 @@ export default function BudgetPage() {
       if (entriesRes.ok) {
         const entriesData = await entriesRes.json();
         setEntries(entriesData.entries || []);
+        if (entriesData.pagination) setBudgetPagination(entriesData.pagination);
         setIsSuperAdmin(entriesData.isSuperAdmin || false);
         setCurrentAdminId(entriesData.currentAdminId || user?.id || "");
       }
@@ -344,6 +352,8 @@ export default function BudgetPage() {
 
       const dateParams = resolveInvoiceDateParams();
       const queryParams = new URLSearchParams();
+      queryParams.set("page", String(invoicePage));
+      queryParams.set("page_size", "25");
 
       if (invoiceSearch) queryParams.set("search", invoiceSearch);
       if (invoiceClientEmailFilter) queryParams.set("client_email", invoiceClientEmailFilter);
@@ -366,7 +376,8 @@ export default function BudgetPage() {
 
       if (invoicesRes.ok) {
         const invoicesData = await invoicesRes.json();
-        setInvoices(invoicesData || []);
+        setInvoices(invoicesData.items || []);
+        if (invoicesData.pagination) setInvoicePagination(invoicesData.pagination);
       }
 
       if (summaryRes.ok) {
@@ -393,7 +404,8 @@ export default function BudgetPage() {
     periodFilter, 
     startDate, 
     endDate, 
-    selectedAdminId
+    selectedAdminId,
+    budgetPage
   ]);
 
   // Invoice filter triggers
@@ -407,8 +419,12 @@ export default function BudgetPage() {
     invoiceStartDate,
     invoiceEndDate,
     invoiceSelectedAdminId,
-    currentSettings?.default_currency
+    currentSettings?.default_currency,
+    invoicePage
   ]);
+
+  useEffect(() => { setBudgetPage(1); }, [search, typeFilter, statusFilter, categoryFilter, periodFilter, startDate, endDate, selectedAdminId]);
+  useEffect(() => { setInvoicePage(1); }, [invoiceSearch, invoiceClientEmailFilter, invoiceStatusFilter, invoicePeriodFilter, invoiceStartDate, invoiceEndDate, invoiceSelectedAdminId]);
 
   useEffect(() => {
     if (isEditor) return;
@@ -1077,6 +1093,7 @@ export default function BudgetPage() {
               currency={currentSettings?.default_currency || "USD"}
             />
           )}
+          <AdminPagination meta={budgetPagination} onPageChange={setBudgetPage} />
         </div>
       )}
 
@@ -1177,6 +1194,7 @@ export default function BudgetPage() {
               currency={currentSettings?.default_currency || "USD"}
             />
           )}
+          <AdminPagination meta={invoicePagination} onPageChange={setInvoicePage} />
         </div>
       )}
 

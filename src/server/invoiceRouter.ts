@@ -347,6 +347,7 @@ invoiceRouter.get("/", async (req: any, res) => {
     let sql = `
       SELECT 
         i.*,
+        COUNT(*) OVER() AS total_count,
         u.name AS owner_name,
         u.email AS owner_email,
         b.description AS linked_budget_description,
@@ -414,6 +415,11 @@ invoiceRouter.get("/", async (req: any, res) => {
 
     sql += ` ORDER BY i.${sortCol} ${direction}`;
 
+    const paginationEnabled = req.query.page !== undefined || req.query.page_size !== undefined;
+    const page = Math.max(1, Number.parseInt(String(req.query.page || "1"), 10) || 1);
+    const pageSize = Math.min(100, Math.max(10, Number.parseInt(String(req.query.page_size || "25"), 10) || 25));
+    if (paginationEnabled) { sql += " LIMIT ? OFFSET ?"; args.push(pageSize, (page - 1) * pageSize); }
+
     const result = await db.execute({ sql, args });
     const todayStr = new Date().toISOString().split("T")[0];
 
@@ -443,7 +449,9 @@ invoiceRouter.get("/", async (req: any, res) => {
       };
     }));
 
-    res.json(invoices);
+    if (!paginationEnabled) return res.json(invoices.map(({ total_count: _total, ...invoice }: any) => invoice));
+    const total = Number(result.rows[0]?.total_count || 0);
+    res.json({ items: invoices.map(({ total_count: _total, ...invoice }: any) => invoice), pagination: { page, page_size: pageSize, total, total_pages: Math.max(1, Math.ceil(total / pageSize)) } });
   } catch (error: any) {
     console.error("Error fetching invoices:", error);
     res.status(500).json({ error: "Failed to fetch invoices" });

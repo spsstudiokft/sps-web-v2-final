@@ -9,6 +9,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import { usePageTitle } from "../../hooks/usePageTitle";
 import { PropertyListing, PropertyListingImage } from "../../lib/types";
 import { uploadMediaFile } from "../../lib/uploadHelper";
+import { AdminPagination, AdminPaginationMeta } from "../../components/admin/AdminPagination";
 
 const heatingOptions = ["Központi", "Gázkonvektor", "Gázkazán", "Cirkó", "Elektromos", "Hőszivattyú", "Padlófűtés", "Kandalló", "Távfűtés"];
 const booleanFields = [
@@ -32,6 +33,8 @@ export default function PropertyListingsPage() {
   const [items, setItems] = useState<PropertyListing[]>([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState<AdminPaginationMeta>({ page: 1, page_size: 24, total: 0, total_pages: 1 });
   const [editing, setEditing] = useState<PropertyListing | null | "new">(null);
   const [message, setMessage] = useState("");
   const [menuEnabled, setMenuEnabled] = useState(true);
@@ -41,17 +44,21 @@ export default function PropertyListingsPage() {
   const load = async () => {
     setLoading(true);
     try {
-      const response = await fetchApi("/api/admin/property-listings");
+      const params = new URLSearchParams({ search: query, page: String(page), page_size: "24" });
+      const response = await fetchApi(`/api/admin/property-listings?${params}`);
       const body = await response.json();
       if (!response.ok) throw new Error(body.error || "A hirdetések nem tölthetők be.");
-      setItems(body);
+      setItems(body.items || []);
+      setPagination(body.pagination);
     } catch (error) { setMessage(error instanceof Error ? error.message : "Betöltési hiba."); }
     finally { setLoading(false); }
   };
   useEffect(() => {
-    load();
+    const timer = setTimeout(load, 250);
     fetchApi("/api/admin/settings").then(response => response.ok ? response.json() : {}).then(settings => setMenuEnabled(settings.property_menu_enabled !== "0" && settings.property_menu_enabled !== "false")).catch(() => {});
-  }, []);
+    return () => clearTimeout(timer);
+  }, [query, page]);
+  useEffect(() => { setPage(1); }, [query]);
 
   const togglePublicMenu = async () => {
     const next = !menuEnabled;
@@ -65,7 +72,7 @@ export default function PropertyListingsPage() {
     finally { setSavingMenu(false); }
   };
 
-  const filtered = useMemo(() => items.filter(item => `${item.title} ${item.location} ${item.price_text}`.toLowerCase().includes(query.toLowerCase())), [items, query]);
+  const filtered = items;
   const toggleVisibility = async (item: PropertyListing) => {
     const response = await fetchApi(`/api/admin/property-listings/${item.id}/visibility`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ is_enabled: !item.is_enabled }) });
     const body = await response.json();
@@ -94,6 +101,7 @@ export default function PropertyListingsPage() {
     {loading ? <div className="flex min-h-72 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div> : filtered.length === 0 ?
       <Card><CardContent className="flex min-h-60 flex-col items-center justify-center text-center"><Building2 className="mb-4 h-10 w-10 text-muted-text" /><h2 className="font-bold text-text">Nincs megjeleníthető ingatlan</h2><p className="mt-1 text-sm text-muted-text">Hozd létre az első ingatlanhirdetést.</p></CardContent></Card> :
       <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">{filtered.map(item => <PropertyCard key={item.id} item={item} onEdit={() => setEditing(item)} onDelete={() => remove(item)} onToggle={() => toggleVisibility(item)} />)}</div>}
+    <AdminPagination meta={pagination} onPageChange={setPage} />
     {editing && <PropertyListingModal initial={editing === "new" ? null : editing} onClose={() => setEditing(null)} onSaved={saved => { setItems(current => current.some(item => item.id === saved.id) ? current.map(item => item.id === saved.id ? saved : item) : [saved, ...current]); setEditing(null); }} />}
   </div>;
 }

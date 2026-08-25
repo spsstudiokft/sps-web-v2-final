@@ -54,6 +54,24 @@ function isValidUrl(urlStr?: string | null): boolean {
   }
 }
 
+type AdminPagination = { enabled: boolean; page: number; pageSize: number; offset: number };
+
+function getAdminPagination(req: any, defaultPageSize = 25): AdminPagination {
+  const enabled = req.query?.page !== undefined || req.query?.page_size !== undefined;
+  const page = Math.max(1, Number.parseInt(String(req.query?.page || "1"), 10) || 1);
+  const pageSize = Math.min(100, Math.max(10, Number.parseInt(String(req.query?.page_size || defaultPageSize), 10) || defaultPageSize));
+  return { enabled, page, pageSize, offset: (page - 1) * pageSize };
+}
+
+function sendAdminList(res: any, rows: any[], pagination: AdminPagination) {
+  if (!pagination.enabled) return res.json(rows.map(({ total_count: _total, ...row }: any) => row));
+  const total = Number(rows[0]?.total_count || 0);
+  return res.json({
+    items: rows.map(({ total_count: _total, ...row }: any) => row),
+    pagination: { page: pagination.page, page_size: pagination.pageSize, total, total_pages: Math.max(1, Math.ceil(total / pagination.pageSize)) },
+  });
+}
+
 // Prepare disk storage for temp upload streams (supports up to 10GB uploads without crashing RAM)
 const UPLOAD_TEMP_DIR = process.env.VERCEL === "1"
   ? path.join(os.tmpdir(), "sps-upload-temp")
@@ -1095,12 +1113,21 @@ adminRouter.delete("/categories/:id", async (req, res) => {
 // Get all portfolio items
 adminRouter.get("/portfolio", async (req, res) => {
   try {
-    const result = await db.execute(`
-      SELECT p.*, c.name as category_name, c.slug as category_slug 
+    const pagination = getAdminPagination(req, 24);
+    const search = String(req.query.search || "").trim();
+    const args: any[] = [];
+    let sql = `
+      SELECT p.*, c.name as category_name, c.slug as category_slug, COUNT(*) OVER() AS total_count
       FROM portfolio_items p 
       LEFT JOIN categories c ON p.category_id = c.id
-      ORDER BY p.sort_order ASC, p.created_at DESC
-    `);
+      WHERE 1 = 1`;
+    if (search) {
+      sql += " AND (p.title LIKE ? OR p.description LIKE ? OR p.keywords LIKE ?)";
+      args.push(`%${search}%`, `%${search}%`, `%${search}%`);
+    }
+    sql += " ORDER BY p.sort_order ASC, p.created_at DESC";
+    if (pagination.enabled) { sql += " LIMIT ? OFFSET ?"; args.push(pagination.pageSize, pagination.offset); }
+    const result = await db.execute({ sql, args });
     
     // Fetch associated projects
     const items = await Promise.all(result.rows.map(async (item) => {
@@ -1113,7 +1140,7 @@ adminRouter.get("/portfolio", async (req, res) => {
       return { ...item, projects: projectsRes.rows };
     }));
     
-    res.json(items);
+    sendAdminList(res, items, pagination);
   } catch (error) {
     console.error("Failed to fetch portfolio", error);
     res.status(500).json({ error: "Failed to fetch portfolio" });
@@ -1526,16 +1553,26 @@ function collectPropertyListingMediaUrls(images: any[]): string[] {
   return [...urls];
 }
 
-adminRouter.get("/property-listings", async (_req, res) => {
+adminRouter.get("/property-listings", async (req, res) => {
   try {
-    const result = await db.execute(`SELECT pl.*, p.archived_at AS property_archived_at, pla.name AS owner_name, pla.email AS owner_email,
+    const pagination = getAdminPagination(req);
+    const search = String(req.query.search || "").trim();
+    const args: any[] = [];
+    let sql = `SELECT pl.*, p.archived_at AS property_archived_at, pla.name AS owner_name, pla.email AS owner_email,
+      COUNT(*) OVER() AS total_count,
       creator.name AS creator_name, creator.email AS creator_email
       FROM property_listings pl
       LEFT JOIN properties p ON p.id = pl.property_id
       LEFT JOIN property_listing_accounts pla ON pla.id = pl.owner_account_id
-      LEFT JOIN users creator ON creator.id = pl.created_by_user_id
-      ORDER BY pl.updated_at DESC, pl.created_at DESC`);
-    res.json(result.rows.map(normalizePropertyListing));
+      LEFT JOIN users creator ON creator.id = pl.created_by_user_id WHERE 1 = 1`;
+    if (search) {
+      sql += " AND (pl.title LIKE ? OR pl.location LIKE ? OR pl.price_text LIKE ? OR pla.name LIKE ? OR pla.email LIKE ?)";
+      args.push(...Array(5).fill(`%${search}%`));
+    }
+    sql += " ORDER BY pl.updated_at DESC, pl.created_at DESC";
+    if (pagination.enabled) { sql += " LIMIT ? OFFSET ?"; args.push(pagination.pageSize, pagination.offset); }
+    const result = await db.execute({ sql, args });
+    sendAdminList(res, result.rows.map(normalizePropertyListing), pagination);
   } catch (error) {
     console.error("Failed to load property listings", error);
     res.status(500).json({ error: "Az ingatlanhirdetések betöltése sikertelen." });
@@ -2983,18 +3020,28 @@ adminRouter.delete("/faqs/:id", async (req, res) => {
 adminRouter.get("/contacts", async (req, res: any) => {
   try {
     const { archived } = req.query;
-    let sql = "SELECT * FROM contact_submissions";
+    const pagination = getAdminPagination(req);
+    const search = String(req.query.search || "").trim();
+    const status = String(req.query.status || "").trim();
+    let sql = "SELECT *, COUNT(*) OVER() AS total_count FROM contact_submissions";
     let args: any[] = [];
+    const conditions: string[] = [];
 
     if (archived === "true" || archived === "1") {
-      sql += " WHERE is_archived = 1";
+      conditions.push("is_archived = 1");
     } else if (archived === "false" || archived === "0") {
-      sql += " WHERE (is_archived = 0 OR is_archived IS NULL)";
+      conditions.push("(is_archived = 0 OR is_archived IS NULL)");
     }
+    if (search) { conditions.push("(name LIKE ? OR email LIKE ? OR phone LIKE ? OR subject LIKE ? OR message LIKE ? OR property_address LIKE ? OR notes LIKE ?)"); args.push(...Array(7).fill(`%${search}%`)); }
+    if (status === "read") conditions.push("is_read = 1");
+    else if (status === "unread") conditions.push("(is_read = 0 OR is_read IS NULL)");
+    else if (status && status !== "all") { conditions.push("status = ?"); args.push(status); }
+    if (conditions.length) sql += ` WHERE ${conditions.join(" AND ")}`;
     sql += " ORDER BY created_at DESC";
+    if (pagination.enabled) { sql += " LIMIT ? OFFSET ?"; args.push(pagination.pageSize, pagination.offset); }
 
     const result = await db.execute({ sql, args });
-    res.json(result.rows);
+    sendAdminList(res, result.rows, pagination);
   } catch (error) {
     console.error("Failed to fetch contacts", error);
     res.status(500).json({ error: "Failed to fetch contacts" });
@@ -4117,13 +4164,21 @@ adminRouter.delete("/calendar-events/:id", async (req: any, res) => {
 
 adminRouter.get("/projects", async (req, res) => {
   try {
-    const result = await db.execute(`
-      SELECT p.*, u.email as client_email, cp.property_name, cp.address as property_address
+    const pagination = getAdminPagination(req);
+    const search = String(req.query.search || "").trim();
+    const status = String(req.query.status || "").trim();
+    const args: any[] = [];
+    let sql = `
+      SELECT p.*, u.email as client_email, cp.property_name, cp.address as property_address, COUNT(*) OVER() AS total_count
       FROM projects p 
       LEFT JOIN users u ON p.client_id = u.id 
       LEFT JOIN client_properties cp ON p.property_id = cp.id
-      ORDER BY p.created_at DESC
-    `);
+      WHERE 1 = 1`;
+    if (search) { sql += " AND (p.name LIKE ? OR p.description LIKE ? OR u.email LIKE ? OR cp.property_name LIKE ? OR cp.address LIKE ?)"; args.push(...Array(5).fill(`%${search}%`)); }
+    if (status && status !== "all") { sql += " AND p.status = ?"; args.push(status); }
+    sql += " ORDER BY p.created_at DESC";
+    if (pagination.enabled) { sql += " LIMIT ? OFFSET ?"; args.push(pagination.pageSize, pagination.offset); }
+    const result = await db.execute({ sql, args });
     
     // Fetch associated portfolio items for each project
     const projects = await Promise.all(result.rows.map(async (project) => {
@@ -4140,7 +4195,7 @@ adminRouter.get("/projects", async (req, res) => {
       };
     }));
     
-    res.json(projects);
+    sendAdminList(res, projects, pagination);
   } catch (error) {
     console.error("Failed to fetch projects", error);
     res.status(500).json({ error: "Failed to fetch projects" });
@@ -4677,8 +4732,11 @@ adminRouter.get("/crm/:type", async (req, res) => {
       return res.status(400).json({ error: "Invalid CRM type" });
     }
     const search = (req.query.search as string) || '';
+    const status = String(req.query.status || "").trim();
+    const portal = String(req.query.portal || "").trim();
+    const pagination = getAdminPagination(req);
     let sql = `
-      SELECT c.*,
+      SELECT c.*, COUNT(*) OVER() AS total_count,
              u.id AS portal_user_id,
              CASE WHEN u.id IS NOT NULL THEN 1 ELSE 0 END AS has_portal_account,
              u.is_active AS portal_user_is_active,
@@ -4701,15 +4759,21 @@ adminRouter.get("/crm/:type", async (req, res) => {
       sql += " AND (c.name LIKE ? OR c.email LIKE ? OR c.property_address LIKE ?)";
       args.push('%' + search + '%', '%' + search + '%', '%' + search + '%');
     }
+    if (status && status !== "all") { sql += " AND c.status = ?"; args.push(status); }
+    if (portal === "enabled") sql += " AND u.id IS NOT NULL AND COALESCE(u.portal_access_disabled_at, c.portal_access_disabled_at) IS NULL";
+    if (portal === "exists") sql += " AND u.id IS NOT NULL";
+    if (portal === "disabled") sql += " AND COALESCE(u.portal_access_disabled_at, c.portal_access_disabled_at) IS NOT NULL";
+    if (portal === "none") sql += " AND u.id IS NULL";
     sql += " ORDER BY c.updated_at DESC";
+    if (pagination.enabled) { sql += " LIMIT ? OFFSET ?"; args.push(pagination.pageSize, pagination.offset); }
     
     try {
       const result = await db.execute({ sql, args });
-      res.json(result.rows);
+      sendAdminList(res, result.rows, pagination);
     } catch (queryErr) {
       console.warn("Retrying CRM records query with fallback (ignoring property subqueries):", queryErr);
       let fallbackSql = `
-        SELECT c.*,
+        SELECT c.*, COUNT(*) OVER() AS total_count,
                u.id AS portal_user_id,
                CASE WHEN u.id IS NOT NULL THEN 1 ELSE 0 END AS has_portal_account,
                u.is_active AS portal_user_is_active,
@@ -4731,9 +4795,15 @@ adminRouter.get("/crm/:type", async (req, res) => {
         fallbackSql += " AND (c.name LIKE ? OR c.email LIKE ? OR c.property_address LIKE ?)";
         fallbackArgs.push('%' + search + '%', '%' + search + '%', '%' + search + '%');
       }
+      if (status && status !== "all") { fallbackSql += " AND c.status = ?"; fallbackArgs.push(status); }
+      if (portal === "enabled") fallbackSql += " AND u.id IS NOT NULL AND COALESCE(u.portal_access_disabled_at, c.portal_access_disabled_at) IS NULL";
+      if (portal === "exists") fallbackSql += " AND u.id IS NOT NULL";
+      if (portal === "disabled") fallbackSql += " AND COALESCE(u.portal_access_disabled_at, c.portal_access_disabled_at) IS NOT NULL";
+      if (portal === "none") fallbackSql += " AND u.id IS NULL";
       fallbackSql += " ORDER BY c.updated_at DESC";
+      if (pagination.enabled) { fallbackSql += " LIMIT ? OFFSET ?"; fallbackArgs.push(pagination.pageSize, pagination.offset); }
       const fallbackResult = await db.execute({ sql: fallbackSql, args: fallbackArgs });
-      res.json(fallbackResult.rows);
+      sendAdminList(res, fallbackResult.rows, pagination);
     }
   } catch (error) {
     console.error("Failed to fetch CRM records", error);

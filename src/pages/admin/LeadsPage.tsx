@@ -5,6 +5,7 @@ import { usePageTitle } from "../../hooks/usePageTitle";
 import { CRMRecord, ClientProperty, ClientLink } from "../../lib/types";
 import { PageHeader } from "../../components/admin/PageHeader";
 import { AdminListSkeleton } from "../../components/admin/AdminSkeleton";
+import { AdminPagination, AdminPaginationMeta } from "../../components/admin/AdminPagination";
 import { Card, CardContent } from "../../components/ui/Card";
 import { Button } from "../../components/ui/Button";
 import { Input } from "../../components/ui/Input";
@@ -36,6 +37,8 @@ export default function LeadsPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState<AdminPaginationMeta>({ page: 1, page_size: 25, total: 0, total_pages: 1 });
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingLead, setEditingLead] = useState<Partial<CRMRecord> | null>(null);
@@ -50,8 +53,9 @@ export default function LeadsPage() {
   const fetchLeads = async () => {
     setLoading(true);
     try {
-      const res = await fetchApi(`/api/admin/crm/lead?search=${encodeURIComponent(search)}`);
-      if (res.ok) setLeads(await res.json());
+      const params = new URLSearchParams({ search, status: statusFilter, page: String(page), page_size: "25" });
+      const res = await fetchApi(`/api/admin/crm/lead?${params}`);
+      if (res.ok) { const body = await res.json(); setLeads(body.items || []); setPagination(body.pagination); }
     } catch (e) {
       console.error(e);
     } finally {
@@ -61,7 +65,9 @@ export default function LeadsPage() {
 
   useEffect(() => {
     fetchLeads();
-  }, [search]);
+  }, [search, statusFilter, page]);
+
+  useEffect(() => { setPage(1); }, [search, statusFilter]);
 
   const handleCopy = (text: string, id: string) => {
     navigator.clipboard.writeText(text);
@@ -222,7 +228,7 @@ export default function LeadsPage() {
     }
   };
 
-  const filteredLeads = leads.filter(l => statusFilter === "all" || l.status === statusFilter);
+  const filteredLeads = leads;
 
   if (loading && leads.length === 0) {
     return <AdminListSkeleton title={tUi("admin.leads.title", currentLanguage)} />;
@@ -376,6 +382,7 @@ export default function LeadsPage() {
             </tbody>
           </table>
         </div>
+        <AdminPagination meta={pagination} onPageChange={setPage} />
       </div>
 
       {/* Details View Modal */}

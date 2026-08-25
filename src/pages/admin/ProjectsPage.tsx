@@ -3,6 +3,7 @@ import { useApi } from "../../hooks/useApi";
 import { Project, PortfolioItem } from "../../lib/types";
 import { PageHeader } from "../../components/admin/PageHeader";
 import { AdminListSkeleton } from "../../components/admin/AdminSkeleton";
+import { AdminPagination, AdminPaginationMeta } from "../../components/admin/AdminPagination";
 import { Button } from "../../components/ui/Button";
 import { Input } from "../../components/ui/Input";
 import { ProjectModal } from "../../components/admin/ProjectModal";
@@ -26,21 +27,25 @@ export default function ProjectsPage() {
   const [timelineProject, setTimelineProject] = useState<Project | null>(null);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState<AdminPaginationMeta>({ page: 1, page_size: 25, total: 0, total_pages: 1 });
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [search, statusFilter, page]);
+
+  useEffect(() => { setPage(1); }, [search, statusFilter]);
 
   const fetchData = async () => {
     setLoading(true);
     try {
       const [projRes, cliRes, portRes] = await Promise.all([
-        fetchApi("/api/admin/projects"),
+        fetchApi(`/api/admin/projects?${new URLSearchParams({ search, status: statusFilter, page: String(page), page_size: "25" })}`),
         fetchApi("/api/admin/clients"),
         fetchApi("/api/admin/portfolio")
       ]);
       
-      if (projRes.ok) setProjects(await projRes.json());
+      if (projRes.ok) { const body = await projRes.json(); setProjects(body.items || []); setPagination(body.pagination); }
       if (cliRes.ok) setClients(await cliRes.json());
       if (portRes.ok) setPortfolios(await portRes.json());
     } catch (e) {
@@ -95,15 +100,7 @@ export default function ProjectsPage() {
 
   if (loading && projects.length === 0) return <AdminListSkeleton title={tUi("admin.projects.title", currentLanguage)} />;
 
-  const filteredProjects = projects.filter(project => {
-    const matchesSearch = project.name.toLowerCase().includes(search.toLowerCase()) || 
-                          (project.description && project.description.toLowerCase().includes(search.toLowerCase())) ||
-                          (project.client_email && project.client_email.toLowerCase().includes(search.toLowerCase()));
-    
-    const matchesStatus = statusFilter === "all" || project.status === statusFilter;
-    
-    return matchesSearch && matchesStatus;
-  });
+  const filteredProjects = projects;
 
   const parsePortfolioDisplay = (titleVal?: string) => {
     if (!titleVal) return "Untitled";
@@ -237,6 +234,7 @@ export default function ProjectsPage() {
             </tbody>
           </table>
         </div>
+        <AdminPagination meta={pagination} onPageChange={setPage} />
       </div>
 
       {/* Standard Admin Project Editor Modal */}

@@ -99,7 +99,8 @@ budgetRouter.get("/", async (req: any, res) => {
         u.email AS owner_email,
         u.workspace AS owner_workspace,
         u.role AS owner_role,
-        s.default_color AS admin_default_color
+        s.default_color AS admin_default_color,
+        COUNT(*) OVER() AS total_count
       FROM budget_entries b
       LEFT JOIN users u ON b.owner_admin_id = u.id
       LEFT JOIN budget_admin_settings s ON b.owner_admin_id = s.admin_id
@@ -169,6 +170,11 @@ budgetRouter.get("/", async (req: any, res) => {
 
     sql += ` ORDER BY ${sortColumn} ${sortDir}, b.created_at DESC`;
 
+    const paginationEnabled = req.query.page !== undefined || req.query.page_size !== undefined;
+    const page = Math.max(1, Number.parseInt(String(req.query.page || "1"), 10) || 1);
+    const pageSize = Math.min(100, Math.max(10, Number.parseInt(String(req.query.page_size || "25"), 10) || 25));
+    if (paginationEnabled) { sql += " LIMIT ? OFFSET ?"; args.push(pageSize, (page - 1) * pageSize); }
+
     const result = await db.execute({ sql, args });
 
     const entries = result.rows.map((row: any) => ({
@@ -193,6 +199,7 @@ budgetRouter.get("/", async (req: any, res) => {
 
     res.json({
       entries,
+      ...(paginationEnabled ? { pagination: { page, page_size: pageSize, total: Number(result.rows[0]?.total_count || 0), total_pages: Math.max(1, Math.ceil(Number(result.rows[0]?.total_count || 0) / pageSize)) } } : {}),
       isSuperAdmin: userCtx.isSuperAdmin,
       currentAdminId: currentUserId,
       currentAdminRole: userCtx.role
