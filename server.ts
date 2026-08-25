@@ -7,6 +7,7 @@ import { createServer as createViteServer } from "vite";
 import { setupDatabase } from "./src/db.js";
 import apiRouter from "./src/server/fullApiRouter.js";
 import { processDueGoogleReviewCampaigns } from "./src/server/services/googleReviewService.js";
+import { processDueCalendarReminders } from "./src/server/services/calendarReminderService.js";
 
 const PORT = Number.parseInt(process.env.PORT || "3000", 10);
 
@@ -82,6 +83,23 @@ async function startServer() {
   void runReviewWorker();
   const reviewWorkerTimer = setInterval(runReviewWorker, 60 * 1000);
   reviewWorkerTimer.unref();
+
+  let calendarReminderWorkerRunning = false;
+  const runCalendarReminderWorker = async () => {
+    if (calendarReminderWorkerRunning) return;
+    calendarReminderWorkerRunning = true;
+    try {
+      const result = await processDueCalendarReminders();
+      if (result.sent > 0) console.log(`[Calendar Reminder Worker] Sent ${result.sent} scheduled reminder(s).`);
+    } catch (error) {
+      console.error("[Calendar Reminder Worker] Processing failed:", error);
+    } finally {
+      calendarReminderWorkerRunning = false;
+    }
+  };
+  void runCalendarReminderWorker();
+  const calendarReminderWorkerTimer = setInterval(runCalendarReminderWorker, 60 * 1000);
+  calendarReminderWorkerTimer.unref();
 
   // Configure server timeouts to accommodate high-capacity uploads (up to 10 GB)
   server.timeout = 0; // Disable socket inactivity timeout for large stream uploads

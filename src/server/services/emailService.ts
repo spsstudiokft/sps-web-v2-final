@@ -813,6 +813,42 @@ export const DEFAULT_EMAIL_TEMPLATES: Record<string, {
     }
   },
 
+  calendar_reminder: {
+    template_key: "calendar_reminder",
+    name: "Calendar Reminder",
+    category: "notifications",
+    description: "Automatically delivered to a team member when an internal calendar reminder becomes due.",
+    subject: "Emlékeztető: {{event_title}} · {{studio_name}}",
+    body_html: `
+<p style="color:#1e293b;font-size:15px;line-height:1.65;margin:0 0 16px;">Szia <strong>{{user.name}}</strong>!</p>
+<p style="color:#1e293b;font-size:15px;line-height:1.65;margin:0 0 20px;">A belső naptárban esedékessé vált a következő emlékeztetőd:</p>
+<div style="background:#f8fafc;border:1px solid #e2e8f0;border-left:4px solid #8b5cf6;border-radius:10px;padding:20px;margin:22px 0;">
+  <div style="font-size:18px;font-weight:800;color:#0f172a;margin-bottom:10px;">{{event_title}}</div>
+  <div style="font-size:13px;color:#475569;line-height:1.7;"><strong>Kezdés:</strong> {{event_start}}<br/><strong>Befejezés:</strong> {{event_end}}</div>
+  <p style="font-size:13px;color:#64748b;line-height:1.6;margin:12px 0 0;">{{event_description}}</p>
+</div>
+<div style="text-align:center;margin:30px 0;"><a href="{{action_url}}" style="background:#8b5cf6;color:#fff;text-decoration:none;padding:14px 32px;border-radius:9px;font-weight:700;font-size:15px;display:inline-block;">{{action_text}}</a></div>
+<p style="color:#94a3b8;font-size:11px;line-height:1.5;margin:20px 0 0;text-align:center;">Ez egy automatikus belső naptárértesítés.</p>`.trim(),
+    body_text: `Szia {{user.name}}!\n\nEmlékeztető: {{event_title}}\nKezdés: {{event_start}}\nBefejezés: {{event_end}}\n\n{{event_description}}\n\nNaptár: {{action_url}}`.trim(),
+    available_tokens: [
+      { token: "{{user.name}}", label: "Recipient Name", description: "Team member display name", example: "Dániel" },
+      { token: "{{user.email}}", label: "Recipient Email", description: "Team member email address", example: "daniel@example.com" },
+      { token: "{{event_title}}", label: "Event Title", description: "Calendar reminder title", example: "Ügyfél egyeztetés" },
+      { token: "{{event_description}}", label: "Event Description", description: "Calendar reminder notes", example: "A látványtervek véglegesítése." },
+      { token: "{{event_start}}", label: "Start", description: "Localized occurrence start", example: "2026. augusztus 26. 10:00" },
+      { token: "{{event_end}}", label: "End", description: "Localized occurrence end", example: "2026. augusztus 26. 11:00" },
+      { token: "{{action_url}}", label: "Calendar URL", description: "Link to the internal calendar", example: "https://spsstudio.hu/admin/calendar" },
+      { token: "{{action_text}}", label: "Button Label", description: "Calendar button text", example: "Naptár megnyitása" },
+      { token: "{{studio_name}}", label: "Studio Name", description: "Configured studio brand name", example: "SPS Studio" },
+    ],
+    sample_data: {
+      "user.name": "Dániel", "user.email": "daniel@example.com", recipient_name: "Dániel",
+      event_title: "Ügyfél egyeztetés", event_description: "A látványtervek véglegesítése.",
+      event_start: "2026. augusztus 26. 10:00", event_end: "2026. augusztus 26. 11:00",
+      action_url: "https://spsstudio.hu/admin/calendar", action_text: "Naptár megnyitása", studio_name: "SPS Studio",
+    },
+  },
+
   google_review_request: {
     template_key: "google_review_request",
     name: "Google Review Request & Reminder",

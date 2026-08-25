@@ -12,6 +12,7 @@ import { initiateR2MultipartUpload, signR2MultipartPart, completeR2MultipartUplo
 import { translationService } from "./services/translationService.js";
 import { getAllLegalDocuments, saveLegalDocument } from "./services/legalDocumentService.js";
 import { scheduleGoogleReviewCampaign } from "./services/googleReviewService.js";
+import { scheduleCalendarReminder } from "./services/calendarReminderService.js";
 import { getAppUrl } from "./appUrl.js";
 import { createPortfolioSlug } from "./portfolioSlug.js";
 import { 
@@ -3914,12 +3915,35 @@ adminRouter.get("/calendar-events", async (req: any, res) => {
     }
     const result = await db.execute({
       sql: `SELECT e.*, COALESCE(NULLIF(TRIM(u.name), ''), u.email, 'Csapattag') AS owner_name,
+                   COALESCE(NULLIF(e.event_type, ''), CASE WHEN e.portfolio_id IS NOT NULL THEN 'portfolio' WHEN e.project_id IS NOT NULL THEN 'project' ELSE 'event' END) AS event_type,
                    CASE WHEN e.owner_id = ? THEN 1 ELSE 0 END AS can_edit
             FROM calendar_events e LEFT JOIN users u ON u.id = e.owner_id
-            WHERE e.start_at < ? AND e.end_at > ? ORDER BY e.start_at ASC`,
-      args: [req.user.id, to.toISOString(), from.toISOString()],
+            WHERE (COALESCE(e.recurrence_rule, 'none') <> 'none' AND e.start_at < ?)
+               OR (e.start_at < ? AND e.end_at > ?) ORDER BY e.start_at ASC`,
+      args: [req.user.id, to.toISOString(), to.toISOString(), from.toISOString()],
     });
-    res.json(result.rows);
+    const occurrences: any[] = [];
+    for (const raw of result.rows as any[]) {
+      const recurrence = String(raw.recurrence_rule || "none");
+      const seriesStart = new Date(String(raw.start_at));
+      const seriesEnd = new Date(String(raw.end_at));
+      const duration = seriesEnd.getTime() - seriesStart.getTime();
+      if (recurrence === "none") {
+        occurrences.push({ ...raw, occurrence_key: String(raw.id), series_start_at: raw.start_at, series_end_at: raw.end_at });
+        continue;
+      }
+      const cursor = new Date(seriesStart);
+      let guard = 0;
+      while (cursor < to && guard++ < 800) {
+        const occurrenceEnd = new Date(cursor.getTime() + duration);
+        if (occurrenceEnd > from) occurrences.push({ ...raw, start_at: cursor.toISOString(), end_at: occurrenceEnd.toISOString(), occurrence_key: `${raw.id}:${cursor.toISOString()}`, series_start_at: raw.start_at, series_end_at: raw.end_at });
+        if (recurrence === "daily") cursor.setDate(cursor.getDate() + 1);
+        else if (recurrence === "weekly") cursor.setDate(cursor.getDate() + 7);
+        else if (recurrence === "monthly") cursor.setMonth(cursor.getMonth() + 1);
+        else break;
+      }
+    }
+    res.json(occurrences.sort((a, b) => String(a.start_at).localeCompare(String(b.start_at))));
   } catch (error) {
     console.error("Failed to load calendar events", error);
     res.status(500).json({ error: "A naptár betöltése sikertelen." });
@@ -3933,20 +3957,44 @@ adminRouter.post("/calendar-events", async (req: any, res) => {
     const start = new Date(req.body.start_at);
     const end = new Date(req.body.end_at);
     const color = /^#[0-9a-f]{6}$/i.test(String(req.body.color || "")) ? String(req.body.color) : "#8b5cf6";
+    const allowedTypes = new Set(["event", "reminder", "task", "project", "portfolio"]);
+    const eventType = allowedTypes.has(String(req.body.event_type)) ? String(req.body.event_type) : "event";
+    const reminder = req.body.reminder_at ? new Date(req.body.reminder_at) : null;
+    const recurrence = ["none", "daily", "weekly", "monthly"].includes(String(req.body.recurrence_rule)) ? String(req.body.recurrence_rule) : "none";
+    const isAllDay = req.body.is_all_day ? 1 : 0;
     if (!title) return res.status(400).json({ error: "Az esemény neve kötelező." });
     if (!Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime()) || start >= end) {
       return res.status(400).json({ error: "Az esemény idősávja érvénytelen." });
     }
+    if (reminder && !Number.isFinite(reminder.getTime())) return res.status(400).json({ error: "Az emlékeztetési időpont érvénytelen." });
     const id = crypto.randomUUID();
-    const projectId = crypto.randomUUID();
-    await db.batch([
-      { sql: `INSERT INTO projects (id, name, description, status, client_id, keywords, created_at, updated_at)
-              VALUES (?, ?, ?, 'active', NULL, 'internal-calendar', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`, args: [projectId, title, description] },
-      { sql: `INSERT INTO calendar_events (id, title, description, start_at, end_at, color, owner_id, project_id)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, args: [id, title, description, start.toISOString(), end.toISOString(), color, req.user.id, projectId] },
-    ], "write");
+    const resourceId = crypto.randomUUID();
+    if (eventType === "portfolio") {
+      const slug = createPortfolioSlug(title, resourceId);
+      await db.batch([
+        { sql: `INSERT INTO portfolio_items (id, slug, title, description, category_id, item_type, media_type, media_url, thumbnail_url, image_urls, target_url, is_featured, is_published, sort_order, keywords)
+                VALUES (?, ?, ?, ?, NULL, 'image', 'image', '', '', '[]', '', 0, 0, 0, 'internal-calendar')`, args: [resourceId, slug, title, description] },
+        { sql: `INSERT INTO calendar_events (id, title, description, start_at, end_at, color, owner_id, portfolio_id, event_type, reminder_at, is_all_day, recurrence_rule)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, args: [id, title, description, start.toISOString(), end.toISOString(), color, req.user.id, resourceId, eventType, reminder?.toISOString() || null, isAllDay, recurrence] },
+      ], "write");
+    } else if (eventType === "project") {
+      await db.batch([
+        { sql: `INSERT INTO projects (id, name, description, status, client_id, keywords, created_at, updated_at)
+                VALUES (?, ?, ?, 'active', NULL, 'internal-calendar', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`, args: [resourceId, title, description] },
+        { sql: `INSERT INTO calendar_events (id, title, description, start_at, end_at, color, owner_id, project_id, event_type, reminder_at, is_all_day, recurrence_rule)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, args: [id, title, description, start.toISOString(), end.toISOString(), color, req.user.id, resourceId, eventType, reminder?.toISOString() || null, isAllDay, recurrence] },
+      ], "write");
+    } else {
+      await db.execute({
+        sql: `INSERT INTO calendar_events (id, title, description, start_at, end_at, color, owner_id, event_type, reminder_at, is_all_day, recurrence_rule)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        args: [id, title, description, start.toISOString(), end.toISOString(), color, req.user.id, eventType, reminder?.toISOString() || null, isAllDay, recurrence],
+      });
+    }
+    await scheduleCalendarReminder({ id, start_at: start.toISOString(), reminder_at: eventType === "reminder" ? reminder?.toISOString() || null : null, recurrence_rule: recurrence });
     const created = await db.execute({
-      sql: `SELECT e.*, COALESCE(NULLIF(TRIM(u.name), ''), u.email, 'Csapattag') AS owner_name, 1 AS can_edit
+      sql: `SELECT e.*, COALESCE(NULLIF(TRIM(u.name), ''), u.email, 'Csapattag') AS owner_name,
+                   COALESCE(NULLIF(e.event_type, ''), 'event') AS event_type, 1 AS can_edit
             FROM calendar_events e LEFT JOIN users u ON u.id = e.owner_id WHERE e.id = ?`, args: [id],
     });
     res.status(201).json(created.rows[0]);
@@ -3967,11 +4015,18 @@ adminRouter.put("/calendar-events/:id", async (req: any, res) => {
     const start = new Date(req.body.start_at);
     const end = new Date(req.body.end_at);
     const color = /^#[0-9a-f]{6}$/i.test(String(req.body.color || "")) ? String(req.body.color) : event.color;
+    const reminder = req.body.reminder_at ? new Date(req.body.reminder_at) : null;
+    const recurrence = ["none", "daily", "weekly", "monthly"].includes(String(req.body.recurrence_rule)) ? String(req.body.recurrence_rule) : "none";
+    const isAllDay = req.body.is_all_day ? 1 : 0;
+    const isCompleted = req.body.is_completed ? 1 : 0;
     if (!title || !Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime()) || start >= end) return res.status(400).json({ error: "Hiányos vagy érvénytelen esemény." });
+    if (reminder && !Number.isFinite(reminder.getTime())) return res.status(400).json({ error: "Az emlékeztetési időpont érvénytelen." });
     await db.batch([
-      { sql: `UPDATE calendar_events SET title = ?, description = ?, start_at = ?, end_at = ?, color = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND owner_id = ?`, args: [title, description, start.toISOString(), end.toISOString(), color, req.params.id, req.user.id] },
+      { sql: `UPDATE calendar_events SET title = ?, description = ?, start_at = ?, end_at = ?, color = ?, reminder_at = ?, is_completed = ?, is_all_day = ?, recurrence_rule = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND owner_id = ?`, args: [title, description, start.toISOString(), end.toISOString(), color, reminder?.toISOString() || null, isCompleted, isAllDay, recurrence, req.params.id, req.user.id] },
       { sql: `UPDATE projects SET name = ?, description = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`, args: [title, description, event.project_id] },
+      { sql: `UPDATE portfolio_items SET title = ?, description = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`, args: [title, description, event.portfolio_id] },
     ], "write");
+    await scheduleCalendarReminder({ id: String(event.id), start_at: start.toISOString(), reminder_at: String(event.event_type) === "reminder" ? reminder?.toISOString() || null : null, recurrence_rule: recurrence });
     res.json({ success: true });
   } catch (error) {
     console.error("Failed to update calendar event", error);
@@ -3981,13 +4036,17 @@ adminRouter.put("/calendar-events/:id", async (req: any, res) => {
 
 adminRouter.delete("/calendar-events/:id", async (req: any, res) => {
   try {
-    const current = await db.execute({ sql: "SELECT owner_id, project_id FROM calendar_events WHERE id = ?", args: [req.params.id] });
+    const current = await db.execute({ sql: "SELECT owner_id, project_id, portfolio_id FROM calendar_events WHERE id = ?", args: [req.params.id] });
     const event: any = current.rows[0];
     if (!event) return res.status(404).json({ error: "Az esemény nem található." });
     if (String(event.owner_id) !== String(req.user.id)) return res.status(403).json({ error: "Csak a saját eseményedet törölheted." });
     await db.batch([
+      { sql: "DELETE FROM calendar_reminder_jobs WHERE event_id = ?", args: [req.params.id] },
       { sql: "DELETE FROM calendar_events WHERE id = ? AND owner_id = ?", args: [req.params.id, req.user.id] },
       { sql: "DELETE FROM projects WHERE id = ? AND client_id IS NULL AND keywords = 'internal-calendar'", args: [event.project_id] },
+      { sql: `DELETE FROM portfolio_items WHERE id = ? AND keywords = 'internal-calendar'
+              AND COALESCE(media_url, '') = '' AND COALESCE(thumbnail_url, '') = ''
+              AND COALESCE(image_urls, '[]') IN ('[]', '')`, args: [event.portfolio_id] },
     ], "write");
     res.json({ success: true });
   } catch (error) {

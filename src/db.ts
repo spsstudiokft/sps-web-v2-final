@@ -135,11 +135,32 @@ export const setupDatabase = async () => {
     color TEXT DEFAULT '#8b5cf6',
     owner_id TEXT NOT NULL,
     project_id TEXT,
+    portfolio_id TEXT,
+    event_type TEXT DEFAULT 'project',
+    reminder_at DATETIME,
+    is_completed INTEGER DEFAULT 0,
+    is_all_day INTEGER DEFAULT 0,
+    recurrence_rule TEXT DEFAULT 'none',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
   )`);
   await client.execute("CREATE INDEX IF NOT EXISTS idx_calendar_events_range ON calendar_events(start_at, end_at)");
   await client.execute("CREATE INDEX IF NOT EXISTS idx_calendar_events_owner ON calendar_events(owner_id, start_at)");
+  try { await client.execute("ALTER TABLE calendar_events ADD COLUMN portfolio_id TEXT DEFAULT NULL"); } catch {}
+  try { await client.execute("ALTER TABLE calendar_events ADD COLUMN event_type TEXT DEFAULT 'project'"); } catch {}
+  try { await client.execute("ALTER TABLE calendar_events ADD COLUMN reminder_at DATETIME DEFAULT NULL"); } catch {}
+  try { await client.execute("ALTER TABLE calendar_events ADD COLUMN is_completed INTEGER DEFAULT 0"); } catch {}
+  try { await client.execute("ALTER TABLE calendar_events ADD COLUMN is_all_day INTEGER DEFAULT 0"); } catch {}
+  try { await client.execute("ALTER TABLE calendar_events ADD COLUMN recurrence_rule TEXT DEFAULT 'none'"); } catch {}
+  try { await client.execute("UPDATE calendar_events SET event_type = CASE WHEN portfolio_id IS NOT NULL THEN 'portfolio' WHEN project_id IS NOT NULL THEN 'project' ELSE 'event' END WHERE event_type IS NULL OR event_type = ''"); } catch {}
+  await client.execute(`CREATE TABLE IF NOT EXISTS calendar_reminder_jobs (
+    id TEXT PRIMARY KEY, event_id TEXT NOT NULL, occurrence_start DATETIME NOT NULL,
+    scheduled_at DATETIME NOT NULL, status TEXT DEFAULT 'pending', attempts INTEGER DEFAULT 0,
+    processing_started_at DATETIME, sent_at DATETIME, last_error TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(event_id, occurrence_start)
+  )`);
+  await client.execute("CREATE INDEX IF NOT EXISTS idx_calendar_reminder_jobs_due ON calendar_reminder_jobs(status, scheduled_at)");
 
   // Lightweight migrations must run before the initialized-database fast path.
   try {

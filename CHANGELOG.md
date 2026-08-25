@@ -4,6 +4,9 @@
 
 ### Shared internal calendar
 
+- Added server-side calendar reminder emails with an editable transactional template, retry-safe delivery queue, local background worker, and authenticated Vercel cron processing so reminders work while the admin page is closed.
+- Added simple events, reminders, completable tasks, all-day scheduling, and daily/weekly/monthly recurring entries alongside project and portfolio creation.
+- Added a creation choice to each new calendar event: automatically create either an internal project or an unpublished portfolio gallery draft.
 - Added a dedicated Notion Calendar-inspired weekly team calendar to the admin menu.
 - Added click-and-drag time selection that creates a shared event and an automatically linked internal project.
 - Made all team events visible to every admin-portal user while enforcing owner-only editing and deletion on the server.

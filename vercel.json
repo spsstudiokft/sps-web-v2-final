@@ -4,6 +4,7 @@
   "installCommand": "npm ci --no-audit --no-fund",
   "buildCommand": "npm run build:vercel",
   "functions": {
+    "api/cron-calendar.ts": { "maxDuration": 60 },
     "api/public.ts": { "maxDuration": 60 },
     "api/auth.ts": { "maxDuration": 60 },
     "api/admin.ts": { "maxDuration": 300 },
@@ -17,6 +18,9 @@
     "api/public-invoices.ts": { "maxDuration": 60 },
     "api/public-referrals.ts": { "maxDuration": 60 }
   },
+  "crons": [
+    { "path": "/api/cron-calendar", "schedule": "* * * * *" }
+  ],
   "headers": [
     {
       "source": "/assets/(.*)",
