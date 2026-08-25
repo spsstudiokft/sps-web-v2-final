@@ -8,7 +8,7 @@ const MENU_IDS = new Set([
 
 const DEFAULT_PERMISSIONS: Record<string, string[]> = {
   admin: [...MENU_IDS],
-  editor: ["dashboard", "payment_requests", "budget", "portfolio", "properties", "projects", "calendar", "services", "visual_ideas", "pricing", "announcements", "social_links", "faqs", "leads", "customers", "clients", "submissions", "marketing_emails"],
+  editor: ["dashboard", "payment_requests", "portfolio", "properties", "projects", "calendar", "services", "visual_ideas", "pricing", "announcements", "social_links", "faqs", "leads", "customers", "clients", "submissions", "marketing_emails"],
   viewer: ["dashboard", "portfolio", "properties", "projects", "calendar", "services", "visual_ideas", "pricing", "announcements", "social_links", "faqs", "submissions"],
 };
 
@@ -55,7 +55,7 @@ async function rolePermissions(role: string): Promise<string[]> {
   try {
     const parsed = JSON.parse(String(value));
     const permissions = parsed?.[role];
-    return Array.isArray(permissions) ? permissions.filter((id: unknown) => typeof id === "string" && MENU_IDS.has(id)) : DEFAULT_PERMISSIONS[role] || [];
+    return Array.isArray(permissions) ? permissions.filter((id: unknown) => typeof id === "string" && MENU_IDS.has(id) && !(role === "editor" && (id === "budget" || id === "invoices"))) : DEFAULT_PERMISSIONS[role] || [];
   } catch {
     return [];
   }
@@ -68,6 +68,9 @@ export function requireAdminMenuPermission(fixedPermission?: string) {
     const permission = fixedPermission || await permissionForAdminEndpoint(req);
     if (!permission) return next();
     try {
+      if (role === "editor" && (permission === "budget" || permission === "invoices")) {
+        return res.status(403).json({ error: "Az editor szerepkör csak a fizetési kérelmeket érheti el." });
+      }
       const granted = new Set(await rolePermissions(role));
       const allowed = Array.isArray(permission) ? permission.some((item) => granted.has(item)) : granted.has(permission);
       if (allowed) return next();

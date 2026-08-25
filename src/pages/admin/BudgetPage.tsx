@@ -57,16 +57,20 @@ import { SendInvoiceModal } from "../../components/admin/invoices/SendInvoiceMod
 import { RecordPaymentModal } from "../../components/admin/invoices/RecordPaymentModal";
 import { InvoiceReportingSection } from "../../components/admin/invoices/InvoiceReportingSection";
 import { PaymentRequestsSection } from "../../components/admin/payment-requests/PaymentRequestsSection";
+import { normalizeAdminRole } from "../../lib/adminPermissions";
 
 export default function BudgetPage() {
   const { user, token } = useAuth();
   const { currentLanguage, tUi } = useLanguage();
   const [searchParams, setSearchParams] = useSearchParams();
+  const isEditor = normalizeAdminRole(user?.role) === "editor";
 
   // Tab State: "budget" | "invoices" | "payment-requests"
   const tabParam = searchParams.get("tab");
   const [activeTab, setActiveTab] = useState<"budget" | "invoices" | "payment-requests">(
-    tabParam === "invoices"
+    isEditor
+      ? "payment-requests"
+      : tabParam === "invoices"
       ? "invoices"
       : tabParam === "payment-requests" || tabParam === "requests"
       ? "payment-requests"
@@ -74,14 +78,17 @@ export default function BudgetPage() {
   );
 
   useEffect(() => {
-    if (tabParam === "invoices") {
+    if (isEditor) {
+      setActiveTab("payment-requests");
+      if (tabParam !== "payment-requests") setSearchParams({ tab: "payment-requests" }, { replace: true });
+    } else if (tabParam === "invoices") {
       setActiveTab("invoices");
     } else if (tabParam === "payment-requests" || tabParam === "requests") {
       setActiveTab("payment-requests");
     } else {
       setActiveTab("budget");
     }
-  }, [tabParam]);
+  }, [isEditor, setSearchParams, tabParam]);
 
   usePageTitle(
     activeTab === "invoices"
@@ -93,6 +100,7 @@ export default function BudgetPage() {
 
   // Keep search params in sync with activeTab
   const handleTabChange = (tab: "budget" | "invoices" | "payment-requests") => {
+    if (isEditor && tab !== "payment-requests") return;
     setActiveTab(tab);
     setSearchParams({ tab });
   };
@@ -247,6 +255,11 @@ export default function BudgetPage() {
   // Load Budget Data
   // ----------------------------------------------------
   const fetchData = async (showBackgroundSpinner = false) => {
+    if (isEditor) {
+      setIsLoading(false);
+      setIsRefreshing(false);
+      return;
+    }
     try {
       if (showBackgroundSpinner) setIsRefreshing(true);
       else setIsLoading(true);
@@ -320,6 +333,11 @@ export default function BudgetPage() {
   // Load Invoices Data
   // ----------------------------------------------------
   const fetchInvoices = async (showBackgroundSpinner = false) => {
+    if (isEditor) {
+      setInvoiceLoading(false);
+      setInvoiceRefreshing(false);
+      return;
+    }
     try {
       if (showBackgroundSpinner) setInvoiceRefreshing(true);
       else setInvoiceLoading(true);
@@ -393,6 +411,7 @@ export default function BudgetPage() {
   ]);
 
   useEffect(() => {
+    if (isEditor) return;
     const loadInvoiceClients = async () => {
       try {
         const response = await fetch("/api/admin/invoices/clients-lookup", {
@@ -406,7 +425,7 @@ export default function BudgetPage() {
       }
     };
     void loadInvoiceClients();
-  }, [token]);
+  }, [isEditor, token]);
 
   // Unique categories list for filter dropdown
   const categoriesList = useMemo(() => {
@@ -861,6 +880,7 @@ export default function BudgetPage() {
         {/* Tab Switcher & Quick Actions */}
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center bg-surface border border-border rounded-xl p-1 shadow-xs">
+            {!isEditor && <>
             <button
               type="button"
               onClick={() => handleTabChange("budget")}
@@ -895,6 +915,7 @@ export default function BudgetPage() {
                 </span>
               )}
             </button>
+            </>}
 
             <button
               type="button"
@@ -937,7 +958,7 @@ export default function BudgetPage() {
             </Button>
           ) : null}
 
-          <Button
+          {!isEditor && <Button
             type="button"
             variant="outline"
             onClick={() => setIsSettingsModalOpen(true)}
@@ -946,7 +967,7 @@ export default function BudgetPage() {
           >
             <Settings2 className="w-3.5 h-3.5" />
             <span>{tUi("admin.financial.currency", { currency: currentSettings?.default_currency || "USD" })}</span>
-          </Button>
+          </Button>}
         </div>
       </div>
 
@@ -1173,8 +1194,10 @@ export default function BudgetPage() {
           adminsList={adminsList}
           showToast={showToast}
           onBudgetUpdated={() => {
-            fetchData(true);
-            fetchInvoices(true);
+            if (!isEditor) {
+              fetchData(true);
+              fetchInvoices(true);
+            }
           }}
         />
       )}

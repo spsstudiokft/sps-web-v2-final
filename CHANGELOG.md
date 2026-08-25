@@ -17,6 +17,10 @@
 - Made all team events visible to every admin-portal user while enforcing owner-only editing and deletion on the server.
 - Added week navigation, a mini month picker, current-time highlighting, event colours, details, and direct links to linked projects.
 
+### Financial role access
+
+- Restricted editors to the Payment Requests financial view, removed Budget Manager and invoicing selectors from their sidebar and page header, normalized direct financial links to Payment Requests, and enforced the restriction on the related APIs.
+
 ## 2026-08-24
 
 ### Business object chain and deletion safety
