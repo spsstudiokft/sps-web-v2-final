@@ -124,6 +124,23 @@ export const db = {
 export const setupDatabase = async () => {
   const client = getDb();
 
+  // Shared internal calendar. Calendar-created projects intentionally have no
+  // client until they are promoted into the normal client delivery workflow.
+  await client.execute(`CREATE TABLE IF NOT EXISTS calendar_events (
+    id TEXT PRIMARY KEY,
+    title TEXT NOT NULL,
+    description TEXT DEFAULT '',
+    start_at DATETIME NOT NULL,
+    end_at DATETIME NOT NULL,
+    color TEXT DEFAULT '#8b5cf6',
+    owner_id TEXT NOT NULL,
+    project_id TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )`);
+  await client.execute("CREATE INDEX IF NOT EXISTS idx_calendar_events_range ON calendar_events(start_at, end_at)");
+  await client.execute("CREATE INDEX IF NOT EXISTS idx_calendar_events_owner ON calendar_events(owner_id, start_at)");
+
   // Lightweight migrations must run before the initialized-database fast path.
   try {
     await client.execute("ALTER TABLE invoices ADD COLUMN archived_at DATETIME DEFAULT NULL");

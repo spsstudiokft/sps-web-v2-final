@@ -42,6 +42,7 @@ import {
   Mail,
   PanelsTopLeft,
   Building2,
+  CalendarDays,
   LucideIcon
 } from "lucide-react";
 
@@ -127,6 +128,7 @@ export function Sidebar({ isMobileOpen = false, onMobileClose }: SidebarProps) {
         { to: "/admin/portfolio", label: "Portfolio", translationKey: "admin.nav.portfolio", icon: ImageIcon, permissionKey: "portfolio" },
         { to: "/admin/property-listings", label: "Property Listings", translationKey: "admin.nav.property_listings", icon: Building2, permissionKey: "properties" },
         { to: "/admin/projects", label: "Projects", translationKey: "admin.nav.projects", icon: FolderKanban, permissionKey: "projects" },
+        { to: "/admin/calendar", label: "Naptár", translationKey: "admin.nav.calendar", icon: CalendarDays, permissionKey: "calendar" },
         { to: "/admin/services", label: "Services", translationKey: "admin.nav.services", icon: Sparkles, permissionKey: "services" },
         { to: "/admin/visual-ideas", label: "Visual Ideas", translationKey: "admin.nav.visual_ideas", icon: PanelsTopLeft, permissionKey: "visual_ideas" },
         { to: "/admin/pricing", label: "Pricing & Packages", translationKey: "admin.nav.pricing", icon: Tag, permissionKey: "pricing" },

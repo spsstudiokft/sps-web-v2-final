@@ -27,6 +27,7 @@ const ClientsPage = lazy(() => import("./pages/admin/ClientsPage"));
 const LeadsPage = lazy(() => import("./pages/admin/LeadsPage"));
 const CustomersPage = lazy(() => import("./pages/admin/CustomersPage"));
 const ProjectsPage = lazy(() => import("./pages/admin/ProjectsPage"));
+const CalendarPage = lazy(() => import("./pages/admin/CalendarPage"));
 const ServicesPage = lazy(() => import("./pages/admin/ServicesPage"));
 const PricingPage = lazy(() => import("./pages/admin/PricingPage"));
 const VisualIdeasPage = lazy(() => import("./pages/admin/VisualIdeasPage"));
@@ -213,6 +214,7 @@ export default function App() {
                 <Route path="leads" element={<LeadsPage />} />
                 <Route path="customers" element={<CustomersPage />} />
                 <Route path="projects" element={<ProjectsPage />} />
+                <Route path="calendar" element={<CalendarPage />} />
                 <Route path="marketing-emails" element={<MarketingEmailsPage />} />
                 <Route path="*" element={<ErrorPage status={404} embedded />} />
               </Route>

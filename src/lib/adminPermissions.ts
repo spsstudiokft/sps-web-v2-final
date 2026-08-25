@@ -15,6 +15,7 @@ export const ADMIN_MENU_PERMISSIONS: AdminMenuPermission[] = [
   { id: "portfolio", label: "Portfolio", description: "Published galleries and portfolio media", defaultRoles: ["admin", "editor", "viewer"], matches: route("/admin/portfolio") },
   { id: "properties", label: "Property listings", description: "Public real-estate listing catalog", defaultRoles: ["admin", "editor", "viewer"], matches: route("/admin/property-listings") },
   { id: "projects", label: "Projects", description: "Client projects and delivery workflows", defaultRoles: ["admin", "editor", "viewer"], matches: route("/admin/projects") },
+  { id: "calendar", label: "Calendar", description: "Shared team schedule and internal projects", defaultRoles: ["admin", "editor", "viewer"], matches: route("/admin/calendar") },
   { id: "services", label: "Services", description: "Studio services and landing-page content", defaultRoles: ["admin", "editor", "viewer"], matches: route("/admin/services") },
   { id: "visual_ideas", label: "Visual ideas", description: "Visual-ideas board content", defaultRoles: ["admin", "editor", "viewer"], matches: route("/admin/visual-ideas") },
   { id: "pricing", label: "Pricing & packages", description: "Pricing plans, bundles and extra services", defaultRoles: ["admin", "editor", "viewer"], matches: route("/admin/pricing") },

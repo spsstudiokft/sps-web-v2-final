@@ -1,5 +1,14 @@
 # Modification Log
 
+## 2026-08-25
+
+### Shared internal calendar
+
+- Added a dedicated Notion Calendar-inspired weekly team calendar to the admin menu.
+- Added click-and-drag time selection that creates a shared event and an automatically linked internal project.
+- Made all team events visible to every admin-portal user while enforcing owner-only editing and deletion on the server.
+- Added week navigation, a mini month picker, current-time highlighting, event colours, details, and direct links to linked projects.
+
 ## 2026-08-24
 
 ### Business object chain and deletion safety

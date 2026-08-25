@@ -3,13 +3,13 @@ import { db } from "../db.js";
 const SETTINGS_KEY = "admin_role_menu_permissions";
 const CONFIGURABLE_ROLES = new Set(["admin", "editor", "viewer"]);
 const MENU_IDS = new Set([
-  "dashboard", "payment_requests", "budget", "invoices", "portfolio", "properties", "projects", "services", "visual_ideas", "pricing", "announcements", "social_links", "faqs", "team", "referrals", "leads", "customers", "clients", "submissions", "marketing_emails", "themes", "settings",
+  "dashboard", "payment_requests", "budget", "invoices", "portfolio", "properties", "projects", "calendar", "services", "visual_ideas", "pricing", "announcements", "social_links", "faqs", "team", "referrals", "leads", "customers", "clients", "submissions", "marketing_emails", "themes", "settings",
 ]);
 
 const DEFAULT_PERMISSIONS: Record<string, string[]> = {
   admin: [...MENU_IDS],
-  editor: ["dashboard", "payment_requests", "budget", "portfolio", "properties", "projects", "services", "visual_ideas", "pricing", "announcements", "social_links", "faqs", "leads", "customers", "clients", "submissions", "marketing_emails"],
-  viewer: ["dashboard", "portfolio", "properties", "projects", "services", "visual_ideas", "pricing", "announcements", "social_links", "faqs", "submissions"],
+  editor: ["dashboard", "payment_requests", "budget", "portfolio", "properties", "projects", "calendar", "services", "visual_ideas", "pricing", "announcements", "social_links", "faqs", "leads", "customers", "clients", "submissions", "marketing_emails"],
+  viewer: ["dashboard", "portfolio", "properties", "projects", "calendar", "services", "visual_ideas", "pricing", "announcements", "social_links", "faqs", "submissions"],
 };
 
 type Permission = string | string[] | null;
@@ -23,6 +23,7 @@ async function permissionForAdminEndpoint(req: any): Promise<Permission> {
   if (/^\/(categories|portfolio)(?:\/|$)/.test(path)) return "portfolio";
   if (/^\/property-listings(?:\/|$)/.test(path)) return "properties";
   if (/^\/projects(?:\/|$)/.test(path)) return "projects";
+  if (/^\/calendar-events(?:\/|$)/.test(path)) return "calendar";
   if (/^\/(services|visual-ideas)(?:\/|$)/.test(path)) return path.startsWith("/visual-ideas") ? "visual_ideas" : "services";
   if (/^\/(pricing|extra-services|fee-rules)(?:\/|$)/.test(path)) return "pricing";
   if (/^\/(faq-categories|faqs)(?:\/|$)/.test(path)) return "faqs";

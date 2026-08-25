@@ -3905,6 +3905,97 @@ async function sendProjectTimelineEmail(projectId: string, input: { title: strin
   });
 }
 
+adminRouter.get("/calendar-events", async (req: any, res) => {
+  try {
+    const from = new Date(String(req.query.from || ""));
+    const to = new Date(String(req.query.to || ""));
+    if (!Number.isFinite(from.getTime()) || !Number.isFinite(to.getTime()) || from >= to) {
+      return res.status(400).json({ error: "Érvénytelen naptári időszak." });
+    }
+    const result = await db.execute({
+      sql: `SELECT e.*, COALESCE(NULLIF(TRIM(u.name), ''), u.email, 'Csapattag') AS owner_name,
+                   CASE WHEN e.owner_id = ? THEN 1 ELSE 0 END AS can_edit
+            FROM calendar_events e LEFT JOIN users u ON u.id = e.owner_id
+            WHERE e.start_at < ? AND e.end_at > ? ORDER BY e.start_at ASC`,
+      args: [req.user.id, to.toISOString(), from.toISOString()],
+    });
+    res.json(result.rows);
+  } catch (error) {
+    console.error("Failed to load calendar events", error);
+    res.status(500).json({ error: "A naptár betöltése sikertelen." });
+  }
+});
+
+adminRouter.post("/calendar-events", async (req: any, res) => {
+  try {
+    const title = String(req.body.title || "").trim();
+    const description = String(req.body.description || "").trim();
+    const start = new Date(req.body.start_at);
+    const end = new Date(req.body.end_at);
+    const color = /^#[0-9a-f]{6}$/i.test(String(req.body.color || "")) ? String(req.body.color) : "#8b5cf6";
+    if (!title) return res.status(400).json({ error: "Az esemény neve kötelező." });
+    if (!Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime()) || start >= end) {
+      return res.status(400).json({ error: "Az esemény idősávja érvénytelen." });
+    }
+    const id = crypto.randomUUID();
+    const projectId = crypto.randomUUID();
+    await db.batch([
+      { sql: `INSERT INTO projects (id, name, description, status, client_id, keywords, created_at, updated_at)
+              VALUES (?, ?, ?, 'active', NULL, 'internal-calendar', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`, args: [projectId, title, description] },
+      { sql: `INSERT INTO calendar_events (id, title, description, start_at, end_at, color, owner_id, project_id)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, args: [id, title, description, start.toISOString(), end.toISOString(), color, req.user.id, projectId] },
+    ], "write");
+    const created = await db.execute({
+      sql: `SELECT e.*, COALESCE(NULLIF(TRIM(u.name), ''), u.email, 'Csapattag') AS owner_name, 1 AS can_edit
+            FROM calendar_events e LEFT JOIN users u ON u.id = e.owner_id WHERE e.id = ?`, args: [id],
+    });
+    res.status(201).json(created.rows[0]);
+  } catch (error) {
+    console.error("Failed to create calendar event", error);
+    res.status(500).json({ error: "Az esemény létrehozása sikertelen." });
+  }
+});
+
+adminRouter.put("/calendar-events/:id", async (req: any, res) => {
+  try {
+    const current = await db.execute({ sql: "SELECT * FROM calendar_events WHERE id = ?", args: [req.params.id] });
+    const event: any = current.rows[0];
+    if (!event) return res.status(404).json({ error: "Az esemény nem található." });
+    if (String(event.owner_id) !== String(req.user.id)) return res.status(403).json({ error: "Csak a saját eseményedet szerkesztheted." });
+    const title = String(req.body.title || "").trim();
+    const description = String(req.body.description || "").trim();
+    const start = new Date(req.body.start_at);
+    const end = new Date(req.body.end_at);
+    const color = /^#[0-9a-f]{6}$/i.test(String(req.body.color || "")) ? String(req.body.color) : event.color;
+    if (!title || !Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime()) || start >= end) return res.status(400).json({ error: "Hiányos vagy érvénytelen esemény." });
+    await db.batch([
+      { sql: `UPDATE calendar_events SET title = ?, description = ?, start_at = ?, end_at = ?, color = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND owner_id = ?`, args: [title, description, start.toISOString(), end.toISOString(), color, req.params.id, req.user.id] },
+      { sql: `UPDATE projects SET name = ?, description = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`, args: [title, description, event.project_id] },
+    ], "write");
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Failed to update calendar event", error);
+    res.status(500).json({ error: "Az esemény mentése sikertelen." });
+  }
+});
+
+adminRouter.delete("/calendar-events/:id", async (req: any, res) => {
+  try {
+    const current = await db.execute({ sql: "SELECT owner_id, project_id FROM calendar_events WHERE id = ?", args: [req.params.id] });
+    const event: any = current.rows[0];
+    if (!event) return res.status(404).json({ error: "Az esemény nem található." });
+    if (String(event.owner_id) !== String(req.user.id)) return res.status(403).json({ error: "Csak a saját eseményedet törölheted." });
+    await db.batch([
+      { sql: "DELETE FROM calendar_events WHERE id = ? AND owner_id = ?", args: [req.params.id, req.user.id] },
+      { sql: "DELETE FROM projects WHERE id = ? AND client_id IS NULL AND keywords = 'internal-calendar'", args: [event.project_id] },
+    ], "write");
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Failed to delete calendar event", error);
+    res.status(500).json({ error: "Az esemény törlése sikertelen." });
+  }
+});
+
 adminRouter.get("/projects", async (req, res) => {
   try {
     const result = await db.execute(`
