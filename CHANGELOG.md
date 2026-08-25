@@ -4,6 +4,7 @@
 
 ### Shared internal calendar
 
+- Separated calendar event titles from automatically created project and portfolio-gallery names, with an independently required and editable linked-resource name.
 - Moved all-day entries into a dedicated sticky lane below the day headers, keeping them visible independently of vertical timeline scrolling.
 - Expanded the scrollable timeline to the full 00:00–24:00 day, converted team assignment to a compact dropdown multiselect, kept modal actions permanently visible, and added a translucent blurred hover-detail surface.
 - Added multi-member assignment for calendar entries and tasks, with active admin-role selection, visible assignee details, and independent reminder-email delivery to every assigned team member.

@@ -3947,9 +3947,11 @@ adminRouter.get("/calendar-events", async (req: any, res) => {
     }
     const result = await db.execute({
       sql: `SELECT e.*, COALESCE(NULLIF(TRIM(u.name), ''), u.email, 'Csapattag') AS owner_name,
+                   COALESCE(NULLIF(TRIM(p.name), ''), NULLIF(TRIM(pi.title), ''), '') AS resource_name,
                    COALESCE(NULLIF(e.event_type, ''), CASE WHEN e.portfolio_id IS NOT NULL THEN 'portfolio' WHEN e.project_id IS NOT NULL THEN 'project' ELSE 'event' END) AS event_type,
                    CASE WHEN e.owner_id = ? THEN 1 ELSE 0 END AS can_edit
             FROM calendar_events e LEFT JOIN users u ON u.id = e.owner_id
+            LEFT JOIN projects p ON p.id = e.project_id LEFT JOIN portfolio_items pi ON pi.id = e.portfolio_id
             WHERE (COALESCE(e.recurrence_rule, 'none') <> 'none' AND e.start_at < ?)
                OR (e.start_at < ? AND e.end_at > ?) ORDER BY e.start_at ASC`,
       args: [req.user.id, to.toISOString(), to.toISOString(), from.toISOString()],
@@ -4000,10 +4002,12 @@ adminRouter.post("/calendar-events", async (req: any, res) => {
     const color = /^#[0-9a-f]{6}$/i.test(String(req.body.color || "")) ? String(req.body.color) : "#8b5cf6";
     const allowedTypes = new Set(["event", "reminder", "task", "project", "portfolio"]);
     const eventType = allowedTypes.has(String(req.body.event_type)) ? String(req.body.event_type) : "event";
+    const resourceName = String(req.body.resource_name || "").trim();
     const reminder = req.body.reminder_at ? new Date(req.body.reminder_at) : null;
     const recurrence = ["none", "daily", "weekly", "monthly"].includes(String(req.body.recurrence_rule)) ? String(req.body.recurrence_rule) : "none";
     const isAllDay = req.body.is_all_day ? 1 : 0;
     if (!title) return res.status(400).json({ error: "Az esemény neve kötelező." });
+    if ((eventType === "project" || eventType === "portfolio") && !resourceName) return res.status(400).json({ error: eventType === "project" ? "A kapcsolt projekt neve kötelező." : "A kapcsolt portfóliógaléria neve kötelező." });
     if (!Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime()) || start >= end) {
       return res.status(400).json({ error: "Az esemény idősávja érvénytelen." });
     }
@@ -4014,17 +4018,17 @@ adminRouter.post("/calendar-events", async (req: any, res) => {
     const id = crypto.randomUUID();
     const resourceId = crypto.randomUUID();
     if (eventType === "portfolio") {
-      const slug = createPortfolioSlug(title, resourceId);
+      const slug = createPortfolioSlug(resourceName, resourceId);
       await db.batch([
         { sql: `INSERT INTO portfolio_items (id, slug, title, description, category_id, item_type, media_type, media_url, thumbnail_url, image_urls, target_url, is_featured, is_published, sort_order, keywords)
-                VALUES (?, ?, ?, ?, NULL, 'image', 'image', '', '', '[]', '', 0, 0, 0, 'internal-calendar')`, args: [resourceId, slug, title, description] },
+                VALUES (?, ?, ?, ?, NULL, 'image', 'image', '', '', '[]', '', 0, 0, 0, 'internal-calendar')`, args: [resourceId, slug, resourceName, description] },
         { sql: `INSERT INTO calendar_events (id, title, description, start_at, end_at, color, owner_id, portfolio_id, event_type, reminder_at, is_all_day, recurrence_rule)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, args: [id, title, description, start.toISOString(), end.toISOString(), color, req.user.id, resourceId, eventType, reminder?.toISOString() || null, isAllDay, recurrence] },
       ], "write");
     } else if (eventType === "project") {
       await db.batch([
         { sql: `INSERT INTO projects (id, name, description, status, client_id, keywords, created_at, updated_at)
-                VALUES (?, ?, ?, 'active', NULL, 'internal-calendar', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`, args: [resourceId, title, description] },
+                VALUES (?, ?, ?, 'active', NULL, 'internal-calendar', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`, args: [resourceId, resourceName, description] },
         { sql: `INSERT INTO calendar_events (id, title, description, start_at, end_at, color, owner_id, project_id, event_type, reminder_at, is_all_day, recurrence_rule)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, args: [id, title, description, start.toISOString(), end.toISOString(), color, req.user.id, resourceId, eventType, reminder?.toISOString() || null, isAllDay, recurrence] },
       ], "write");
@@ -4039,8 +4043,11 @@ adminRouter.post("/calendar-events", async (req: any, res) => {
     await scheduleCalendarReminder({ id, owner_id: req.user.id, recipient_ids: assignees.map(member => String(member.id)), start_at: start.toISOString(), reminder_at: reminder?.toISOString() || null, recurrence_rule: recurrence });
     const created = await db.execute({
       sql: `SELECT e.*, COALESCE(NULLIF(TRIM(u.name), ''), u.email, 'Csapattag') AS owner_name,
+                   COALESCE(NULLIF(TRIM(p.name), ''), NULLIF(TRIM(pi.title), ''), '') AS resource_name,
                    COALESCE(NULLIF(e.event_type, ''), 'event') AS event_type, 1 AS can_edit
-            FROM calendar_events e LEFT JOIN users u ON u.id = e.owner_id WHERE e.id = ?`, args: [id],
+            FROM calendar_events e LEFT JOIN users u ON u.id = e.owner_id
+            LEFT JOIN projects p ON p.id = e.project_id LEFT JOIN portfolio_items pi ON pi.id = e.portfolio_id
+            WHERE e.id = ?`, args: [id],
     });
     res.status(201).json({ ...created.rows[0], assignees });
   } catch (error) {
@@ -4057,6 +4064,7 @@ adminRouter.put("/calendar-events/:id", async (req: any, res) => {
     if (String(event.owner_id) !== String(req.user.id)) return res.status(403).json({ error: "Csak a saját eseményedet szerkesztheted." });
     const title = String(req.body.title || "").trim();
     const description = String(req.body.description || "").trim();
+    const resourceName = String(req.body.resource_name || "").trim();
     const start = new Date(req.body.start_at);
     const end = new Date(req.body.end_at);
     const color = /^#[0-9a-f]{6}$/i.test(String(req.body.color || "")) ? String(req.body.color) : event.color;
@@ -4065,14 +4073,15 @@ adminRouter.put("/calendar-events/:id", async (req: any, res) => {
     const isAllDay = req.body.is_all_day ? 1 : 0;
     const isCompleted = req.body.is_completed ? 1 : 0;
     if (!title || !Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime()) || start >= end) return res.status(400).json({ error: "Hiányos vagy érvénytelen esemény." });
+    if ((event.project_id || event.portfolio_id) && !resourceName) return res.status(400).json({ error: event.project_id ? "A kapcsolt projekt neve kötelező." : "A kapcsolt portfóliógaléria neve kötelező." });
     if (reminder && !Number.isFinite(reminder.getTime())) return res.status(400).json({ error: "Az emlékeztetési időpont érvénytelen." });
     let assignees: any[];
     try { assignees = await resolveCalendarAssignees(req.body.assignee_ids ?? req.body.assignees?.map((member: any) => member.id)); }
     catch (error: any) { return res.status(400).json({ error: error.message }); }
     await db.batch([
       { sql: `UPDATE calendar_events SET title = ?, description = ?, start_at = ?, end_at = ?, color = ?, reminder_at = ?, is_completed = ?, is_all_day = ?, recurrence_rule = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND owner_id = ?`, args: [title, description, start.toISOString(), end.toISOString(), color, reminder?.toISOString() || null, isCompleted, isAllDay, recurrence, req.params.id, req.user.id] },
-      { sql: `UPDATE projects SET name = ?, description = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`, args: [title, description, event.project_id] },
-      { sql: `UPDATE portfolio_items SET title = ?, description = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`, args: [title, description, event.portfolio_id] },
+      { sql: `UPDATE projects SET name = ?, description = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`, args: [resourceName, description, event.project_id] },
+      { sql: `UPDATE portfolio_items SET title = ?, description = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`, args: [resourceName, description, event.portfolio_id] },
     ], "write");
     await saveCalendarAssignees(String(event.id), assignees);
     await scheduleCalendarReminder({ id: String(event.id), owner_id: String(event.owner_id), recipient_ids: assignees.map(member => String(member.id)), start_at: start.toISOString(), reminder_at: reminder?.toISOString() || null, recurrence_rule: recurrence });
