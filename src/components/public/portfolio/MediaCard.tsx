@@ -237,7 +237,7 @@ export function MediaCard({ card, onClick, priority = false, deferMedia = false 
         <div className="absolute inset-0 w-full h-full overflow-hidden bg-zinc-950">
           {/* 1. Direct HTML5 Low-Latency 360p Video Preview */}
           {isDirectVideo && directVideoSrcWithKeyframe && !deferMedia ? (
-            isInViewport ? (
+            isHovered && canPlayStream && isInViewport ? (
               <video
                 ref={videoRef}
                 src={directVideoSrcWithKeyframe}
@@ -262,7 +262,7 @@ export function MediaCard({ card, onClick, priority = false, deferMedia = false 
                 onError={() => setHasError(true)}
               />
             ) : (
-              /* Lightweight standby state when out of view */
+              /* Keep only a lightweight poster until the visitor actually hovers. */
               <div className="w-full h-full bg-zinc-950 flex items-center justify-center">
                 {previewImageUrl && shouldLoadMedia && (
                   <img

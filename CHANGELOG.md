@@ -2,6 +2,10 @@
 
 ## 2026-08-25
 
+### Public homepage performance
+
+- Reduced hero paint cost by eliminating the duplicated background image and generated noise layer, replaced the portfolio's large blur filter with a radial gradient, capped each marquee row to eight representative previews, and instantiate video players only on actual hover while preserving existing Appwrite/WebP media URLs.
+
 ### Shared internal calendar
 
 - Separated calendar event titles from automatically created project and portfolio-gallery names, with an independently required and editable linked-resource name.
@@ -20,7 +24,16 @@
 
 ### Financial role access
 
+- Fixed the production dashboard's obsolete `/api/admin/budget/entries` request by using the Vercel-routed `/api/admin/budgets` endpoint and its `{ entries }` response shape; roles without budget access no longer request or display that dashboard card.
 - Restricted editors to the Payment Requests financial view, removed Budget Manager and invoicing selectors from their sidebar and page header, normalized direct financial links to Payment Requests, and enforced the restriction on the related APIs.
+
+### CRM route compatibility
+
+- Added backward-compatible CRM list aliases so cached or older clients requesting `/api/admin/crm/leads` or `/api/admin/crm/customers` are normalized to the supported lead/customer types instead of receiving HTTP 400.
+
+### Serverless media restructuring
+
+- Removed duplicate temporary-disk writes from gallery batch restructuring: downloaded videos and generated image variants now upload directly from memory to R2/Appwrite, preventing Vercel `/tmp` exhaustion (`ENOSPC`) while preserving sequential processing.
 
 ## 2026-08-24
 

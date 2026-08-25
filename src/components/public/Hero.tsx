@@ -17,7 +17,6 @@ export function Hero({ settings }: { settings: SiteSettings }) {
       className="aero-hero min-h-[100svh] pt-32 pb-8 md:pt-40 md:pb-10 px-4 sm:px-6 flex items-end relative"
     >
       <div className="aero-hero-media" aria-hidden="true" />
-      <div className="aero-hero-noise" aria-hidden="true" />
       <div className="relative z-10 w-full max-w-[1480px] mx-auto">
         <div className="aero-hero-layout">
           <div className="aero-hero-copy">

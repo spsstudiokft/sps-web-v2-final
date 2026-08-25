@@ -520,8 +520,6 @@ export async function restructureSingleMediaItem({
           });
         }
 
-        const tempCompressedPath = path.join(UPLOADS_TEMP_DIR, `comp-${Date.now()}-${compressedStructuredName}`);
-        
         let sharpInstance = sharp(buffer);
         const metadata = await sharpInstance.metadata();
         const maxDimension = 3840;
@@ -534,11 +532,9 @@ export async function restructureSingleMediaItem({
           });
         }
 
-        await sharpInstance
+        const compressedBuffer = await sharpInstance
           .jpeg({ quality: 88, progressive: true, mozjpeg: true })
-          .toFile(tempCompressedPath);
-
-        const compStat = fs.statSync(tempCompressedPath);
+          .toBuffer();
 
         const compUploadObj: Express.Multer.File = {
           fieldname: "file",
@@ -546,22 +542,21 @@ export async function restructureSingleMediaItem({
           filename: compressedStructuredName,
           encoding: "7bit",
           mimetype: "image/jpeg",
-          size: compStat.size,
-          path: tempCompressedPath,
+          size: compressedBuffer.length,
+          path: "",
           destination: UPLOADS_TEMP_DIR,
-          buffer: null as any,
+          buffer: compressedBuffer,
           stream: null as any,
         };
         (compUploadObj as any).customFileKey = compressedStructuredName;
 
         const compUploadResult = await uploadMedia(compUploadObj, mediaProvider);
-        try { fs.unlinkSync(tempCompressedPath); } catch {}
 
         updatedItem = {
           ...updatedItem,
           compressed_url: compUploadResult.public_url,
           compressed_filename: compressedStructuredName,
-          compressed_size: compStat.size,
+          compressed_size: compressedBuffer.length,
         };
         compressedCreated = true;
       } catch (err: any) {
@@ -618,10 +613,8 @@ export async function restructureSingleMediaItem({
     const { buffer, mimeType } = await downloadOrReadMediaBuffer(item.url);
     const originalSize = buffer.length;
 
-    // 1. Upload original file with new structured filename key to storage bucket
-    const tempOriginalPath = path.join(UPLOADS_TEMP_DIR, `orig-${Date.now()}-${newStructuredFilename}`);
-    fs.writeFileSync(tempOriginalPath, buffer);
-
+    // Upload directly from the downloaded buffer. Writing a second full copy of
+    // large videos to Vercel's limited /tmp volume can cause ENOSPC failures.
     const origUploadObj: Express.Multer.File = {
       fieldname: "file",
       originalname: newStructuredFilename,
@@ -629,16 +622,15 @@ export async function restructureSingleMediaItem({
       encoding: "7bit",
       mimetype: mimeType,
       size: originalSize,
-      path: tempOriginalPath,
+      path: "",
       destination: UPLOADS_TEMP_DIR,
-      buffer: null as any,
+      buffer,
       stream: null as any,
     };
     (origUploadObj as any).customFileKey = newStructuredFilename;
 
     const origUploadResult = await uploadMedia(origUploadObj, mediaProvider);
     await replaceBucketObject(item.url, origUploadResult, newStructuredFilename);
-    try { fs.unlinkSync(tempOriginalPath); } catch {}
 
     let compressedUrl: string | undefined = undefined;
     let compressedFilename: string | undefined = undefined;
@@ -657,8 +649,6 @@ export async function restructureSingleMediaItem({
           is10MbVersion: true,
         });
 
-        const tempCompressedPath = path.join(UPLOADS_TEMP_DIR, `comp-${Date.now()}-${newCompressedFilename}`);
-
         let sharpInstance = sharp(buffer);
         const metadata = await sharpInstance.metadata();
         const maxDimension = 3840;
@@ -673,18 +663,16 @@ export async function restructureSingleMediaItem({
 
         const MAX_10MB_BYTES = 10 * 1024 * 1024;
         let quality = 88;
-        await sharpInstance
+        let compressedBuffer = await sharpInstance
           .jpeg({ quality, progressive: true, mozjpeg: true })
-          .toFile(tempCompressedPath);
+          .toBuffer();
 
-        let compStat = fs.statSync(tempCompressedPath);
-        if (compStat.size > MAX_10MB_BYTES) {
+        if (compressedBuffer.length > MAX_10MB_BYTES) {
           quality = 75;
-          await sharp(buffer)
+          compressedBuffer = await sharp(buffer)
             .resize({ width: 2560, fit: "inside", withoutEnlargement: true })
             .jpeg({ quality, progressive: true, mozjpeg: true })
-            .toFile(tempCompressedPath);
-          compStat = fs.statSync(tempCompressedPath);
+            .toBuffer();
         }
 
         const compUploadObj: Express.Multer.File = {
@@ -693,21 +681,20 @@ export async function restructureSingleMediaItem({
           filename: newCompressedFilename,
           encoding: "7bit",
           mimetype: "image/jpeg",
-          size: compStat.size,
-          path: tempCompressedPath,
+          size: compressedBuffer.length,
+          path: "",
           destination: UPLOADS_TEMP_DIR,
-          buffer: null as any,
+          buffer: compressedBuffer,
           stream: null as any,
         };
         (compUploadObj as any).customFileKey = newCompressedFilename;
 
         const compUploadResult = await uploadMedia(compUploadObj, mediaProvider);
         await replaceBucketObject(item.compressed_url, compUploadResult, newCompressedFilename);
-        try { fs.unlinkSync(tempCompressedPath); } catch {}
 
         compressedUrl = compUploadResult.public_url;
         compressedFilename = newCompressedFilename;
-        compressedSize = compStat.size;
+        compressedSize = compressedBuffer.length;
         compressedCreated = true;
       } catch (compErr: any) {
         console.warn(`[BatchRestructure] Image compression warning for ${newStructuredFilename}:`, compErr.message);

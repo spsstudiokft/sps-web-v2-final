@@ -32,6 +32,8 @@ interface PortfolioProps {
   isPerformanceLite?: boolean;
 }
 
+const MAX_SHOWCASE_CARDS_PER_ROW = 8;
+
 function shuffleShowcaseCards(cards: ShowcaseMediaCardItem[]): ShowcaseMediaCardItem[] {
   const remaining = [...cards];
   const shuffled: ShowcaseMediaCardItem[] = [];
@@ -194,10 +196,10 @@ export function Portfolio({ items, isPerformanceLite = false }: PortfolioProps) 
     });
 
     return {
-      imageCards: shuffleShowcaseCards(imgCards),
-      droneVideoCards: shuffleShowcaseCards(droneCards),
-      interiorVideoCards: shuffleShowcaseCards(interiorCards),
-      dronePhotoCards: shuffleShowcaseCards(dronePhotoCards),
+      imageCards: shuffleShowcaseCards(imgCards).slice(0, MAX_SHOWCASE_CARDS_PER_ROW),
+      droneVideoCards: shuffleShowcaseCards(droneCards).slice(0, MAX_SHOWCASE_CARDS_PER_ROW),
+      interiorVideoCards: shuffleShowcaseCards(interiorCards).slice(0, MAX_SHOWCASE_CARDS_PER_ROW),
+      dronePhotoCards: shuffleShowcaseCards(dronePhotoCards).slice(0, MAX_SHOWCASE_CARDS_PER_ROW),
     };
   }, [items]);
 
@@ -214,7 +216,7 @@ export function Portfolio({ items, isPerformanceLite = false }: PortfolioProps) 
       className="aero-portfolio aero-image-section scroll-mt-20 py-24 md:py-32 px-6 relative overflow-hidden"
     >
       {/* Background Ambience Glow */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-primary/5 blur-[120px] pointer-events-none rounded-full" />
+      <div className="portfolio-ambient-glow" aria-hidden="true" />
 
       {/* Header Container */}
       <div className="max-w-7xl mx-auto mb-12 relative z-10">

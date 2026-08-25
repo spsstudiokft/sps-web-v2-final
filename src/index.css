@@ -465,21 +465,12 @@ html:not(.dark) .aero-site {
   border-radius: 0 0 2rem 2rem;
   overflow: hidden;
   color: white;
-  background-image:
-    linear-gradient(90deg, rgba(2, 10, 24, 0.9) 0%, rgba(2, 14, 31, 0.72) 40%, rgba(2, 16, 35, 0.17) 72%),
-    linear-gradient(0deg, rgba(1, 10, 24, 0.82) 0%, transparent 42%),
-    url('/images/sps-cinematic-hero.png');
-  background-position: center, center, right center;
-  background-size: cover, cover, 112% auto;
-  background-repeat: no-repeat;
+  background: #031326;
   box-shadow: 0 30px 80px rgba(5, 36, 72, 0.24);
 }
 
 .dark .aero-hero {
-  background-image:
-    linear-gradient(90deg, rgba(1, 8, 20, .94) 0%, rgba(2, 12, 28, .76) 42%, rgba(2, 15, 34, .2) 74%),
-    linear-gradient(0deg, rgba(1, 8, 20, .88) 0%, transparent 44%),
-    url('/images/sps-cinematic-hero.png');
+  background: #010b19;
 }
 
 @media (min-width: 901px) {
@@ -633,10 +624,22 @@ html:not(.dark) .aero-site {
 @keyframes hero-pulse { 0%,100% { opacity: .55; } 50% { opacity: 1; } }
 
 @media (max-width: 900px) {
-  .aero-hero { min-height: 940px; background-position: center center; background-image: linear-gradient(0deg, rgba(2,11,25,.96) 0%, rgba(2,13,29,.72) 58%, rgba(2,15,34,.12) 100%), url('/images/sps-cinematic-hero.png'); }
+  .aero-hero { min-height: 940px; background: #031326; }
   .aero-hero-media { background-position: center center, center center, var(--hero-image-position, center center); background-size: cover, cover, cover; }
   .aero-hero-layout { grid-template-columns: 1fr; gap: 2rem; padding-bottom: 1.5rem; }
   .aero-showreel-card { max-width: 32rem; }
+}
+
+.portfolio-ambient-glow {
+  position: absolute;
+  top: 18%;
+  left: 50%;
+  width: min(800px, 90vw);
+  height: 500px;
+  transform: translateX(-50%);
+  pointer-events: none;
+  border-radius: 999px;
+  background: radial-gradient(ellipse at center, color-mix(in srgb, var(--theme-primary) 8%, transparent), transparent 70%);
 }
 
 @media (max-width: 600px) {

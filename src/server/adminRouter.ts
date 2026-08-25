@@ -4671,7 +4671,8 @@ adminRouter.get("/crm/customers/:id/overview", async (req, res) => {
 
 adminRouter.get("/crm/:type", async (req, res) => {
   try {
-    const type = req.params.type;
+    const requestedType = String(req.params.type || "").trim().toLowerCase();
+    const type = requestedType === "leads" ? "lead" : requestedType === "customers" ? "customer" : requestedType;
     if (type !== 'lead' && type !== 'customer') {
       return res.status(400).json({ error: "Invalid CRM type" });
     }
