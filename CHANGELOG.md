@@ -49,6 +49,7 @@
 - Enforced the visitor decision technically: optional preference, analytics, and marketing browser-storage keys are cleared on withdrawal; public language/theme persistence is prevented without preference consent; and a shared consent-gated script loader is available for future analytics or marketing integrations.
 - Applied the same preference-consent check to the early HTML theme bootstrap so it cannot read a public theme preference before the application starts.
 - Moved the Google Analytics and Ahrefs scripts out of `index.html`; they now load only after analytics consent and are removed with their known client-side storage when that consent is withdrawn.
+- Moved detailed cookie preferences out of the compact banner into a dedicated modal, with draft selections applied only when the visitor saves them.
 
 ### Local demo administrator
 

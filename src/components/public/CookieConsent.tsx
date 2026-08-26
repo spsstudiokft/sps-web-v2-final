@@ -96,6 +96,7 @@ function CookieConsentBanner({ isOpen, onClose }: { isOpen: boolean; onClose: ()
   const { currentLang, defaultLang } = useLanguage();
   const { status, preferences, savePreferences, acceptCookies, rejectOptionalCookies, openPreferences } = useCookieConsent();
   const [showDetails, setShowDetails] = useState(false);
+  const [draftPreferences, setDraftPreferences] = useState<CookiePreferences>(preferences);
   const [cookieDocuments, setCookieDocuments] = useState<Record<string, { title: string; content: string; updated_at?: string }>>({});
   const [cookieCatalog, setCookieCatalog] = useState<CookieCatalogItem[]>([]);
   const [isPolicyOpen, setIsPolicyOpen] = useState(false);
@@ -149,15 +150,13 @@ function CookieConsentBanner({ isOpen, onClose }: { isOpen: boolean; onClose: ()
                   </div>
                   <p className="text-sm text-muted-text leading-relaxed mt-1.5">{tr("cookie_banner.description")}</p>
                   <p className="text-xs text-muted-text/80 mt-2">{tr("cookie_banner.necessary_note")}</p>
-                  <button type="button" onClick={() => setShowDetails((open) => !open)} className="mt-2 text-xs font-semibold text-primary hover:underline">Süti-beállítások testreszabása</button>
+                  <button type="button" onClick={() => { setDraftPreferences(preferences); setShowDetails(true); }} className="mt-2 text-xs font-semibold text-primary hover:underline">Süti-beállítások testreszabása</button>
                   <button type="button" onClick={() => setIsPolicyOpen(true)} className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline underline-offset-4">
                     <FileText className="w-3.5 h-3.5" aria-hidden="true" />
                     {tr("legal.cookie_policy")}
                   </button>
                 </div>
               </div>
-
-              {showDetails && <div className="absolute inset-x-0 bottom-0 z-20 max-h-[78vh] overflow-y-auto bg-background/95 border-t border-border p-4 sm:p-5"><p className="text-sm font-semibold text-text mb-2">Engedélyek kezelése</p><div className="grid sm:grid-cols-2 gap-2 text-sm text-muted-text">{([['necessary', 'Szükséges (mindig aktív)'], ['preferences', 'Beállítások'], ['analytics', 'Statisztika'], ['marketing', 'Marketing']] as const).map(([key, label]) => <label key={key} className="flex items-center justify-between rounded-lg bg-surface px-3 py-2"><span>{label}</span><input type="checkbox" disabled={key === 'necessary'} checked={preferences[key]} onChange={(event) => savePreferences({ ...preferences, [key]: event.target.checked })} /></label>)}</div><div className="mt-4 space-y-2"><p className="text-sm font-semibold text-text">Használt sütik és böngészőtárhelyek</p>{cookieCatalog.length ? cookieCatalog.map((item) => <div key={item.id} className="rounded-xl border border-border bg-surface p-3 text-xs text-muted-text"><div className="flex flex-wrap items-center gap-2"><strong className="text-text">{item.name}</strong><span className="rounded-full bg-primary/10 px-2 py-0.5 text-primary">{item.storage}</span><span className="rounded-full bg-surface-hover px-2 py-0.5">{item.consent_scope === "essential" ? "Nélkülözhetetlen" : item.consent_scope === "necessary" ? "Csak szükséges" : "Teljes elfogadás"}</span></div><p className="mt-1">{item.purpose}</p><p className="mt-1 opacity-80">{item.provider} · {item.duration} · {item.required ? "szükséges" : "választható"}</p></div>) : <p className="text-xs text-muted-text">A süti-nyilvántartás hamarosan betöltődik.</p>}</div><button type="button" onClick={() => { savePreferences(preferences); setShowDetails(false); }} className="mt-3 aero-cookie-primary px-4 py-2 rounded-xl text-sm font-semibold">Beállítások mentése</button></div>}
 
               <div className="flex flex-col sm:flex-row lg:flex-col xl:flex-row gap-2.5 shrink-0">
                 <button type="button" onClick={rejectOptionalCookies} className="aero-cookie-secondary px-4 py-2.5 rounded-xl text-sm font-semibold">
@@ -176,6 +175,17 @@ function CookieConsentBanner({ isOpen, onClose }: { isOpen: boolean; onClose: ()
             </div>
           </motion.aside>
         )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showDetails && <motion.div role="dialog" aria-modal="true" aria-labelledby="cookie-preferences-title" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[110] flex items-end sm:items-center justify-center bg-slate-950/55 p-4" onClick={() => setShowDetails(false)}>
+          <motion.div initial={{ opacity: 0, y: 22, scale: .98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 18, scale: .98 }} className="w-full max-w-2xl max-h-[88vh] overflow-y-auto rounded-3xl border border-border bg-background p-5 sm:p-6 shadow-2xl" onClick={(event) => event.stopPropagation()}>
+            <div className="flex items-start justify-between gap-4"><div><h2 id="cookie-preferences-title" className="text-lg font-bold text-text">Süti-beállítások</h2><p className="mt-1 text-sm text-muted-text">Válaszd ki, mely opcionális tárolást engedélyezed.</p></div><button type="button" onClick={() => setShowDetails(false)} className="p-2 rounded-xl text-muted-text hover:bg-surface hover:text-text" aria-label="Bezárás"><X className="w-5 h-5" /></button></div>
+            <div className="mt-5 grid sm:grid-cols-2 gap-2 text-sm text-muted-text">{([['necessary', 'Szükséges (mindig aktív)'], ['preferences', 'Beállítások'], ['analytics', 'Statisztika'], ['marketing', 'Marketing']] as const).map(([key, label]) => <label key={key} className="flex items-center justify-between rounded-xl bg-surface px-3 py-3"><span>{label}</span><input type="checkbox" disabled={key === "necessary"} checked={draftPreferences[key]} onChange={(event) => setDraftPreferences((current) => ({ ...current, [key]: event.target.checked }))} /></label>)}</div>
+            <div className="mt-5 space-y-2"><p className="text-sm font-semibold text-text">Használt sütik és böngészőtárhelyek</p>{cookieCatalog.length ? cookieCatalog.map((item) => <div key={item.id} className="rounded-xl border border-border bg-surface p-3 text-xs text-muted-text"><div className="flex flex-wrap items-center gap-2"><strong className="text-text">{item.name}</strong><span className="rounded-full bg-primary/10 px-2 py-0.5 text-primary">{item.storage}</span><span className="rounded-full bg-surface-hover px-2 py-0.5">{item.consent_scope === "essential" ? "Nélkülözhetetlen" : item.consent_scope === "necessary" ? "Csak szükséges" : "Teljes elfogadás"}</span></div><p className="mt-1">{item.purpose}</p><p className="mt-1 opacity-80">{item.provider} · {item.duration} · {item.required ? "szükséges" : "választható"}</p></div>) : <p className="text-xs text-muted-text">A süti-nyilvántartás hamarosan betöltődik.</p>}</div>
+            <div className="mt-6 flex justify-end gap-2"><button type="button" onClick={() => setShowDetails(false)} className="aero-cookie-secondary px-4 py-2.5 rounded-xl text-sm font-semibold">Mégse</button><button type="button" onClick={() => { savePreferences(draftPreferences); setShowDetails(false); }} className="aero-cookie-primary px-4 py-2.5 rounded-xl text-sm font-semibold">Beállítások mentése</button></div>
+          </motion.div>
+        </motion.div>}
       </AnimatePresence>
 
       {!isOpen && (
