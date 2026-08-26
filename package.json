@@ -35,6 +35,8 @@
     "@fortawesome/react-fontawesome": "^3.3.1",
     "@libsql/client": "^0.17.4",
     "@tailwindcss/vite": "^4.1.14",
+    "@vercel/analytics": "^2.0.1",
+    "@vercel/speed-insights": "^2.0.0",
     "@vitejs/plugin-react": "^5.0.4",
     "appwrite": "21.5.0",
     "bcryptjs": "^3.0.3",

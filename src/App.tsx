@@ -14,6 +14,7 @@ import { ErrorPage, RouteErrorBoundary } from "./pages/ErrorPage";
 import { ComingSoonGate } from "./components/public/ComingSoonGate";
 import { BackgroundUploadProvider } from "./contexts/BackgroundUploadContext";
 import { AdminCurrencyProvider } from "./contexts/AdminCurrencyContext";
+import { CookieConsentProvider } from "./components/public/CookieConsent";
 
 const AdminLogin = lazy(() => import("./pages/AdminLogin"));
 const AdminSetup = lazy(() => import("./pages/AdminSetup"));
@@ -137,7 +138,7 @@ export default function App() {
               <RouteErrorBoundary>
               <Suspense fallback={<div className="min-h-screen bg-background" aria-busy="true" />}>
               <Routes>
-              <Route element={<ComingSoonGate />}>
+              <Route element={<CookieConsentProvider><ComingSoonGate /></CookieConsentProvider>}>
                 <Route path="/" element={<PublicHome />} />
                 <Route path="/portfolio/:slug" element={<PortfolioGalleryPage />} />
                 <Route path="/properties" element={<PropertiesPage />} />

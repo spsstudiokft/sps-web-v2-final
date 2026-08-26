@@ -29,6 +29,15 @@ export function applyConsentPreferences(preferences: ConsentPreferences) {
       for (let index = storage.length - 1; index >= 0; index--) { const key = storage.key(index) || ""; if (OPTIONAL_STORAGE[category].some((name) => key === name || key.startsWith(`${name}_`))) storage.removeItem(key); }
     });
     document.querySelectorAll(`[data-consent-category="${category}"]`).forEach((element) => element.remove());
+    if (category === "analytics") {
+      document.querySelectorAll('script[src*="/_vercel/insights/"], script[src*="/_vercel/speed-insights/"]').forEach((element) => element.remove());
+      delete (window as typeof window & { va?: unknown; vaq?: unknown; vai?: unknown; si?: unknown; siq?: unknown; sil?: unknown }).va;
+      delete (window as typeof window & { va?: unknown; vaq?: unknown; vai?: unknown; si?: unknown; siq?: unknown; sil?: unknown }).vaq;
+      delete (window as typeof window & { va?: unknown; vaq?: unknown; vai?: unknown; si?: unknown; siq?: unknown; sil?: unknown }).vai;
+      delete (window as typeof window & { va?: unknown; vaq?: unknown; vai?: unknown; si?: unknown; siq?: unknown; sil?: unknown }).si;
+      delete (window as typeof window & { va?: unknown; vaq?: unknown; vai?: unknown; si?: unknown; siq?: unknown; sil?: unknown }).siq;
+      delete (window as typeof window & { va?: unknown; vaq?: unknown; vai?: unknown; si?: unknown; siq?: unknown; sil?: unknown }).sil;
+    }
   });
   window.dispatchEvent(new CustomEvent("sps-consent-changed", { detail: preferences }));
 }

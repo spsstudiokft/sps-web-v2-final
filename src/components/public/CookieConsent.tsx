@@ -5,6 +5,8 @@ import { useLanguage } from "../../contexts/LanguageContext";
 import { tUi } from "../../lib/i18n";
 import { LegalDocumentModal } from "./LegalDocumentModal";
 import { applyConsentPreferences, loadConsentScript } from "../../lib/consentStorage";
+import { Analytics } from "@vercel/analytics/react";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 
 type CookieConsentStatus = "accepted" | "rejected" | null;
 type CookiePreferences = { necessary: true; preferences: boolean; analytics: boolean; marketing: boolean };
@@ -81,9 +83,16 @@ export function CookieConsentProvider({ children }: { children: React.ReactNode 
   return (
     <CookieConsentContext.Provider value={value}>
       {children}
+      <VercelObservability />
       <CookieConsentBanner isOpen={isBannerOpen} onClose={() => status !== null && setIsBannerOpen(false)} />
     </CookieConsentContext.Provider>
   );
+}
+
+function VercelObservability() {
+  const { preferences } = useCookieConsent();
+  if (!preferences.analytics) return null;
+  return <><Analytics /><SpeedInsights /></>;
 }
 
 export function useCookieConsent() {

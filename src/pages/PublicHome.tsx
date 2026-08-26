@@ -15,7 +15,6 @@ import { PublicSkeleton } from "../components/public/PublicSkeleton";
 import { FloatingNav } from "../components/public/FloatingNav";
 import { SocialPopup } from "../components/public/SocialPopup";
 import { SocialFloatingButton } from "../components/public/SocialFloatingButton";
-import { CookieConsentProvider } from "../components/public/CookieConsent";
 import { usePageTitle } from "../hooks/usePageTitle";
 import { useSeo } from "../hooks/useSeo";
 import { LanguageProvider, useLanguage } from "../contexts/LanguageContext";
@@ -301,8 +300,7 @@ function PublicHomeContent({ settings, portfolio, services, bootstrap, loading }
   }, []);
 
   return (
-    <CookieConsentProvider>
-      <MotionConfig reducedMotion={litePerformanceMode ? "always" : "never"}>
+    <MotionConfig reducedMotion={litePerformanceMode ? "always" : "never"}>
       <div
         className="aero-site font-sans antialiased bg-background text-text transition-colors duration-300 relative overflow-hidden"
         data-ambient={activeSectionKey}
@@ -350,6 +348,5 @@ function PublicHomeContent({ settings, portfolio, services, bootstrap, loading }
       </div>
       </div>
       </MotionConfig>
-    </CookieConsentProvider>
   );
 }
