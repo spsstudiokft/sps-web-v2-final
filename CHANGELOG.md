@@ -36,6 +36,7 @@
 
 - Added active portal-invitation status and expiry visibility to customer rows.
 - Prevented single and bulk portal invitation dispatch while a customer's latest unused invitation remains valid; a new invite is allowed after use or expiry.
+- Fixed the customer-list and invitation checks for installations with an older `magic_links` schema by deriving the active invitation from its expiry timestamp instead of relying on an optional creation-time column.
 
 ### Local demo administrator
 
