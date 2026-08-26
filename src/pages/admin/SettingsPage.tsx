@@ -7,6 +7,7 @@ import { Button } from "../../components/ui/Button";
 import { AdminFormSkeleton } from "../../components/admin/AdminSkeleton";
 import { SiteSettingsModal } from "../../components/admin/SiteSettingsModal";
 import { LegalDocumentsManager } from "../../components/admin/LegalDocumentsManager";
+import { CookieCatalogManager } from "../../components/admin/CookieCatalogManager";
 import { RoleMenuPermissionsManager } from "../../components/admin/RoleMenuPermissionsManager";
 import { normalizeAdminRole } from "../../lib/adminPermissions";
 import { usePageTitle } from "../../hooks/usePageTitle";
@@ -568,6 +569,10 @@ export default function SettingsPage() {
         <CardContent className="p-5 sm:p-6">
           <LegalDocumentsManager languages={parsedLanguages} defaultLanguage={settings.default_language || "en"} />
         </CardContent>
+      </Card>
+
+      <Card className={`${activeSettingsGroup === "governance" ? "" : "!hidden"} border-border overflow-hidden`}>
+        <CardContent className="p-5 sm:p-6"><CookieCatalogManager /></CardContent>
       </Card>
 
       {normalizeAdminRole(user?.role) === "superadmin" && <Card className={`${activeSettingsGroup === "governance" ? "" : "!hidden"} border-border overflow-hidden`}>

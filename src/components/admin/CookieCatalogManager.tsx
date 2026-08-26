@@ -1,0 +1,28 @@
+import { useEffect, useState } from "react";
+import { Cookie, Plus, Save, Trash2 } from "lucide-react";
+import { useApi } from "../../hooks/useApi";
+import { Button } from "../ui/Button";
+
+type CatalogItem = { id: string; name: string; category: "necessary" | "preferences" | "analytics" | "marketing"; storage: "cookie" | "localStorage" | "sessionStorage"; provider: string; duration: string; purpose: string; active: boolean; required: boolean };
+const CATEGORY_LABELS: Record<CatalogItem["category"], string> = { necessary: "Szükséges", preferences: "Beállítások", analytics: "Statisztika", marketing: "Marketing" };
+
+export function CookieCatalogManager() {
+  const { fetchApi } = useApi();
+  const [items, setItems] = useState<CatalogItem[]>([]); const [loading, setLoading] = useState(true); const [saving, setSaving] = useState(false); const [feedback, setFeedback] = useState("");
+  useEffect(() => { fetchApi("/api/admin/cookie-catalog").then((r) => r.ok ? r.json() : []).then((data) => setItems(Array.isArray(data) ? data : [])).finally(() => setLoading(false)); }, []);
+  const update = (index: number, patch: Partial<CatalogItem>) => setItems((previous) => previous.map((item, current) => current === index ? { ...item, ...patch } : item));
+  const add = () => setItems((previous) => [...previous, { id: `custom-${Date.now()}`, name: "", category: "analytics", storage: "cookie", provider: "", duration: "", purpose: "", active: true, required: false }]);
+  const save = async () => { setSaving(true); setFeedback(""); try { const response = await fetchApi("/api/admin/cookie-catalog", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ items }) }); const data = await response.json(); if (!response.ok) throw new Error(data.error || "A mentés sikertelen."); setItems(data.items); setFeedback("A süti-nyilvántartás elmentve."); } catch (error: any) { setFeedback(error.message || "A mentés sikertelen."); } finally { setSaving(false); } };
+  return <div className="space-y-4">
+    <div className="flex flex-wrap items-start justify-between gap-3"><div><h3 className="font-semibold text-text flex items-center gap-2"><Cookie className="w-4 h-4 text-primary" /> Süti- és tárhelynyilvántartás</h3><p className="text-xs text-muted-text mt-1">Itt jelennek meg a webhely tényleges sütijei és böngészőtárhelyei. Az aktív bejegyzések a látogatók számára is elérhetők a süti-beállításoknál.</p></div><Button type="button" variant="secondary" onClick={add}><Plus className="w-4 h-4" /> Új bejegyzés</Button></div>
+    {loading ? <p className="text-sm text-muted-text">Betöltés…</p> : <div className="space-y-3">{items.map((item, index) => <div key={item.id} className="rounded-2xl border border-border bg-surface p-4 grid gap-3 lg:grid-cols-[1.2fr_.9fr_.9fr_1fr_auto]">
+      <label className="text-xs text-muted-text">Név<input value={item.name} onChange={(event) => update(index, { name: event.target.value })} className="mt-1 w-full rounded-lg border border-border bg-background px-2.5 py-2 text-sm text-text" /></label>
+      <label className="text-xs text-muted-text">Kategória<select value={item.category} onChange={(event) => update(index, { category: event.target.value as CatalogItem["category"], required: event.target.value === "necessary" || item.required })} className="mt-1 w-full rounded-lg border border-border bg-background px-2.5 py-2 text-sm text-text">{Object.entries(CATEGORY_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
+      <label className="text-xs text-muted-text">Tárolás<select value={item.storage} onChange={(event) => update(index, { storage: event.target.value as CatalogItem["storage"] })} className="mt-1 w-full rounded-lg border border-border bg-background px-2.5 py-2 text-sm text-text"><option value="cookie">Süti</option><option value="localStorage">localStorage</option><option value="sessionStorage">sessionStorage</option></select></label>
+      <label className="text-xs text-muted-text">Szolgáltató / időtartam<div className="mt-1 flex gap-2"><input value={item.provider} onChange={(event) => update(index, { provider: event.target.value })} placeholder="Szolgáltató" className="min-w-0 w-1/2 rounded-lg border border-border bg-background px-2.5 py-2 text-sm text-text" /><input value={item.duration} onChange={(event) => update(index, { duration: event.target.value })} placeholder="Időtartam" className="min-w-0 w-1/2 rounded-lg border border-border bg-background px-2.5 py-2 text-sm text-text" /></div></label>
+      <div className="flex items-end gap-2"><label className="text-xs text-muted-text flex items-center gap-1"><input type="checkbox" checked={item.active} onChange={(event) => update(index, { active: event.target.checked })} /> Aktív</label>{!item.required && <button type="button" onClick={() => setItems((previous) => previous.filter((_, current) => current !== index))} className="p-2 text-muted-text hover:text-red-500" aria-label="Bejegyzés törlése"><Trash2 className="w-4 h-4" /></button>}</div>
+      <label className="lg:col-span-5 text-xs text-muted-text">Cél<input value={item.purpose} onChange={(event) => update(index, { purpose: event.target.value })} className="mt-1 w-full rounded-lg border border-border bg-background px-2.5 py-2 text-sm text-text" /></label>
+    </div>)}</div>}
+    <div className="flex items-center gap-3"><Button type="button" onClick={save} disabled={saving || loading}><Save className="w-4 h-4" /> {saving ? "Mentés…" : "Nyilvántartás mentése"}</Button>{feedback && <span className="text-sm text-muted-text">{feedback}</span>}</div>
+  </div>;
+}

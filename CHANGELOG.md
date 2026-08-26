@@ -42,6 +42,10 @@
 
 - Made the public Vision headline responsive to the entered text length, retaining the large display treatment for short copy while reducing long headlines to a balanced, readable size.
 
+### Cookie consent and registry
+
+- Added an administrator-managed cookie and browser-storage catalog, seeded with the currently used consent, language, theme, and public-cache entries.
+
 ### Local demo administrator
 
 - Added an idempotent local-only demo superadmin account when the application uses a file-based development database.

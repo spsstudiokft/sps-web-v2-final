@@ -892,6 +892,47 @@ adminRouter.put("/legal-documents/:type/:locale", async (req, res) => {
   }
 });
 
+const COOKIE_CATALOG_KEY = "cookie_catalog_v1";
+const DEFAULT_COOKIE_CATALOG = [
+  { id: "consent", name: "sps_cookie_consent_v2", category: "necessary", storage: "localStorage", provider: "SPS Studio", duration: "12 months", purpose: "Stores the cookie preference decision.", active: true, required: true },
+  { id: "language", name: "site_lang", category: "preferences", storage: "localStorage", provider: "SPS Studio", duration: "12 months", purpose: "Remembers the selected website language.", active: true, required: false },
+  { id: "theme", name: "sps_public_theme", category: "preferences", storage: "localStorage", provider: "SPS Studio", duration: "12 months", purpose: "Remembers the public website colour mode.", active: true, required: false },
+  { id: "bootstrap", name: "sps_public_bootstrap_v1", category: "necessary", storage: "sessionStorage", provider: "SPS Studio", duration: "Session", purpose: "Short-lived cache used to load the public website reliably.", active: true, required: true },
+];
+
+function normalizeCookieCatalog(value: unknown) {
+  const items = Array.isArray(value) ? value : DEFAULT_COOKIE_CATALOG;
+  const categories = new Set(["necessary", "preferences", "analytics", "marketing"]);
+  return items.slice(0, 100).map((item: any, index) => ({
+    id: String(item?.id || `cookie-${index}`).replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 80) || `cookie-${index}`,
+    name: String(item?.name || "").trim().slice(0, 120),
+    category: categories.has(String(item?.category)) ? String(item.category) : "necessary",
+    storage: ["cookie", "localStorage", "sessionStorage"].includes(String(item?.storage)) ? String(item.storage) : "cookie",
+    provider: String(item?.provider || "SPS Studio").trim().slice(0, 120), duration: String(item?.duration || "Session").trim().slice(0, 120),
+    purpose: String(item?.purpose || "").trim().slice(0, 500), active: item?.active !== false, required: item?.required === true || String(item?.category) === "necessary",
+  })).filter((item) => item.name && item.purpose);
+}
+
+async function getCookieCatalog() {
+  const result = await db.execute({ sql: "SELECT value FROM settings WHERE key = ?", args: [COOKIE_CATALOG_KEY] });
+  if (!result.rows.length) return DEFAULT_COOKIE_CATALOG;
+  try { return normalizeCookieCatalog(JSON.parse(String(result.rows[0].value))); } catch { return DEFAULT_COOKIE_CATALOG; }
+}
+
+adminRouter.get("/cookie-catalog", async (_req, res) => {
+  try { res.json(await getCookieCatalog()); } catch (error: any) { res.status(500).json({ error: error.message || "Failed to load cookie catalog." }); }
+});
+
+adminRouter.put("/cookie-catalog", async (req, res) => {
+  try {
+    const items = normalizeCookieCatalog(req.body?.items);
+    if (!items.length) return res.status(400).json({ error: "At least one cookie/storage entry is required." });
+    if (new Set(items.map((item) => item.id)).size !== items.length) return res.status(400).json({ error: "Cookie catalog entry IDs must be unique." });
+    await db.execute({ sql: "INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)", args: [COOKIE_CATALOG_KEY, JSON.stringify(items)] });
+    res.json({ success: true, items });
+  } catch (error: any) { res.status(500).json({ error: error.message || "Failed to save cookie catalog." }); }
+});
+
 // ==========================================
 // THEME MANAGEMENT ENDPOINTS
 // ==========================================

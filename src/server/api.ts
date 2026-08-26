@@ -1314,6 +1314,14 @@ router.get("/public/legal-documents", async (_req, res) => {
   }
 });
 
+router.get("/public/cookie-catalog", async (_req, res) => {
+  try {
+    const result = await db.execute({ sql: "SELECT value FROM settings WHERE key = ?", args: ["cookie_catalog_v1"] });
+    const items = result.rows.length ? JSON.parse(String(result.rows[0].value || "[]")) : [];
+    res.json(Array.isArray(items) ? items.filter((item: any) => item?.active !== false) : []);
+  } catch { res.json([]); }
+});
+
 router.get("/public/categories", async (req, res) => {
   try {
     const result = await db.execute(`
