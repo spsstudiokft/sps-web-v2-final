@@ -4,6 +4,15 @@ import { db } from "../db.js";
 
 const budgetRouter = Router();
 
+// Budget entries and their aggregates are private, mutable financial data.
+// Prevent browsers and Vercel from returning a previous summary after a save.
+budgetRouter.use((_req, res, next) => {
+  res.set("Cache-Control", "private, no-store, no-cache, must-revalidate");
+  res.set("CDN-Cache-Control", "no-store");
+  res.set("Vercel-CDN-Cache-Control", "no-store");
+  next();
+});
+
 // Helper to log budget audit trail
 async function logBudgetAudit(
   entryId: string | null,

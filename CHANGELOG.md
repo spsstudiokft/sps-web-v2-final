@@ -27,6 +27,11 @@
 
 - Made the invoice client-account filter searchable by client email, with account names available as autocomplete hints.
 
+### Budget refresh reliability
+
+- Marked all private Budget API responses as non-cacheable and made the client request fresh entries, summaries, settings, and administrator data after every save.
+- Budget entry creation and editing now wait for the refreshed list and analytics totals before completing, so new expenses appear in the table and update cashflow metrics immediately.
+
 ### Theme templates
 
 - Reframed the theme editor around curated style templates and tucked the granular color, typography, and UI controls behind an explicit advanced-editor action.

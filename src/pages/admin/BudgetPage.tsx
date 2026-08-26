@@ -284,11 +284,12 @@ export default function BudgetPage() {
 
       const authHeaders: Record<string, string> = {
         "Content-Type": "application/json",
+        "Cache-Control": "no-cache",
         ...(token ? { Authorization: `Bearer ${token}` } : {})
       };
 
       let configuredCurrency = currentSettings?.default_currency || "USD";
-      const settingsRes = await fetch(`/api/admin/budgets/settings`, { headers: authHeaders });
+      const settingsRes = await fetch(`/api/admin/budgets/settings`, { headers: authHeaders, cache: "no-store" });
       if (settingsRes.ok) {
         const settingsData = await settingsRes.json();
         configuredCurrency = String(settingsData.default_currency || "USD").toUpperCase();
@@ -299,15 +300,18 @@ export default function BudgetPage() {
       summaryParams.set("currency", configuredCurrency);
 
       const entriesRes = await fetch(`/api/admin/budgets?${queryParams.toString()}`, {
-        headers: authHeaders
+        headers: authHeaders,
+        cache: "no-store"
       });
 
       const summaryRes = await fetch(`/api/admin/budgets/summary?${summaryParams.toString()}`, {
-        headers: authHeaders
+        headers: authHeaders,
+        cache: "no-store"
       });
 
       const adminsRes = await fetch(`/api/admin/budgets/admins`, {
-        headers: authHeaders
+        headers: authHeaders,
+        cache: "no-store"
       });
 
       if (entriesRes.ok) {
@@ -491,7 +495,7 @@ export default function BudgetPage() {
 
     setEntryToEdit(null);
     setIsEntryModalOpen(false);
-    fetchData(true);
+    await fetchData(true);
   };
 
   const handleQuickStatusChange = async (entryId: string, newStatus: BudgetStatus) => {
