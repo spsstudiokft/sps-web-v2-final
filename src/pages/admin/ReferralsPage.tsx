@@ -479,10 +479,11 @@ export default function ReferralsPage() {
                   {stats.converted_referrals}
                 </h3>
                 <p className="text-[11px] text-emerald-600 font-semibold mt-0.5">
-                  {stats.total_referrals > 0 
-                    ? `${Math.round((stats.converted_referrals / stats.total_referrals) * 100)}% Conversion Rate`
-                    : "0% Conversion Rate"
-                  }
+                  {tUi("admin.referrals.page.conversion_rate", {
+                    rate: stats.total_referrals > 0
+                      ? Math.round((stats.converted_referrals / stats.total_referrals) * 100)
+                      : 0,
+                  })}
                 </p>
               </div>
               <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">

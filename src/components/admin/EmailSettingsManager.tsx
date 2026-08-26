@@ -706,6 +706,37 @@ export function EmailSettingsManager({ settings, onChange }: EmailSettingsManage
 
           </div>
 
+          <div className="p-5 rounded-2xl border border-border bg-surface">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h3 className="text-sm font-bold text-text">{tUi("admin.email.settings.client_welcome_emails")}</h3>
+                <p className="text-xs text-muted-text mt-1.5 max-w-3xl">{tUi("admin.email.settings.client_welcome_emails_description")}</p>
+              </div>
+              <label className="inline-flex items-center gap-2 cursor-pointer shrink-0">
+                <input
+                  type="checkbox"
+                  checked={settings.client_welcome_email_enabled !== "0"}
+                  onChange={(e) => onChange("client_welcome_email_enabled", e.target.checked ? "1" : "0")}
+                  className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
+                />
+                <span className="text-xs font-semibold text-text">{tUi("admin.email.settings.client_welcome_emails_enabled")}</span>
+              </label>
+            </div>
+          </div>
+
+          <div className="p-5 rounded-2xl border border-border bg-surface">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h3 className="text-sm font-bold text-text">{tUi("admin.email.settings.internet_archive")}</h3>
+                <p className="text-xs text-muted-text mt-1.5 max-w-3xl">{tUi("admin.email.settings.internet_archive_description")}</p>
+              </div>
+              <label className="inline-flex items-center gap-2 cursor-pointer shrink-0">
+                <input type="checkbox" checked={settings.internet_archive_enabled === "1"} onChange={(e) => onChange("internet_archive_enabled", e.target.checked ? "1" : "0")} className="h-4 w-4 rounded border-border text-primary focus:ring-primary" />
+                <span className="text-xs font-semibold text-text">{tUi("admin.email.settings.internet_archive_enabled")}</span>
+              </label>
+            </div>
+          </div>
+
           {/* Quick Deliverability Test Panel */}
           <div className="p-5 rounded-2xl border border-border bg-surface space-y-4">
             <div className="flex items-center justify-between pb-2 border-b border-border">

@@ -42,6 +42,7 @@ const TeamManagementPage = lazy(() => import("./pages/admin/TeamManagementPage")
 const ReferralsPage = lazy(() => import("./pages/admin/ReferralsPage"));
 const BudgetPage = lazy(() => import("./pages/admin/BudgetPage"));
 const MarketingEmailsPage = lazy(() => import("./pages/admin/MarketingEmailsPage"));
+const AdminAccountSettingsPage = lazy(() => import("./pages/admin/AdminAccountSettingsPage"));
 const AcceptInvitePage = lazy(() => import("./pages/AcceptInvitePage"));
 const ClientLogin = lazy(() => import("./pages/ClientLogin"));
 const ClientRegister = lazy(() => import("./pages/ClientRegister"));
@@ -197,6 +198,7 @@ export default function App() {
                 <Route path="referrals" element={<ReferralsPage />} />
                 <Route path="themes" element={<ThemesPage />} />
                 <Route path="settings" element={<SettingsPage />} />
+                <Route path="account" element={<AdminAccountSettingsPage />} />
                 <Route path="portfolio" element={<PortfolioPage />} />
                 <Route path="services" element={<ServicesPage />} />
                 <Route path="pricing" element={<PricingPage />} />

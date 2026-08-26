@@ -11,6 +11,7 @@ import {
 import { sendTransactionalEmail, getEmailSenderConfig } from "./services/emailService.js";
 import sharp from "sharp";
 import { getAppUrl } from "./appUrl.js";
+import { archivePublishedListing } from "./services/internetArchiveService.js";
 import bcrypt from "bcryptjs";
 import { deleteMedia } from "./storage/index.js";
 
@@ -324,7 +325,9 @@ clientRouter.post("/property-listings", async (req, res) => {
     const item = normalizeClientListingInput(req.body); const id = crypto.randomUUID(); const propertyId = crypto.randomUUID();
     await db.execute({ sql: "INSERT INTO properties (id, property_name, address, metadata, created_at, updated_at) VALUES (?, ?, ?, '{\"source\":\"client_listing\"}', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)", args: [propertyId, item.title, item.location] });
     await db.execute({ sql: `INSERT INTO property_listings (id,property_id,title,location,price_huf,price_text,floor_area_sqm,rooms,bathrooms,description,listing_status,listing_type,construction_year,floor_count,central_heating,garden_access,floor_plan_available,balcony,full_comfort,air_conditioned,new_construction,orientation,view_type,bathroom_toilet,heating_types,image_urls,is_enabled,owner_account_id,created_by_user_id,created_by_role) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, args: [id,propertyId,item.title,item.location,item.price_huf,item.price_text,item.floor_area_sqm,item.rooms,item.bathrooms,item.description,item.listing_status,item.listing_type,item.construction_year,item.floor_count,item.central_heating,item.garden_access,item.floor_plan_available,item.balcony,item.full_comfort,item.air_conditioned,item.new_construction,item.orientation,item.view_type,item.bathroom_toilet,JSON.stringify(item.heating_types),JSON.stringify(item.image_urls),item.is_enabled,account.id,userId,"client"] });
-    const created = await db.execute({ sql: "SELECT * FROM property_listings WHERE id = ? AND owner_account_id = ?", args: [id, account.id] }); res.status(201).json(normalizeClientListing(created.rows[0]));
+    const created = await db.execute({ sql: "SELECT * FROM property_listings WHERE id = ? AND owner_account_id = ?", args: [id, account.id] });
+    if (item.is_enabled) await archivePublishedListing(id, getAppUrl(req));
+    res.status(201).json(normalizeClientListing(created.rows[0]));
   } catch (error: any) { console.error("Failed to create client listing", error); res.status(/kötelező|karakter/.test(error?.message || "") ? 400 : 500).json({ error: error?.message || "A hirdetés létrehozása sikertelen." }); }
 });
 
@@ -336,7 +339,9 @@ clientRouter.put("/property-listings/:id", async (req, res) => {
     const item = normalizeClientListingInput(req.body); const next = new Set(listingMediaUrls(item.image_urls)); const removed = listingMediaUrls(parseListingArray(current.rows[0].image_urls)).filter(url => !next.has(url));
     await deleteClientListingMedia(removed);
     await db.execute({ sql: `UPDATE property_listings SET title=?,location=?,price_huf=?,price_text=?,floor_area_sqm=?,rooms=?,bathrooms=?,description=?,listing_status=?,listing_type=?,construction_year=?,floor_count=?,central_heating=?,garden_access=?,floor_plan_available=?,balcony=?,full_comfort=?,air_conditioned=?,new_construction=?,orientation=?,view_type=?,bathroom_toilet=?,heating_types=?,image_urls=?,is_enabled=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND owner_account_id=?`, args: [item.title,item.location,item.price_huf,item.price_text,item.floor_area_sqm,item.rooms,item.bathrooms,item.description,item.listing_status,item.listing_type,item.construction_year,item.floor_count,item.central_heating,item.garden_access,item.floor_plan_available,item.balcony,item.full_comfort,item.air_conditioned,item.new_construction,item.orientation,item.view_type,item.bathroom_toilet,JSON.stringify(item.heating_types),JSON.stringify(item.image_urls),item.is_enabled,req.params.id,account.id] });
-    const updated = await db.execute({ sql: "SELECT * FROM property_listings WHERE id = ? AND owner_account_id = ?", args: [req.params.id, account.id] }); res.json(normalizeClientListing(updated.rows[0]));
+    const updated = await db.execute({ sql: "SELECT * FROM property_listings WHERE id = ? AND owner_account_id = ?", args: [req.params.id, account.id] });
+    if (item.is_enabled) await archivePublishedListing(req.params.id, getAppUrl(req));
+    res.json(normalizeClientListing(updated.rows[0]));
   } catch (error: any) { console.error("Failed to update client listing", error); res.status(/kötelező|karakter/.test(error?.message || "") ? 400 : 500).json({ error: error?.message || "A hirdetés mentése sikertelen." }); }
 });
 

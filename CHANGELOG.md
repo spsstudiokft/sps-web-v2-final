@@ -2,6 +2,38 @@
 
 ## 2026-08-26
 
+### Ingatlanhirdetési és welcome e-mail sablonok
+
+- Added five built-in, editable Hungarian marketing email templates for new property announcements, price updates, viewing invitations, new property seekers, and new sellers/partners.
+- Made all built-in templates available from the manual Marketing Emails send flow; custom copies remain removable while factory templates remain safely restorable.
+- Updated the manual sender to render the selected template's own variables with examples, and to fall back to the recipient's email prefix when no greeting name is entered.
+- Grouped the editable welcome templates separately in the Marketing Emails admin page so they can be found and manually sent without searching through listing campaigns.
+- Added a toggleable automatic client-welcome email setting, enabled by default; it controls post-registration welcome delivery without disabling essential magic-link sign-in emails.
+- Added the editable Client Portal Welcome template for first-time magic-link client registrations, alongside the existing password-registration welcome template.
+
+### Internet Archive integration
+
+- Added an opt-in Internet Archive / Wayback Machine integration for public property listings.
+- When enabled, published listings are submitted after publication and subsequent public updates; local or otherwise non-public URLs are never sent.
+- Recorded snapshot-request success or failure in the related Property activity log.
+
+### Admin account settings
+
+- Added a dedicated Admin → Saját fiók page with editable display name, account email visibility, and secure current-password-verified password changes.
+- Added account endpoints that correctly update the active admin credential for both standard admin accounts and dual client-plus-admin accounts.
+
+### Local demo administrator
+
+- Added an idempotent local-only demo superadmin account when the application uses a file-based development database.
+- Displayed the demo credentials and a one-click form-fill action on the admin login page only in local demo mode; remote Turso and production environments return no test-account data.
+- Added English, Hungarian, German, Spanish, and French translations for the local test-account panel.
+- Used the authenticated local browser audit to find and localize residual referral conversion-rate and team invitation empty-state copy that the source-only audit had missed.
+
+### Database translation refresh
+
+- Prevented browser and Vercel edge caches from serving stale public translation dictionaries after database edits.
+- Rotated the client translation-cache namespace while preserving fast cached startup, then forced a fresh database response on every page load and manual translation reload.
+
 ### Admin email-settings localization
 
 - Replaced 75 unique static email-settings strings with translation keys across templates, sender configuration, test delivery, DNS guidance, logs, and quick previews.

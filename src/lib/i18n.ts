@@ -7,7 +7,7 @@ let customTranslationsCache: Record<string, TranslationDictionary> = {};
 // Track pending loader promise to prevent redundant parallel network requests
 let activeFetchPromise: Promise<Record<string, TranslationDictionary>> | null = null;
 
-const CACHE_STORAGE_PREFIX = "sps_db_translations_v2_";
+const CACHE_STORAGE_PREFIX = "sps_db_translations_v3_";
 const CACHE_EXPIRY_MS = 10 * 60 * 1000; // 10 minutes client cache
 
 /**
@@ -66,7 +66,10 @@ export async function loadTranslationsFromDatabase(
         ? `/api/public/translations?locale=${encodeURIComponent(targetLocale)}` 
         : `/api/public/translations`;
 
-      const response = await fetch(url);
+      // The local cache makes the first render fast, but the database remains
+      // authoritative. Bypass the browser/edge HTTP cache so a translation
+      // edited in the admin panel is applied during the same page load.
+      const response = await fetch(url, { cache: "no-store" });
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: Failed to fetch translations`);
       }

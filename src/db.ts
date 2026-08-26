@@ -1,10 +1,18 @@
 import { createClient } from "@libsql/client";
+import bcrypt from "bcryptjs";
 import crypto from "node:crypto";
 import { createPortfolioSlug } from "./server/portfolioSlug.js";
 
 // In production environments like Vercel or Cloud Run, the filesystem is often read-only except for /tmp.
 const isProd = process.env.NODE_ENV === "production" || process.env.VERCEL === "1";
 const defaultDbUrl = isProd ? "file:/tmp/local.db" : "file:local.db";
+
+export const LOCAL_DEMO_ADMIN = Object.freeze({
+  email: "demo.admin@sps.local",
+  password: "SpsDemoAdmin!2026",
+  name: "Local Demo Admin",
+  role: "superadmin",
+});
 
 let dbInstance: ReturnType<typeof createClient> | null = null;
 
@@ -25,40 +33,65 @@ function sanitizeString(val: string | undefined): string | undefined {
   return trimmed;
 }
 
+function resolveDatabaseUrl(): string {
+  const candidates = [
+    process.env.TURSO_DATABASE_URL,
+    process.env.DATABASE_URL,
+    process.env.LIBSQL_URL,
+    process.env.TURSO_URL,
+    process.env.DB_URL,
+  ];
+  for (const candidate of candidates) {
+    const sanitized = sanitizeString(candidate);
+    if (!sanitized || sanitized.startsWith("postgres:") || sanitized.startsWith("postgresql:")) continue;
+    return !sanitized.includes("://") && !sanitized.startsWith("file:")
+      ? `file:${sanitized}`
+      : sanitized;
+  }
+  return defaultDbUrl;
+}
+
+export function isLocalDemoDatabase(): boolean {
+  return !isProd && resolveDatabaseUrl().startsWith("file:");
+}
+
+async function ensureLocalDemoAdmin(client: ReturnType<typeof createClient>): Promise<void> {
+  if (!isLocalDemoDatabase()) return;
+  try {
+    const existing = await client.execute({
+      sql: "SELECT id, password_hash FROM users WHERE LOWER(TRIM(email)) = ? LIMIT 1",
+      args: [LOCAL_DEMO_ADMIN.email],
+    });
+    const passwordHash = existing.rows.length > 0 && await bcrypt.compare(
+      LOCAL_DEMO_ADMIN.password,
+      String(existing.rows[0].password_hash || ""),
+    )
+      ? String(existing.rows[0].password_hash)
+      : await bcrypt.hash(LOCAL_DEMO_ADMIN.password, 10);
+
+    if (existing.rows.length > 0) {
+      await client.execute({
+        sql: `UPDATE users SET password_hash = ?, role = ?, is_active = 1, name = ?,
+              workspace = 'Local Development', updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+        args: [passwordHash, LOCAL_DEMO_ADMIN.role, LOCAL_DEMO_ADMIN.name, existing.rows[0].id],
+      });
+    } else {
+      await client.execute({
+        sql: `INSERT INTO users (id, email, password_hash, role, is_active, name, workspace, created_at, updated_at)
+              VALUES (?, ?, ?, ?, 1, ?, 'Local Development', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+        args: [crypto.randomUUID(), LOCAL_DEMO_ADMIN.email, passwordHash, LOCAL_DEMO_ADMIN.role, LOCAL_DEMO_ADMIN.name],
+      });
+    }
+    console.log(`[DB Setup] Local demo admin ready: ${LOCAL_DEMO_ADMIN.email}`);
+  } catch (error) {
+    // A brand-new database reaches this helper once more after creating users.
+    console.warn("[DB Setup] Local demo admin seed deferred:", error);
+  }
+}
+
 export const getDb = () => {
   if (!dbInstance) {
-    const rawUrls = [
-      process.env.TURSO_DATABASE_URL,
-      process.env.DATABASE_URL,
-      process.env.LIBSQL_URL,
-      process.env.TURSO_URL,
-      process.env.DB_URL,
-    ];
-
-    let url: string | undefined = undefined;
-    for (const candidate of rawUrls) {
-      const sanitized = sanitizeString(candidate);
-      if (sanitized) {
-        // Skip postgres if turso is what we support
-        if (sanitized.startsWith("postgres:") || sanitized.startsWith("postgresql:")) {
-          console.warn(
-            `[DB Warning] Connection string is PostgreSQL (${sanitized.split("@")[1] || "remote"}), but this application uses LibSQL / Turso.`
-          );
-          continue;
-        }
-        url = sanitized;
-        break;
-      }
-    }
-
-    if (!url) {
-      url = defaultDbUrl;
-    }
-
-    // Auto-normalize file path if no protocol is present
-    if (url && !url.includes("://") && !url.startsWith("file:")) {
-      url = `file:${url}`;
-    }
+    let url = resolveDatabaseUrl();
 
     // Resolve Auth Token - prioritize valid JWT tokens (e.g. starts with eyJ or length > 20)
     const rawTokens = [
@@ -493,6 +526,7 @@ export const setupDatabase = async () => {
   try {
     const initCheck = await client.execute("SELECT value FROM settings WHERE key = '__db_initialized_v8'");
     if (initCheck.rows.length > 0 && initCheck.rows[0].value === "1") {
+      await ensureLocalDemoAdmin(client);
       return;
     }
   } catch {
@@ -3492,6 +3526,8 @@ export const setupDatabase = async () => {
       ["resend_reply_to", "contact@spsstudio.com"],
       ["admin_notification_email", "spsstudiokft@gmail.com"],
       ["email_footer_text", "SPS Studio · Premium Real Estate Visual Marketing · All rights reserved."],
+      ["client_welcome_email_enabled", "1"],
+      ["internet_archive_enabled", "0"],
       ["contact_form_show_availability", "1"],
       ["contact_form_require_availability", "0"],
       ["contact_form_availability_label", "When I would like to schedule the photoshoot"],
@@ -4199,6 +4235,7 @@ export const setupDatabase = async () => {
   }
 
   // Mark schema as fully initialized for high-performance subsequent cold-starts
+  await ensureLocalDemoAdmin(client);
   try {
     await client.execute({
       sql: "INSERT OR REPLACE INTO settings (key, value) VALUES ('__db_initialized_v8', '1')",

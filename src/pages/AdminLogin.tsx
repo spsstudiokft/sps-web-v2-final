@@ -25,6 +25,7 @@ export default function AdminLogin() {
   const location = useLocation();
   const { login, token, user } = useAuth();
   const [checkingSetup, setCheckingSetup] = useState(true);
+  const [demoAccounts, setDemoAccounts] = useState<Array<{ label: string; email: string; password: string; role: string }>>([]);
 
   useEffect(() => {
     if (token) {
@@ -58,6 +59,13 @@ export default function AdminLogin() {
       })
       .finally(() => setCheckingSetup(false));
   }, [navigate]);
+
+  useEffect(() => {
+    fetch("/api/development/demo-accounts", { cache: "no-store" })
+      .then((res) => res.ok ? res.json() : { enabled: false, accounts: [] })
+      .then((data) => setDemoAccounts(data.enabled && Array.isArray(data.accounts) ? data.accounts : []))
+      .catch(() => setDemoAccounts([]));
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -141,6 +149,26 @@ export default function AdminLogin() {
                 </Button>
               </div>
             </form>
+
+            {demoAccounts.map((account) => (
+              <div key={account.email} className="mt-6 rounded-xl border border-primary/25 bg-primary/5 p-4 text-sm">
+                <div className="font-semibold text-text">{tUi("auth.admin_login.demo_title")}</div>
+                <p className="mt-1 text-xs text-muted-text">{tUi("auth.admin_login.demo_description")}</p>
+                <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 font-mono text-xs">
+                  <dt className="font-sans text-muted-text">{tUi("auth.admin_login.demo_email")}:</dt><dd className="break-all text-text">{account.email}</dd>
+                  <dt className="font-sans text-muted-text">{tUi("auth.admin_login.demo_password")}:</dt><dd className="break-all text-text">{account.password}</dd>
+                  <dt className="font-sans text-muted-text">{tUi("auth.admin_login.demo_role")}:</dt><dd className="text-text">{account.role}</dd>
+                </dl>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="mt-3 w-full"
+                  onClick={() => { setEmail(account.email); setPassword(account.password); setError(""); }}
+                >
+                  {tUi("auth.admin_login.demo_fill")}
+                </Button>
+              </div>
+            ))}
           </CardContent>
         </Card>
       </div>

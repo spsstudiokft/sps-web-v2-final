@@ -14,15 +14,28 @@ export default function MarketingEmailsPage() {
   const [name, setName] = useState("");
   const [recipient, setRecipient] = useState("");
   const [selected, setSelected] = useState<EmailTemplate | null>(null);
-  const [tokens, setTokens] = useState({ recipient_name: "", headline: "", message: "", action_url: "https://spsstudio.com", action_text: "Megnézem" });
+  const [tokens, setTokens] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState("");
+  const welcomeTemplates = templates.filter(template => template.template_key.startsWith("welcome_"));
+  const campaignTemplates = templates.filter(template => !template.template_key.startsWith("welcome_"));
 
   const load = async () => {
     const res = await fetch("/api/admin/email/templates", { headers: authHeaders() });
     if (res.ok) setTemplates((await res.json()).filter((item: EmailTemplate) => item.category === "marketing"));
   };
   useEffect(() => { load(); }, []);
+
+  useEffect(() => {
+    if (!selected) return;
+    const next: Record<string, string> = {};
+    for (const token of selected.available_tokens || []) {
+      const key = token.token.replace(/^{{\s*|\s*}}$/g, "");
+      next[key] = "";
+    }
+    next.recipient_name = "";
+    setTokens(next);
+  }, [selected]);
 
   const createTemplate = async (source?: EmailTemplate) => {
     const templateName = source ? `${source.name} – másolat` : name.trim();
@@ -59,13 +72,25 @@ export default function MarketingEmailsPage() {
     <section className="rounded-2xl border border-border bg-card/70 backdrop-blur-xl p-5 shadow-xl">
       <h2 className="font-semibold text-text mb-3">Új sablon</h2><div className="flex flex-col sm:flex-row gap-3"><input value={name} onChange={e => setName(e.target.value)} placeholder="Sablon neve" className="flex-1 rounded-xl border border-border bg-background/70 px-4 py-2.5 text-text"/><button disabled={busy} onClick={() => createTemplate()} className="rounded-xl bg-primary text-white px-5 py-2.5 font-semibold flex items-center justify-center gap-2"><Plus size={17}/> Létrehozás</button></div>
     </section>
-    <section className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
-      {templates.map(template => <article key={template.id} className={`rounded-2xl border p-5 backdrop-blur-xl transition ${selected?.id === template.id ? "border-primary bg-primary/10" : "border-border bg-card/70"}`}>
+    <section className="space-y-4">
+      <div><h2 className="font-semibold text-text">Welcome e-mailek</h2><p className="text-sm text-muted-text">Személyre szabható, manuálisan kiküldhető első kapcsolatfelvételi sablonok.</p></div>
+      <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
+      {welcomeTemplates.map(template => <article key={template.id} className={`rounded-2xl border p-5 backdrop-blur-xl transition ${selected?.id === template.id ? "border-primary bg-primary/10" : "border-border bg-card/70"}`}>
         <h3 className="font-bold text-text">{template.name}</h3><p className="text-sm text-muted-text mt-1 line-clamp-2">{template.description}</p><p className="text-xs text-muted-text mt-3">v{template.version} · {new Date(template.last_updated_at).toLocaleString("hu-HU")}</p>
-        <div className="flex flex-wrap gap-2 mt-4"><button onClick={() => setEditing(template)} className="px-3 py-2 rounded-lg bg-background border border-border text-sm text-text flex gap-1.5 items-center"><Edit3 size={14}/> Szerkesztés</button><button onClick={() => createTemplate(template)} className="px-3 py-2 rounded-lg bg-background border border-border text-sm text-text"><Copy size={14}/></button><button onClick={() => setSelected(template)} className="px-3 py-2 rounded-lg bg-primary text-white text-sm flex gap-1.5 items-center"><Send size={14}/> Küldés</button><button onClick={() => remove(template)} className="px-3 py-2 rounded-lg text-red-500 border border-red-500/20"><Trash2 size={14}/></button></div>
+        <div className="flex flex-wrap gap-2 mt-4"><button onClick={() => setEditing(template)} className="px-3 py-2 rounded-lg bg-background border border-border text-sm text-text flex gap-1.5 items-center"><Edit3 size={14}/> Szerkesztés</button><button onClick={() => createTemplate(template)} className="px-3 py-2 rounded-lg bg-background border border-border text-sm text-text"><Copy size={14}/></button><button onClick={() => setSelected(template)} className="px-3 py-2 rounded-lg bg-primary text-white text-sm flex gap-1.5 items-center"><Send size={14}/> Küldés</button>{template.is_customized && <button onClick={() => remove(template)} className="px-3 py-2 rounded-lg text-red-500 border border-red-500/20"><Trash2 size={14}/></button>}</div>
       </article>)}
+      </div>
     </section>
-    {selected && <section className="rounded-2xl border border-border bg-card/70 backdrop-blur-xl p-5 space-y-4"><div><h2 className="font-bold text-text">Küldés: {selected.name}</h2><p className="text-sm text-muted-text">Az alábbi értékek a sablon változóit töltik ki.</p></div><div className="grid md:grid-cols-2 gap-3"><input value={recipient} onChange={e=>setRecipient(e.target.value)} placeholder="Címzett email címe" type="email" className="rounded-xl border border-border bg-background/70 px-4 py-2.5 text-text"/><input value={tokens.recipient_name} onChange={e=>setTokens({...tokens,recipient_name:e.target.value})} placeholder="Címzett neve" className="rounded-xl border border-border bg-background/70 px-4 py-2.5 text-text"/><input value={tokens.headline} onChange={e=>setTokens({...tokens,headline:e.target.value})} placeholder="Főcím" className="rounded-xl border border-border bg-background/70 px-4 py-2.5 text-text"/><input value={tokens.action_text} onChange={e=>setTokens({...tokens,action_text:e.target.value})} placeholder="Gomb szövege" className="rounded-xl border border-border bg-background/70 px-4 py-2.5 text-text"/><input value={tokens.action_url} onChange={e=>setTokens({...tokens,action_url:e.target.value})} placeholder="Gomb hivatkozása" className="md:col-span-2 rounded-xl border border-border bg-background/70 px-4 py-2.5 text-text"/><textarea value={tokens.message} onChange={e=>setTokens({...tokens,message:e.target.value})} placeholder="Üzenet" rows={4} className="md:col-span-2 rounded-xl border border-border bg-background/70 px-4 py-2.5 text-text"/></div><button disabled={busy} onClick={dispatch} className="rounded-xl bg-primary text-white px-5 py-2.5 font-semibold flex gap-2 items-center"><Send size={17}/>{busy ? "Küldés…" : "Email kiküldése"}</button></section>}
+    <section className="space-y-4">
+      <div><h2 className="font-semibold text-text">Hirdetési és egyéb kampányok</h2></div>
+      <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
+      {campaignTemplates.map(template => <article key={template.id} className={`rounded-2xl border p-5 backdrop-blur-xl transition ${selected?.id === template.id ? "border-primary bg-primary/10" : "border-border bg-card/70"}`}>
+        <h3 className="font-bold text-text">{template.name}</h3><p className="text-sm text-muted-text mt-1 line-clamp-2">{template.description}</p><p className="text-xs text-muted-text mt-3">v{template.version} · {new Date(template.last_updated_at).toLocaleString("hu-HU")}</p>
+        <div className="flex flex-wrap gap-2 mt-4"><button onClick={() => setEditing(template)} className="px-3 py-2 rounded-lg bg-background border border-border text-sm text-text flex gap-1.5 items-center"><Edit3 size={14}/> Szerkesztés</button><button onClick={() => createTemplate(template)} className="px-3 py-2 rounded-lg bg-background border border-border text-sm text-text"><Copy size={14}/></button><button onClick={() => setSelected(template)} className="px-3 py-2 rounded-lg bg-primary text-white text-sm flex gap-1.5 items-center"><Send size={14}/> Küldés</button>{template.is_customized && <button onClick={() => remove(template)} className="px-3 py-2 rounded-lg text-red-500 border border-red-500/20"><Trash2 size={14}/></button>}</div>
+      </article>)}
+      </div>
+    </section>
+    {selected && <section className="rounded-2xl border border-border bg-card/70 backdrop-blur-xl p-5 space-y-4"><div><h2 className="font-bold text-text">Küldés: {selected.name}</h2><p className="text-sm text-muted-text">Töltsd ki a sablon változóit, majd küldd el egyedileg.</p></div><div className="grid md:grid-cols-2 gap-3"><input value={recipient} onChange={e=>setRecipient(e.target.value)} placeholder="Címzett e-mail-címe" type="email" className="rounded-xl border border-border bg-background/70 px-4 py-2.5 text-text"/>{selected.available_tokens.map(token => { const key = token.token.replace(/^{{\s*|\s*}}$/g, ""); const longValue = /message|summary|details/i.test(key); return <label key={token.token} className={longValue ? "md:col-span-2" : ""}><span className="mb-1 block text-xs font-medium text-muted-text">{token.label}</span>{longValue ? <textarea value={tokens[key] ?? ""} onChange={e=>setTokens({...tokens,[key]:e.target.value})} placeholder={token.example} rows={4} className="w-full rounded-xl border border-border bg-background/70 px-4 py-2.5 text-text"/> : <input value={tokens[key] ?? ""} onChange={e=>setTokens({...tokens,[key]:e.target.value})} placeholder={token.example} className="w-full rounded-xl border border-border bg-background/70 px-4 py-2.5 text-text"/>}</label>; })}</div><button disabled={busy} onClick={dispatch} className="rounded-xl bg-primary text-white px-5 py-2.5 font-semibold flex gap-2 items-center"><Send size={17}/>{busy ? "Küldés…" : "E-mail kiküldése"}</button></section>}
     <EmailTemplateEditorModal template={editing} isOpen={!!editing} allowReset={false} onClose={() => setEditing(null)} onSaved={updated => { setEditing(updated); setTemplates(list => list.map(x => x.id === updated.id ? updated : x)); }} />
   </div>;
 }

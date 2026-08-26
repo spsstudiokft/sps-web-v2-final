@@ -2,7 +2,7 @@ import { Router } from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
-import { db, getDb } from "../db.js";
+import { db, getDb, isLocalDemoDatabase, LOCAL_DEMO_ADMIN } from "../db.js";
 import { 
   processRegistrationReferral, 
   ensureUserReferralCode 
@@ -27,6 +27,16 @@ const JWT_SECRET = process.env.JWT_SECRET || "supersecretjwtstring";
 const PUBLIC_BOOTSTRAP_TTL_MS = 30_000;
 let publicBootstrapCache: { expiresAt: number; payload: any } | null = null;
 let publicBootstrapPending: Promise<any> | null = null;
+
+async function clientWelcomeEmailsEnabled(): Promise<boolean> {
+  try {
+    const result = await db.execute({ sql: "SELECT value FROM settings WHERE key = 'client_welcome_email_enabled' LIMIT 1", args: [] });
+    const value = String(result.rows[0]?.value ?? "1").trim().toLowerCase();
+    return !["0", "false", "off", "no"].includes(value);
+  } catch {
+    return true;
+  }
+}
 
 function hydratePublicPricing(rows: any[]): any[] {
   const tiersById = new Map(
@@ -224,6 +234,20 @@ router.get("/setup/status", async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: "Database error" });
   }
+});
+
+router.get("/development/demo-accounts", (_req, res) => {
+  res.set("Cache-Control", "no-store");
+  if (!isLocalDemoDatabase()) return res.json({ enabled: false, accounts: [] });
+  res.json({
+    enabled: true,
+    accounts: [{
+      label: "Local Demo Admin",
+      email: LOCAL_DEMO_ADMIN.email,
+      password: LOCAL_DEMO_ADMIN.password,
+      role: LOCAL_DEMO_ADMIN.role,
+    }],
+  });
 });
 
 router.post("/setup", async (req, res) => {
@@ -523,6 +547,7 @@ router.post("/auth/verify-magic-link", async (req, res) => {
 
     // 4. Find or Create User Account
     let userRow: any = null;
+    let clientWasCreated = false;
     const existingUserRes = await db.execute({
       sql: "SELECT * FROM users WHERE LOWER(TRIM(email)) = ?",
       args: [userEmail]
@@ -577,6 +602,7 @@ router.post("/auth/verify-magic-link", async (req, res) => {
         role: "client",
         is_active: 1
       };
+      clientWasCreated = true;
     }
 
     // 4b. Insert properties into client_properties table for this user
@@ -671,6 +697,23 @@ router.post("/auth/verify-magic-link", async (req, res) => {
       sql: "UPDATE magic_links SET used_at = CURRENT_TIMESTAMP WHERE id = ?",
       args: [magicLink.id]
     });
+
+    if (clientWasCreated && magicLink.type === "signup" && await clientWelcomeEmailsEnabled()) {
+      const appOrigin = getAppUrl(req);
+      const welcomeEmail = await sendTransactionalEmail({
+        to: userEmail,
+        templateId: "client_portal_welcome",
+        templateData: {
+          recipient_name: userRow.name || userEmail.split("@")[0],
+          "user.name": userRow.name || userEmail.split("@")[0],
+          "user.email": userEmail,
+          action_url: `${appOrigin}/client`,
+          action_text: "Ügyfélportál megnyitása",
+          property_address: primaryPropAddr
+        }
+      });
+      if (!welcomeEmail.success) console.error("Failed to send magic-link client welcome email:", welcomeEmail.error);
+    }
 
     // 6. Generate authenticated JWT Session
     await db.execute({
@@ -824,20 +867,17 @@ router.post("/auth/register", async (req, res) => {
     // as soon as the HTTP response is sent, so fire-and-forget email work is not
     // reliable here even though account creation itself must remain successful.
     const appOrigin = getAppUrl(req);
-    const welcomeEmail = await sendTransactionalEmail({
+    const welcomeEmail = await (await clientWelcomeEmailsEnabled() ? sendTransactionalEmail({
       to: cleanEmail,
       templateId: "client_password_registration",
       templateData: {
-        recipientName: cleanEmail.split("@")[0],
-        userEmail: cleanEmail,
-        actionUrl: `${appOrigin}/client`,
-        actionText: "Open Client Portal",
-        account_role: "Active Client",
+        recipientName: cleanEmail.split("@")[0], userEmail: cleanEmail,
+        actionUrl: `${appOrigin}/client`, actionText: "Open Client Portal", account_role: "Active Client",
         registration_method: "Email and password",
         registered_date: new Intl.DateTimeFormat("en", { dateStyle: "long", timeZone: "Europe/Budapest" }).format(new Date()),
       }
-    });
-    if (!welcomeEmail.success) {
+    }) : Promise.resolve(null));
+    if (welcomeEmail && !welcomeEmail.success) {
       console.error("Failed to send password-registration welcome email:", welcomeEmail.error);
     }
 
@@ -849,7 +889,7 @@ router.post("/auth/register", async (req, res) => {
     res.json({
       token,
       user: { id, email: cleanEmail, role: 'client' },
-      welcomeEmail: { status: welcomeEmail.status, sent: welcomeEmail.status === "sent" }
+      welcomeEmail: welcomeEmail ? { status: welcomeEmail.status, sent: welcomeEmail.status === "sent" } : { status: "disabled", sent: false }
     });
   } catch (error: any) {
     console.error("[Register Error]", error);
@@ -1186,6 +1226,8 @@ router.post("/invitations/accept", async (req, res) => {
 // ... public endpoints
 router.get("/public/translations", async (req, res) => {
   try {
+    res.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+    res.set("Vercel-CDN-Cache-Control", "no-store");
     const { locale, group } = req.query;
     if (locale && typeof locale === "string") {
       const dict = await translationService.getDictionary(locale);
@@ -1201,6 +1243,8 @@ router.get("/public/translations", async (req, res) => {
 
 router.get("/public/translations/:locale", async (req, res) => {
   try {
+    res.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+    res.set("Vercel-CDN-Cache-Control", "no-store");
     const { locale } = req.params;
     const dict = await translationService.getDictionary(locale);
     res.json(dict);

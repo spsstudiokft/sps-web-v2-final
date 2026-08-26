@@ -1,0 +1,42 @@
+export const localDemoTranslations: Record<string, Record<string, string>> = {
+  en: {
+    "auth.admin_login.demo_title": "Local test account",
+    "auth.admin_login.demo_description": "This account is available only with the local development database.",
+    "auth.admin_login.demo_email": "Email",
+    "auth.admin_login.demo_password": "Password",
+    "auth.admin_login.demo_role": "Role",
+    "auth.admin_login.demo_fill": "Fill login details",
+  },
+  hu: {
+    "auth.admin_login.demo_title": "Lokális tesztfiók",
+    "auth.admin_login.demo_description": "Ez a fiók kizárólag a helyi fejlesztői adatbázissal érhető el.",
+    "auth.admin_login.demo_email": "E-mail",
+    "auth.admin_login.demo_password": "Jelszó",
+    "auth.admin_login.demo_role": "Szerepkör",
+    "auth.admin_login.demo_fill": "Belépési adatok kitöltése",
+  },
+  de: {
+    "auth.admin_login.demo_title": "Lokales Testkonto",
+    "auth.admin_login.demo_description": "Dieses Konto ist nur mit der lokalen Entwicklungsdatenbank verfügbar.",
+    "auth.admin_login.demo_email": "E-Mail",
+    "auth.admin_login.demo_password": "Passwort",
+    "auth.admin_login.demo_role": "Rolle",
+    "auth.admin_login.demo_fill": "Anmeldedaten einfügen",
+  },
+  es: {
+    "auth.admin_login.demo_title": "Cuenta de prueba local",
+    "auth.admin_login.demo_description": "Esta cuenta solo está disponible con la base de datos local de desarrollo.",
+    "auth.admin_login.demo_email": "Correo",
+    "auth.admin_login.demo_password": "Contraseña",
+    "auth.admin_login.demo_role": "Rol",
+    "auth.admin_login.demo_fill": "Rellenar datos de acceso",
+  },
+  fr: {
+    "auth.admin_login.demo_title": "Compte de test local",
+    "auth.admin_login.demo_description": "Ce compte est disponible uniquement avec la base de données locale de développement.",
+    "auth.admin_login.demo_email": "E-mail",
+    "auth.admin_login.demo_password": "Mot de passe",
+    "auth.admin_login.demo_role": "Rôle",
+    "auth.admin_login.demo_fill": "Remplir les identifiants",
+  },
+};

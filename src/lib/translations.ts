@@ -53,6 +53,7 @@ import { adminEmailSenderTranslations } from "./adminEmailSenderTranslations.js"
 import { adminEmailTestingDnsTranslations } from "./adminEmailTestingDnsTranslations.js";
 import { adminEmailLogsPreviewTranslations } from "./adminEmailLogsPreviewTranslations.js";
 import { adminEmailRuntimeTranslations } from "./adminEmailRuntimeTranslations.js";
+import { localDemoTranslations } from "./localDemoTranslations.js";
 import { pricingUiTranslations } from "./pricingUiTranslations.js";
 
 export type TranslationDictionary = Record<string, string>;
@@ -9038,6 +9039,7 @@ for (const locale of ["en", "hu", "de", "es", "fr"] as const) {
   if (defaultLocales[locale]) Object.assign(defaultLocales[locale], adminEmailTestingDnsTranslations[locale]);
   if (defaultLocales[locale]) Object.assign(defaultLocales[locale], adminEmailLogsPreviewTranslations[locale]);
   if (defaultLocales[locale]) Object.assign(defaultLocales[locale], adminEmailRuntimeTranslations[locale]);
+  if (defaultLocales[locale]) Object.assign(defaultLocales[locale], localDemoTranslations[locale]);
   if (defaultLocales[locale]) Object.assign(defaultLocales[locale], pricingUiTranslations[locale]);
   if (defaultLocales[locale]) Object.assign(defaultLocales[locale], adminProjectsTranslations[locale]);
   if (defaultLocales[locale]) Object.assign(defaultLocales[locale], adminVisualIdeasTranslations[locale]);
@@ -9119,4 +9121,5 @@ Object.assign(enTranslations, adminEmailSenderTranslations.en);
 Object.assign(enTranslations, adminEmailTestingDnsTranslations.en);
 Object.assign(enTranslations, adminEmailLogsPreviewTranslations.en);
 Object.assign(enTranslations, adminEmailRuntimeTranslations.en);
+Object.assign(enTranslations, localDemoTranslations.en);
 Object.assign(enTranslations, pricingUiTranslations.en);

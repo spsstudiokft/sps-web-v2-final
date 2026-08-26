@@ -849,8 +849,8 @@ export default function TeamManagementPage() {
                   <div className="font-semibold text-foreground text-sm">{tUi("admin.team.page.no_invitations_found")}</div>
                   <p className="text-xs text-muted-foreground max-w-sm mx-auto">
                     {inviteSearch || inviteStatusFilter !== "all" || inviteRoleFilter !== "all"
-                      ? "No invitations matched the selected filter criteria."
-                      : "Click 'Invite Team Member' above to dispatch your first admin or team invitation."}
+                      ? tUi("admin.team.page.no_invitations_match_filters")
+                      : tUi("admin.team.page.no_invitations_first_hint")}
                   </p>
                 </div>
                 {!inviteSearch && inviteStatusFilter === "all" && (

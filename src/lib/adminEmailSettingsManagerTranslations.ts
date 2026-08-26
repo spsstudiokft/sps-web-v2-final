@@ -385,3 +385,35 @@ export const adminEmailSettingsManagerTranslations: Record<string, Record<string
     "admin.email.settings.close_preview": "Close Preview"
   }
 };
+
+Object.assign(adminEmailSettingsManagerTranslations.en, {
+  "admin.email.settings.client_welcome_emails": "Client welcome emails",
+  "admin.email.settings.client_welcome_emails_description": "Send editable welcome emails automatically after a client completes registration. Magic-link sign-in emails remain unaffected.",
+  "admin.email.settings.client_welcome_emails_enabled": "Automatic client welcome emails enabled"
+});
+Object.assign(adminEmailSettingsManagerTranslations.hu, {
+  "admin.email.settings.client_welcome_emails": "Ügyfél welcome e-mailek",
+  "admin.email.settings.client_welcome_emails_description": "A szerkeszthető welcome e-mailek automatikus küldése az ügyfél-regisztráció befejezése után. A magic link belépő e-maileket ez nem érinti.",
+  "admin.email.settings.client_welcome_emails_enabled": "Automatikus ügyfél welcome e-mailek bekapcsolva"
+});
+Object.assign(adminEmailSettingsManagerTranslations.de, {
+  "admin.email.settings.client_welcome_emails": "Willkommens-E-Mails für Kunden",
+  "admin.email.settings.client_welcome_emails_description": "Sendet die bearbeitbaren Willkommens-E-Mails automatisch, nachdem ein Kunde die Registrierung abgeschlossen hat. Magic-Link-Anmeldungen bleiben davon unberührt.",
+  "admin.email.settings.client_welcome_emails_enabled": "Automatische Willkommens-E-Mails für Kunden aktiviert"
+});
+Object.assign(adminEmailSettingsManagerTranslations.es, {
+  "admin.email.settings.client_welcome_emails": "Correos de bienvenida para clientes",
+  "admin.email.settings.client_welcome_emails_description": "Envía automáticamente los correos de bienvenida editables después de que el cliente complete el registro. Los correos de acceso por enlace mágico no se ven afectados.",
+  "admin.email.settings.client_welcome_emails_enabled": "Correos automáticos de bienvenida para clientes activados"
+});
+Object.assign(adminEmailSettingsManagerTranslations.fr, {
+  "admin.email.settings.client_welcome_emails": "E-mails de bienvenue client",
+  "admin.email.settings.client_welcome_emails_description": "Envoie automatiquement les e-mails de bienvenue modifiables après l’inscription d’un client. Les e-mails de connexion par lien magique ne sont pas concernés.",
+  "admin.email.settings.client_welcome_emails_enabled": "E-mails de bienvenue automatiques pour les clients activés"
+});
+
+Object.assign(adminEmailSettingsManagerTranslations.en, { "admin.email.settings.internet_archive": "Internet Archive", "admin.email.settings.internet_archive_description": "Request a Wayback Machine snapshot whenever a public property listing is published or updated. Only publicly reachable URLs are submitted.", "admin.email.settings.internet_archive_enabled": "Automatically archive published property listings" });
+Object.assign(adminEmailSettingsManagerTranslations.hu, { "admin.email.settings.internet_archive": "Internet Archive archiválás", "admin.email.settings.internet_archive_description": "Wayback Machine-pillanatkép kérése minden publikált ingatlanhirdetés közzétételekor vagy frissítésekor. Csak publikus, elérhető URL kerül beküldésre.", "admin.email.settings.internet_archive_enabled": "Publikált ingatlanhirdetések automatikus archiválása" });
+Object.assign(adminEmailSettingsManagerTranslations.de, { "admin.email.settings.internet_archive": "Internet Archive", "admin.email.settings.internet_archive_description": "Fordert bei Veröffentlichung oder Aktualisierung einer öffentlichen Immobilienanzeige einen Wayback-Machine-Schnappschuss an. Es werden nur öffentlich erreichbare URLs übermittelt.", "admin.email.settings.internet_archive_enabled": "Veröffentlichte Immobilienanzeigen automatisch archivieren" });
+Object.assign(adminEmailSettingsManagerTranslations.es, { "admin.email.settings.internet_archive": "Internet Archive", "admin.email.settings.internet_archive_description": "Solicita una captura de Wayback Machine al publicar o actualizar un anuncio inmobiliario público. Solo se envían URL públicas accesibles.", "admin.email.settings.internet_archive_enabled": "Archivar automáticamente anuncios inmobiliarios publicados" });
+Object.assign(adminEmailSettingsManagerTranslations.fr, { "admin.email.settings.internet_archive": "Internet Archive", "admin.email.settings.internet_archive_description": "Demande une capture Wayback Machine à chaque publication ou mise à jour d’une annonce immobilière publique. Seules les URL accessibles publiquement sont envoyées.", "admin.email.settings.internet_archive_enabled": "Archiver automatiquement les annonces immobilières publiées" });

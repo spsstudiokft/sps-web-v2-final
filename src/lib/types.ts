@@ -78,6 +78,8 @@ export type SiteSettings = {
   resend_from_email?: string;
   resend_from_name?: string;
   resend_reply_to?: string;
+  client_welcome_email_enabled?: string;
+  internet_archive_enabled?: string;
   admin_notification_email?: string;
   email_brand_display?: "logo_only" | "logo_and_name" | "name_only";
   email_footer_text?: string;

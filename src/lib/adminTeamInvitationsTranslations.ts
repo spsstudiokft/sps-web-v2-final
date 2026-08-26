@@ -5,3 +5,24 @@ de:{"admin.team.page.assigned_role":"Zugewiesene Rolle","admin.team.page.expirat
 es:{"admin.team.page.assigned_role":"Rol asignado","admin.team.page.expiration_sent":"Vencimiento / envío","admin.team.page.invited_by":"Invitación de","admin.team.page.copy_single_use_invitation_link":"Copiar enlace de un solo uso","admin.team.page.re_issue_email_new_invitation_token":"Generar y enviar un nuevo token","admin.team.page.re_issue":"Volver a emitir","admin.team.page.revoke_invitation_immediately":"Revocar invitación de inmediato","admin.team.page.delete_record":"Eliminar registro","admin.team.role_editor":"Editor","admin.team.tab_invitations":"Invitaciones","admin.customers.status_all":"Todos los estados","admin.team.role_admin":"Administrador","admin.team.th_workspace":"Espacio de trabajo","admin.clients.field_status":"Estado de la cuenta","admin.clients.status_disabled":"Desactivada"},
 fr:{"admin.team.page.assigned_role":"Rôle attribué","admin.team.page.expiration_sent":"Expiration / envoi","admin.team.page.invited_by":"Invitation de","admin.team.page.copy_single_use_invitation_link":"Copier le lien à usage unique","admin.team.page.re_issue_email_new_invitation_token":"Créer et envoyer un nouveau jeton","admin.team.page.re_issue":"Réémettre","admin.team.page.revoke_invitation_immediately":"Révoquer immédiatement l’invitation","admin.team.page.delete_record":"Supprimer l’enregistrement","admin.team.role_editor":"Éditeur","admin.team.tab_invitations":"Invitations envoyées","admin.customers.status_all":"Tous les états","admin.team.role_admin":"Administrateur","admin.team.th_workspace":"Espace de travail","admin.clients.field_status":"État du compte","admin.clients.status_disabled":"Désactivé"}
 };
+
+Object.assign(adminTeamInvitationsTranslations.en, {
+  "admin.team.page.no_invitations_match_filters": "No invitations match the selected filters.",
+  "admin.team.page.no_invitations_first_hint": "Use Invite Team Member above to send the first admin or team invitation.",
+});
+Object.assign(adminTeamInvitationsTranslations.hu, {
+  "admin.team.page.no_invitations_match_filters": "Egyetlen meghívás sem felel meg a kiválasztott szűrőknek.",
+  "admin.team.page.no_invitations_first_hint": "Az első admin- vagy csapatmeghívás elküldéséhez használd a fenti Csapattag meghívása gombot.",
+});
+Object.assign(adminTeamInvitationsTranslations.de, {
+  "admin.team.page.no_invitations_match_filters": "Keine Einladung entspricht den ausgewählten Filtern.",
+  "admin.team.page.no_invitations_first_hint": "Senden Sie die erste Admin- oder Teameinladung über Mitglied einladen.",
+});
+Object.assign(adminTeamInvitationsTranslations.es, {
+  "admin.team.page.no_invitations_match_filters": "Ninguna invitación coincide con los filtros seleccionados.",
+  "admin.team.page.no_invitations_first_hint": "Usa Invitar miembro para enviar la primera invitación de administrador o equipo.",
+});
+Object.assign(adminTeamInvitationsTranslations.fr, {
+  "admin.team.page.no_invitations_match_filters": "Aucune invitation ne correspond aux filtres sélectionnés.",
+  "admin.team.page.no_invitations_first_hint": "Utilisez Inviter un membre pour envoyer la première invitation d’administration ou d’équipe.",
+});

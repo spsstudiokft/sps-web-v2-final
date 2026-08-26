@@ -167,6 +167,7 @@ export function Sidebar({ isMobileOpen = false, onMobileClose }: SidebarProps) {
       translationKey: "admin.nav.settings_system",
       icon: SettingsIcon,
       items: [
+        { to: "/admin/account", label: "Saját fiók", translationKey: "admin.nav.account", icon: UserCheck },
         { to: "/admin/themes", label: "Theme & Branding", translationKey: "admin.nav.themes", icon: Palette, permissionKey: "themes" },
         { to: "/admin/settings", label: "Site Settings", translationKey: "admin.nav.settings", icon: SettingsIcon, permissionKey: "settings" },
       ]

@@ -14,6 +14,7 @@ import { getAllLegalDocuments, saveLegalDocument } from "./services/legalDocumen
 import { scheduleGoogleReviewCampaign } from "./services/googleReviewService.js";
 import { scheduleCalendarReminder } from "./services/calendarReminderService.js";
 import { getAppUrl } from "./appUrl.js";
+import { archivePublishedListing } from "./services/internetArchiveService.js";
 import { createPortfolioSlug } from "./portfolioSlug.js";
 import { 
   processStructuredMediaUpload,
@@ -41,6 +42,43 @@ import {
   sanitizeEmailHtml,
   EmailTemplateData
 } from "./services/emailService.js";
+
+const isStrongAdminPassword = (password: string) => password.length >= 8 && /[A-Z]/.test(password) && /[a-z]/.test(password) && /\d/.test(password) && /[^A-Za-z0-9]/.test(password);
+const adminPasswordColumn = (user: any) => String(user.role || "").toLowerCase() === "client" && Boolean(user.admin_role) ? "admin_password_hash" : "password_hash";
+
+adminRouter.get("/account/profile", async (req: any, res) => {
+  try {
+    const result = await db.execute({ sql: "SELECT id, email, name, role, admin_role, password_hash, admin_password_hash, password_updated_at, created_at FROM users WHERE id = ? LIMIT 1", args: [String(req.user?.id || "")] });
+    if (!result.rows.length) return res.status(404).json({ error: "Admin account not found." });
+    const user: any = result.rows[0]; const passwordColumn = adminPasswordColumn(user);
+    res.json({ id: user.id, email: user.email, name: user.name || "", role: user.admin_role || user.role, hasPassword: Boolean(user[passwordColumn]), passwordUpdatedAt: user.password_updated_at || null, createdAt: user.created_at || null });
+  } catch (error) { console.error("Failed to load admin account settings", error); res.status(500).json({ error: "Failed to load account settings." }); }
+});
+
+adminRouter.patch("/account/profile", async (req: any, res) => {
+  try {
+    const name = typeof req.body?.name === "string" ? req.body.name.trim().replace(/\s+/g, " ") : "";
+    if (name.length < 2 || name.length > 100) return res.status(400).json({ error: "Name must contain between 2 and 100 characters." });
+    const userId = String(req.user?.id || "");
+    await db.execute({ sql: "UPDATE users SET name = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", args: [name, userId] });
+    res.json({ success: true, name });
+  } catch (error) { console.error("Failed to update admin account profile", error); res.status(500).json({ error: "Failed to update profile." }); }
+});
+
+adminRouter.put("/account/password", async (req: any, res) => {
+  try {
+    const currentPassword = String(req.body?.currentPassword || ""); const newPassword = String(req.body?.newPassword || "");
+    if (!isStrongAdminPassword(newPassword)) return res.status(400).json({ error: "Password must be at least 8 characters and include uppercase, lowercase, a number, and a special character." });
+    const result = await db.execute({ sql: "SELECT id, role, admin_role, password_hash, admin_password_hash FROM users WHERE id = ? LIMIT 1", args: [String(req.user?.id || "")] });
+    if (!result.rows.length) return res.status(404).json({ error: "Admin account not found." });
+    const user: any = result.rows[0]; const passwordColumn = adminPasswordColumn(user);
+    if (!currentPassword || !await bcrypt.compare(currentPassword, String(user[passwordColumn] || ""))) return res.status(400).json({ error: "Current password is incorrect." });
+    if (currentPassword === newPassword) return res.status(400).json({ error: "The new password must be different from the current password." });
+    const passwordHash = await bcrypt.hash(newPassword, 12);
+    await db.execute({ sql: `UPDATE users SET ${passwordColumn} = ?, password_updated_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE id = ?`, args: [passwordHash, user.id] });
+    res.json({ success: true });
+  } catch (error) { console.error("Failed to update admin password", error); res.status(500).json({ error: "Failed to update password." }); }
+});
 
 function isValidUrl(urlStr?: string | null): boolean {
   if (!urlStr || typeof urlStr !== 'string' || urlStr.trim() === '') return true;
@@ -1653,6 +1691,10 @@ adminRouter.post("/property-listings", async (req, res) => {
     });
     const created = await db.execute({ sql: "SELECT * FROM property_listings WHERE id = ?", args: [id] });
     await logPropertyActivity(propertyId, "listing_created", "Listing linked", { listing_id: id, title: item.title });
+    if (item.is_enabled) {
+      const archive = await archivePublishedListing(id, getAppUrl(req));
+      if (archive.attempted) await logPropertyActivity(propertyId, archive.archived ? "listing_archived" : "listing_archive_failed", archive.archived ? "Internet Archive snapshot requested" : "Internet Archive snapshot failed", { listing_id: id, archive_url: archive.archiveUrl || "", error: archive.error || "" });
+    }
     res.status(201).json(normalizePropertyListing(created.rows[0]));
   } catch (error: any) {
     console.error("Failed to create property listing", error);
@@ -1682,6 +1724,10 @@ adminRouter.put("/property-listings/:id", async (req, res) => {
     });
     const updated = await db.execute({ sql: "SELECT * FROM property_listings WHERE id = ?", args: [req.params.id] });
     await logPropertyActivity(propertyId, "listing_updated", "Listing updated", { listing_id: req.params.id, title: item.title });
+    if (item.is_enabled) {
+      const archive = await archivePublishedListing(req.params.id, getAppUrl(req));
+      if (archive.attempted) await logPropertyActivity(propertyId, archive.archived ? "listing_archived" : "listing_archive_failed", archive.archived ? "Internet Archive snapshot requested" : "Internet Archive snapshot failed", { listing_id: req.params.id, archive_url: archive.archiveUrl || "", error: archive.error || "" });
+    }
     res.json(normalizePropertyListing(updated.rows[0]));
   } catch (error: any) {
     console.error("Failed to update property listing", error);
@@ -1711,6 +1757,10 @@ adminRouter.patch("/property-listings/:id/visibility", async (req, res) => {
     const updated = await db.execute({ sql: "SELECT * FROM property_listings WHERE id = ?", args: [req.params.id] });
     if (updated.rows.length === 0) return res.status(404).json({ error: "Az ingatlanhirdetés nem található." });
     await logPropertyActivity(before.rows[0]?.property_id as string, req.body?.is_enabled ? "listing_enabled" : "listing_disabled", req.body?.is_enabled ? "Listing enabled" : "Listing disabled", { listing_id: req.params.id, title: before.rows[0]?.title });
+    if (req.body?.is_enabled) {
+      const archive = await archivePublishedListing(req.params.id, getAppUrl(req));
+      if (archive.attempted) await logPropertyActivity(before.rows[0]?.property_id as string, archive.archived ? "listing_archived" : "listing_archive_failed", archive.archived ? "Internet Archive snapshot requested" : "Internet Archive snapshot failed", { listing_id: req.params.id, archive_url: archive.archiveUrl || "", error: archive.error || "" });
+    }
     res.json(normalizePropertyListing(updated.rows[0]));
   } catch (error) {
     console.error("Failed to update property visibility", error);
@@ -6881,7 +6931,8 @@ adminRouter.post("/email/templates/marketing/:key/send", requireMarketingWrite, 
     const template = await getEmailTemplateByKey(req.params.key);
     if (!template || template.category !== "marketing") return res.status(404).json({ error: "Marketing template not found." });
     const config = await getEmailSenderConfig();
-    const tokens = { ...template.sample_data, recipient_name: recipient.split("@")[0], ...(req.body.tokens || {}) };
+    const submittedTokens = req.body.tokens && typeof req.body.tokens === "object" ? req.body.tokens : {};
+    const tokens = { ...template.sample_data, ...submittedTokens, recipient_name: String(submittedTokens.recipient_name || recipient.split("@")[0]).trim() || recipient.split("@")[0] };
     const subject = interpolateTemplateTokens(template.subject, tokens, config);
     const html = wrapInEmailLayout(interpolateTemplateTokens(template.body_html, tokens, config), template.name, config, tokens);
     const text = interpolateTemplateTokens(template.body_text, tokens, config);
