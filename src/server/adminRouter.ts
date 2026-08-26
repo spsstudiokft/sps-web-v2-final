@@ -893,6 +893,7 @@ adminRouter.put("/legal-documents/:type/:locale", async (req, res) => {
 });
 
 const COOKIE_CATALOG_KEY = "cookie_catalog_v1";
+const COOKIE_INFRASTRUCTURE_AUDIT_KEY = "cookie_infrastructure_audit_v1";
 const DEFAULT_COOKIE_CATALOG = [
   { id: "consent", name: "sps_cookie_consent_v2", category: "necessary", consent_scope: "essential", storage: "localStorage", provider: "SPS Studio", duration: "12 months", purpose: "Stores the cookie preference decision.", active: true, required: true, visible_public: true },
   { id: "legacy-consent", name: "sps_cookie_consent_v1", category: "necessary", consent_scope: "essential", storage: "localStorage", provider: "SPS Studio", duration: "Until migrated", purpose: "Legacy consent value retained only to migrate prior choices.", active: true, required: true, visible_public: true },
@@ -936,8 +937,61 @@ async function getCookieCatalog() {
   } catch { return DEFAULT_COOKIE_CATALOG; }
 }
 
+function cookieNamesFromSetCookieHeaders(headers: Headers) {
+  const rawHeaders = typeof (headers as any).getSetCookie === "function"
+    ? (headers as any).getSetCookie() as string[]
+    : [headers.get("set-cookie") || ""];
+  return [...new Set(rawHeaders.flatMap((value) => String(value).split(/,(?=[^;,\s]+=)/).map((part) => part.trim().split("=")[0].trim()).filter(Boolean)))];
+}
+
+async function getInfrastructureCookieAudit() {
+  const result = await db.execute({ sql: "SELECT value FROM settings WHERE key = ?", args: [COOKIE_INFRASTRUCTURE_AUDIT_KEY] });
+  if (!result.rows.length) return null;
+  try { return JSON.parse(String(result.rows[0].value)); } catch { return null; }
+}
+
+async function runInfrastructureCookieAudit(req: any) {
+  const target = new URL(getAppUrl(req));
+  if (!["http:", "https:"].includes(target.protocol)) throw new Error("Only HTTP(S) application URLs can be audited.");
+  const checkedAt = new Date().toISOString();
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10000);
+  let audit: any;
+  try {
+    const response = await fetch(target.origin, {
+      method: "GET",
+      redirect: "manual",
+      signal: controller.signal,
+      headers: { "User-Agent": "SPS-Studio-Cookie-Infrastructure-Audit/1.0" },
+    });
+    const server = response.headers.get("server") || "";
+    const vercel = Boolean(response.headers.get("x-vercel-id") || /vercel/i.test(server));
+    const cloudflare = Boolean(response.headers.get("cf-ray") || /cloudflare/i.test(server));
+    audit = {
+      checked_at: checkedAt,
+      target: target.origin,
+      success: true,
+      status: response.status,
+      platform: { vercel, cloudflare },
+      set_cookie_names: cookieNamesFromSetCookieHeaders(response.headers),
+    };
+  } catch (error: any) {
+    audit = { checked_at: checkedAt, target: target.origin, success: false, error: error?.name === "AbortError" ? "The audit timed out after 10 seconds." : (error?.message || "The audit could not reach the application.") };
+  } finally { clearTimeout(timeout); }
+  await db.execute({ sql: "INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)", args: [COOKIE_INFRASTRUCTURE_AUDIT_KEY, JSON.stringify(audit)] });
+  return audit;
+}
+
 adminRouter.get("/cookie-catalog", async (_req, res) => {
   try { res.json(await getCookieCatalog()); } catch (error: any) { res.status(500).json({ error: error.message || "Failed to load cookie catalog." }); }
+});
+
+adminRouter.get("/cookie-catalog/infrastructure-audit", async (_req, res) => {
+  try { res.json({ audit: await getInfrastructureCookieAudit() }); } catch (error: any) { res.status(500).json({ error: error.message || "Failed to load infrastructure audit." }); }
+});
+
+adminRouter.post("/cookie-catalog/infrastructure-audit", async (req: any, res) => {
+  try { res.json({ audit: await runInfrastructureCookieAudit(req) }); } catch (error: any) { res.status(500).json({ error: error.message || "Failed to run infrastructure audit." }); }
 });
 
 adminRouter.put("/cookie-catalog", async (req, res) => {

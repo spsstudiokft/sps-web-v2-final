@@ -52,6 +52,7 @@
 - Moved detailed cookie preferences out of the compact banner into a dedicated modal, with draft selections applied only when the visitor saves them.
 - Matched the cookie-preferences modal to the banner with the same blue-washed glass treatment in light and dark themes.
 - Expanded the catalog with all currently used public and authenticated browser-storage keys, Google Analytics cookies, and the Ahrefs analytics script; authenticated-only entries remain hidden from the public catalog.
+- Added a persisted, administrator-run infrastructure audit that records the site's detected Vercel/Cloudflare response markers and cookie names only; it never stores cookie values and does not add unverified entries to the public catalog automatically.
 
 ### Public pricing category selector
 
