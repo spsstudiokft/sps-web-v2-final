@@ -38,6 +38,10 @@
 - Prevented single and bulk portal invitation dispatch while a customer's latest unused invitation remains valid; a new invite is allowed after use or expiry.
 - Fixed the customer-list and invitation checks for installations with an older `magic_links` schema by deriving the active invitation from its expiry timestamp instead of relying on an optional creation-time column.
 
+### Vision section
+
+- Made the public Vision headline responsive to the entered text length, retaining the large display treatment for short copy while reducing long headlines to a balanced, readable size.
+
 ### Local demo administrator
 
 - Added an idempotent local-only demo superadmin account when the application uses a file-based development database.

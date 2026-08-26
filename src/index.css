@@ -603,6 +603,8 @@ html:not(.dark) .aero-site {
 
 .aero-vision { margin-top: 5rem; margin-bottom: 5rem; }
 .aero-vision h2 { font-size: clamp(2.6rem, 6vw, 5.6rem); line-height: .98; letter-spacing: -.055em; }
+.aero-vision h2.aero-vision-headline.is-long { font-size: clamp(2.4rem, 4.8vw, 4.25rem); }
+.aero-vision h2.aero-vision-headline.is-extra-long { font-size: clamp(2.2rem, 4.2vw, 3.75rem); }
 .aero-vision p { max-width: 48rem; margin-inline: auto; }
 .aero-about { width: calc(100% - 2rem); max-width: 1480px; margin-inline: auto; border-radius: 2.5rem; overflow: hidden; }
 .aero-about .aero-copy-card {
