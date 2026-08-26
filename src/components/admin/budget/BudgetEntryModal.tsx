@@ -14,6 +14,8 @@ import {
 import { BudgetEntry, BudgetEntryType, BudgetStatus } from "../../../types";
 import { Button } from "../../ui/Button";
 import { cn } from "../../../lib/utils";
+import { useLanguage } from "../../../contexts/LanguageContext";
+import { translateBudgetCategory } from "../../../lib/budgetLabels";
 
 interface BudgetEntryModalProps {
   isOpen: boolean;
@@ -70,6 +72,7 @@ export function BudgetEntryModal({
   defaultCurrency = "USD",
   defaultAdminColor = "#3B82F6"
 }: BudgetEntryModalProps) {
+  const { tUi } = useLanguage();
   const [type, setType] = useState<BudgetEntryType>("income");
   const [amount, setAmount] = useState<string>("");
   const [currency, setCurrency] = useState<string>(defaultCurrency);
@@ -160,7 +163,7 @@ export function BudgetEntryModal({
     }
 
     if (!date) {
-      setErrorMessage("Please select a valid date.");
+      setErrorMessage(tUi("admin.budget.modal.invalid_date"));
       return;
     }
 
@@ -181,7 +184,7 @@ export function BudgetEntryModal({
       });
       onClose();
     } catch (err: any) {
-      setErrorMessage(err.message || "Failed to save budget entry.");
+      setErrorMessage(err.message || tUi("admin.budget.modal.save_failed"));
     } finally {
       setIsSubmitting(false);
     }
@@ -201,7 +204,7 @@ export function BudgetEntryModal({
               style={{ backgroundColor: colorCode }} 
             />
             <h2 className="text-lg font-bold text-text font-heading">
-              {entryToEdit ? "Edit Budget Entry" : "New Budget Entry"}
+              {tUi(entryToEdit ? "admin.budget.modal.edit_title" : "admin.budget.modal.new_title")}
             </h2>
           </div>
           <button
@@ -225,7 +228,7 @@ export function BudgetEntryModal({
           {/* Type Toggle: Income vs Outcome */}
           <div>
             <label className="block text-xs font-semibold uppercase tracking-wider text-muted-text mb-2">
-              Transaction Type *
+              {tUi("admin.budget.modal.trans_type")} *
             </label>
             <div className="grid grid-cols-2 gap-3">
               <button
@@ -239,7 +242,7 @@ export function BudgetEntryModal({
                 )}
               >
                 <ArrowUpRight className="w-4 h-4" />
-                Income (+)
+                {tUi("admin.budget.modal.income")}
               </button>
 
               <button
@@ -253,7 +256,7 @@ export function BudgetEntryModal({
                 )}
               >
                 <ArrowDownRight className="w-4 h-4" />
-                Outcome / Expense (-)
+                {tUi("admin.budget.modal.outcome")}
               </button>
             </div>
           </div>
@@ -262,7 +265,7 @@ export function BudgetEntryModal({
           <div className="grid grid-cols-3 gap-3">
             <div className="col-span-2">
               <label className="block text-xs font-semibold text-text mb-1.5">
-                Amount *
+                {tUi("admin.budget.modal.amount")} *
               </label>
               <div className="relative">
                 <input
@@ -280,7 +283,7 @@ export function BudgetEntryModal({
 
             <div>
               <label className="block text-xs font-semibold text-text mb-1.5">
-                Currency
+                {tUi("admin.budget.modal.currency")}
               </label>
               <select
                 value={currency}
@@ -303,7 +306,7 @@ export function BudgetEntryModal({
             <div className="flex items-center justify-between mb-1.5">
               <label className="text-xs font-semibold text-text flex items-center gap-1.5">
                 <Calendar className="w-3.5 h-3.5 text-muted-text" />
-                Date *
+                {tUi("admin.budget.modal.date")} *
               </label>
               <div className="flex items-center gap-1">
                 <button
@@ -311,7 +314,7 @@ export function BudgetEntryModal({
                   onClick={setDateToday}
                   className="text-[11px] font-medium text-primary hover:underline px-1.5 py-0.5 rounded-sm hover:bg-primary/10"
                 >
-                  Today
+                  {tUi("admin.budget.modal.today")}
                 </button>
                 <span className="text-muted-text">·</span>
                 <button
@@ -319,7 +322,7 @@ export function BudgetEntryModal({
                   onClick={setDateYesterday}
                   className="text-[11px] font-medium text-muted-text hover:underline px-1.5 py-0.5 rounded-sm hover:bg-surface-hover"
                 >
-                  Yesterday
+                  {tUi("admin.budget.modal.yesterday")}
                 </button>
                 <span className="text-muted-text">·</span>
                 <button
@@ -327,7 +330,7 @@ export function BudgetEntryModal({
                   onClick={setDateFirstOfMonth}
                   className="text-[11px] font-medium text-muted-text hover:underline px-1.5 py-0.5 rounded-sm hover:bg-surface-hover"
                 >
-                  1st of Month
+                  {tUi("admin.budget.modal.first_of_month")}
                 </button>
               </div>
             </div>
@@ -343,7 +346,7 @@ export function BudgetEntryModal({
           {/* Category */}
           <div>
             <label className="block text-xs font-semibold text-text mb-1.5">
-              Category
+              {tUi("admin.budget.modal.category")}
             </label>
             <div className="grid grid-cols-2 gap-2 mb-2">
               <select
@@ -352,15 +355,15 @@ export function BudgetEntryModal({
                 className="col-span-2 sm:col-span-1 px-3 py-2 bg-background border border-border rounded-xl text-sm text-text focus:ring-2 focus:ring-primary focus:outline-none"
               >
                 {availableCategories.map((c) => (
-                  <option key={c} value={c}>{c}</option>
+                  <option key={c} value={c}>{translateBudgetCategory(c, tUi)}</option>
                 ))}
-                <option value="custom">+ Custom Category</option>
+                <option value="custom">{tUi("admin.budget.modal.custom_category")}</option>
               </select>
 
               {category === "custom" && (
                 <input
                   type="text"
-                  placeholder="Enter custom category..."
+                  placeholder={tUi("admin.budget.modal.custom_category_placeholder")}
                   value={customCategory}
                   onChange={(e) => setCustomCategory(e.target.value)}
                   className="col-span-2 sm:col-span-1 px-3 py-2 bg-background border border-border rounded-xl text-sm text-text focus:ring-2 focus:ring-primary focus:outline-none"
@@ -370,9 +373,9 @@ export function BudgetEntryModal({
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-text mb-1.5">Linked Project <span className="font-normal text-muted-text">(optional)</span></label>
+            <label className="block text-xs font-semibold text-text mb-1.5">{tUi("admin.budget.modal.linked_project")} <span className="font-normal text-muted-text">{tUi("admin.budget.optional")}</span></label>
             <select value={projectId} onChange={(e) => setProjectId(e.target.value)} className="w-full px-3 py-2 bg-background border border-border rounded-xl text-sm text-text focus:ring-2 focus:ring-primary focus:outline-none">
-              <option value="">-- No project linked --</option>
+              <option value="">{tUi("admin.budget.modal.no_project")}</option>
               {projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
             </select>
           </div>
@@ -380,14 +383,14 @@ export function BudgetEntryModal({
           {/* Status Selection */}
           <div>
             <label className="block text-xs font-semibold text-text mb-1.5">
-              Status *
+              {tUi("admin.budget.modal.status")} *
             </label>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               {[
-                { id: "confirmed", label: "Confirmed", icon: CheckCircle2, color: "text-emerald-600 dark:text-emerald-400", activeBg: "bg-emerald-600 text-white border-emerald-700" },
-                { id: "planned", label: "Planned", icon: Sparkles, color: "text-sky-600 dark:text-sky-400", activeBg: "bg-sky-600 text-white border-sky-700" },
-                { id: "pending", label: "Pending", icon: Clock, color: "text-amber-600 dark:text-amber-400", activeBg: "bg-amber-600 text-white border-amber-700" },
-                { id: "rejected", label: "Rejected", icon: AlertCircle, color: "text-rose-600 dark:text-rose-400", activeBg: "bg-rose-600 text-white border-rose-700" }
+                { id: "confirmed", label: tUi("admin.budget.stats.confirmed"), icon: CheckCircle2, color: "text-emerald-600 dark:text-emerald-400", activeBg: "bg-emerald-600 text-white border-emerald-700" },
+                { id: "planned", label: tUi("admin.budget.stats.planned"), icon: Sparkles, color: "text-sky-600 dark:text-sky-400", activeBg: "bg-sky-600 text-white border-sky-700" },
+                { id: "pending", label: tUi("admin.budget.stats.pending"), icon: Clock, color: "text-amber-600 dark:text-amber-400", activeBg: "bg-amber-600 text-white border-amber-700" },
+                { id: "rejected", label: tUi("admin.budget.stats.rejected"), icon: AlertCircle, color: "text-rose-600 dark:text-rose-400", activeBg: "bg-rose-600 text-white border-rose-700" }
               ].map((st) => {
                 const Icon = st.icon;
                 const isSelected = status === st.id;
@@ -414,11 +417,11 @@ export function BudgetEntryModal({
           {/* Description / Notes */}
           <div>
             <label className="block text-xs font-semibold text-text mb-1.5">
-              Description & Notes
+              {tUi("admin.budget.modal.description")}
             </label>
             <textarea
               rows={2}
-              placeholder="e.g. 5-bedroom luxury estate drone photoshoot on Sunset Blvd..."
+              placeholder={tUi("admin.budget.modal.description_placeholder")}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               className="w-full px-3 py-2 bg-background border border-border rounded-xl text-sm text-text focus:ring-2 focus:ring-primary focus:outline-none"
@@ -430,7 +433,7 @@ export function BudgetEntryModal({
             <div className="flex items-center justify-between mb-2">
               <label className="text-xs font-semibold text-text flex items-center gap-1.5">
                 <Palette className="w-3.5 h-3.5 text-muted-text" />
-                Color Tag & Visual Coding
+                {tUi("admin.budget.modal.color_tag")}
               </label>
               <div className="flex items-center gap-1.5">
                 <input
@@ -471,7 +474,7 @@ export function BudgetEntryModal({
               onClick={onClose}
               disabled={isSubmitting}
             >
-              Cancel
+              {tUi("admin.budget.modal.cancel")}
             </Button>
             <Button
               type="submit"
@@ -483,11 +486,11 @@ export function BudgetEntryModal({
               )}
             >
               {isSubmitting ? (
-                <span>Saving...</span>
+                <span>{tUi("admin.budget.saving")}</span>
               ) : (
                 <>
                   <CheckCircle2 className="w-4 h-4" />
-                  {entryToEdit ? "Update Entry" : "Save Entry"}
+                  {tUi(entryToEdit ? "admin.budget.modal.update" : "admin.budget.modal.save")}
                 </>
               )}
             </Button>

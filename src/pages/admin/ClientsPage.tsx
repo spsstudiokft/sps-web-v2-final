@@ -462,7 +462,7 @@ export default function ClientsPage() {
                             type="button"
                             onClick={() => handleCopy(p.address, p.id || String(idx))}
                             className="p-1 text-muted-text hover:text-text rounded hover:bg-muted/40"
-                            title="Copy address"
+                            title={tUi("client.home.copy_address")}
                           >
                             {copiedId === (p.id || String(idx)) ? <Check size={13} className="text-emerald-500" /> : <Copy size={13} />}
                           </button>

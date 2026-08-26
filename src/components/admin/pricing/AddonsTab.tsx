@@ -66,11 +66,11 @@ export function AddonsTab({ siteLanguages, showToast }: AddonsTabProps) {
         setExtraServices(Array.isArray(data) ? data : []);
       } else {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to load add-on services");
+        throw new Error(err.error || tUi("admin.pricing.addons.load_failed"));
       }
     } catch (error: any) {
       console.error("Failed to load extra services:", error);
-      showToast(error.message || "Failed to load add-on services", "error");
+      showToast(error.message || tUi("admin.pricing.addons.load_failed"), "error");
     } finally {
       setLoading(false);
     }
@@ -118,10 +118,10 @@ export function AddonsTab({ siteLanguages, showToast }: AddonsTabProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...service, is_enabled: newStatus }),
       });
-      if (!res.ok) throw new Error("Failed to update status");
-      showToast(newStatus ? "Add-on enabled" : "Add-on disabled");
+      if (!res.ok) throw new Error(tUi("admin.pricing.addons.status_failed"));
+      showToast(tUi(newStatus ? "admin.pricing.addons.enabled" : "admin.pricing.addons.disabled"));
     } catch (err: any) {
-      showToast(err.message || "Failed to update status", "error");
+      showToast(err.message || tUi("admin.pricing.addons.status_failed"), "error");
       loadData();
     }
   };
@@ -138,10 +138,10 @@ export function AddonsTab({ siteLanguages, showToast }: AddonsTabProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...service, show_on_pricing_page: newShow }),
       });
-      if (!res.ok) throw new Error("Failed to update visibility");
-      showToast(newShow ? "Visible on pricing page" : "Hidden from pricing page");
+      if (!res.ok) throw new Error(tUi("admin.pricing.addons.visibility_failed"));
+      showToast(tUi(newShow ? "admin.pricing.addons.visible_public" : "admin.pricing.addons.hidden_public"));
     } catch (err: any) {
-      showToast(err.message || "Failed to update visibility", "error");
+      showToast(err.message || tUi("admin.pricing.addons.visibility_failed"), "error");
       loadData();
     }
   };
@@ -155,9 +155,9 @@ export function AddonsTab({ siteLanguages, showToast }: AddonsTabProps) {
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to update add-on service");
+        throw new Error(err.error || tUi("admin.pricing.addons.update_failed"));
       }
-      showToast("Add-on service updated successfully");
+      showToast(tUi("admin.pricing.addons.updated"));
     } else {
       const res = await fetchApi("/api/admin/extra-services", {
         method: "POST",
@@ -166,9 +166,9 @@ export function AddonsTab({ siteLanguages, showToast }: AddonsTabProps) {
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to create add-on service");
+        throw new Error(err.error || tUi("admin.pricing.addons.create_failed"));
       }
-      showToast("Add-on service created successfully");
+      showToast(tUi("admin.pricing.addons.created"));
     }
     await loadData();
   };
@@ -182,13 +182,13 @@ export function AddonsTab({ siteLanguages, showToast }: AddonsTabProps) {
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to delete add-on service");
+        throw new Error(err.error || tUi("admin.pricing.addons.delete_failed"));
       }
-      showToast("Add-on service deleted successfully");
+      showToast(tUi("admin.pricing.addons.deleted"));
       setDeleteConfirmService(null);
       await loadData();
     } catch (error: any) {
-      showToast(error.message || "Failed to delete add-on", "error");
+      showToast(error.message || tUi("admin.pricing.addons.delete_failed"), "error");
     } finally {
       setIsDeleting(false);
     }
@@ -205,7 +205,7 @@ export function AddonsTab({ siteLanguages, showToast }: AddonsTabProps) {
               <Input
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search add-on title, description, category..."
+                placeholder={tUi("admin.pricing.addons.search")}
                 className="pl-9 text-sm"
               />
             </div>
@@ -216,7 +216,7 @@ export function AddonsTab({ siteLanguages, showToast }: AddonsTabProps) {
                 onChange={(e) => setCategoryFilter(e.target.value)}
                 className="h-10 px-3 rounded-lg border border-border bg-background text-text text-sm focus:ring-2 focus:ring-primary outline-none"
               >
-                <option value="all">All Categories</option>
+                <option value="all">{tUi("admin.pricing.addons.all_categories")}</option>
                 {categories.map((cat) => (
                   <option key={cat} value={cat}>
                     {cat}
@@ -229,9 +229,9 @@ export function AddonsTab({ siteLanguages, showToast }: AddonsTabProps) {
                 onChange={(e) => setStatusFilter(e.target.value as any)}
                 className="h-10 px-3 rounded-lg border border-border bg-background text-text text-sm focus:ring-2 focus:ring-primary outline-none"
               >
-                <option value="all">All Statuses</option>
-                <option value="enabled">Enabled Only</option>
-                <option value="disabled">Disabled Only</option>
+                <option value="all">{tUi("admin.pricing.all_statuses")}</option>
+                <option value="enabled">{tUi("admin.pricing.enabled_only")}</option>
+                <option value="disabled">{tUi("admin.pricing.disabled_only")}</option>
               </select>
             </div>
           </div>
@@ -242,7 +242,7 @@ export function AddonsTab({ siteLanguages, showToast }: AddonsTabProps) {
               size="sm"
               onClick={loadData}
               className="h-10 px-3 text-muted-text hover:text-text"
-              title="Refresh"
+              title={tUi("admin.pricing.refresh")}
             >
               <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
             </Button>
@@ -255,7 +255,7 @@ export function AddonsTab({ siteLanguages, showToast }: AddonsTabProps) {
               className="gap-2 h-10"
             >
               <Plus className="w-4 h-4" />
-              <span>Add New Add-on</span>
+              <span>{tUi("admin.pricing.addons.create")}</span>
             </Button>
           </div>
         </CardContent>
@@ -265,14 +265,14 @@ export function AddonsTab({ siteLanguages, showToast }: AddonsTabProps) {
       {loading ? (
         <div className="py-20 text-center text-muted-text">
           <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-3 opacity-50" />
-          <p>Loading add-ons...</p>
+          <p>{tUi("admin.pricing.addons.loading")}</p>
         </div>
       ) : filteredServices.length === 0 ? (
         <div className="py-16 text-center rounded-2xl border-2 border-dashed border-border bg-surface/30 p-8">
           <Sparkles className="w-12 h-12 text-muted-text mx-auto mb-3 opacity-40" />
-          <h3 className="text-base font-bold text-text mb-1">No Add-on Services Found</h3>
+          <h3 className="text-base font-bold text-text mb-1">{tUi("admin.pricing.addons.empty_title")}</h3>
           <p className="text-sm text-muted-text max-w-md mx-auto mb-6">
-            Create a la carte services like Twilight Shoots, Drone 4K Footage, Floor Plans, or Rush Delivery that clients can select with any plan.
+            {tUi("admin.pricing.addons.empty_desc")}
           </p>
           <Button
             onClick={() => {
@@ -282,13 +282,13 @@ export function AddonsTab({ siteLanguages, showToast }: AddonsTabProps) {
             className="gap-2"
           >
             <Plus className="w-4 h-4" />
-            <span>Create First Add-on</span>
+            <span>{tUi("admin.pricing.addons.create_first")}</span>
           </Button>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {filteredServices.map((service) => {
-            const title = getDisplayText(service.title, currentLang) || "Untitled Add-on";
+            const title = getDisplayText(service.title, currentLang) || tUi("admin.pricing.addons.untitled");
             const subtitle = getDisplayText(service.subtitle, currentLang);
             const isEnabled = Boolean(service.is_enabled);
             const isPublic = service.show_on_pricing_page !== 0;
@@ -331,7 +331,7 @@ export function AddonsTab({ siteLanguages, showToast }: AddonsTabProps) {
                         className={`p-1.5 rounded-lg text-xs transition-colors ${
                           isEnabled ? "text-emerald-600 hover:bg-emerald-500/10" : "text-muted-text hover:bg-surface"
                         }`}
-                        title={isEnabled ? "Enabled (Click to disable)" : "Disabled (Click to enable)"}
+                        title={tUi(isEnabled ? "admin.pricing.addons.enabled_title" : "admin.pricing.addons.disabled_title")}
                       >
                         {isEnabled ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
                       </button>
@@ -353,23 +353,23 @@ export function AddonsTab({ siteLanguages, showToast }: AddonsTabProps) {
                     <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-surface text-text border border-border flex items-center gap-1">
                       {service.price_type === "percentage" ? (
                         <>
-                          <Percent className="w-3 h-3 text-primary" /> % of Plan
+                          <Percent className="w-3 h-3 text-primary" /> {tUi("admin.pricing.addons.price_percentage")}
                         </>
                       ) : (
                         <>
-                          <DollarSign className="w-3 h-3 text-primary" /> Fixed
+                          <DollarSign className="w-3 h-3 text-primary" /> {tUi("admin.pricing.addons.price_fixed")}
                         </>
                       )}
                     </span>
 
                     <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-surface text-text border border-border flex items-center gap-1">
                       <Clock className="w-3 h-3 text-accent" />
-                      {service.billing_type === "recurring" ? "Recurring" : "One-time"}
+                      {tUi(service.billing_type === "recurring" ? "admin.pricing.addons.billing_recurring" : "admin.pricing.addons.billing_one_time")}
                     </span>
 
                     {planRestrictions.length > 0 && (
                       <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-primary/10 text-primary border border-primary/20 flex items-center gap-1">
-                        <Filter className="w-3 h-3" /> {planRestrictions.length} Plans only
+                        <Filter className="w-3 h-3" /> {planRestrictions.length} {tUi("admin.pricing.addons.plans_only")}
                       </span>
                     )}
                   </div>
@@ -401,8 +401,7 @@ export function AddonsTab({ siteLanguages, showToast }: AddonsTabProps) {
                       className="h-8 px-2.5 text-xs text-muted-text hover:text-text"
                     >
                       <Edit2 className="w-3.5 h-3.5 mr-1" />
-                      Edit
-                    </Button>
+                      {tUi("admin.customers.edit")}</Button>
                     <Button
                       size="sm"
                       variant="ghost"
@@ -439,17 +438,16 @@ export function AddonsTab({ siteLanguages, showToast }: AddonsTabProps) {
               <AlertTriangle className="w-6 h-6" />
             </div>
 
-            <h3 className="text-lg font-bold text-text mb-2">Delete Add-on Service?</h3>
+            <h3 className="text-lg font-bold text-text mb-2">{tUi("admin.pricing.addons.delete_title")}</h3>
             <p className="text-sm text-muted-text mb-6">
-              Are you sure you want to delete <strong>{getDisplayText(deleteConfirmService.title, currentLang)}</strong>? This will remove it from all quotes and plan options.
+              {tUi("admin.pricing.delete_modal_confirm_prefix")}<strong>{getDisplayText(deleteConfirmService.title, currentLang)}</strong>? {tUi("admin.pricing.addons.delete_warning")}
             </p>
 
             <div className="flex items-center justify-end gap-3">
               <Button variant="secondary" onClick={() => setDeleteConfirmService(null)} disabled={isDeleting}>
-                Cancel
-              </Button>
+                {tUi("admin.clients.cancel")}</Button>
               <Button variant="destructive" onClick={handleDeleteService} disabled={isDeleting} className="bg-red-600 hover:bg-red-700 text-white">
-                {isDeleting ? "Deleting..." : "Delete Add-on"}
+                {isDeleting ? tUi("admin.pricing.addons.deleting") : tUi("admin.pricing.addons.delete_action")}
               </Button>
             </div>
           </div>

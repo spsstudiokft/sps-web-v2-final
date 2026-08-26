@@ -265,14 +265,14 @@ export function TranslationsManager({
       });
 
       if (!response.ok) {
-        throw new Error("Failed to save translations to server.");
+        throw new Error(tUi("admin.translation_editor.save_failed", currentLang));
       }
 
       await reloadTranslations();
       setModifiedKeys(new Set());
       setStatusMessage({
         type: "success",
-        text: `Saved ${itemsToSave.length} translation change(s) to database successfully!`,
+        text: tUi("admin.translation_editor.saved", currentLang, { count: itemsToSave.length }),
       });
       setTimeout(() => setStatusMessage(null), 4000);
 
@@ -314,7 +314,7 @@ export function TranslationsManager({
         }),
       });
 
-      if (!res.ok) throw new Error("Failed to add key");
+      if (!res.ok) throw new Error(tUi("admin.translation_editor.add_failed", currentLang));
 
       // Update local state
       setDbDictionaries((prev) => ({
@@ -331,7 +331,7 @@ export function TranslationsManager({
       setNewGroup("");
       setStatusMessage({
         type: "success",
-        text: `Added database key "${cleanKey}" for ${selectedLang.toUpperCase()}`,
+        text: tUi("admin.translation_editor.added", currentLang, { key: cleanKey, locale: selectedLang.toUpperCase() }),
       });
       setTimeout(() => setStatusMessage(null), 3500);
 
@@ -351,7 +351,7 @@ export function TranslationsManager({
       setScanning(true);
       setStatusMessage({
         type: "info",
-        text: "Scanning codebase for missing translation keys and synchronizing database...",
+        text: tUi("admin.translation_editor.scanning", currentLang),
       });
 
       const res = await fetchApi("/api/admin/translations/scan-import", {
@@ -360,7 +360,7 @@ export function TranslationsManager({
         body: JSON.stringify({ force: false }),
       });
 
-      if (!res.ok) throw new Error("Failed to scan and import keys.");
+      if (!res.ok) throw new Error(tUi("admin.translation_editor.scan_failed", currentLang));
       const result = await res.json();
 
       await reloadTranslations();
@@ -368,7 +368,7 @@ export function TranslationsManager({
 
       setStatusMessage({
         type: "success",
-        text: `Scan complete: Synchronized ${result.importedCount || 0} missing translation records across all locales!`,
+        text: tUi("admin.translation_editor.scan_complete", currentLang, { count: result.importedCount || 0 }),
       });
       setTimeout(() => setStatusMessage(null), 5000);
     } catch (err: any) {
@@ -384,9 +384,7 @@ export function TranslationsManager({
 
   // Re-sync all translations from hardcoded files to DB
   const handleMigrateFromFiles = async () => {
-    const confirm = window.confirm(
-      "This will synchronize all hardcoded translations from files into the database. Existing keys will be refreshed. Continue?"
-    );
+    const confirm = window.confirm(tUi("admin.translation_editor.sync_confirm", currentLang));
     if (!confirm) return;
 
     try {
@@ -397,7 +395,7 @@ export function TranslationsManager({
         body: JSON.stringify({ force: true }),
       });
 
-      if (!res.ok) throw new Error("Migration request failed.");
+      if (!res.ok) throw new Error(tUi("admin.translation_editor.sync_failed", currentLang));
       const result = await res.json();
 
       await reloadTranslations();
@@ -405,7 +403,7 @@ export function TranslationsManager({
 
       setStatusMessage({
         type: "success",
-        text: `Migration completed: ${result.importedCount} records imported across ${result.locales?.length || 0} locales!`,
+        text: tUi("admin.translation_editor.sync_complete", currentLang, { count: result.importedCount, locales: result.locales?.length || 0 }),
       });
       setTimeout(() => setStatusMessage(null), 5000);
     } catch (err: any) {
@@ -421,13 +419,13 @@ export function TranslationsManager({
 
   // Delete key for current locale
   const handleDeleteKeyLocale = async (key: string) => {
-    if (!window.confirm(`Delete translation for "${key}" in ${selectedLang.toUpperCase()}?`)) return;
+    if (!window.confirm(tUi("admin.translation_editor.delete_confirm", currentLang, { key, locale: selectedLang.toUpperCase() }))) return;
 
     try {
       const res = await fetchApi(`/api/admin/translations/${encodeURIComponent(selectedLang)}/${encodeURIComponent(key)}`, {
         method: "DELETE",
       });
-      if (!res.ok) throw new Error("Failed to delete translation.");
+      if (!res.ok) throw new Error(tUi("admin.translation_editor.delete_failed", currentLang));
 
       setDbDictionaries((prev) => {
         const nextLang = { ...(prev[selectedLang] || {}) };
@@ -438,7 +436,7 @@ export function TranslationsManager({
       await reloadTranslations();
       setStatusMessage({
         type: "success",
-        text: `Deleted translation for "${key}" (${selectedLang.toUpperCase()})`,
+        text: tUi("admin.translation_editor.deleted", currentLang, { key, locale: selectedLang.toUpperCase() }),
       });
       setTimeout(() => setStatusMessage(null), 3000);
     } catch (err: any) {
@@ -490,12 +488,12 @@ export function TranslationsManager({
                 body: JSON.stringify({ items }),
               });
 
-              if (!res.ok) throw new Error("Failed to upload imported translations.");
+              if (!res.ok) throw new Error(tUi("admin.translation_editor.import_failed", currentLang));
               await fetchAllTranslations();
               await reloadTranslations();
               setStatusMessage({
                 type: "success",
-                text: `Successfully imported ${items.length} translation strings!`,
+                text: tUi("admin.translation_editor.imported", currentLang, { count: items.length }),
               });
               setTimeout(() => setStatusMessage(null), 4000);
             }
@@ -519,7 +517,7 @@ export function TranslationsManager({
             <div className="flex items-center gap-2.5 flex-wrap">
               <h3 className="text-base font-semibold text-text flex items-center gap-2">
                 <Database className="w-5 h-5 text-primary" />
-                <span>Translation Database & Localization Engine</span>
+                <span>{tUi("admin.translation_editor.title", currentLang)}</span>
               </h3>
               <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
                 Active & Synced
@@ -551,11 +549,11 @@ export function TranslationsManager({
               size="sm"
               onClick={handleScanAndImportCodebase}
               disabled={scanning || loading}
-              title="Scan entire codebase for tUi/t calls and import any missing keys into the database"
+              title={tUi("admin.translation_editor.scan_help", currentLang)}
               className="flex items-center gap-1.5 text-xs bg-primary hover:bg-primary/90 text-primary-foreground cursor-pointer"
             >
               {scanning ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
-              <span>Scan & Import Missing</span>
+              <span>{tUi("admin.translation_editor.scan", currentLang)}</span>
             </Button>
 
             <Button
@@ -564,11 +562,11 @@ export function TranslationsManager({
               size="sm"
               onClick={handleMigrateFromFiles}
               disabled={migrating}
-              title="Synchronize all keys and locales from files into database"
+              title={tUi("admin.translation_editor.sync_help", currentLang)}
               className="flex items-center gap-1.5 text-xs cursor-pointer"
             >
               {migrating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
-              <span>Sync All Files</span>
+              <span>{tUi("admin.translation_editor.sync", currentLang)}</span>
             </Button>
 
             <Button
@@ -579,12 +577,12 @@ export function TranslationsManager({
               className="flex items-center gap-1.5 text-xs cursor-pointer"
             >
               <Download className="w-3.5 h-3.5" />
-              <span>Export JSON</span>
+              <span>{tUi("admin.translation_editor.export", currentLang)}</span>
             </Button>
 
             <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-surface hover:bg-surface/80 border border-border rounded-lg text-text transition-colors">
               <Upload className="w-3.5 h-3.5" />
-              <span>Import JSON</span>
+              <span>{tUi("admin.translation_editor.import", currentLang)}</span>
               <input type="file" accept=".json" onChange={handleImportJson} className="hidden" />
             </label>
           </div>
@@ -594,11 +592,11 @@ export function TranslationsManager({
         {stats && (
           <div className="pt-3 border-t border-border/60 grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
             <div className="p-2.5 rounded-xl bg-background/60 border border-border/50">
-              <span className="text-[11px] text-muted-text block">Total Unique Keys</span>
+              <span className="text-[11px] text-muted-text block">{tUi("admin.translation_editor.total_keys", currentLang)}</span>
               <strong className="text-sm font-semibold text-text font-mono">{stats.totalKeys.toLocaleString()}</strong>
             </div>
             <div className="p-2.5 rounded-xl bg-background/60 border border-border/50">
-              <span className="text-[11px] text-muted-text block">Total Database Records</span>
+              <span className="text-[11px] text-muted-text block">{tUi("admin.translation_editor.total_records", currentLang)}</span>
               <strong className="text-sm font-semibold text-text font-mono">{stats.totalTranslations.toLocaleString()}</strong>
             </div>
             <div className="p-2.5 rounded-xl bg-background/60 border border-border/50">
@@ -608,7 +606,7 @@ export function TranslationsManager({
               </strong>
             </div>
             <div className="p-2.5 rounded-xl bg-background/60 border border-border/50">
-              <span className="text-[11px] text-muted-text block">Supported Locales</span>
+              <span className="text-[11px] text-muted-text block">{tUi("admin.translation_editor.locales", currentLang)}</span>
               <strong className="text-sm font-semibold text-text">{Object.keys(stats.locales).join(", ").toUpperCase()}</strong>
             </div>
           </div>
@@ -662,12 +660,10 @@ export function TranslationsManager({
               </span>
               {isDefault ? (
                 <span className="text-[10px] bg-amber-500/20 text-amber-600 dark:text-amber-400 px-1 rounded font-bold">
-                  Default
-                </span>
+                  {tUi("admin.languages.default")}</span>
               ) : !isEnabled ? (
                 <span className={`text-[10px] px-1 rounded font-semibold ${isSelected ? "bg-black/30 text-white/90" : "bg-slate-500/10 text-slate-500"}`}>
-                  Disabled
-                </span>
+                  {tUi("admin.clients.status_disabled")}</span>
               ) : null}
             </button>
           );
@@ -682,7 +678,7 @@ export function TranslationsManager({
             <div className="p-3 rounded-xl bg-slate-500/10 border border-slate-500/20 text-slate-600 dark:text-slate-400 text-xs flex items-center gap-2">
               <EyeOff className="w-4 h-4 shrink-0" aria-hidden="true" />
               <span>
-                <strong>{activeLangObj.name || activeLangObj.code}</strong> is currently <strong>Disabled</strong> from the public site selector. Database translations remain active and editable below.
+                {tUi("admin.translation_editor.disabled_notice", currentLang, { language: activeLangObj.name || activeLangObj.code })}
               </span>
             </div>
           );
@@ -695,7 +691,7 @@ export function TranslationsManager({
         <div className="flex-1 relative">
           <Search className="w-4 h-4 text-muted-text absolute left-3 top-1/2 -translate-y-1/2" />
           <Input
-            placeholder="Search key name, English fallback, or translated text..."
+            placeholder={tUi("admin.translation_editor.search", currentLang)}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-9 text-xs h-9"
@@ -721,7 +717,7 @@ export function TranslationsManager({
                 filterMode === "missing" ? "bg-background text-red-500 font-semibold shadow-xs" : "text-muted-text hover:text-text"
               }`}
             >
-              <span>Missing</span>
+              <span>{tUi("admin.translation_editor.missing", currentLang)}</span>
               {missingCount > 0 && (
                 <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-red-500/10 text-red-500 font-mono">
                   {missingCount}
@@ -735,7 +731,7 @@ export function TranslationsManager({
                 filterMode === "modified" ? "bg-background text-amber-500 font-semibold shadow-xs" : "text-muted-text hover:text-text"
               }`}
             >
-              <span>Modified</span>
+              <span>{tUi("admin.translation_editor.modified", currentLang)}</span>
               {modifiedCount > 0 && (
                 <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-amber-500/10 text-amber-500 font-mono">
                   {modifiedCount}
@@ -764,14 +760,14 @@ export function TranslationsManager({
         <div className="flex items-center justify-between">
           <Label className="text-xs font-semibold text-text flex items-center gap-1.5">
             <Plus className="w-3.5 h-3.5 text-primary" />
-            <span>Create New Database Translation Key</span>
+            <span>{tUi("admin.translation_editor.create_key", currentLang)}</span>
           </Label>
           <span className="text-[11px] text-muted-text">Inserts directly to DB for {currentLangObj.name}</span>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-12 gap-2">
           <div className="sm:col-span-4">
             <Input
-              placeholder="Key (e.g. admin.budget.new_feature)"
+              placeholder={tUi("admin.translation_editor.key_placeholder", currentLang)}
               value={newKey}
               onChange={(e) => setNewKey(e.target.value)}
               className="text-xs"
@@ -800,7 +796,7 @@ export function TranslationsManager({
               className="w-full text-xs flex items-center justify-center gap-1 cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
-              <span>Add Key</span>
+              <span>{tUi("admin.translation_editor.add_key", currentLang)}</span>
             </Button>
           </div>
         </div>
@@ -811,14 +807,14 @@ export function TranslationsManager({
         {loading ? (
           <div className="p-12 text-center text-muted-text flex flex-col items-center gap-2">
             <Loader2 className="w-6 h-6 animate-spin text-primary" />
-            <span className="text-xs">Loading database translations...</span>
+            <span className="text-xs">{tUi("admin.translation_editor.loading", currentLang)}</span>
           </div>
         ) : (
           <div className="divide-y divide-border">
             {paginatedKeys.length === 0 ? (
               <div className="p-10 text-center text-muted-text text-sm flex flex-col items-center gap-2">
                 <Info className="w-6 h-6 text-muted-text/50" />
-                <span>No translation keys found matching your criteria.</span>
+                <span>{tUi("admin.translation_editor.empty", currentLang)}</span>
                 {filterMode !== "all" && (
                   <button
                     type="button"
@@ -885,7 +881,7 @@ export function TranslationsManager({
                         <button
                           type="button"
                           onClick={() => handleCopyEnglish(key)}
-                          title="Copy English default into field"
+                          title={tUi("admin.translation_editor.copy_english", currentLang)}
                           className="p-1.5 rounded-lg border border-border hover:bg-surface text-muted-text hover:text-text transition-colors cursor-pointer shrink-0"
                         >
                           <Copy className="w-3.5 h-3.5" />
@@ -899,7 +895,7 @@ export function TranslationsManager({
                         type="button"
                         onClick={() => handleDeleteKeyLocale(key)}
                         className="p-1.5 rounded-lg text-muted-text hover:text-red-500 hover:bg-red-500/10 transition-colors cursor-pointer"
-                        title="Delete translation for current locale"
+                        title={tUi("admin.translation_editor.delete_locale", currentLang)}
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -915,7 +911,7 @@ export function TranslationsManager({
         <div className="px-4 py-3 bg-surface border-t border-border flex flex-col sm:flex-row sm:items-center justify-between text-xs text-muted-text gap-3">
           <div className="flex items-center gap-3">
             <span>
-              Showing <strong>{filteredKeys.length === 0 ? 0 : (page - 1) * pageSize + 1}</strong>–<strong>{Math.min(page * pageSize, filteredKeys.length)}</strong> of <strong>{filteredKeys.length}</strong> keys
+              {tUi("admin.translation_editor.showing", currentLang, { start: filteredKeys.length === 0 ? 0 : (page - 1) * pageSize + 1, end: Math.min(page * pageSize, filteredKeys.length), total: filteredKeys.length })}
             </span>
             {unsavedCount > 0 && (
               <span className="text-amber-600 dark:text-amber-400 font-semibold flex items-center gap-1">
@@ -927,7 +923,7 @@ export function TranslationsManager({
 
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-1">
-              <span className="text-[11px]">Rows:</span>
+              <span className="text-[11px]">{tUi("admin.translation_editor.rows", currentLang)}:</span>
               <select
                 value={pageSize}
                 onChange={(e) => {
@@ -949,7 +945,7 @@ export function TranslationsManager({
                 disabled={page <= 1}
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 className="p-1 rounded border border-border bg-background hover:bg-surface disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-                title="Previous page"
+                title={tUi("admin.translation_editor.previous", currentLang)}
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
@@ -961,7 +957,7 @@ export function TranslationsManager({
                 disabled={page >= totalPages}
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 className="p-1 rounded border border-border bg-background hover:bg-surface disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-                title="Next page"
+                title={tUi("admin.translation_editor.next", currentLang)}
               >
                 <ChevronRight className="w-4 h-4" />
               </button>

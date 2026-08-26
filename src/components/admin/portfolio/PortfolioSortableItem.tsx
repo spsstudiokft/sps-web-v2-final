@@ -37,9 +37,9 @@ interface Props {
 
 export function PortfolioSortableItem({ item, isSelected, onSelect, onEdit, onDelete, onQuickSave }: Props) {
   const { currentLanguage, defaultLanguage, tUi } = useLanguage();
-  const displayTitle = translateContent(item.title, currentLanguage, defaultLanguage) || "Untitled portfolio";
+  const displayTitle = translateContent(item.title, currentLanguage, defaultLanguage) || tUi("admin.portfolio.card.untitled", currentLanguage);
   const localizedCategory = translateContent(item.category_name, currentLanguage, defaultLanguage) || item.category_name || "";
-  const displayCategory = localizedCategory ? (tUi(localizedCategory, currentLanguage) || localizedCategory) : "Uncategorized";
+  const displayCategory = localizedCategory || tUi("admin.portfolio.card.uncategorized", currentLanguage);
   const displayDescription = translateContent(item.description, currentLanguage, defaultLanguage) || item.description || "";
   const [isQuickEditing, setIsQuickEditing] = useState(false);
   const [quickEditTitle, setQuickEditTitle] = useState(displayTitle);
@@ -120,7 +120,7 @@ export function PortfolioSortableItem({ item, isSelected, onSelect, onEdit, onDe
             {...attributes}
             {...listeners}
             className="w-7 h-7 rounded-lg bg-background/85 backdrop-blur-xs border border-border flex items-center justify-center cursor-grab active:cursor-grabbing hover:bg-background text-muted-text hover:text-text transition-colors shadow-xs"
-            title="Drag to reorder"
+            title={tUi("admin.portfolio.media.drag", currentLanguage)}
           >
             <GripVertical className="w-3.5 h-3.5" />
           </div>
@@ -132,7 +132,7 @@ export function PortfolioSortableItem({ item, isSelected, onSelect, onEdit, onDe
                 ? "bg-primary border-primary text-background" 
                 : "bg-background/85 backdrop-blur-xs border-border text-transparent hover:border-primary/50"
             }`}
-            title="Select item"
+            title={tUi("admin.portfolio.media.select", currentLanguage)}
           >
             <CheckCircle2 className={`w-4 h-4 ${isSelected ? "text-background" : "text-muted-text/40 group-hover:text-muted-text"}`} />
           </button>
@@ -141,29 +141,29 @@ export function PortfolioSortableItem({ item, isSelected, onSelect, onEdit, onDe
         {/* Top Right Badges */}
         <div className="absolute top-2 right-2 z-10 flex gap-1 items-center pointer-events-none flex-wrap justify-end">
           {item.item_type === "drone_photo" ? (
-            <span className="px-2 py-0.5 rounded-md bg-emerald-600/90 backdrop-blur-xs text-white text-[10px] font-bold flex items-center gap-1 shadow-xs" title="Row 4: Drone Photo">
+            <span className="px-2 py-0.5 rounded-md bg-emerald-600/90 backdrop-blur-xs text-white text-[10px] font-bold flex items-center gap-1 shadow-xs" title={tUi("admin.portfolio.card.drone_photo_hint", currentLanguage)}>
               <Plane className="w-3 h-3" />
-              <span>Drone Photo</span>
+              <span>{tUi("admin.portfolio.media.drone_photo", currentLanguage)}</span>
             </span>
           ) : item.item_type === "drone_video" ? (
-            <span className="px-2 py-0.5 rounded-md bg-purple-600/90 backdrop-blur-xs text-white text-[10px] font-bold flex items-center gap-1 shadow-xs" title="Row 2: Drone Video">
+            <span className="px-2 py-0.5 rounded-md bg-purple-600/90 backdrop-blur-xs text-white text-[10px] font-bold flex items-center gap-1 shadow-xs" title={tUi("admin.portfolio.card.drone_video_hint", currentLanguage)}>
               <VideoIcon className="w-3 h-3" />
-              <span>Drone Video</span>
+              <span>{tUi("admin.portfolio.media.drone_video", currentLanguage)}</span>
             </span>
           ) : item.item_type === "interior_video" ? (
-            <span className="px-2 py-0.5 rounded-md bg-amber-600/90 backdrop-blur-xs text-white text-[10px] font-bold flex items-center gap-1 shadow-xs" title="Row 3: Interior Video">
+            <span className="px-2 py-0.5 rounded-md bg-amber-600/90 backdrop-blur-xs text-white text-[10px] font-bold flex items-center gap-1 shadow-xs" title={tUi("admin.portfolio.card.interior_video_hint", currentLanguage)}>
               <VideoIcon className="w-3 h-3" />
-              <span>Interior Video</span>
+              <span>{tUi("admin.portfolio.media.interior_video", currentLanguage)}</span>
             </span>
           ) : (
-            <span className="px-2 py-0.5 rounded-md bg-sky-600/90 backdrop-blur-xs text-white text-[10px] font-bold flex items-center gap-1 shadow-xs" title="Row 1: Image">
+            <span className="px-2 py-0.5 rounded-md bg-sky-600/90 backdrop-blur-xs text-white text-[10px] font-bold flex items-center gap-1 shadow-xs" title={tUi("admin.portfolio.card.image_hint", currentLanguage)}>
               <Camera className="w-3 h-3" />
-              <span>Image</span>
+              <span>{tUi("admin.portfolio.card.image_visual", currentLanguage)}</span>
             </span>
           )}
 
           {item.is_featured === 1 && (
-            <span className="px-1.5 py-0.5 rounded-md bg-amber-500 text-white text-[10px] font-bold flex items-center shadow-xs" title="Featured item">
+            <span className="px-1.5 py-0.5 rounded-md bg-amber-500 text-white text-[10px] font-bold flex items-center shadow-xs" title={tUi("admin.portfolio.card.featured", currentLanguage)}>
               <Star className="w-3 h-3 fill-current" />
             </span>
           )}
@@ -190,7 +190,7 @@ export function PortfolioSortableItem({ item, isSelected, onSelect, onEdit, onDe
         ) : (
           <div className="w-full h-44 bg-surface flex flex-col items-center justify-center text-muted-text cursor-pointer p-4 text-center" onClick={() => !isQuickEditing && onSelect(item.id)}>
             <Camera className="w-8 h-8 mb-1 opacity-40" />
-            <span className="text-xs">No media preview</span>
+            <span className="text-xs">{tUi("admin.portfolio.media.no_preview", currentLanguage)}</span>
           </div>
         )}
         
@@ -211,7 +211,7 @@ export function PortfolioSortableItem({ item, isSelected, onSelect, onEdit, onDe
               <h3 
                 className="font-semibold text-sm text-text line-clamp-1 cursor-text hover:text-primary transition-colors mb-1"
                 onClick={() => { setIsQuickEditing(true); setQuickEditTitle(displayTitle); }}
-                title="Click to quick-edit title"
+                title={tUi("admin.portfolio.card.quick_edit_title", currentLanguage)}
               >
                 {displayTitle}
               </h3>
@@ -242,17 +242,17 @@ export function PortfolioSortableItem({ item, isSelected, onSelect, onEdit, onDe
                   ? "text-emerald-700 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300" 
                   : "text-amber-700 bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-300"
               }`}
-              title="Click to toggle publish status"
+              title={tUi("admin.portfolio.card.toggle_publish", currentLanguage)}
             >
               {item.is_published ? (
                 <>
                   <Eye className="w-3 h-3" />
-                  <span>Published</span>
+                  <span>{tUi("common.published", currentLanguage)}</span>
                 </>
               ) : (
                 <>
                   <EyeOff className="w-3 h-3" />
-                  <span>Draft</span>
+                  <span>{tUi("admin.portfolio.gallery.draft", currentLanguage)}</span>
                 </>
               )}
             </button>
@@ -260,10 +260,10 @@ export function PortfolioSortableItem({ item, isSelected, onSelect, onEdit, onDe
             <div className="flex space-x-1.5">
               {isQuickEditing ? (
                 <>
-                  <Button variant="secondary" onClick={handleSave} className="px-2 py-1 h-7 text-xs text-emerald-600">
+                  <Button variant="secondary" onClick={handleSave} className="px-2 py-1 h-7 text-xs text-emerald-600" title={tUi("admin.portfolio.card.save_quick_edit", currentLanguage)} aria-label={tUi("admin.portfolio.card.save_quick_edit", currentLanguage)}>
                     <Save className="w-3.5 h-3.5" />
                   </Button>
-                  <Button variant="secondary" onClick={() => setIsQuickEditing(false)} className="px-2 py-1 h-7 text-xs text-red-600">
+                  <Button variant="secondary" onClick={() => setIsQuickEditing(false)} className="px-2 py-1 h-7 text-xs text-red-600" title={tUi("admin.portfolio.card.cancel_quick_edit", currentLanguage)} aria-label={tUi("admin.portfolio.card.cancel_quick_edit", currentLanguage)}>
                     <X className="w-3.5 h-3.5" />
                   </Button>
                 </>
@@ -271,9 +271,9 @@ export function PortfolioSortableItem({ item, isSelected, onSelect, onEdit, onDe
                 <>
                   <Button variant="secondary" onClick={() => onEdit(item)} className="px-2.5 py-1 h-7 text-xs flex items-center gap-1">
                     <Edit2 className="w-3 h-3" />
-                    <span>Edit</span>
+                    <span>{tUi("common.edit", currentLanguage)}</span>
                   </Button>
-                  <Button variant="danger" onClick={() => onDelete(item.id)} className="px-2 py-1 h-7 text-xs" title="Delete item">
+                  <Button variant="danger" onClick={() => onDelete(item.id)} className="px-2 py-1 h-7 text-xs" title={tUi("admin.portfolio.card.delete", currentLanguage)} aria-label={tUi("admin.portfolio.card.delete", currentLanguage)}>
                     <Trash2 className="w-3.5 h-3.5" />
                   </Button>
                 </>

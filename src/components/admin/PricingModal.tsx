@@ -374,7 +374,7 @@ export function PricingModal({
         setBundleItems(updated);
         setFormData((prev) => ({ ...prev, bundle_services: JSON.stringify(updated) }));
       } else {
-        const tierTitle = getDisplayString(foundTier.title) || "Pricing Tier";
+        const tierTitle = getDisplayString(foundTier.title) || tUi("admin.pricing.item_tier");
         const newItem: BundleServiceItem = {
           tier_id: foundTier.id,
           item_type: "tier",
@@ -402,7 +402,7 @@ export function PricingModal({
         setBundleItems(updated);
         setFormData((prev) => ({ ...prev, bundle_services: JSON.stringify(updated) }));
       } else {
-        const serviceTitle = getDisplayString(foundService.title) || "Service";
+        const serviceTitle = getDisplayString(foundService.title) || tUi("admin.pricing.item_service");
         const newItem: BundleServiceItem = {
           service_id: foundService.id,
           item_type: "service",
@@ -430,7 +430,7 @@ export function PricingModal({
         setBundleItems(updated);
         setFormData((prev) => ({ ...prev, bundle_services: JSON.stringify(updated) }));
       } else {
-        const extraTitle = getDisplayString(foundExtra.title) || "Add-on Service";
+        const extraTitle = getDisplayString(foundExtra.title) || tUi("admin.pricing.item_addon");
         const newItem: BundleServiceItem = {
           service_id: foundExtra.id,
           item_type: "extra",
@@ -487,7 +487,7 @@ export function PricingModal({
 
   const handleAutoSyncIncludedFromBundle = () => {
     const autoList = bundleItems.map((item) => {
-      const name = item.service_title || item.service_name || "Component";
+      const name = item.service_title || item.service_name || tUi("admin.pricing.item_service");
       const qtyStr = (item.quantity || 1) > 1 ? `${item.quantity}x ` : "";
       return `${qtyStr}${name}`;
     });
@@ -536,24 +536,24 @@ export function PricingModal({
     setErrorMessage("");
 
     if (!formData.title || (typeof formData.title === "string" && formData.title.trim() === "")) {
-      setErrorMessage(tUi("admin.pricing.err_title_required") || "Plan / Bundle title is required.");
+      setErrorMessage(tUi("admin.pricing.err_title_required"));
       return;
     }
 
     if (formData.price === undefined || formData.price === null || isNaN(Number(formData.price)) || Number(formData.price) < 0) {
-      setErrorMessage(tUi("admin.pricing.err_invalid_price") || "Price must be a valid positive number (or 0 for custom/free).");
+      setErrorMessage(tUi("admin.pricing.err_invalid_price"));
       return;
     }
 
     if (formData.original_price !== null && formData.original_price !== undefined && formData.original_price !== ("" as any) && (isNaN(Number(formData.original_price)) || Number(formData.original_price) < 0)) {
-      setErrorMessage(tUi("admin.pricing.err_invalid_original_price") || "Original price must be a valid positive number.");
+      setErrorMessage(tUi("admin.pricing.err_invalid_original_price"));
       return;
     }
 
     const templateEn = formData.message_template_en?.trim() || "";
     const templateHu = formData.message_template_hu?.trim() || "";
     if (!templateEn && !templateHu) {
-      setErrorMessage(tUi("admin.pricing.err_template_required") || "At least one message template (English or Hungarian) must be provided.");
+      setErrorMessage(tUi("admin.pricing.err_template_required"));
       return;
     }
 
@@ -563,7 +563,7 @@ export function PricingModal({
       if (!item.tier_id) return item;
       const currentTier = availableTiers.find((tier) => tier.id === item.tier_id);
       if (!currentTier) return item;
-      const currentTitle = getDisplayString(currentTier.title) || item.service_title || item.service_name || "Pricing Tier";
+      const currentTitle = getDisplayString(currentTier.title) || item.service_title || item.service_name || tUi("admin.pricing.item_tier");
       return {
         ...item,
         item_type: "tier" as const,
@@ -594,13 +594,13 @@ export function PricingModal({
       onClose();
     } catch (error: any) {
       console.error("Save pricing error:", error);
-      setErrorMessage(error.message || tUi("admin.pricing.err_save_failed") || "Failed to save pricing package.");
+      setErrorMessage(error.message || tUi("admin.pricing.err_save_failed"));
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const previewPlanTitle = getDisplayString(formData.title) || "Standard Property Package";
+  const previewPlanTitle = getDisplayString(formData.title) || tUi("admin.pricing.untitled");
   const previewFormattedPrice = formatCurrencyPrice(Number(formData.price) || 0, formData.currency || "USD");
   const previewBillingPeriod = formData.billing_period || "project";
 
@@ -662,7 +662,7 @@ export function PricingModal({
                   activeTab === "edit" ? "bg-primary text-background font-semibold" : "text-muted-text hover:text-text"
                 }`}
               >
-                {tUi("admin.pricing.tab_form") || "Form Configuration"}
+                {tUi("admin.pricing.tab_form")}
               </button>
               <button
                 type="button"
@@ -672,7 +672,7 @@ export function PricingModal({
                 }`}
               >
                 <Eye className="w-3.5 h-3.5" />
-                <span>{tUi("admin.pricing.tab_preview") || "Card & Message Preview"}</span>
+                <span>{tUi("admin.pricing.tab_preview")}</span>
               </button>
             </div>
 
@@ -701,7 +701,7 @@ export function PricingModal({
               <div>
                 <div className="text-xs font-bold uppercase tracking-wider text-muted-text mb-3 flex items-center gap-1.5">
                   <Sparkles className="w-4 h-4 text-primary" />
-                  <span>{tUi("admin.pricing.live_card_preview") || "Public Card Appearance"}</span>
+                  <span>{tUi("admin.pricing.live_card_preview")}</span>
                 </div>
 
                 <div
@@ -721,12 +721,11 @@ export function PricingModal({
                     <div className="mb-4 pt-2">
                       <div className="flex items-center justify-between gap-2">
                         <h3 className="text-2xl font-bold text-text">
-                          {getDisplayString(formData.title) || "Untitled Listing"}
+                          {getDisplayString(formData.title) || tUi("admin.pricing.untitled")}
                         </h3>
                         {formData.type === "bundle" && (
                           <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-accent/10 text-accent uppercase tracking-wider">
-                            Bundle
-                          </span>
+                            {tUi("admin.pricing.tag_bundle")}</span>
                         )}
                       </div>
                       {formData.subtitle && (
@@ -767,7 +766,7 @@ export function PricingModal({
                       <div className="mb-4 p-3 rounded-xl bg-surface/70 border border-border/60">
                         <div className="text-xs font-semibold uppercase tracking-wider text-muted-text mb-2 flex items-center gap-1.5">
                           <Layers className="w-3.5 h-3.5 text-primary" />
-                          <span>{tUi("admin.pricing.field_included_services") || "Included in Bundle:"}</span>
+                          <span>{tUi("admin.pricing.field_included_services")}</span>
                         </div>
                         <div className="flex flex-wrap gap-1.5">
                           {includedList.map((item, idx) => (
@@ -812,19 +811,17 @@ export function PricingModal({
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-xs font-bold text-text uppercase tracking-wider">
                     <MessageSquare className="w-4 h-4 text-primary" />
-                    <span>{tUi("admin.pricing.live_template_preview") || "Message Pre-fill Live Preview"}</span>
+                    <span>{tUi("admin.pricing.live_template_preview")}</span>
                   </div>
                   <span className="text-[11px] px-2 py-0.5 rounded-md bg-primary/10 text-primary font-medium">
-                    Auto-interpolated
-                  </span>
+                    {tUi("admin.pricing.modal.auto_interpolated")}</span>
                 </div>
 
                 <div className="space-y-2 text-xs">
                   <div>
                     <span className="font-semibold text-muted-text flex items-center gap-1 mb-1">
                       <span className="w-2 h-2 rounded-full bg-blue-500 inline-block"></span>
-                      English (en):
-                    </span>
+                      {tUi("admin.pricing.modal.english_en")}</span>
                     <div className="p-2.5 rounded-lg bg-background border border-border/80 text-text font-mono text-[11px] whitespace-pre-wrap">
                       {interpolatedEnPreview}
                     </div>
@@ -833,8 +830,7 @@ export function PricingModal({
                   <div>
                     <span className="font-semibold text-muted-text flex items-center gap-1 mb-1">
                       <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
-                      Hungarian (hu):
-                    </span>
+                      {tUi("admin.pricing.modal.hungarian_hu")}</span>
                     <div className="p-2.5 rounded-lg bg-background border border-border/80 text-text font-mono text-[11px] whitespace-pre-wrap">
                       {interpolatedHuPreview}
                     </div>
@@ -857,7 +853,7 @@ export function PricingModal({
                   }`}
                 >
                   <Tag className="w-4 h-4" />
-                  <span>{tUi("admin.pricing.type_standard") || "Standard Pricing Tier"}</span>
+                  <span>{tUi("admin.pricing.type_standard")}</span>
                 </button>
                 <button
                   type="button"
@@ -869,28 +865,28 @@ export function PricingModal({
                   }`}
                 >
                   <Layers className="w-4 h-4" />
-                  <span>{tUi("admin.pricing.type_bundle") || "Service Package / Bundle"}</span>
+                  <span>{tUi("admin.pricing.type_bundle")}</span>
                 </button>
               </div>
 
               {/* Title, Subtitle & Description */}
               <div className="space-y-4">
                 <TranslatableInput
-                  label={tUi("admin.pricing.field_title") || "Listing Title *"}
+                  label={tUi("admin.pricing.field_title")}
                   value={formData.title}
                   onChange={(val) => setFormData((prev) => ({ ...prev, title: val }))}
                   siteLanguages={siteLanguages}
                 />
 
                 <TranslatableInput
-                  label={tUi("admin.pricing.field_subtitle") || "Subtitle / Short Summary"}
+                  label={tUi("admin.pricing.field_subtitle")}
                   value={formData.subtitle || ""}
                   onChange={(val) => setFormData((prev) => ({ ...prev, subtitle: val }))}
                   siteLanguages={siteLanguages}
                 />
 
                 <TranslatableInput
-                  label={tUi("admin.pricing.field_description") || "Detailed Description (Optional)"}
+                  label={tUi("admin.pricing.field_description")}
                   value={formData.description || ""}
                   onChange={(val) => setFormData((prev) => ({ ...prev, description: val }))}
                   siteLanguages={siteLanguages}
@@ -910,11 +906,9 @@ export function PricingModal({
                       </div>
                       <div>
                         <h4 className="text-sm font-bold text-text">
-                          Bundle Components & Tiers Builder
-                        </h4>
+                          {tUi("admin.pricing.modal.bundle_components_tiers_builder")}</h4>
                         <p className="text-xs text-muted-text">
-                          Select created pricing tiers, studio services, or add-ons to build this package.
-                        </p>
+                          {tUi("admin.pricing.modal.select_created_pricing_tiers_studio_services_or_add_on")}</p>
                       </div>
                     </div>
 
@@ -926,15 +920,14 @@ export function PricingModal({
                         onClick={fetchCatalogData}
                         disabled={isLoadingCatalog}
                         className="text-xs gap-1.5 h-8 px-2.5"
-                        title="Reload latest pricing tiers and services"
+                        title={tUi("admin.pricing.modal.reload_latest_pricing_tiers_and_services")}
                       >
                         <RefreshCw className={`w-3.5 h-3.5 ${isLoadingCatalog ? "animate-spin text-primary" : ""}`} />
-                        <span>Refresh Tiers</span>
+                        <span>{tUi("admin.pricing.modal.refresh_tiers")}</span>
                       </Button>
 
                       <span className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-primary/10 text-primary">
-                        {bundleItems.length} Components
-                      </span>
+                        {bundleItems.length} {tUi("admin.pricing.modal.components")}</span>
                     </div>
                   </div>
 
@@ -949,8 +942,7 @@ export function PricingModal({
                         onClick={fetchCatalogData}
                         className="underline font-semibold ml-2"
                       >
-                        Retry
-                      </button>
+                        {tUi("client.common.retry")}</button>
                     </div>
                   )}
 
@@ -969,7 +961,7 @@ export function PricingModal({
                       }`}
                     >
                       <Tag className="w-3.5 h-3.5" />
-                      <span>Pricing Tiers ({availableTiers.length})</span>
+                      <span>{tUi("admin.pricing.modal.pricing_tiers")}{availableTiers.length})</span>
                     </button>
 
                     <button
@@ -985,7 +977,7 @@ export function PricingModal({
                       }`}
                     >
                       <Layers className="w-3.5 h-3.5" />
-                      <span>Studio Services ({availableServices.length})</span>
+                      <span>{tUi("admin.pricing.modal.studio_services")}{availableServices.length})</span>
                     </button>
 
                     <button
@@ -1001,7 +993,7 @@ export function PricingModal({
                       }`}
                     >
                       <Sparkles className="w-3.5 h-3.5" />
-                      <span>Add-ons / Extras ({availableExtras.length})</span>
+                      <span>{tUi("admin.pricing.modal.add_ons_extras")}{availableExtras.length})</span>
                     </button>
 
                     <button
@@ -1017,7 +1009,7 @@ export function PricingModal({
                       }`}
                     >
                       <Plus className="w-3.5 h-3.5" />
-                      <span>Custom Component</span>
+                      <span>{tUi("admin.pricing.custom_component")}</span>
                     </button>
                   </div>
 
@@ -1052,7 +1044,7 @@ export function PricingModal({
                             onChange={(e) => setShowDisabledTiers(e.target.checked)}
                             className="w-3.5 h-3.5 rounded border-border text-primary focus:ring-primary"
                           />
-                          <span>Show Inactive/Disabled</span>
+                          <span>{tUi("admin.pricing.modal.show_inactive_disabled")}</span>
                         </label>
                       )}
                     </div>
@@ -1063,7 +1055,7 @@ export function PricingModal({
                     <div className="flex flex-col sm:flex-row gap-2 bg-background p-3 rounded-xl border border-border">
                       <Input
                         type="text"
-                        placeholder="Component name (e.g. 10 Aerial 4K Video Clips)"
+                        placeholder={tUi("admin.pricing.modal.component_name_e_g_10_aerial_4k_video_clips")}
                         value={customItemTitle}
                         onChange={(e) => setCustomItemTitle(e.target.value)}
                         className="flex-1 text-xs h-9"
@@ -1072,7 +1064,7 @@ export function PricingModal({
                         type="number"
                         min="0"
                         step="any"
-                        placeholder="Standard Price"
+                        placeholder={tUi("admin.pricing.modal.standard_price")}
                         value={customItemPrice}
                         onChange={(e) => setCustomItemPrice(e.target.value)}
                         className="w-32 text-xs h-9"
@@ -1084,7 +1076,7 @@ export function PricingModal({
                         className="gap-1.5 flex-shrink-0 text-xs h-9"
                       >
                         <Plus className="w-4 h-4" />
-                        <span>Add Custom Component</span>
+                        <span>{tUi("admin.pricing.modal.add_custom_component")}</span>
                       </Button>
                     </div>
                   ) : (
@@ -1098,12 +1090,12 @@ export function PricingModal({
                           <option value="">
                             {isLoadingCatalog
                               ? "Loading catalog..."
-                              : `-- Select a ${componentSourceType === "tier" ? "Pricing Tier" : componentSourceType === "service" ? "Studio Service" : "Add-on"} to add --`}
+                              : `-- ${tUi("admin.pricing.modal.add_to_bundle")}: ${componentSourceType === "tier" ? tUi("admin.pricing.item_tier") : componentSourceType === "service" ? tUi("admin.pricing.item_service") : tUi("admin.pricing.item_addon")} --`}
                           </option>
 
                           {componentSourceType === "tier" &&
                             selectableTiers.map((tier) => {
-                              const tTitle = getDisplayString(tier.title) || "Tier";
+                              const tTitle = getDisplayString(tier.title) || tUi("admin.pricing.item_tier");
                               const isDisabled = !Boolean(tier.is_enabled);
                               return (
                                 <option key={tier.id} value={tier.id}>
@@ -1114,7 +1106,7 @@ export function PricingModal({
 
                           {componentSourceType === "service" &&
                             selectableServices.map((service) => {
-                              const sTitle = getDisplayString(service.title) || "Service";
+                              const sTitle = getDisplayString(service.title) || tUi("admin.pricing.item_service");
                               return (
                                 <option key={service.id} value={service.id}>
                                   {sTitle} ({formatCurrencyPrice(Number(service.price || 0), formData.currency || "USD")})
@@ -1124,7 +1116,7 @@ export function PricingModal({
 
                           {componentSourceType === "extra" &&
                             selectableExtras.map((extra) => {
-                              const eTitle = getDisplayString(extra.title) || "Add-on";
+                              const eTitle = getDisplayString(extra.title) || tUi("admin.pricing.item_addon");
                               const isDisabled = !Boolean(extra.is_enabled);
                               return (
                                 <option key={extra.id} value={extra.id}>
@@ -1142,7 +1134,7 @@ export function PricingModal({
                         className="gap-1.5 flex-shrink-0 text-xs h-10"
                       >
                         <Plus className="w-4 h-4" />
-                        <span>Add to Bundle</span>
+                        <span>{tUi("admin.pricing.modal.add_to_bundle")}</span>
                       </Button>
                     </div>
                   )}
@@ -1151,8 +1143,7 @@ export function PricingModal({
                   {componentSourceType === "tier" && selectableTiers.length === 0 && !isLoadingCatalog && (
                     <div className="text-center py-3 bg-background/50 border border-dashed border-border rounded-xl">
                       <p className="text-xs text-muted-text">
-                        No pricing tiers match your search or filter. Create standard tiers first or check "Show Inactive".
-                      </p>
+                        {tUi("admin.pricing.modal.no_pricing_tiers_match_your_search_or_filter_create_st")}</p>
                     </div>
                   )}
 
@@ -1160,8 +1151,8 @@ export function PricingModal({
                   {bundleItems.length > 0 ? (
                     <div className="space-y-3 pt-2">
                       <div className="text-xs font-bold uppercase tracking-wider text-muted-text flex items-center justify-between">
-                        <span>Bundle Components & Included Tiers ({bundleItems.length})</span>
-                        <span className="text-[11px] font-normal">Custom unit overrides & quantities</span>
+                        <span>{tUi("admin.pricing.modal.bundle_components_included_tiers")}{bundleItems.length})</span>
+                        <span className="text-[11px] font-normal">{tUi("admin.pricing.modal.custom_unit_overrides_quantities")}</span>
                       </div>
 
                       {bundleItems.map((item, idx) => {
@@ -1183,8 +1174,8 @@ export function PricingModal({
                           ? [...new Set([...parseJsonArray(matchedTier.features), ...parseJsonArray(matchedTier.included_items)])]
                           : (item.features || []);
                         const displayItemTitle = matchedTier
-                          ? (getDisplayString(matchedTier.title) || item.service_title || item.service_name || "Pricing Tier")
-                          : (item.service_title || item.service_name || "Component");
+                          ? (getDisplayString(matchedTier.title) || item.service_title || item.service_name || tUi("admin.pricing.item_tier"))
+                          : (item.service_title || item.service_name || tUi("admin.pricing.item_service"));
 
                         return (
                           <div
@@ -1209,7 +1200,7 @@ export function PricingModal({
                                       ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
                                       : "bg-blue-500/10 text-blue-600 dark:text-blue-400"
                                   }`}>
-                                    {isTier ? "Pricing Tier" : item.item_type === "extra" ? "Add-on" : item.item_type || "Service"}
+                                    {isTier ? tUi("admin.pricing.item_tier") : item.item_type === "extra" ? tUi("admin.pricing.item_addon") : tUi("admin.pricing.item_service")}
                                   </span>
 
                                   <span className="text-sm font-bold text-text truncate">
@@ -1220,25 +1211,22 @@ export function PricingModal({
                                   {isMissing ? (
                                     <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded bg-rose-500/15 text-rose-600 dark:text-rose-400 font-bold">
                                       <AlertCircle className="w-3 h-3" />
-                                      Archived / Not in Catalog
-                                    </span>
+                                      {tUi("admin.pricing.modal.archived_not_in_catalog")}</span>
                                   ) : isInactive ? (
                                     <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded bg-amber-500/15 text-amber-600 dark:text-amber-400 font-semibold">
                                       <AlertTriangle className="w-3 h-3" />
-                                      Inactive in Catalog
-                                    </span>
+                                      {tUi("admin.pricing.modal.inactive_in_catalog")}</span>
                                   ) : (
                                     <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-semibold">
                                       <CheckCircle2 className="w-3 h-3" />
-                                      Active
-                                    </span>
+                                      {tUi("admin.clients.status_active")}</span>
                                   )}
                                 </div>
 
                                 <div className="text-xs text-muted-text mt-1 flex items-center gap-2">
-                                  <span>Catalog Standard: {formatCurrencyPrice(item.original_price || 0, formData.currency || "USD")}</span>
+                                  <span>{tUi("admin.pricing.modal.catalog_standard")}{formatCurrencyPrice(item.original_price || 0, formData.currency || "USD")}</span>
                                   {item.override_price !== null && item.override_price !== undefined && (
-                                    <span className="text-primary font-medium">(Overridden to {formatCurrencyPrice(Number(item.override_price), formData.currency || "USD")})</span>
+                                    <span className="text-primary font-medium">{tUi("admin.pricing.modal.overridden_to")}{formatCurrencyPrice(Number(item.override_price), formData.currency || "USD")})</span>
                                   )}
                                 </div>
                               </div>
@@ -1247,7 +1235,7 @@ export function PricingModal({
                               <div className="flex items-center gap-3 flex-wrap sm:flex-nowrap">
                                 {/* Quantity Stepper */}
                                 <div className="flex items-center gap-1.5">
-                                  <span className="text-xs text-muted-text">Qty:</span>
+                                  <span className="text-xs text-muted-text">{tUi("admin.pricing.modal.qty")}</span>
                                   <div className="flex items-center border border-border rounded-lg overflow-hidden bg-surface">
                                     <button
                                       type="button"
@@ -1271,7 +1259,7 @@ export function PricingModal({
 
                                 {/* Custom Price Override */}
                                 <div className="flex items-center gap-1.5">
-                                  <span className="text-xs text-muted-text">Unit:</span>
+                                  <span className="text-xs text-muted-text">{tUi("admin.pricing.modal.unit")}</span>
                                   <Input
                                     type="number"
                                     min="0"
@@ -1296,7 +1284,7 @@ export function PricingModal({
                                     type="button"
                                     onClick={() => handleRemoveBundleItem(idx)}
                                     className="p-1.5 text-muted-text hover:text-rose-500 hover:bg-surface rounded-lg transition-colors"
-                                    title="Remove component from bundle"
+                                    title={tUi("admin.pricing.modal.remove_component_from_bundle")}
                                   >
                                     <Trash2 className="w-4 h-4" />
                                   </button>
@@ -1307,7 +1295,7 @@ export function PricingModal({
                             {/* Features / Deliverables of this included Tier */}
                             {itemFeatures.length > 0 && (
                               <div className="pt-2 border-t border-border/50 flex flex-wrap gap-1.5 items-center">
-                                <span className="text-[10px] uppercase font-bold text-muted-text mr-1">Deliverables:</span>
+                                <span className="text-[10px] uppercase font-bold text-muted-text mr-1">{tUi("admin.pricing.modal.deliverables")}</span>
                                 {itemFeatures.map((feat, fIdx) => (
                                   <span
                                     key={fIdx}
@@ -1328,14 +1316,14 @@ export function PricingModal({
                           <div className="space-y-1">
                             <span className="text-xs font-bold text-text flex items-center gap-1.5">
                               <Calculator className="w-3.5 h-3.5 text-primary" />
-                              <span>Bundle Value vs. Package Price:</span>
+                              <span>{tUi("admin.pricing.modal.bundle_value_vs_package_price")}</span>
                             </span>
                             <div className="flex items-baseline gap-3 text-xs">
                               <span className="text-muted-text">
-                                Standard Sum: <span className="line-through">{formatCurrencyPrice(rawStandardComponentPrice, formData.currency || "USD")}</span>
+                                {tUi("admin.pricing.modal.standard_sum")}<span className="line-through">{formatCurrencyPrice(rawStandardComponentPrice, formData.currency || "USD")}</span>
                               </span>
                               <span className="font-bold text-emerald-600 dark:text-emerald-400">
-                                Bundle Price: {formatCurrencyPrice(bundlePackagePrice, formData.currency || "USD")}
+                                {tUi("admin.pricing.modal.bundle_price")}{formatCurrencyPrice(bundlePackagePrice, formData.currency || "USD")}
                               </span>
                             </div>
                           </div>
@@ -1347,8 +1335,7 @@ export function PricingModal({
                                 onClick={handleApplyCalculatedDiscount}
                                 className="px-2.5 py-1 text-xs rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-semibold hover:bg-emerald-500/20 transition-colors"
                               >
-                                Set Discount Tag ({calculatedSavingsPercent}% OFF)
-                              </button>
+                                {tUi("admin.pricing.modal.set_discount_tag")}{calculatedSavingsPercent}{tUi("admin.pricing.modal.off")}</button>
                             )}
 
                             <button
@@ -1357,7 +1344,7 @@ export function PricingModal({
                               className="px-2.5 py-1 text-xs rounded-lg bg-surface border border-border text-text hover:bg-surface-hover transition-colors flex items-center gap-1"
                             >
                               <RefreshCw className="w-3 h-3 text-primary" />
-                              <span>Auto-Sync Included List</span>
+                              <span>{tUi("admin.pricing.modal.auto_sync_included_list")}</span>
                             </button>
                           </div>
                         </div>
@@ -1366,8 +1353,7 @@ export function PricingModal({
                   ) : (
                     <div className="text-center py-6 bg-surface/50 border border-dashed border-border rounded-xl">
                       <p className="text-xs text-muted-text">
-                        No components added yet. Select a pricing tier, service, or add-on above to construct this bundle.
-                      </p>
+                        {tUi("admin.pricing.modal.no_components_added_yet_select_a_pricing_tier_service_")}</p>
                     </div>
                   )}
                 </div>
@@ -1378,7 +1364,7 @@ export function PricingModal({
               {/* ======================================================== */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div>
-                  <Label>{tUi("admin.pricing.field_price") || "Package Price *"}</Label>
+                  <Label>{tUi("admin.pricing.field_price")}</Label>
                   <Input
                     type="number"
                     step="any"
@@ -1386,12 +1372,12 @@ export function PricingModal({
                     required
                     value={formData.price !== undefined ? formData.price : ""}
                     onChange={(e) => setFormData((prev) => ({ ...prev, price: parseFloat(e.target.value) || 0 }))}
-                    placeholder="e.g. 299"
+                    placeholder={tUi("admin.pricing.modal.e_g_299")}
                   />
                 </div>
 
                 <div>
-                  <Label>{tUi("admin.pricing.field_currency") || "Currency"}</Label>
+                  <Label>{tUi("admin.pricing.field_currency")}</Label>
                   <select
                     value={formData.currency || "USD"}
                     onChange={(e) => setFormData((prev) => ({ ...prev, currency: e.target.value }))}
@@ -1408,28 +1394,28 @@ export function PricingModal({
                 </div>
 
                 <div>
-                  <Label>Billing Type / Model</Label>
+                  <Label>{tUi("admin.pricing.modal.billing_type_model")}</Label>
                   <select
                     value={formData.billing_type || "one_time"}
                     onChange={(e) => setFormData((prev) => ({ ...prev, billing_type: e.target.value as any }))}
                     className="w-full h-10 px-3 rounded-lg border border-border bg-background text-text text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                   >
-                    <option value="one_time">One-Time (Per Project)</option>
-                    <option value="monthly">Monthly Subscription</option>
-                    <option value="yearly">Yearly Retainer</option>
-                    <option value="per_sqft">Per Square Foot (Area)</option>
-                    <option value="per_photo">Per Photo / Asset</option>
-                    <option value="custom">Custom / Quote</option>
+                    <option value="one_time">{tUi("admin.pricing.modal.one_time_per_project")}</option>
+                    <option value="monthly">{tUi("admin.pricing.modal.monthly_subscription")}</option>
+                    <option value="yearly">{tUi("admin.pricing.modal.yearly_retainer")}</option>
+                    <option value="per_sqft">{tUi("admin.pricing.modal.per_square_foot_area")}</option>
+                    <option value="per_photo">{tUi("admin.pricing.modal.per_photo_asset")}</option>
+                    <option value="custom">{tUi("admin.pricing.modal.custom_quote")}</option>
                   </select>
                 </div>
 
                 <div>
-                  <Label>{tUi("admin.pricing.field_billing_period") || "Billing Scope / Unit"}</Label>
+                  <Label>{tUi("admin.pricing.field_billing_period")}</Label>
                   <Input
                     type="text"
                     value={formData.billing_period || ""}
                     onChange={(e) => setFormData((prev) => ({ ...prev, billing_period: e.target.value }))}
-                    placeholder={tUi("admin.pricing.field_billing_period_ph") || "e.g. project, property, month"}
+                    placeholder={tUi("admin.pricing.field_billing_period_ph")}
                   />
                 </div>
               </div>
@@ -1438,8 +1424,8 @@ export function PricingModal({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-xl bg-surface/50 border border-border">
                 <div>
                   <Label className="flex items-center gap-1.5">
-                    <span>{tUi("admin.pricing.field_original_price") || "Original Price (Before Discount)"}</span>
-                    <span className="text-xs text-muted-text font-normal">{tUi("admin.pricing.optional") || "(Optional)"}</span>
+                    <span>{tUi("admin.pricing.field_original_price")}</span>
+                    <span className="text-xs text-muted-text font-normal">{tUi("admin.pricing.optional")}</span>
                   </Label>
                   <Input
                     type="number"
@@ -1452,20 +1438,20 @@ export function PricingModal({
                         original_price: e.target.value !== "" ? parseFloat(e.target.value) : null,
                       }))
                     }
-                    placeholder={tUi("admin.pricing.field_original_price_ph") || "e.g. 399 (shown strike-through)"}
+                    placeholder={tUi("admin.pricing.field_original_price_ph")}
                   />
                 </div>
 
                 <div>
                   <Label className="flex items-center gap-1.5">
-                    <span>{tUi("admin.pricing.field_discount_label") || "Discount / Savings Badge"}</span>
-                    <span className="text-xs text-muted-text font-normal">{tUi("admin.pricing.optional") || "(Optional)"}</span>
+                    <span>{tUi("admin.pricing.field_discount_label")}</span>
+                    <span className="text-xs text-muted-text font-normal">{tUi("admin.pricing.optional")}</span>
                   </Label>
                   <Input
                     type="text"
                     value={formData.discount_label || ""}
                     onChange={(e) => setFormData((prev) => ({ ...prev, discount_label: e.target.value }))}
-                    placeholder={tUi("admin.pricing.field_discount_label_ph") || "e.g. Save $100 (25% OFF)"}
+                    placeholder={tUi("admin.pricing.field_discount_label_ph")}
                   />
                 </div>
               </div>
@@ -1476,16 +1462,16 @@ export function PricingModal({
                   <div className="flex items-center justify-between">
                     <Label className="text-accent font-semibold flex items-center gap-2">
                       <Layers className="w-4 h-4" />
-                      <span>{tUi("admin.pricing.field_included_services") || "Included Services / Bundle Deliverables"}</span>
+                      <span>{tUi("admin.pricing.field_included_services")}</span>
                     </Label>
-                    <span className="text-xs text-muted-text">{includedList.length} items</span>
+                    <span className="text-xs text-muted-text">{includedList.length} {tUi("common.items")}</span>
                   </div>
 
                   <div className="flex gap-2">
                     <Input
                       value={newIncludedText}
                       onChange={(e) => setNewIncludedText(e.target.value)}
-                      placeholder={tUi("admin.pricing.field_included_services_ph") || "e.g. 35 HDR Photos, Drone 4K Video, Floor Plan..."}
+                      placeholder={tUi("admin.pricing.field_included_services_ph")}
                       onKeyDown={(e) => {
                         if (e.key === "Enter") {
                           e.preventDefault();
@@ -1495,7 +1481,7 @@ export function PricingModal({
                     />
                     <Button type="button" onClick={handleAddIncluded} variant="secondary" className="gap-1.5 flex-shrink-0">
                       <Plus className="w-4 h-4" />
-                      <span>{tUi("admin.pricing.btn_add") || "Add"}</span>
+                      <span>{tUi("admin.pricing.btn_add")}</span>
                     </Button>
                   </div>
 
@@ -1527,16 +1513,16 @@ export function PricingModal({
                 <div className="flex items-center justify-between">
                   <Label className="font-semibold flex items-center gap-2">
                     <Check className="w-4 h-4 text-emerald-500" />
-                    <span>{tUi("admin.pricing.field_features") || "Features List (Bullet Points) *"}</span>
+                    <span>{tUi("admin.pricing.field_features")}</span>
                   </Label>
-                  <span className="text-xs text-muted-text">{featuresList.length} features</span>
+                  <span className="text-xs text-muted-text">{featuresList.length} {tUi("admin.pricing.modal.features")}</span>
                 </div>
 
                 <div className="flex gap-2">
                   <Input
                     value={newFeatureText}
                     onChange={(e) => setNewFeatureText(e.target.value)}
-                    placeholder={tUi("admin.pricing.field_features_ph") || "e.g. Up to 35 HDR Photos, 24-Hour Turnaround..."}
+                    placeholder={tUi("admin.pricing.field_features_ph")}
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
                         e.preventDefault();
@@ -1546,7 +1532,7 @@ export function PricingModal({
                   />
                   <Button type="button" onClick={handleAddFeature} variant="secondary" className="gap-1.5 flex-shrink-0">
                     <Plus className="w-4 h-4" />
-                    <span>{tUi("admin.pricing.btn_add") || "Add"}</span>
+                    <span>{tUi("admin.pricing.btn_add")}</span>
                   </Button>
                 </div>
 
@@ -1563,7 +1549,7 @@ export function PricingModal({
                           type="button"
                           onClick={() => handleRemoveFeature(index)}
                           className="p-2 text-muted-text hover:text-red-500 hover:bg-surface rounded-lg transition-colors"
-                          title="Remove feature"
+                          title={tUi("admin.pricing.modal.remove_feature")}
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -1572,7 +1558,7 @@ export function PricingModal({
                   </div>
                 ) : (
                   <p className="text-xs text-muted-text italic">
-                    {tUi("admin.pricing.features_empty") || "No features added yet. Add bullet points highlighting what clients get."}
+                    {tUi("admin.pricing.features_empty")}
                   </p>
                 )}
               </div>
@@ -1580,22 +1566,22 @@ export function PricingModal({
               {/* CTA Label & Link */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <Label>{tUi("admin.pricing.field_cta_label") || "Button / CTA Label"}</Label>
+                  <Label>{tUi("admin.pricing.field_cta_label")}</Label>
                   <Input
                     type="text"
                     value={formData.cta_label || ""}
                     onChange={(e) => setFormData((prev) => ({ ...prev, cta_label: e.target.value }))}
-                    placeholder={tUi("admin.pricing.field_cta_label_ph") || "e.g. Book Now, Get Started, Contact Us"}
+                    placeholder={tUi("admin.pricing.field_cta_label_ph")}
                   />
                 </div>
 
                 <div>
-                  <Label>{tUi("admin.pricing.field_cta_url") || "Button Action Link / Section"}</Label>
+                  <Label>{tUi("admin.pricing.field_cta_url")}</Label>
                   <Input
                     type="text"
                     value={formData.cta_url || ""}
                     onChange={(e) => setFormData((prev) => ({ ...prev, cta_url: e.target.value }))}
-                    placeholder={tUi("admin.pricing.field_cta_url_ph") || "e.g. #contact or /client/signup"}
+                    placeholder={tUi("admin.pricing.field_cta_url_ph")}
                   />
                 </div>
               </div>
@@ -1609,10 +1595,10 @@ export function PricingModal({
                     </div>
                     <div>
                       <h4 className="text-sm font-bold text-text">
-                        {tUi("admin.pricing.section_message_templates") || "Contact Inquiry Message Templates"}
+                        {tUi("admin.pricing.section_message_templates")}
                       </h4>
                       <p className="text-xs text-muted-text mt-0.5">
-                        {tUi("admin.pricing.section_message_templates_desc") || "Configure the pre-filled message text loaded in the contact form when visitors click the CTA on this pricing card."}
+                        {tUi("admin.pricing.section_message_templates_desc")}
                       </p>
                     </div>
                   </div>
@@ -1623,18 +1609,18 @@ export function PricingModal({
                   <div className="text-xs font-semibold text-text flex items-center justify-between">
                     <span className="flex items-center gap-1.5">
                       <Sparkles className="w-3.5 h-3.5 text-primary" />
-                      <span>{tUi("admin.pricing.placeholders_guide") || "Dynamic Placeholders (Click to insert):"}</span>
+                      <span>{tUi("admin.pricing.placeholders_guide")}</span>
                     </span>
                     <span className="text-[11px] text-muted-text font-normal">
-                      Target: <span className="font-semibold text-primary uppercase">{activeTemplateField}</span>
+                      {tUi("admin.pricing.modal.target")}<span className="font-semibold text-primary uppercase">{activeTemplateField}</span>
                     </span>
                   </div>
                   <div className="flex flex-wrap gap-1.5 pt-1">
                     {[
-                      { key: "{plan_name}", label: tUi("admin.pricing.placeholder_plan_name") || "Plan Name ({plan_name})" },
-                      { key: "{price}", label: tUi("admin.pricing.placeholder_price") || "Price ({price})" },
-                      { key: "{billing_period}", label: tUi("admin.pricing.placeholder_billing_period") || "Billing Period ({billing_period})" },
-                      { key: "{customer_name}", label: tUi("admin.pricing.placeholder_customer_name") || "Customer Name ({customer_name})" },
+                      { key: "{plan_name}", label: tUi("admin.pricing.placeholder_plan_name") },
+                      { key: "{price}", label: tUi("admin.pricing.placeholder_price") },
+                      { key: "{billing_period}", label: tUi("admin.pricing.placeholder_billing_period") },
+                      { key: "{customer_name}", label: tUi("admin.pricing.placeholder_customer_name") },
                     ].map((item) => (
                       <button
                         key={item.key}
@@ -1655,11 +1641,10 @@ export function PricingModal({
                   <div className="flex items-center justify-between">
                     <Label className="text-xs font-semibold flex items-center gap-1.5">
                       <span className="w-2 h-2 rounded-full bg-blue-500 inline-block"></span>
-                      <span>{tUi("admin.pricing.template_en") || "English Default Message Template (en)"}</span>
+                      <span>{tUi("admin.pricing.template_en")}</span>
                     </Label>
                     <span className="text-[11px] text-muted-text">
-                      {formData.message_template_en?.length || 0} chars
-                    </span>
+                      {formData.message_template_en?.length || 0} {tUi("admin.pricing.modal.chars")}</span>
                   </div>
                   <textarea
                     ref={enTextareaRef}
@@ -1667,13 +1652,13 @@ export function PricingModal({
                     onChange={(e) => setFormData((prev) => ({ ...prev, message_template_en: e.target.value }))}
                     onFocus={() => setActiveTemplateField("en")}
                     rows={3}
-                    placeholder={tUi("admin.pricing.template_en_ph") || "e.g. I am interested in the {plan_name} package ({price}). Please contact me with more details."}
+                    placeholder={tUi("admin.pricing.template_en_ph")}
                     className="w-full text-xs font-sans p-3 rounded-xl bg-background border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all resize-y text-text placeholder:text-muted-text/60"
                   />
                   {!formData.message_template_en?.trim() && formData.message_template_hu?.trim() && (
                     <div className="flex items-center gap-1.5 text-[11px] text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-md border border-amber-500/20">
                       <Info className="w-3.5 h-3.5 shrink-0" />
-                      <span>{tUi("admin.pricing.warn_missing_en") || "Notice: English template is not defined. The Hungarian template will be used as a fallback on English pages."}</span>
+                      <span>{tUi("admin.pricing.warn_missing_en")}</span>
                     </div>
                   )}
                 </div>
@@ -1683,11 +1668,10 @@ export function PricingModal({
                   <div className="flex items-center justify-between">
                     <Label className="text-xs font-semibold flex items-center gap-1.5">
                       <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
-                      <span>{tUi("admin.pricing.template_hu") || "Hungarian Default Message Template (hu)"}</span>
+                      <span>{tUi("admin.pricing.template_hu")}</span>
                     </Label>
                     <span className="text-[11px] text-muted-text">
-                      {formData.message_template_hu?.length || 0} chars
-                    </span>
+                      {formData.message_template_hu?.length || 0} {tUi("admin.pricing.modal.chars")}</span>
                   </div>
                   <textarea
                     ref={huTextareaRef}
@@ -1695,13 +1679,13 @@ export function PricingModal({
                     onChange={(e) => setFormData((prev) => ({ ...prev, message_template_hu: e.target.value }))}
                     onFocus={() => setActiveTemplateField("hu")}
                     rows={3}
-                    placeholder={tUi("admin.pricing.template_hu_ph") || "e.g. Érdeklődöm a(z) {plan_name} csomag ({price}) iránt. Kérem, vegyenek fel velem a kapcsolatot a részletekkel kapcsolatban."}
+                    placeholder={tUi("admin.pricing.template_hu_ph")}
                     className="w-full text-xs font-sans p-3 rounded-xl bg-background border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all resize-y text-text placeholder:text-muted-text/60"
                   />
                   {!formData.message_template_hu?.trim() && formData.message_template_en?.trim() && (
                     <div className="flex items-center gap-1.5 text-[11px] text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-md border border-amber-500/20">
                       <Info className="w-3.5 h-3.5 shrink-0" />
-                      <span>{tUi("admin.pricing.warn_missing_hu") || "Notice: Hungarian template is not defined. The English template will be used as a fallback on Hungarian pages."}</span>
+                      <span>{tUi("admin.pricing.warn_missing_hu")}</span>
                     </div>
                   )}
                 </div>
@@ -1712,10 +1696,10 @@ export function PricingModal({
                 <div className="flex items-center justify-between">
                   <div>
                     <Label className="font-semibold cursor-pointer" htmlFor="featured-toggle">
-                      {tUi("admin.pricing.field_is_featured") || "Featured / Recommended Listing"}
+                      {tUi("admin.pricing.field_is_featured")}
                     </Label>
                     <p className="text-xs text-muted-text">
-                      {tUi("admin.pricing.field_is_featured_desc") || "Highlights this card with a prominent border, scale elevation, and badge."}
+                      {tUi("admin.pricing.field_is_featured_desc")}
                     </p>
                   </div>
                   <input
@@ -1729,12 +1713,12 @@ export function PricingModal({
 
                 {Boolean(formData.is_featured) && (
                   <div className="pt-2 border-t border-border">
-                    <Label>{tUi("admin.pricing.field_featured_badge") || "Featured Badge Label"}</Label>
+                    <Label>{tUi("admin.pricing.field_featured_badge")}</Label>
                     <Input
                       type="text"
                       value={formData.featured_badge || ""}
                       onChange={(e) => setFormData((prev) => ({ ...prev, featured_badge: e.target.value }))}
-                      placeholder={tUi("admin.pricing.field_featured_badge_ph") || "e.g. Most Popular, Best Value, Recommended"}
+                      placeholder={tUi("admin.pricing.field_featured_badge_ph")}
                     />
                   </div>
                 )}
@@ -1742,10 +1726,10 @@ export function PricingModal({
                 <div className="flex items-center justify-between pt-2 border-t border-border">
                   <div>
                     <Label className="font-semibold cursor-pointer" htmlFor="enabled-toggle">
-                      {tUi("admin.pricing.field_is_enabled") || "Enabled on Website"}
+                      {tUi("admin.pricing.field_is_enabled")}
                     </Label>
                     <p className="text-xs text-muted-text">
-                      {tUi("admin.pricing.field_is_enabled_desc") || "Toggle whether this listing is visible to visitors on the frontend."}
+                      {tUi("admin.pricing.field_is_enabled_desc")}
                     </p>
                   </div>
                   <input
@@ -1764,7 +1748,7 @@ export function PricingModal({
         {/* Footer Actions */}
         <div className="px-6 py-4 border-t border-border bg-surface/40 flex items-center justify-end gap-3">
           <Button type="button" variant="secondary" onClick={onClose} disabled={isSubmitting}>
-            {tUi("Cancel") || "Cancel"}
+            {tUi("Cancel")}
           </Button>
           <Button
             type="submit"
@@ -1773,7 +1757,7 @@ export function PricingModal({
             className="gap-2"
           >
             {isSubmitting ? (
-              <span>{tUi("admin.pricing.btn_saving") || "Saving..."}</span>
+              <span>{tUi("admin.pricing.btn_saving")}</span>
             ) : (
               <>
                 <Check className="w-4 h-4" />

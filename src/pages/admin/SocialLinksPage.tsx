@@ -107,8 +107,8 @@ function SortableLinkItem({
           {...attributes}
           {...listeners}
           className="p-1 text-muted-text hover:text-text cursor-grab active:cursor-grabbing shrink-0"
-          title="Drag to reorder"
-          aria-label="Drag handle"
+          title={tUi("admin.pricing.drag_reorder")}
+          aria-label={tUi("admin.social.drag_handle", currentLanguage)}
         >
           <GripVertical className="w-4 h-4" />
         </button>
@@ -168,7 +168,7 @@ function SortableLinkItem({
             onClick={onMoveUp}
             disabled={isFirst}
             className="p-1.5 text-muted-text hover:text-text disabled:opacity-20 disabled:hover:text-muted-text rounded-lg hover:bg-surface"
-            title="Move Up"
+            title={tUi("admin.faqs.move_up")}
           >
             <ChevronUp className="w-4 h-4" />
           </button>
@@ -177,7 +177,7 @@ function SortableLinkItem({
             onClick={onMoveDown}
             disabled={isLast}
             className="p-1.5 text-muted-text hover:text-text disabled:opacity-20 disabled:hover:text-muted-text rounded-lg hover:bg-surface"
-            title="Move Down"
+            title={tUi("admin.faqs.move_down")}
           >
             <ChevronDown className="w-4 h-4" />
           </button>
@@ -192,7 +192,9 @@ function SortableLinkItem({
               ? "text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10"
               : "text-muted-text hover:bg-surface"
           }`}
-          title={isEnabled ? "Enabled (Click to disable)" : "Disabled (Click to enable)"}
+          title={isEnabled
+            ? tUi("admin.social.enabled_disable_hint", currentLanguage)
+            : tUi("admin.social.disabled_enable_hint", currentLanguage)}
         >
           {isEnabled ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
         </button>
@@ -202,7 +204,7 @@ function SortableLinkItem({
           type="button"
           onClick={() => onEdit(node)}
           className="p-2 text-muted-text hover:text-text rounded-xl hover:bg-surface transition-colors"
-          title="Edit"
+          title={tUi("admin.customers.edit")}
         >
           <Edit2 className="w-4 h-4" />
         </button>
@@ -212,7 +214,7 @@ function SortableLinkItem({
           type="button"
           onClick={() => onDelete(node)}
           className="p-2 text-muted-text hover:text-red-500 rounded-xl hover:bg-red-500/10 transition-colors"
-          title="Delete"
+          title={tUi("admin.customers.delete")}
         >
           <Trash2 className="w-4 h-4" />
         </button>
@@ -302,7 +304,7 @@ function SortableGroupNode({
             {...attributes}
             {...listeners}
             className="p-1 text-muted-text hover:text-text cursor-grab active:cursor-grabbing shrink-0"
-            title="Drag group"
+            title={tUi("admin.social.drag_group", currentLanguage)}
           >
             <GripVertical className="w-4 h-4" />
           </button>
@@ -312,7 +314,9 @@ function SortableGroupNode({
             type="button"
             onClick={onToggleExpand}
             className="p-1.5 rounded-xl hover:bg-background text-muted-text hover:text-text transition-colors shrink-0"
-            title={isExpanded ? "Collapse Group" : "Expand Group"}
+            title={isExpanded
+              ? tUi("admin.social.collapse_group", currentLanguage)
+              : tUi("admin.social.expand_group", currentLanguage)}
           >
             <ChevronRight
               className={`w-4 h-4 transition-transform duration-200 ${
@@ -343,7 +347,9 @@ function SortableGroupNode({
                 </span>
               )}
               <span className="text-xs px-2 py-0.5 rounded-full bg-surface text-muted-text font-medium border border-border">
-                {childNodes.length} {childNodes.length === 1 ? "link" : "links"}
+                {childNodes.length} {childNodes.length === 1
+                  ? tUi("admin.social.item_count_one", currentLanguage)
+                  : tUi("admin.social.link_count_many", currentLanguage)}
               </span>
             </div>
             {group.subtitle && (
@@ -362,7 +368,7 @@ function SortableGroupNode({
             className="h-8 px-2.5 rounded-xl text-xs gap-1.5 hidden sm:flex border-border/80 hover:border-primary/50"
           >
             <Plus className="w-3.5 h-3.5" />
-            <span>Add Link</span>
+            <span>{tUi("admin.social.add_link_short", currentLanguage)}</span>
           </Button>
 
           {/* Move Up/Down */}
@@ -372,7 +378,7 @@ function SortableGroupNode({
               onClick={onMoveUp}
               disabled={isFirst}
               className="p-1.5 text-muted-text hover:text-text disabled:opacity-20 rounded-lg hover:bg-background"
-              title="Move Group Up"
+              title={tUi("admin.social.move_group_up", currentLanguage)}
             >
               <ChevronUp className="w-4 h-4" />
             </button>
@@ -381,7 +387,7 @@ function SortableGroupNode({
               onClick={onMoveDown}
               disabled={isLast}
               className="p-1.5 text-muted-text hover:text-text disabled:opacity-20 rounded-lg hover:bg-background"
-              title="Move Group Down"
+              title={tUi("admin.social.move_group_down", currentLanguage)}
             >
               <ChevronDown className="w-4 h-4" />
             </button>
@@ -396,7 +402,9 @@ function SortableGroupNode({
                 ? "text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10"
                 : "text-muted-text hover:bg-background"
             }`}
-            title={isEnabled ? "Group Enabled" : "Group Disabled"}
+            title={isEnabled
+              ? tUi("admin.social.group_enabled", currentLanguage)
+              : tUi("admin.social.group_disabled", currentLanguage)}
           >
             {isEnabled ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
           </button>
@@ -406,7 +414,7 @@ function SortableGroupNode({
             type="button"
             onClick={() => onEdit(group)}
             className="p-2 text-muted-text hover:text-text rounded-xl hover:bg-background transition-colors"
-            title="Edit Group"
+            title={tUi("admin.social.edit_group", currentLanguage)}
           >
             <Edit2 className="w-4 h-4" />
           </button>
@@ -416,7 +424,7 @@ function SortableGroupNode({
             type="button"
             onClick={() => onDelete(group)}
             className="p-2 text-muted-text hover:text-red-500 rounded-xl hover:bg-red-500/10 transition-colors"
-            title="Delete Group"
+            title={tUi("admin.social.modal_delete_group_title")}
           >
             <Trash2 className="w-4 h-4" />
           </button>
@@ -429,8 +437,8 @@ function SortableGroupNode({
           {childNodes.length === 0 ? (
             <div className="p-6 text-center rounded-2xl border border-dashed border-border bg-surface/30">
               <Folder className="w-8 h-8 mx-auto text-muted-text/50 mb-2" />
-              <p className="text-sm font-medium text-text mb-1">No links in this group yet</p>
-              <p className="text-xs text-muted-text mb-3">Add links to populate this category in the popup</p>
+              <p className="text-sm font-medium text-text mb-1">{tUi("admin.social.group_empty_title", currentLanguage)}</p>
+              <p className="text-xs text-muted-text mb-3">{tUi("admin.social.group_empty_desc", currentLanguage)}</p>
               <Button
                 size="sm"
                 variant="outline"
@@ -438,7 +446,7 @@ function SortableGroupNode({
                 className="rounded-xl text-xs gap-1.5"
               >
                 <Plus className="w-3.5 h-3.5" />
-                <span>Add First Link to {group.title}</span>
+                <span>{tUi("admin.social.add_first_link", currentLanguage).replace("{name}", String(group.title || ""))}</span>
               </Button>
             </div>
           ) : (
@@ -490,7 +498,7 @@ function SortableGroupNode({
                 className="text-xs text-muted-text hover:text-primary font-medium flex items-center gap-1.5 py-1 px-2.5 rounded-lg hover:bg-surface transition-colors"
               >
                 <Plus className="w-3.5 h-3.5" />
-                <span>Add another link to this group</span>
+                <span>{tUi("admin.social.add_another_link", currentLanguage)}</span>
               </button>
             </div>
           )}
@@ -505,7 +513,7 @@ function SortableGroupNode({
 // ----------------------------------------------------------------------
 export function SocialLinksPage() {
   const { currentLanguage, tUi } = useLanguage();
-  usePageTitle(tUi("admin.social.page_title", currentLanguage) || "Social Links Tree Manager");
+  usePageTitle(tUi("admin.social.page_title", currentLanguage));
   const { fetchApi } = useApi();
 
   const [nodes, setNodes] = useState<SocialTreeNode[]>([]);
@@ -555,11 +563,11 @@ export function SocialLinksPage() {
         }
       } else {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to load social links");
+        throw new Error(err.error || tUi("admin.social.load_failed", currentLanguage));
       }
     } catch (e: any) {
       console.error("Failed to load social links:", e);
-      setFeedbackMsg({ text: e.message || "Failed to load social links", type: "error" });
+      setFeedbackMsg({ text: e.message || tUi("admin.social.load_failed", currentLanguage), type: "error" });
     } finally {
       setIsLoading(false);
     }
@@ -708,9 +716,9 @@ export function SocialLinksPage() {
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to update social link");
+        throw new Error(err.error || tUi("admin.social.update_failed", currentLanguage));
       }
-      setFeedbackMsg({ text: `Updated "${nodeData.title}" successfully`, type: "success" });
+      setFeedbackMsg({ text: tUi("admin.social.updated_success", currentLanguage).replace("{name}", String(nodeData.title || "")), type: "success" });
     } else {
       const res = await fetchApi("/api/admin/social-links", {
         method: "POST",
@@ -719,9 +727,9 @@ export function SocialLinksPage() {
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to create social link");
+        throw new Error(err.error || tUi("admin.social.create_failed", currentLanguage));
       }
-      setFeedbackMsg({ text: `Created "${nodeData.title}" successfully`, type: "success" });
+      setFeedbackMsg({ text: tUi("admin.social.created_success", currentLanguage).replace("{name}", String(nodeData.title || "")), type: "success" });
     }
     await loadNodes();
   };
@@ -734,12 +742,12 @@ export function SocialLinksPage() {
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to delete social link");
+        throw new Error(err.error || tUi("admin.social.delete_failed", currentLanguage));
       }
-      setFeedbackMsg({ text: "Node deleted successfully", type: "success" });
+      setFeedbackMsg({ text: tUi("admin.social.toast_deleted", currentLanguage), type: "success" });
       await loadNodes();
     } catch (e: any) {
-      setFeedbackMsg({ text: e.message || "Failed to delete node", type: "error" });
+      setFeedbackMsg({ text: e.message || tUi("admin.social.delete_failed", currentLanguage), type: "error" });
     }
   };
 
@@ -752,14 +760,14 @@ export function SocialLinksPage() {
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to toggle status");
+        throw new Error(err.error || tUi("admin.social.toggle_failed", currentLanguage));
       }
       const data = await res.json();
       setNodes(prev =>
         prev.map(n => (n.id === node.id ? { ...n, is_enabled: data.is_enabled } : n))
       );
     } catch (e: any) {
-      setFeedbackMsg({ text: e.message || "Failed to toggle status", type: "error" });
+      setFeedbackMsg({ text: e.message || tUi("admin.social.toggle_failed", currentLanguage), type: "error" });
     }
   };
 
@@ -840,7 +848,7 @@ export function SocialLinksPage() {
 
   // Reset to default presets
   const handleResetDefaults = async () => {
-    if (!window.confirm("Are you sure you want to reset the social links tree to default presets? All current links and groups will be replaced.")) {
+    if (!window.confirm(tUi("admin.social.reset_confirm", currentLanguage))) {
       return;
     }
 
@@ -851,12 +859,12 @@ export function SocialLinksPage() {
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to reset defaults");
+        throw new Error(err.error || tUi("admin.social.reset_failed", currentLanguage));
       }
-      setFeedbackMsg({ text: "Reset to default social tree successfully!", type: "success" });
+      setFeedbackMsg({ text: tUi("admin.social.reset_success", currentLanguage), type: "success" });
       await loadNodes();
     } catch (e: any) {
-      setFeedbackMsg({ text: e.message || "Failed to reset defaults", type: "error" });
+      setFeedbackMsg({ text: e.message || tUi("admin.social.reset_failed", currentLanguage), type: "error" });
     } finally {
       setIsResetting(false);
     }
@@ -866,10 +874,9 @@ export function SocialLinksPage() {
     <div className="space-y-6 max-w-7xl mx-auto pb-16">
       {/* Page Header */}
       <PageHeader
-        title={tUi("admin.social.page_title", currentLanguage) || "Social Popup Tree Manager"}
+        title={tUi("admin.social.page_title", currentLanguage)}
         description={
-          tUi("admin.social.page_desc", currentLanguage) ||
-          "Configure hierarchical groups, brand links, icons, and badges displayed in the public interactive social popup."
+          tUi("admin.social.page_desc", currentLanguage)
         }
         action={
           <div className="flex w-full flex-wrap items-center gap-2.5 sm:w-auto sm:justify-end">
@@ -880,7 +887,7 @@ export function SocialLinksPage() {
               className="rounded-2xl gap-2 shadow-xs bg-surface border-border hover:border-primary/40"
             >
               <Share2 className="w-4 h-4 text-primary" />
-              <span>{tUi("admin.social.preview_popup", currentLanguage) || "Preview Popup"}</span>
+              <span>{tUi("admin.social.preview_popup", currentLanguage)}</span>
             </Button>
 
             {/* Reset to defaults */}
@@ -889,10 +896,10 @@ export function SocialLinksPage() {
               onClick={handleResetDefaults}
               disabled={isResetting}
               className="rounded-2xl gap-2 text-muted-text hover:text-text border-border"
-              title="Reset to default tree structure"
+              title={tUi("admin.social.reset_hint", currentLanguage)}
             >
               <RotateCcw className={`w-4 h-4 ${isResetting ? "animate-spin" : ""}`} />
-              <span className="hidden sm:inline">Reset Defaults</span>
+              <span className="hidden sm:inline">{tUi("admin.social.btn_reset_defaults")}</span>
             </Button>
 
             {/* Add Group */}
@@ -902,7 +909,7 @@ export function SocialLinksPage() {
               className="flex-1 rounded-2xl gap-2 border-border hover:border-primary/40 sm:flex-none"
             >
               <FolderTree className="w-4 h-4 text-primary" />
-              <span>{tUi("admin.social.add_group_btn", currentLanguage) || "Add Group"}</span>
+              <span>{tUi("admin.social.add_group_btn", currentLanguage)}</span>
             </Button>
 
             {/* Add Social Link */}
@@ -911,7 +918,7 @@ export function SocialLinksPage() {
               className="flex-1 rounded-2xl gap-2 shadow-sm sm:flex-none"
             >
               <Plus className="w-4 h-4" />
-              <span>{tUi("admin.social.add_link_btn", currentLanguage) || "Add Social Link"}</span>
+              <span>{tUi("admin.social.add_link_btn", currentLanguage)}</span>
             </Button>
           </div>
         }
@@ -938,8 +945,7 @@ export function SocialLinksPage() {
             onClick={() => setFeedbackMsg(null)}
             className="text-xs opacity-70 hover:opacity-100 font-semibold"
           >
-            Dismiss
-          </button>
+            {tUi("status_widget.dismiss")}</button>
         </div>
       )}
 
@@ -952,7 +958,7 @@ export function SocialLinksPage() {
             </div>
             <div>
               <div className="text-2xl font-extrabold tracking-tight text-text">{stats.total}</div>
-              <div className="text-xs text-muted-text font-medium">Total Tree Nodes</div>
+              <div className="text-xs text-muted-text font-medium">{tUi("admin.social.stats_total")}</div>
             </div>
           </CardContent>
         </Card>
@@ -964,7 +970,7 @@ export function SocialLinksPage() {
             </div>
             <div>
               <div className="text-2xl font-extrabold tracking-tight text-text">{stats.groupsCount}</div>
-              <div className="text-xs text-muted-text font-medium">Link Groups</div>
+              <div className="text-xs text-muted-text font-medium">{tUi("admin.social.stats_groups")}</div>
             </div>
           </CardContent>
         </Card>
@@ -976,7 +982,7 @@ export function SocialLinksPage() {
             </div>
             <div>
               <div className="text-2xl font-extrabold tracking-tight text-text">{stats.linksCount}</div>
-              <div className="text-xs text-muted-text font-medium">Direct Links</div>
+              <div className="text-xs text-muted-text font-medium">{tUi("admin.social.stats_links")}</div>
             </div>
           </CardContent>
         </Card>
@@ -988,7 +994,7 @@ export function SocialLinksPage() {
             </div>
             <div>
               <div className="text-2xl font-extrabold tracking-tight text-text">{stats.activeLinksCount}</div>
-              <div className="text-xs text-muted-text font-medium">Active & Visible</div>
+              <div className="text-xs text-muted-text font-medium">{tUi("admin.social.stats_active")}</div>
             </div>
           </CardContent>
         </Card>
@@ -1003,7 +1009,7 @@ export function SocialLinksPage() {
             <Input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={tUi("admin.social.search_placeholder", currentLanguage) || "Search platforms, groups, URLs..."}
+              placeholder={tUi("admin.social.search_placeholder", currentLanguage)}
               className="pl-10 h-10 rounded-2xl bg-background border-border"
             />
             <Search className="w-4 h-4 text-muted-text absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -1012,8 +1018,7 @@ export function SocialLinksPage() {
                 onClick={() => setSearchQuery("")}
                 className="text-xs text-muted-text hover:text-text absolute right-3 top-1/2 -translate-y-1/2"
               >
-                Clear
-              </button>
+                {tUi("admin.social.page_clear", currentLanguage)}</button>
             )}
           </div>
 
@@ -1025,9 +1030,9 @@ export function SocialLinksPage() {
               onChange={(e) => setTypeFilter(e.target.value as any)}
               className="h-10 px-3 rounded-2xl border border-border bg-background text-text text-xs focus:outline-none focus:ring-2 focus:ring-primary/20"
             >
-              <option value="all">All Types</option>
-              <option value="group">📁 Groups Only</option>
-              <option value="link">🔗 Links Only</option>
+              <option value="all">{tUi("admin.pricing.filter_all_types")}</option>
+              <option value="group">{tUi("admin.social.filter_groups_only")}</option>
+              <option value="link">{tUi("admin.social.filter_links_only")}</option>
             </select>
 
             {/* Status Filter */}
@@ -1036,9 +1041,9 @@ export function SocialLinksPage() {
               onChange={(e) => setStatusFilter(e.target.value as any)}
               className="h-10 px-3 rounded-2xl border border-border bg-background text-text text-xs focus:outline-none focus:ring-2 focus:ring-primary/20"
             >
-              <option value="all">All Statuses</option>
-              <option value="enabled">Active (Visible)</option>
-              <option value="disabled">Disabled (Hidden)</option>
+              <option value="all">{tUi("admin.social.page_all_statuses", currentLanguage)}</option>
+              <option value="enabled">{tUi("admin.social.filter_active")}</option>
+              <option value="disabled">{tUi("admin.social.filter_disabled")}</option>
             </select>
 
             {/* View Mode (Tree vs Flat) */}
@@ -1053,7 +1058,7 @@ export function SocialLinksPage() {
                 }`}
               >
                 <FolderTree className="w-3.5 h-3.5" />
-                <span>Tree View</span>
+                <span>{tUi("admin.social.view_tree")}</span>
               </button>
               <button
                 type="button"
@@ -1065,7 +1070,7 @@ export function SocialLinksPage() {
                 }`}
               >
                 <Layers className="w-3.5 h-3.5" />
-                <span>Flat List</span>
+                <span>{tUi("admin.social.view_flat")}</span>
               </button>
             </div>
 
@@ -1077,20 +1082,18 @@ export function SocialLinksPage() {
                   variant="ghost"
                   onClick={expandAll}
                   className="h-9 px-2 text-xs text-muted-text hover:text-text rounded-xl"
-                  title="Expand All Groups"
+                  title={tUi("admin.social.expand_all", currentLanguage)}
                 >
-                  Expand All
-                </Button>
+                  {tUi("admin.social.expand_all")}</Button>
                 <span className="text-border">|</span>
                 <Button
                   size="sm"
                   variant="ghost"
                   onClick={collapseAll}
                   className="h-9 px-2 text-xs text-muted-text hover:text-text rounded-xl"
-                  title="Collapse All Groups"
+                  title={tUi("admin.social.collapse_all", currentLanguage)}
                 >
-                  Collapse All
-                </Button>
+                  {tUi("admin.social.collapse_all")}</Button>
               </div>
             )}
           </div>
@@ -1101,22 +1104,21 @@ export function SocialLinksPage() {
       {isLoading ? (
         <div className="p-16 flex flex-col items-center justify-center space-y-4">
           <RefreshCw className="w-8 h-8 animate-spin text-primary" />
-          <p className="text-sm font-medium text-muted-text">Loading social links tree...</p>
+          <p className="text-sm font-medium text-muted-text">{tUi("admin.social.loading", currentLanguage)}</p>
         </div>
       ) : nodes.length === 0 ? (
         <Card className="rounded-3xl border-dashed border-2 border-border bg-surface/30 p-12 text-center">
           <FolderTree className="w-12 h-12 mx-auto text-muted-text mb-4 opacity-50" />
-          <h3 className="text-lg font-bold text-text mb-2">No Social Links Configured</h3>
+          <h3 className="text-lg font-bold text-text mb-2">{tUi("admin.social.empty_title")}</h3>
           <p className="text-sm text-muted-text max-w-md mx-auto mb-6">
-            Get started by loading our pre-built real estate social media tree or create custom groups and links.
-          </p>
+            {tUi("admin.social.empty_desc")}</p>
           <div className="flex flex-wrap items-center justify-center gap-3">
             <Button
               onClick={handleResetDefaults}
               className="rounded-2xl gap-2 shadow-sm"
             >
               <Sparkles className="w-4 h-4" />
-              <span>Load Default Studio Social Tree</span>
+              <span>{tUi("admin.social.btn_load_defaults")}</span>
             </Button>
             <Button
               variant="outline"
@@ -1124,7 +1126,7 @@ export function SocialLinksPage() {
               className="rounded-2xl gap-2"
             >
               <Plus className="w-4 h-4" />
-              <span>Create Empty Group</span>
+              <span>{tUi("admin.social.btn_create_empty_group")}</span>
             </Button>
           </div>
         </Card>
@@ -1276,7 +1278,7 @@ export function SocialLinksPage() {
           {filteredNodes.length === 0 ? (
             <div className="p-12 text-center text-muted-text">
               <Search className="w-8 h-8 mx-auto mb-2 opacity-50" />
-              <p>No nodes match your filter criteria.</p>
+              <p>{tUi("admin.social.empty_filtered")}</p>
             </div>
           ) : (
             filteredNodes.map((node, idx) => (

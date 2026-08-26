@@ -1,3 +1,4 @@
+import { useLanguage } from "../../contexts/LanguageContext";
 import React, { useState, useEffect } from "react";
 import { Service } from "../../lib/types";
 import { TranslatableInput } from "./TranslatableInput";
@@ -36,6 +37,7 @@ export function ServiceModal({
   onClose,
   onSave,
 }: ServiceModalProps) {
+  const { tUi } = useLanguage();
   const { fetchApi } = useApi();
   const [formData, setFormData] = useState<Partial<Service>>({
     title: "",
@@ -167,8 +169,7 @@ export function ServiceModal({
                 {formData.id ? "Edit Service" : "Create New Service"}
               </h2>
               <p className="text-xs text-muted-text">
-                Configure service card visuals, content, and call-to-action details.
-              </p>
+                {tUi("admin.services.modal_subtitle")}</p>
             </div>
           </div>
           <button
@@ -210,7 +211,7 @@ export function ServiceModal({
           {/* Icon & Visual Representation */}
           <div className="space-y-3 pt-2">
             <div className="flex items-center justify-between">
-              <Label className="text-sm font-medium text-text">Service Visual / Icon</Label>
+              <Label className="text-sm font-medium text-text">{tUi("admin.services.label_visual")}</Label>
               <div className="flex items-center p-1 bg-surface rounded-lg border border-border text-xs">
                 <button
                   type="button"
@@ -221,8 +222,7 @@ export function ServiceModal({
                       : "text-muted-text hover:text-text"
                   }`}
                 >
-                  Preset Icons
-                </button>
+                  {tUi("admin.services.tab_preset")}</button>
                 <button
                   type="button"
                   onClick={() => setActiveTab("image")}
@@ -232,8 +232,7 @@ export function ServiceModal({
                       : "text-muted-text hover:text-text"
                   }`}
                 >
-                  Custom Image / URL
-                </button>
+                  {tUi("admin.services.tab_image")}</button>
               </div>
             </div>
 
@@ -243,7 +242,7 @@ export function ServiceModal({
                 <div className="relative">
                   <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-text" />
                   <Input
-                    placeholder="Search icons (e.g. photography, drone, floorplan, staging)..."
+                    placeholder={tUi("admin.services.search_icons_placeholder")}
                     value={iconSearch}
                     onChange={(e) => setIconSearch(e.target.value)}
                     className="pl-9 text-sm"
@@ -284,9 +283,9 @@ export function ServiceModal({
               <div className="space-y-3 border border-border rounded-xl p-4 bg-surface/30">
                 <div className="flex flex-col sm:flex-row gap-3">
                   <div className="flex-1">
-                    <Label className="text-xs text-muted-text mb-1 block">Image URL</Label>
+                    <Label className="text-xs text-muted-text mb-1 block">{tUi("admin.services.label_image_url")}</Label>
                     <Input
-                      placeholder="https://images.unsplash.com/... or media path"
+                      placeholder={tUi("admin.services.image_url_placeholder")}
                       value={formData.image_url || ""}
                       onChange={(e) =>
                         setFormData((prev) => ({ ...prev, image_url: e.target.value }))
@@ -327,8 +326,7 @@ export function ServiceModal({
                       onClick={() => setFormData((prev) => ({ ...prev, image_url: "" }))}
                       className="text-red-500 hover:text-red-600"
                     >
-                      Remove
-                    </Button>
+                      {tUi("admin.services.remove_image")}</Button>
                   </div>
                 )}
               </div>
@@ -337,14 +335,14 @@ export function ServiceModal({
 
           {/* Optional Call to Action Link */}
           <div className="space-y-3 pt-2">
-            <Label className="text-sm font-medium text-text">Optional Call-to-Action Link</Label>
+            <Label className="text-sm font-medium text-text">{tUi("admin.services.section_cta")}</Label>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <Label className="text-xs text-muted-text mb-1 block">Link / Action URL</Label>
+                <Label className="text-xs text-muted-text mb-1 block">{tUi("admin.services.label_target_url")}</Label>
                 <div className="relative">
                   <LinkIcon className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-text" />
                   <Input
-                    placeholder="#contact, /booking, or https://..."
+                    placeholder={tUi("admin.services.target_url_placeholder")}
                     value={formData.link_url || ""}
                     onChange={(e) =>
                       setFormData((prev) => ({ ...prev, link_url: e.target.value }))
@@ -355,9 +353,9 @@ export function ServiceModal({
               </div>
 
               <div>
-                <Label className="text-xs text-muted-text mb-1 block">Button / Link Label</Label>
+                <Label className="text-xs text-muted-text mb-1 block">{tUi("admin.services.label_btn_text")}</Label>
                 <Input
-                  placeholder="e.g. Book Now, Learn More, Get Quote"
+                  placeholder={tUi("admin.services.btn_text_placeholder")}
                   value={formData.link_text || ""}
                   onChange={(e) =>
                     setFormData((prev) => ({ ...prev, link_text: e.target.value }))
@@ -371,7 +369,7 @@ export function ServiceModal({
           {/* Status & Sort Order */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-border">
             <div>
-              <Label className="text-sm font-medium text-text mb-2 block">Card Visibility</Label>
+              <Label className="text-sm font-medium text-text mb-2 block">{tUi("admin.services.label_card_visibility")}</Label>
               <label className="flex items-center gap-3 p-3 rounded-xl border border-border bg-surface/50 cursor-pointer hover:bg-surface transition-colors">
                 <input
                   type="checkbox"
@@ -385,16 +383,15 @@ export function ServiceModal({
                   className="w-4 h-4 rounded text-primary focus:ring-primary"
                 />
                 <div>
-                  <div className="text-sm font-medium text-text">Published on Site</div>
+                  <div className="text-sm font-medium text-text">{tUi("admin.services.published_on_site")}</div>
                   <div className="text-xs text-muted-text">
-                    When active, this service appears in the public Services section.
-                  </div>
+                    {tUi("admin.services.published_hint")}</div>
                 </div>
               </label>
             </div>
 
             <div>
-              <Label className="text-sm font-medium text-text mb-2 block">Sort Order Position</Label>
+              <Label className="text-sm font-medium text-text mb-2 block">{tUi("admin.services.label_sort_order")}</Label>
               <Input
                 type="number"
                 value={formData.sort_order ?? 0}
@@ -408,8 +405,7 @@ export function ServiceModal({
                 min={0}
               />
               <p className="text-xs text-muted-text mt-1">
-                Lower numbers appear first (e.g. 1, 2, 3).
-              </p>
+                {tUi("admin.services.sort_order_hint")}</p>
             </div>
           </div>
 
@@ -417,8 +413,7 @@ export function ServiceModal({
           <div className="pt-2">
             <Label className="text-xs uppercase tracking-wider text-muted-text mb-2 block font-semibold flex items-center gap-1.5">
               <Eye className="w-3.5 h-3.5" />
-              Live Card Preview
-            </Label>
+              {tUi("admin.services.live_card_preview")}</Label>
             <div className="p-6 rounded-2xl bg-surface border border-border transition-colors">
               <div className="w-12 h-12 bg-primary/10 text-primary rounded-xl flex items-center justify-center mb-4">
                 <ServiceIcon
@@ -446,8 +441,7 @@ export function ServiceModal({
         {/* Modal Footer */}
         <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-border bg-surface/50">
           <Button type="button" variant="ghost" onClick={onClose} disabled={isSubmitting}>
-            Cancel
-          </Button>
+            {tUi("admin.clients.cancel")}</Button>
           <Button
             type="submit"
             form="service-form"
@@ -455,7 +449,7 @@ export function ServiceModal({
             className="flex items-center gap-2"
           >
             {isSubmitting ? (
-              <span>Saving...</span>
+              <span>{tUi("admin.pricing.btn_saving")}</span>
             ) : (
               <>
                 <Check className="w-4 h-4" />

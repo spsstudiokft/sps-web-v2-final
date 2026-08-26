@@ -1,3 +1,4 @@
+import { useLanguage } from "../../../contexts/LanguageContext";
 import React from "react";
 import { Search, Filter, X, Calendar, User, Link as LinkIcon } from "lucide-react";
 import { BudgetAdminItem, PaymentRequestSummary } from "../../../types";
@@ -46,6 +47,7 @@ export function PaymentRequestsFilterBar({
   summary,
   categories = []
 }: PaymentRequestsFilterBarProps) {
+  const { tUi } = useLanguage();
   const hasActiveFilters =
     search !== "" ||
     statusFilter !== "all" ||
@@ -144,7 +146,7 @@ export function PaymentRequestsFilterBar({
             onChange={(e) => onCategoryFilterChange(e.target.value)}
             className="px-2.5 py-1.5 text-xs rounded-lg border border-border bg-background text-text focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
           >
-            <option value="all">All Categories</option>
+            <option value="all">{tUi("admin.faqs.filter_category_all")}</option>
             {categories.map((cat) => (
               <option key={cat.id} value={cat.id}>
                 {cat.name}

@@ -1,3 +1,4 @@
+import { useLanguage } from "../../../contexts/LanguageContext";
 import React, { useState } from "react";
 import { 
   Clock, 
@@ -46,6 +47,7 @@ export function PaymentRequestsTable({
   onDelete,
   onOpenCreateModal
 }: PaymentRequestsTableProps) {
+  const { tUi } = useLanguage();
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
 
   const formatMoney = (amount: number, curr: string = currency) => formatConfiguredCurrency(amount, curr, { maximumFractionDigits: 2 });
@@ -155,10 +157,10 @@ export function PaymentRequestsTable({
               <th className="py-3 px-4">Requester</th>
               <th className="py-3 px-4">Title & Category</th>
               <th className="py-3 px-4">Linked Reference</th>
-              <th className="py-3 px-4 text-right">Amount</th>
-              <th className="py-3 px-4 text-center">Status</th>
+              <th className="py-3 px-4 text-right">{tUi("admin.budget.table.th_amount")}</th>
+              <th className="py-3 px-4 text-center">{tUi("admin.clients.th_status")}</th>
               <th className="py-3 px-4 text-center">Review Info</th>
-              <th className="py-3 px-4 text-right">Actions</th>
+              <th className="py-3 px-4 text-right">{tUi("admin.clients.th_actions")}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
@@ -215,8 +217,7 @@ export function PaymentRequestsTable({
                           <span>{req.requester_name || "Coworker"}</span>
                           {isOwner && (
                             <span className="text-[9px] px-1 py-0.2 rounded bg-primary/10 text-primary font-bold">
-                              You
-                            </span>
+                              {tUi("admin.team.you_badge")}</span>
                           )}
                         </div>
                         <div className="text-[10px] text-muted-text truncate">

@@ -1,3 +1,4 @@
+import { useLanguage } from "../../contexts/LanguageContext";
 import React, { useState, useEffect, useRef } from "react";
 import { 
   X, 
@@ -39,6 +40,7 @@ export function EmailTemplateEditorModal({
   onSaved,
   allowReset = true
 }: EmailTemplateEditorModalProps) {
+  const { tUi } = useLanguage();
   if (!isOpen || !template) return null;
 
   const [subject, setSubject] = useState(template.subject);
@@ -869,7 +871,7 @@ export function EmailTemplateEditorModal({
           <div className="flex items-center gap-2 text-xs text-muted-text">
             <span>Version: <strong className="text-text">v{template.version}</strong></span>
             <span>•</span>
-            <span>Category: <strong className="text-text capitalize">{template.category}</strong></span>
+            <span>{tUi("admin.faqs.categories_filter_label")}<strong className="text-text capitalize">{template.category}</strong></span>
           </div>
 
           <div className="flex items-center gap-2">
@@ -880,8 +882,7 @@ export function EmailTemplateEditorModal({
               onClick={onClose}
               className="text-xs h-8"
             >
-              Close
-            </Button>
+              {tUi("admin.team.btn_close")}</Button>
             <Button
               type="button"
               size="sm"

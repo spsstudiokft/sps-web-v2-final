@@ -57,6 +57,7 @@ import { GalleryItemType } from "../../../lib/mediaUtils";
 import { parseVideoUrl } from "../../../lib/mediaUtils";
 import { createVideoPosterFromUrl, uploadMediaFile } from "../../../lib/uploadHelper";
 import { useAuth } from "../../../contexts/AuthContext";
+import { useLanguage } from "../../../contexts/LanguageContext";
 
 interface Props {
   images: GalleryMediaItem[];
@@ -81,6 +82,7 @@ export function ImageGalleryManager({
   categoryName = "photos",
   portfolioItemId
 }: Props) {
+  const { tUi, currentLanguage } = useLanguage();
   const { fetchApi } = useApi();
   const { token } = useAuth();
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -126,7 +128,7 @@ export function ImageGalleryManager({
   const handleGenerateMissingVideoPosters = async () => {
     if (!portfolioItemId || isGeneratingVideoPosters || missingVideoPosterCount === 0) return;
     setIsGeneratingVideoPosters(true);
-    setRestructureFeedback({ type: "info", message: `${missingVideoPosterCount} videóhoz készül automatikus poster-kép…` });
+    setRestructureFeedback({ type: "info", message: tUi("admin.portfolio.gallery.poster_generating_info", currentLanguage, { count: missingVideoPosterCount }) });
     let updatedImages = [...images];
     let generated = 0;
     let failed = 0;
@@ -136,7 +138,7 @@ export function ImageGalleryManager({
       if (!isVideo || image.thumbnail_url?.trim() || parseVideoUrl(image.url).type !== "upload") continue;
       try {
         const posterFile = await createVideoPosterFromUrl(image.url, image.filename || "video.mp4");
-        if (!posterFile) throw new Error("A böngésző nem tudott képkockát kinyerni ebből a videóból.");
+        if (!posterFile) throw new Error(tUi("admin.portfolio.gallery.poster_extract_failed", currentLanguage));
         const result = await uploadMediaFile(posterFile, {
           token,
           projectName,
@@ -151,7 +153,7 @@ export function ImageGalleryManager({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ item: updatedItem }),
         });
-        if (!response.ok) throw new Error("A poster-kép nem menthető a galériához.");
+        if (!response.ok) throw new Error(tUi("admin.portfolio.gallery.poster_save_failed", currentLanguage));
         updatedImages = updatedImages.map((current) => current.id === image.id ? updatedItem : current);
         onChange(updatedImages);
         generated += 1;
@@ -164,7 +166,9 @@ export function ImageGalleryManager({
     setIsGeneratingVideoPosters(false);
     setRestructureFeedback({
       type: failed ? "error" : "success",
-      message: failed ? `${generated} poster elkészült, ${failed} videóhoz nem sikerült képkockát készíteni.` : `${generated} hiányzó videó-poster sikeresen elkészült.`,
+      message: failed
+        ? tUi("admin.portfolio.gallery.poster_result_partial", currentLanguage, { generated, failed })
+        : tUi("admin.portfolio.gallery.poster_result_success", currentLanguage, { count: generated }),
     });
   };
 
@@ -176,7 +180,7 @@ export function ImageGalleryManager({
       setIsBatchRestructuring(true);
       setRestructureFeedback({
         type: "info",
-        message: `Standardizing filenames in storage bucket and generating <10MB optimized images for unstructured items...`
+        message: tUi("admin.portfolio.gallery.restructure_info", currentLanguage)
       });
 
       const res = await fetchApi("/api/admin/media/batch-restructure", {
@@ -192,7 +196,7 @@ export function ImageGalleryManager({
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to batch restructure files in storage bucket.");
+        throw new Error(err.error || tUi("admin.portfolio.gallery.restructure_storage_failed", currentLanguage));
       }
 
       const data = await res.json();
@@ -203,7 +207,11 @@ export function ImageGalleryManager({
       const sum = data.summary;
       setRestructureFeedback({
         type: "success",
-        message: `Restructure complete: ${sum?.renamedInBucket || 0} file(s) renamed in storage bucket, ${sum?.compressedCreated || 0} under-10MB image(s) created. ${sum?.alreadyStructured || 0} already-structured file(s) kept untouched.`
+        message: tUi("admin.portfolio.gallery.restructure_success", currentLanguage, {
+          renamed: sum?.renamedInBucket || 0,
+          compressed: sum?.compressedCreated || 0,
+          structured: sum?.alreadyStructured || 0,
+        })
       });
 
       setTimeout(() => {
@@ -213,7 +221,7 @@ export function ImageGalleryManager({
       console.error("Batch restructure error:", err);
       setRestructureFeedback({
         type: "error",
-        message: err.message || "Failed to update filenames in bucket."
+        message: err.message || tUi("admin.portfolio.gallery.restructure_failed", currentLanguage)
       });
     } finally {
       setIsBatchRestructuring(false);
@@ -350,7 +358,7 @@ export function ImageGalleryManager({
 
   const handleBulkDelete = () => {
     if (selectedIds.size === 0) return;
-    if (!confirm(`Are you sure you want to delete ${selectedIds.size} media item(s)?`)) return;
+    if (!confirm(tUi("admin.portfolio.gallery.delete_confirm", currentLanguage, { count: selectedIds.size }))) return;
     
     const newImages = images.filter(img => !selectedIds.has(img.id));
     onChange(newImages);
@@ -389,7 +397,7 @@ export function ImageGalleryManager({
           <div className="relative w-full sm:w-60">
             <FontAwesomeIcon icon={faSearch} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-text text-xs" />
             <Input 
-              placeholder="Search gallery..." 
+              placeholder={tUi("admin.portfolio.gallery.search", currentLanguage)} 
               value={searchQuery}
               onChange={e => {
                 setSearchQuery(e.target.value);
@@ -410,7 +418,7 @@ export function ImageGalleryManager({
                   : "text-muted-text hover:text-text"
               }`}
             >
-              All ({images.length})
+              {tUi("admin.portfolio.gallery.filter_all_count", currentLanguage, { count: images.length })}
             </button>
             <button
               type="button"
@@ -420,10 +428,10 @@ export function ImageGalleryManager({
                   ? "bg-sky-600 text-white shadow-xs"
                   : "text-muted-text hover:text-text"
               }`}
-              title="Show only Photos (Row 1 items)"
+              title={tUi("admin.portfolio.gallery.filter_photos_hint", currentLanguage)}
             >
               <ImageIcon className="w-3 h-3" />
-              <span>Photos ({photoCount})</span>
+              <span>{tUi("admin.portfolio.gallery.filter_photo_items_count", currentLanguage, { count: photoCount })}</span>
             </button>
             <button
               type="button"
@@ -433,10 +441,10 @@ export function ImageGalleryManager({
                   ? "bg-purple-600 text-white shadow-xs"
                   : "text-muted-text hover:text-text"
               }`}
-              title="Show only Drone Aerial Videos (Row 2 items)"
+              title={tUi("admin.portfolio.gallery.filter_drone_videos_hint", currentLanguage)}
             >
               <VideoIcon className="w-3 h-3" />
-              <span>Drone Videos ({droneVideoCount})</span>
+              <span>{tUi("admin.portfolio.gallery.filter_drone_videos_count", currentLanguage, { count: droneVideoCount })}</span>
             </button>
             <button
               type="button"
@@ -446,10 +454,10 @@ export function ImageGalleryManager({
                   ? "bg-amber-600 text-white shadow-xs"
                   : "text-muted-text hover:text-text"
               }`}
-              title="Show only Interior Walkthrough Videos (Row 3 items)"
+              title={tUi("admin.portfolio.gallery.filter_interior_videos_hint", currentLanguage)}
             >
               <Film className="w-3 h-3" />
-              <span>Interior Videos ({interiorVideoCount})</span>
+              <span>{tUi("admin.portfolio.gallery.filter_interior_videos_count", currentLanguage, { count: interiorVideoCount })}</span>
             </button>
             <button
               type="button"
@@ -459,10 +467,10 @@ export function ImageGalleryManager({
                   ? "bg-emerald-600 text-white shadow-xs"
                   : "text-muted-text hover:text-text"
               }`}
-              title="Show only Drone Photos (Row 4 items)"
+              title={tUi("admin.portfolio.gallery.filter_drone_photos_hint", currentLanguage)}
             >
               <Plane className="w-3 h-3" />
-              <span>Drone Photos ({dronePhotoCount})</span>
+              <span>{tUi("admin.portfolio.gallery.filter_drone_photos_count", currentLanguage, { count: dronePhotoCount })}</span>
             </button>
           </div>
         </div>
@@ -483,20 +491,22 @@ export function ImageGalleryManager({
               }`}
               title={
                 unstructuredCount > 0
-                  ? `Standardize ${unstructuredCount} unstructured filename(s) in storage bucket & generate <10MB versions`
-                  : "All items already have structured filenames. Click to ensure all <10MB versions exist in bucket."
+                  ? tUi("admin.portfolio.gallery.restructure_hint_pending", currentLanguage, { count: unstructuredCount })
+                  : tUi("admin.portfolio.gallery.restructure_hint_complete", currentLanguage)
               }
             >
               {isBatchRestructuring ? (
                 <>
                   <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin text-primary" />
-                  <span>Restructuring in Bucket...</span>
+                  <span>{tUi("admin.portfolio.gallery.restructuring", currentLanguage)}</span>
                 </>
               ) : (
                 <>
                   <Wand2 className="w-3.5 h-3.5 mr-1.5 text-primary" />
                   <span>
-                    Auto-Structure Filenames {unstructuredCount > 0 ? `(${unstructuredCount} new)` : ""}
+                    {tUi("admin.portfolio.gallery.auto_structure", currentLanguage)} {unstructuredCount > 0
+                      ? tUi("admin.portfolio.gallery.new_count", currentLanguage, { count: unstructuredCount })
+                      : ""}
                   </span>
                 </>
               )}
@@ -510,21 +520,23 @@ export function ImageGalleryManager({
               disabled={isGeneratingVideoPosters || isUploading}
               onClick={handleGenerateMissingVideoPosters}
               className="h-8.5 border-purple-500/30 bg-purple-500/5 px-3 text-xs text-purple-600 hover:border-purple-500 hover:bg-purple-500/10 dark:text-purple-300"
-              title="Képkocka kinyerése az összes poster nélküli, közvetlenül feltöltött videóból"
+              title={tUi("admin.portfolio.gallery.poster_generate_hint", currentLanguage)}
             >
-              {isGeneratingVideoPosters ? <><Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />Poster készítése…</> : <><Film className="mr-1.5 h-3.5 w-3.5" />Hiányzó videó-posterek ({missingVideoPosterCount})</>}
+              {isGeneratingVideoPosters
+                ? <><Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />{tUi("admin.portfolio.gallery.poster_generating", currentLanguage)}</>
+                : <><Film className="mr-1.5 h-3.5 w-3.5" />{tUi("admin.portfolio.gallery.missing_posters_count", currentLanguage, { count: missingVideoPosterCount })}</>}
             </Button>
           )}
 
           {/* Upload Photos Button */}
           <label 
-            title="Upload high-resolution photos (up to 1 GB per photo)"
+            title={tUi("admin.portfolio.gallery.upload_photos_hint", currentLanguage)}
             className={`relative overflow-hidden inline-flex items-center justify-center px-3.5 py-2 rounded-xl text-xs font-semibold bg-primary text-background hover:opacity-90 transition-all cursor-pointer shadow-xs ${isUploading ? 'opacity-60 pointer-events-none' : ''}`}
           >
             {isUploading ? (
-              <><FontAwesomeIcon icon={faSpinner} spin className="mr-1.5" /> Uploading...</>
+              <><FontAwesomeIcon icon={faSpinner} spin className="mr-1.5" /> {tUi("admin.portfolio.gallery.uploading", currentLanguage)}</>
             ) : (
-              <><Upload className="w-3.5 h-3.5 mr-1.5" /> Upload Photos</>
+              <><Upload className="w-3.5 h-3.5 mr-1.5" /> {tUi("admin.portfolio.gallery.upload_photos", currentLanguage)}</>
             )}
             <input 
               type="file" 
@@ -543,11 +555,11 @@ export function ImageGalleryManager({
 
           {/* Upload Video Button */}
           <label 
-            title="Upload direct video files up to 10 GB (MP4, MOV, WebM, M4V)"
+            title={tUi("admin.portfolio.gallery.upload_video_hint", currentLanguage)}
             className={`relative overflow-hidden inline-flex items-center justify-center px-3.5 py-2 rounded-xl text-xs font-semibold bg-purple-600 text-white hover:bg-purple-700 transition-all cursor-pointer shadow-xs ${isUploading ? 'opacity-60 pointer-events-none' : ''}`}
           >
             <VideoIcon className="w-3.5 h-3.5 mr-1.5" />
-            <span>Upload Video (up to 10 GB)</span>
+            <span>{tUi("admin.portfolio.gallery.upload_video", currentLanguage)}</span>
             <input 
               ref={videoFileInputRef}
               type="file" 
@@ -566,7 +578,7 @@ export function ImageGalleryManager({
             className="text-xs h-8.5 px-3 border-border hover:border-purple-500 hover:text-purple-600 dark:hover:text-purple-400"
           >
             <LinkIcon className="w-3.5 h-3.5 mr-1.5" />
-            <span>Embed YouTube / Vimeo</span>
+            <span>{tUi("admin.portfolio.gallery.embed_video", currentLanguage)}</span>
           </Button>
         </div>
       </div>
@@ -576,11 +588,11 @@ export function ImageGalleryManager({
         <div className="flex items-center gap-2">
           <Sparkles className="w-3.5 h-3.5 text-primary" />
           <span>
-            Photos & Videos coexist in this unified gallery. Change any item's type directly on its card to assign it to Row 1 (Photos), Row 2 (Drone), or Row 3 (Interior).
+            {tUi("admin.portfolio.gallery.mixed_media_notice", currentLanguage)}
           </span>
         </div>
         <span className="font-semibold text-text">
-          {images.length} Total Media Item{images.length === 1 ? "" : "s"}
+          {tUi("admin.portfolio.gallery.total_media_count", currentLanguage, { count: images.length })}
         </span>
       </div>
 
@@ -607,6 +619,7 @@ export function ImageGalleryManager({
             type="button"
             onClick={() => setRestructureFeedback(null)}
             className="text-xs opacity-70 hover:opacity-100 ml-2"
+            aria-label={tUi("admin.portfolio.gallery.dismiss_feedback", currentLanguage)}
           >
             ✕
           </button>
@@ -621,51 +634,51 @@ export function ImageGalleryManager({
           className="text-muted-text hover:text-text transition-colors flex items-center gap-2 text-xs font-semibold select-none cursor-pointer"
         >
           <FontAwesomeIcon icon={selectedIds.size === currentImages.length && currentImages.length > 0 ? faCheckSquare : faSquare} className="text-sm" />
-          <span>{selectedIds.size === currentImages.length && currentImages.length > 0 ? "Deselect All (Page)" : "Select All (Page)"}</span>
+          <span>{selectedIds.size === currentImages.length && currentImages.length > 0 ? tUi("admin.portfolio.gallery.deselect_page", currentLanguage) : tUi("admin.portfolio.gallery.select_page", currentLanguage)}</span>
         </button>
         
         {selectedIds.size > 0 && (
           <div className="flex flex-wrap items-center gap-2 text-xs">
-            <span className="text-primary font-bold mr-1">{selectedIds.size} selected:</span>
+            <span className="text-primary font-bold mr-1">{tUi("admin.portfolio.gallery.selected_actions_count", currentLanguage, { count: selectedIds.size })}</span>
             
             <button
               type="button"
               onClick={() => handleBulkSetType("image")}
               className="px-2.5 py-1 rounded-lg bg-sky-600/10 text-sky-600 dark:text-sky-400 border border-sky-600/20 hover:bg-sky-600 hover:text-white transition-colors flex items-center gap-1 font-semibold"
-              title="Set selected items as Photo (Row 1)"
+              title={tUi("admin.portfolio.gallery.set_photo_hint", currentLanguage)}
             >
               <ImageIcon className="w-3 h-3" />
-              <span>Set as Photo</span>
+              <span>{tUi("admin.portfolio.gallery.set_photo", currentLanguage)}</span>
             </button>
 
             <button
               type="button"
               onClick={() => handleBulkSetType("drone_video")}
               className="px-2.5 py-1 rounded-lg bg-purple-600/10 text-purple-600 dark:text-purple-400 border border-purple-600/20 hover:bg-purple-600 hover:text-white transition-colors flex items-center gap-1 font-semibold"
-              title="Set selected items as Drone Video (Row 2)"
+              title={tUi("admin.portfolio.gallery.set_drone_video_hint", currentLanguage)}
             >
               <VideoIcon className="w-3 h-3" />
-              <span>Set as Drone Video</span>
+              <span>{tUi("admin.portfolio.gallery.set_drone_video", currentLanguage)}</span>
             </button>
 
             <button
               type="button"
               onClick={() => handleBulkSetType("interior_video")}
               className="px-2.5 py-1 rounded-lg bg-amber-600/10 text-amber-600 dark:text-amber-400 border border-amber-600/20 hover:bg-amber-600 hover:text-white transition-colors flex items-center gap-1 font-semibold"
-              title="Set selected items as Interior Video (Row 3)"
+              title={tUi("admin.portfolio.gallery.set_interior_video_hint", currentLanguage)}
             >
               <Film className="w-3 h-3" />
-              <span>Set as Interior Video</span>
+              <span>{tUi("admin.portfolio.gallery.set_interior_video", currentLanguage)}</span>
             </button>
 
             <button
               type="button"
               onClick={() => handleBulkSetType("drone_photo")}
               className="px-2.5 py-1 rounded-lg bg-emerald-600/10 text-emerald-600 dark:text-emerald-400 border border-emerald-600/20 hover:bg-emerald-600 hover:text-white transition-colors flex items-center gap-1 font-semibold"
-              title="Set selected items as Drone Photo (Row 4)"
+              title={tUi("admin.portfolio.gallery.set_drone_photo_hint", currentLanguage)}
             >
               <Plane className="w-3 h-3" />
-              <span>Set as Drone Photo</span>
+              <span>{tUi("admin.portfolio.gallery.set_drone_photo", currentLanguage)}</span>
             </button>
 
             <Button 
@@ -675,8 +688,7 @@ export function ImageGalleryManager({
               onClick={handleBulkDelete} 
               className="h-7 text-xs ml-1"
             >
-              <FontAwesomeIcon icon={faTrash} className="mr-1.5" /> Delete Selected
-            </Button>
+              <FontAwesomeIcon icon={faTrash} className="mr-1.5" /> {tUi("admin.submissions.bulk_delete")}</Button>
           </div>
         )}
       </div>
@@ -715,7 +727,11 @@ export function ImageGalleryManager({
       {totalPages > 1 && (
         <div className="flex items-center justify-between pt-4 border-t border-border mt-6">
           <span className="text-xs text-muted-text">
-            Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, filteredImages.length)} of {filteredImages.length}
+            {tUi("admin.portfolio.gallery.pagination", currentLanguage, {
+              from: (currentPage - 1) * itemsPerPage + 1,
+              to: Math.min(currentPage * itemsPerPage, filteredImages.length),
+              total: filteredImages.length,
+            })}
           </span>
           <div className="flex gap-2">
             <Button 
@@ -752,12 +768,11 @@ export function ImageGalleryManager({
             <Layers className="w-6 h-6 opacity-60" />
           </div>
           <div className="max-w-md mx-auto space-y-1">
-            <h4 className="text-sm font-bold text-text">No Media Items in this View</h4>
+            <h4 className="text-sm font-bold text-text">{tUi("admin.portfolio.gallery.no_items", currentLanguage)}</h4>
             <p className="text-xs text-muted-text">
               {images.length === 0 
-                ? "Add high-resolution photos, upload direct MP4 video files, or embed YouTube and Vimeo video streams into this gallery."
-                : "No media items matched your current search or type filter."}
-            </p>
+                ? tUi("admin.portfolio.gallery.no_items_empty", currentLanguage)
+                : tUi("admin.portfolio.gallery.no_items_filter", currentLanguage)}</p>
           </div>
           {images.length === 0 && (
             <div className="flex items-center justify-center gap-3 pt-2">
@@ -768,7 +783,7 @@ export function ImageGalleryManager({
                 className="text-xs"
               >
                 <LinkIcon className="w-3.5 h-3.5 mr-1.5 text-purple-500" />
-                Embed Video
+                {tUi("admin.portfolio.gallery.embed_video", currentLanguage)}
               </Button>
             </div>
           )}

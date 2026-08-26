@@ -131,7 +131,7 @@ function SortableCategoryCard({
             {...listeners}
             className="p-1.5 mt-0.5 text-muted-text hover:text-text cursor-grab active:cursor-grabbing rounded-lg hover:bg-background/80 transition-colors shrink-0"
             title={tUi("admin.faq_categories.drag_reorder", currentLanguage)}
-            aria-label="Drag to reorder"
+            aria-label={tUi("admin.pricing.drag_reorder")}
           >
             <GripVertical className="w-4 h-4" />
           </button>
@@ -329,7 +329,7 @@ function SortableCategoryRow({
           {...listeners}
           className="p-1 text-muted-text hover:text-text cursor-grab active:cursor-grabbing rounded hover:bg-surface transition-colors"
           title={tUi("admin.faq_categories.drag_reorder", currentLanguage)}
-          aria-label="Drag to reorder"
+          aria-label={tUi("admin.pricing.drag_reorder")}
         >
           <GripVertical className="w-4 h-4 inline-block" />
         </button>
@@ -424,7 +424,7 @@ function SortableCategoryRow({
             disabled={isFirst}
             className="p-1 text-muted-text hover:text-text disabled:opacity-20 rounded hover:bg-surface transition-colors"
             title={tUi("admin.faq_categories.move_up", currentLanguage)}
-            aria-label="Move up"
+            aria-label={tUi("admin.faq_categories.move_up")}
           >
             <ChevronUp className="w-3.5 h-3.5" />
           </button>
@@ -434,7 +434,7 @@ function SortableCategoryRow({
             disabled={isLast}
             className="p-1 text-muted-text hover:text-text disabled:opacity-20 rounded hover:bg-surface transition-colors"
             title={tUi("admin.faq_categories.move_down", currentLanguage)}
-            aria-label="Move down"
+            aria-label={tUi("admin.faq_categories.move_down")}
           >
             <ChevronDown className="w-3.5 h-3.5" />
           </button>
@@ -953,7 +953,7 @@ export default function FaqCategoriesPage() {
                       : "text-muted-text hover:text-text"
                   }`}
                   title={tUi("admin.faq_categories.view_cards", currentLanguage)}
-                  aria-label="Card View"
+                  aria-label={tUi("admin.faq_categories.view_cards")}
                 >
                   <LayoutGrid className="w-4 h-4" />
                 </button>
@@ -966,7 +966,7 @@ export default function FaqCategoriesPage() {
                       : "text-muted-text hover:text-text"
                   }`}
                   title={tUi("admin.faq_categories.view_table", currentLanguage)}
-                  aria-label="Table View"
+                  aria-label={tUi("admin.faq_categories.view_table")}
                 >
                   <List className="w-4 h-4" />
                 </button>
@@ -1134,7 +1134,7 @@ export default function FaqCategoriesPage() {
                 <option value={10}>10</option>
                 <option value={25}>25</option>
                 <option value={50}>50</option>
-                <option value={0}>All</option>
+                <option value={0}>{tUi("common.all")}</option>
               </select>
             </div>
           </div>

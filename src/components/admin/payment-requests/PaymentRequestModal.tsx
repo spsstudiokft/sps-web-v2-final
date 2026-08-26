@@ -1,3 +1,4 @@
+import { useLanguage } from "../../../contexts/LanguageContext";
 import React, { useState, useEffect, useRef } from "react";
 import { 
   X, 
@@ -45,6 +46,7 @@ export function PaymentRequestModal({
   showToast,
   categories = []
 }: PaymentRequestModalProps) {
+  const { tUi } = useLanguage();
   const isEditing = !!requestToEdit;
   const isResubmitting = requestToEdit && (requestToEdit.status === "denied" || requestToEdit.status === "on_hold");
 
@@ -274,7 +276,7 @@ export function PaymentRequestModal({
               ) : (
                 <>
                   <CreditCard className="w-5 h-5 text-primary" />
-                  <span>New Payment Request</span>
+                  <span>{tUi("admin.payment_requests.new")}</span>
                 </>
               )}
             </h2>
@@ -343,7 +345,7 @@ export function PaymentRequestModal({
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <label className="block text-xs font-semibold text-text mb-1">
-                Amount <span className="text-rose-500">*</span>
+                {tUi("admin.budget.table.th_amount")}<span className="text-rose-500">*</span>
               </label>
               <div className="relative">
                 <DollarSign className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-text" />
@@ -362,8 +364,7 @@ export function PaymentRequestModal({
 
             <div>
               <label className="block text-xs font-semibold text-text mb-1">
-                Currency
-              </label>
+                {tUi("admin.extra_services.field_currency")}</label>
               <select
                 value={currency}
                 onChange={(e) => setCurrency(e.target.value)}
@@ -480,9 +481,9 @@ export function PaymentRequestModal({
 
           {/* 5. Payment Details (Due Date, Beneficiary, Method) */}
           <div>
-            <label className="block text-xs font-semibold text-text mb-1">Linked Project <span className="font-normal text-muted-text">(optional)</span></label>
+            <label className="block text-xs font-semibold text-text mb-1">{tUi("admin.budget.modal.linked_project")}<span className="font-normal text-muted-text">{tUi("admin.budget.optional")}</span></label>
             <select value={projectId} onChange={(e) => setProjectId(e.target.value)} className="w-full px-3 py-2 text-xs rounded-lg border border-border bg-background text-text focus:outline-none focus:ring-1 focus:ring-primary">
-              <option value="">-- No project linked --</option>
+              <option value="">{tUi("admin.budget.modal.no_project")}</option>
               {projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
             </select>
           </div>
@@ -610,8 +611,7 @@ export function PaymentRequestModal({
                         rel="noreferrer"
                         className="text-[11px] text-primary hover:underline font-medium px-2 py-0.5"
                       >
-                        View
-                      </a>
+                        {tUi("admin.clients.view")}</a>
                       <button
                         type="button"
                         onClick={() => removeAttachment(att.id)}
@@ -635,8 +635,7 @@ export function PaymentRequestModal({
             disabled={isSubmitting}
             className="px-4 py-2 text-xs font-medium text-muted-text hover:text-text rounded-lg transition-colors cursor-pointer"
           >
-            Cancel
-          </button>
+            {tUi("admin.clients.cancel")}</button>
           <button
             type="button"
             onClick={handleSubmit}
@@ -656,7 +655,7 @@ export function PaymentRequestModal({
             ) : isEditing ? (
               <>
                 <Check className="w-3.5 h-3.5" />
-                <span>Save Changes</span>
+                <span>{tUi("admin.clients.save_changes")}</span>
               </>
             ) : (
               <>

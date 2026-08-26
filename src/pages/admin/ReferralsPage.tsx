@@ -1,3 +1,4 @@
+import { useLanguage } from "../../contexts/LanguageContext";
 import React, { useState, useEffect, useCallback } from "react";
 import { 
   Gift, 
@@ -48,6 +49,7 @@ import {
 } from "../../lib/currency";
 
 export default function ReferralsPage() {
+  const { tUi } = useLanguage();
   const [activeTab, setActiveTab] = useState<"overview" | "referrals" | "tiers" | "rewards" | "settings">("overview");
   
   // Data states
@@ -86,8 +88,8 @@ export default function ReferralsPage() {
     rewardType: "store_credit",
     rewardValue: 25,
     currency: "USD",
-    title: "Admin VIP Credit",
-    description: "Bonus VIP credit issued by SPS Studio management.",
+    title: tUi("admin.referrals.runtime.default_reward_title"),
+    description: tUi("admin.referrals.runtime.default_reward_description"),
     expiresInDays: 90
   });
   const [issuingReward, setIssuingReward] = useState(false);
@@ -170,7 +172,7 @@ export default function ReferralsPage() {
       if (Array.isArray(clientsData)) setClientList(clientsData);
     } catch (err: any) {
       console.error("Error loading referral admin data:", err);
-      setError(err.message || "Failed to load referral program data");
+      setError(err.message || tUi("admin.referrals.runtime.load_failed"));
     } finally {
       setLoading(false);
     }
@@ -195,12 +197,12 @@ export default function ReferralsPage() {
 
       if (!res.ok) {
         const d = await res.json();
-        throw new Error(d.error || "Failed to update referral status");
+        throw new Error(d.error || tUi("admin.referrals.runtime.status_update_failed"));
       }
 
       await loadAllData();
     } catch (err: any) {
-      alert(err.message || "Failed to update status");
+      alert(err.message || tUi("admin.referrals.runtime.status_update_failed"));
     }
   };
 
@@ -229,14 +231,14 @@ export default function ReferralsPage() {
 
       if (!res.ok) {
         const d = await res.json();
-        throw new Error(d.error || "Failed to save tier");
+        throw new Error(d.error || tUi("admin.referrals.runtime.tier_save_failed"));
       }
 
       setIsTierModalOpen(false);
       setEditingTier(null);
       await loadAllData();
     } catch (err: any) {
-      alert(err.message || "Failed to save tier");
+      alert(err.message || tUi("admin.referrals.runtime.tier_save_failed"));
     } finally {
       setSavingTier(false);
     }
@@ -244,7 +246,7 @@ export default function ReferralsPage() {
 
   // Tier Delete
   const handleDeleteTier = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this referral tier?")) return;
+    if (!confirm(tUi("admin.referrals.runtime.tier_delete_confirm"))) return;
 
     try {
       const token = localStorage.getItem("admin_token") || localStorage.getItem("token");
@@ -255,12 +257,12 @@ export default function ReferralsPage() {
 
       if (!res.ok) {
         const d = await res.json();
-        throw new Error(d.error || "Failed to delete tier");
+        throw new Error(d.error || tUi("admin.referrals.runtime.tier_delete_failed"));
       }
 
       await loadAllData();
     } catch (err: any) {
-      alert(err.message || "Failed to delete tier");
+      alert(err.message || tUi("admin.referrals.runtime.tier_delete_failed"));
     }
   };
 
@@ -284,14 +286,14 @@ export default function ReferralsPage() {
 
       if (!res.ok) {
         const d = await res.json();
-        throw new Error(d.error || "Failed to save program settings");
+        throw new Error(d.error || tUi("admin.referrals.runtime.settings_save_failed"));
       }
 
       setSettingsSuccess(true);
       setTimeout(() => setSettingsSuccess(false), 3000);
       await loadAllData();
     } catch (err: any) {
-      alert(err.message || "Failed to save settings");
+      alert(err.message || tUi("admin.referrals.runtime.settings_save_failed"));
     } finally {
       setSavingSettings(false);
     }
@@ -301,7 +303,7 @@ export default function ReferralsPage() {
   const handleIssueManualReward = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!manualRewardModal.userId) {
-      alert("User ID is required");
+      alert(tUi("admin.referrals.runtime.user_required"));
       return;
     }
 
@@ -327,14 +329,14 @@ export default function ReferralsPage() {
 
       if (!res.ok) {
         const d = await res.json();
-        throw new Error(d.error || "Failed to issue reward");
+        throw new Error(d.error || tUi("admin.referrals.runtime.reward_issue_failed"));
       }
 
       setManualRewardModal(prev => ({ ...prev, isOpen: false }));
       await loadAllData();
-      alert("Reward voucher issued successfully!");
+      alert(tUi("admin.referrals.runtime.reward_issued"));
     } catch (err: any) {
-      alert(err.message || "Failed to issue reward");
+      alert(err.message || tUi("admin.referrals.runtime.reward_issue_failed"));
     } finally {
       setIssuingReward(false);
     }
@@ -355,12 +357,12 @@ export default function ReferralsPage() {
 
       if (!res.ok) {
         const d = await res.json();
-        throw new Error(d.error || "Failed to update voucher status");
+        throw new Error(d.error || tUi("admin.referrals.runtime.voucher_update_failed"));
       }
 
       await loadAllData();
     } catch (err: any) {
-      alert(err.message || "Failed to update voucher");
+      alert(err.message || tUi("admin.referrals.runtime.voucher_update_failed"));
     }
   };
 
@@ -395,7 +397,7 @@ export default function ReferralsPage() {
     return (
       <div className="flex flex-col items-center justify-center p-16 space-y-3">
         <div className="w-9 h-9 border-3 border-primary border-t-transparent rounded-full animate-spin" />
-        <p className="text-sm text-muted-text font-medium">Loading Referral Management...</p>
+        <p className="text-sm text-muted-text font-medium">{tUi("admin.referrals.page.loading_referral_management")}</p>
       </div>
     );
   }
@@ -410,12 +412,10 @@ export default function ReferralsPage() {
               <Gift className="w-5 h-5" />
             </div>
             <h1 className="text-2xl font-bold text-text font-heading">
-              VIP Tiered Referral Program
-            </h1>
+              {tUi("admin.referrals.page.vip_tiered_referral_program")}</h1>
           </div>
           <p className="text-xs sm:text-sm text-muted-text mt-1">
-            Manage VIP membership tiers, automate referral rewards, track client invite networks, and issue credits.
-          </p>
+            {tUi("admin.referrals.page.manage_vip_membership_tiers_automate_referral_rewards_")}</p>
         </div>
 
         <div className="flex items-center gap-2">
@@ -426,7 +426,7 @@ export default function ReferralsPage() {
             className="gap-1.5 text-xs"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
-            <span>Refresh</span>
+            <span>{tUi("admin.faq_categories.refresh")}</span>
           </Button>
           <Button
             size="sm"
@@ -450,7 +450,7 @@ export default function ReferralsPage() {
             className="gap-1.5 text-xs"
           >
             <Plus className="w-3.5 h-3.5" />
-            <span>Add New Tier</span>
+            <span>{tUi("admin.referrals.page.add_new_tier")}</span>
           </Button>
         </div>
       </div>
@@ -461,9 +461,9 @@ export default function ReferralsPage() {
           <Card className="border-border shadow-2xs">
             <CardContent className="p-4 flex items-center justify-between">
               <div>
-                <p className="text-xs text-muted-text font-medium">Total Referrals Logged</p>
+                <p className="text-xs text-muted-text font-medium">{tUi("admin.referrals.page.total_referrals_logged")}</p>
                 <h3 className="text-2xl font-bold text-text font-mono mt-1">{stats.total_referrals}</h3>
-                <p className="text-[11px] text-muted-text mt-0.5">{stats.pending_referrals} pending first shoot</p>
+                <p className="text-[11px] text-muted-text mt-0.5">{stats.pending_referrals} {tUi("admin.referrals.page.pending_first_shoot")}</p>
               </div>
               <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center">
                 <Users className="w-5 h-5" />
@@ -474,7 +474,7 @@ export default function ReferralsPage() {
           <Card className="border-border shadow-2xs">
             <CardContent className="p-4 flex items-center justify-between">
               <div>
-                <p className="text-xs text-muted-text font-medium">Successful Conversions</p>
+                <p className="text-xs text-muted-text font-medium">{tUi("admin.referrals.page.successful_conversions")}</p>
                 <h3 className="text-2xl font-bold text-emerald-600 dark:text-emerald-400 font-mono mt-1">
                   {stats.converted_referrals}
                 </h3>
@@ -494,11 +494,11 @@ export default function ReferralsPage() {
           <Card className="border-border shadow-2xs">
             <CardContent className="p-4 flex items-center justify-between">
               <div>
-                <p className="text-xs text-muted-text font-medium">Referred Revenue</p>
+                <p className="text-xs text-muted-text font-medium">{tUi("admin.referrals.page.referred_revenue")}</p>
                 <h3 className="text-2xl font-bold text-text font-mono mt-1">
                   {formatMoney(stats.total_conversion_value)}
                 </h3>
-                <p className="text-[11px] text-muted-text mt-0.5">From converted client bookings</p>
+                <p className="text-[11px] text-muted-text mt-0.5">{tUi("admin.referrals.page.from_converted_client_bookings")}</p>
               </div>
               <div className="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
                 <DollarSign className="w-5 h-5" />
@@ -509,13 +509,12 @@ export default function ReferralsPage() {
           <Card className="border-border shadow-2xs">
             <CardContent className="p-4 flex items-center justify-between">
               <div>
-                <p className="text-xs text-muted-text font-medium">Rewards & Credits Issued</p>
+                <p className="text-xs text-muted-text font-medium">{tUi("admin.referrals.page.rewards_credits_issued")}</p>
                 <h3 className="text-2xl font-bold text-amber-600 dark:text-amber-400 font-mono mt-1">
                   {stats.total_rewards_issued}
                 </h3>
                 <p className="text-[11px] text-amber-600 font-medium mt-0.5">
-                  {stats.active_referrers_count} active VIP advocates
-                </p>
+                  {stats.active_referrers_count} {tUi("admin.referrals.page.active_vip_advocates")}</p>
               </div>
               <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
                 <Sparkles className="w-5 h-5" />
@@ -537,7 +536,7 @@ export default function ReferralsPage() {
             }`}
           >
             <TrendingUp className="w-4 h-4" />
-            <span>Overview & Top Referrers</span>
+            <span>{tUi("admin.referrals.page.overview_top_referrers")}</span>
           </button>
 
           <button
@@ -549,7 +548,7 @@ export default function ReferralsPage() {
             }`}
           >
             <Users className="w-4 h-4" />
-            <span>Referrals Log ({referrals.length})</span>
+            <span>{tUi("admin.referrals.page.referrals_log")}{referrals.length})</span>
           </button>
 
           <button
@@ -561,7 +560,7 @@ export default function ReferralsPage() {
             }`}
           >
             <Trophy className="w-4 h-4" />
-            <span>VIP Tiers ({tiers.length})</span>
+            <span>{tUi("admin.referrals.page.vip_tiers")}{tiers.length})</span>
           </button>
 
           <button
@@ -573,7 +572,7 @@ export default function ReferralsPage() {
             }`}
           >
             <Tag className="w-4 h-4" />
-            <span>Issued Rewards & Vouchers ({rewards.length})</span>
+            <span>{tUi("admin.referrals.page.issued_rewards_vouchers")}{rewards.length})</span>
           </button>
 
           <button
@@ -585,7 +584,7 @@ export default function ReferralsPage() {
             }`}
           >
             <Settings className="w-4 h-4" />
-            <span>Program Settings</span>
+            <span>{tUi("admin.referrals.page.program_settings")}</span>
           </button>
         </nav>
       </div>
@@ -599,27 +598,25 @@ export default function ReferralsPage() {
               <CardHeader className="p-5 pb-3">
                 <CardTitle className="text-base font-bold flex items-center gap-2">
                   <Crown className="w-4 h-4 text-amber-500" />
-                  <span>Top Client Advocates Leaderboard</span>
+                  <span>{tUi("admin.referrals.page.top_client_advocates_leaderboard")}</span>
                 </CardTitle>
                 <CardDescription className="text-xs">
-                  Clients who generate the highest volume of referral bookings and revenue.
-                </CardDescription>
+                  {tUi("admin.referrals.page.clients_who_generate_the_highest_volume_of_referral_bo")}</CardDescription>
               </CardHeader>
               <CardContent className="p-5 pt-0">
                 {stats.top_referrers.length === 0 ? (
                   <div className="p-6 text-center text-muted-text text-xs">
-                    No converted referrals yet.
-                  </div>
+                    {tUi("admin.referrals.page.no_converted_referrals_yet")}</div>
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="w-full text-left text-xs">
                       <thead>
                         <tr className="border-b border-border text-muted-text uppercase text-[10px] font-semibold tracking-wider">
-                          <th className="pb-2 px-2">Rank & Advocate</th>
-                          <th className="pb-2 px-2">Current Tier</th>
-                          <th className="pb-2 px-2 text-center">Successful Invites</th>
-                          <th className="pb-2 px-2 text-right">Referred Revenue</th>
-                          <th className="pb-2 px-2 text-right">Actions</th>
+                          <th className="pb-2 px-2">{tUi("admin.referrals.page.rank_advocate")}</th>
+                          <th className="pb-2 px-2">{tUi("admin.referrals.page.current_tier")}</th>
+                          <th className="pb-2 px-2 text-center">{tUi("admin.referrals.page.successful_invites")}</th>
+                          <th className="pb-2 px-2 text-right">{tUi("admin.referrals.page.referred_revenue")}</th>
+                          <th className="pb-2 px-2 text-right">{tUi("admin.clients.th_actions")}</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-border/50">
@@ -674,7 +671,7 @@ export default function ReferralsPage() {
                                 className="text-[11px] h-7 gap-1"
                               >
                                 <Gift className="w-3 h-3 text-primary" />
-                                <span>Issue Bonus</span>
+                                <span>{tUi("admin.referrals.page.issue_bonus")}</span>
                               </Button>
                             </td>
                           </tr>
@@ -691,16 +688,15 @@ export default function ReferralsPage() {
               <CardHeader className="p-5 pb-3">
                 <CardTitle className="text-base font-bold flex items-center gap-2">
                   <Sliders className="w-4 h-4 text-primary" />
-                  <span>Program Quick Rules</span>
+                  <span>{tUi("admin.referrals.page.program_quick_rules")}</span>
                 </CardTitle>
                 <CardDescription className="text-xs">
-                  Current automated validation rules.
-                </CardDescription>
+                  {tUi("admin.referrals.page.current_automated_validation_rules")}</CardDescription>
               </CardHeader>
               <CardContent className="p-5 pt-0 space-y-3.5 text-xs">
                 <div className="p-3 rounded-xl bg-muted/40 border border-border/60 space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-muted-text font-medium">Program Status</span>
+                    <span className="text-muted-text font-medium">{tUi("admin.referrals.page.program_status")}</span>
                     <span className={`px-2 py-0.5 rounded-full font-bold text-[10px] uppercase ${
                       settings?.is_enabled 
                         ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
@@ -710,7 +706,7 @@ export default function ReferralsPage() {
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-muted-text font-medium">Referee Reward</span>
+                    <span className="text-muted-text font-medium">{tUi("admin.referrals.page.referee_reward")}</span>
                     <span className="font-semibold text-text">
                       {settings?.referee_reward_type === "discount_percent" 
                         ? `${settings?.referee_reward_value}% OFF` 
@@ -718,13 +714,13 @@ export default function ReferralsPage() {
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-muted-text font-medium">Trigger Event</span>
+                    <span className="text-muted-text font-medium">{tUi("admin.referrals.page.trigger_event")}</span>
                     <span className="font-semibold text-text uppercase text-[10px]">
                       {settings?.referral_trigger === "on_first_paid_invoice" ? "First Paid Invoice" : "Registration"}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-muted-text font-medium">Min Qualifying Invoice</span>
+                    <span className="text-muted-text font-medium">{tUi("admin.referrals.page.min_qualifying_invoice")}</span>
                     <span className="font-mono font-semibold text-text">
                       {formatMoney(settings?.min_invoice_amount_for_conversion || 0)}
                     </span>
@@ -738,7 +734,7 @@ export default function ReferralsPage() {
                     className="w-full text-xs gap-1.5"
                   >
                     <Settings className="w-3.5 h-3.5" />
-                    <span>Adjust Program Settings</span>
+                    <span>{tUi("admin.referrals.page.adjust_program_settings")}</span>
                   </Button>
                 </div>
               </CardContent>
@@ -756,7 +752,7 @@ export default function ReferralsPage() {
               <Search className="w-3.5 h-3.5 text-muted-text absolute left-3 top-3" />
               <Input
                 type="text"
-                placeholder="Search advocate, referee, code..."
+                placeholder={tUi("admin.referrals.page.search_advocate_referee_code")}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-8 text-xs h-9"
@@ -764,17 +760,17 @@ export default function ReferralsPage() {
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-text font-medium">Status:</span>
+              <span className="text-xs text-muted-text font-medium">{tUi("admin.projects.status_filter_label")}</span>
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
                 className="p-1.5 px-2.5 rounded-lg border border-border bg-surface text-xs text-text focus:outline-none focus:ring-1 focus:ring-primary"
               >
-                <option value="all">All Statuses ({referrals.length})</option>
-                <option value="converted">Converted</option>
-                <option value="pending">Pending</option>
-                <option value="rejected">Rejected</option>
-                <option value="fraud_suspected">Under Review / Fraud</option>
+                <option value="all">{tUi("admin.referrals.page.all_statuses")}{referrals.length})</option>
+                <option value="converted">{tUi("admin.referrals.page.converted")}</option>
+                <option value="pending">{tUi("admin.team.status_pending")}</option>
+                <option value="rejected">{tUi("admin.budget.stats.rejected")}</option>
+                <option value="fraud_suspected">{tUi("admin.referrals.page.under_review_fraud")}</option>
               </select>
             </div>
           </div>
@@ -785,20 +781,20 @@ export default function ReferralsPage() {
               {filteredReferrals.length === 0 ? (
                 <div className="p-12 text-center text-muted-text text-xs space-y-2">
                   <Users className="w-8 h-8 mx-auto opacity-40" />
-                  <p>No referral relationships found matching your filter.</p>
+                  <p>{tUi("admin.referrals.page.no_referral_relationships_found_matching_your_filter")}</p>
                 </div>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs">
                     <thead>
                       <tr className="border-b border-border bg-muted/20 text-muted-text uppercase text-[10px] font-semibold tracking-wider">
-                        <th className="py-3 px-4">Referrer (Advocate)</th>
-                        <th className="py-3 px-4">Referee (Invited Client)</th>
-                        <th className="py-3 px-4">Referral Code</th>
-                        <th className="py-3 px-4">Status</th>
-                        <th className="py-3 px-4">Conversion Value</th>
-                        <th className="py-3 px-4">Invited / Converted Date</th>
-                        <th className="py-3 px-4 text-right">Actions</th>
+                        <th className="py-3 px-4">{tUi("admin.referrals.page.referrer_advocate")}</th>
+                        <th className="py-3 px-4">{tUi("admin.referrals.page.referee_invited_client")}</th>
+                        <th className="py-3 px-4">{tUi("admin.referrals.page.referral_code")}</th>
+                        <th className="py-3 px-4">{tUi("admin.clients.th_status")}</th>
+                        <th className="py-3 px-4">{tUi("admin.referrals.page.conversion_value")}</th>
+                        <th className="py-3 px-4">{tUi("admin.referrals.page.invited_converted_date")}</th>
+                        <th className="py-3 px-4 text-right">{tUi("admin.clients.th_actions")}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border/60">
@@ -820,23 +816,19 @@ export default function ReferralsPage() {
                           <td className="py-3 px-4">
                             {r.status === "converted" && (
                               <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-semibold text-[10px] flex items-center gap-1 w-fit">
-                                <CheckCircle2 className="w-3 h-3" /> Converted
-                              </span>
+                                <CheckCircle2 className="w-3 h-3" /> {tUi("admin.referrals.page.converted")}</span>
                             )}
                             {r.status === "pending" && (
                               <span className="px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300 font-semibold text-[10px] flex items-center gap-1 w-fit">
-                                <Clock className="w-3 h-3" /> Pending Booking
-                              </span>
+                                <Clock className="w-3 h-3" /> {tUi("admin.referrals.page.pending_booking")}</span>
                             )}
                             {r.status === "rejected" && (
                               <span className="px-2 py-0.5 rounded-full bg-red-500/15 text-red-700 dark:text-red-300 font-semibold text-[10px] w-fit">
-                                Rejected
-                              </span>
+                                {tUi("admin.budget.stats.rejected")}</span>
                             )}
                             {r.status === "fraud_suspected" && (
                               <span className="px-2 py-0.5 rounded-full bg-red-500/20 text-red-700 dark:text-red-300 font-semibold text-[10px] flex items-center gap-1 w-fit">
-                                <AlertTriangle className="w-3 h-3" /> Fraud Suspected
-                              </span>
+                                <AlertTriangle className="w-3 h-3" /> {tUi("admin.referrals.page.fraud_suspected")}</span>
                             )}
                           </td>
                           <td className="py-3 px-4 font-mono font-medium">
@@ -855,27 +847,25 @@ export default function ReferralsPage() {
                                   type="button"
                                   onClick={() => handleUpdateReferralStatus(r.id, "converted")}
                                   className="p-1 px-2 text-[11px] rounded bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/20 font-medium transition-colors"
-                                  title="Manually Convert & Issue Rewards"
+                                  title={tUi("admin.referrals.page.manually_convert_issue_rewards")}
                                 >
-                                  Convert
-                                </button>
+                                  {tUi("admin.referrals.page.convert")}</button>
                               )}
                               {r.status !== "rejected" && (
                                 <button
                                   type="button"
                                   onClick={() => handleUpdateReferralStatus(r.id, "rejected")}
                                   className="p-1 px-2 text-[11px] rounded bg-red-500/10 text-red-600 hover:bg-red-500/20 font-medium transition-colors"
-                                  title="Mark as Rejected / Invalid"
+                                  title={tUi("admin.referrals.page.mark_as_rejected_invalid")}
                                 >
-                                  Reject
-                                </button>
+                                  {tUi("admin.referrals.page.reject")}</button>
                               )}
                               {r.status !== "fraud_suspected" && (
                                 <button
                                   type="button"
                                   onClick={() => handleUpdateReferralStatus(r.id, "fraud_suspected")}
                                   className="p-1 px-1.5 text-[11px] rounded bg-amber-500/10 text-amber-700 hover:bg-amber-500/20 font-medium transition-colors"
-                                  title="Flag for Fraud Review"
+                                  title={tUi("admin.referrals.page.flag_for_fraud_review")}
                                 >
                                   <AlertTriangle className="w-3 h-3" />
                                 </button>
@@ -898,10 +888,9 @@ export default function ReferralsPage() {
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-base font-bold text-text">Referral VIP Tiers</h2>
+              <h2 className="text-base font-bold text-text">{tUi("admin.referrals.page.referral_vip_tiers")}</h2>
               <p className="text-xs text-muted-text">
-                Clients progress through tiers as their invited network completes bookings with SPS Studio.
-              </p>
+                {tUi("admin.referrals.page.clients_progress_through_tiers_as_their_invited_networ")}</p>
             </div>
             <Button
               size="sm"
@@ -925,7 +914,7 @@ export default function ReferralsPage() {
               className="gap-1.5 text-xs"
             >
               <Plus className="w-3.5 h-3.5" />
-              <span>Create Tier</span>
+              <span>{tUi("admin.referrals.page.create_tier")}</span>
             </Button>
           </div>
 
@@ -962,7 +951,7 @@ export default function ReferralsPage() {
                           setIsTierModalOpen(true);
                         }}
                         className="p-1.5 rounded-lg hover:bg-muted text-muted-text hover:text-text transition-colors"
-                        title="Edit Tier"
+                        title={tUi("admin.referrals.page.edit_tier")}
                       >
                         <Edit2 className="w-3.5 h-3.5" />
                       </button>
@@ -970,7 +959,7 @@ export default function ReferralsPage() {
                         type="button"
                         onClick={() => handleDeleteTier(tier.id)}
                         className="p-1.5 rounded-lg hover:bg-red-500/10 text-muted-text hover:text-red-600 transition-colors"
-                        title="Delete Tier"
+                        title={tUi("admin.referrals.page.delete_tier")}
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -979,19 +968,19 @@ export default function ReferralsPage() {
 
                   <div className="p-3 rounded-xl bg-muted/40 border border-border/60 space-y-1.5 text-xs">
                     <div className="flex items-center justify-between">
-                      <span className="text-muted-text">Min Successful Referrals:</span>
+                      <span className="text-muted-text">{tUi("admin.referrals.page.min_successful_referrals")}</span>
                       <span className="font-mono font-bold text-text">{tier.min_referrals}</span>
                     </div>
                     {tier.min_referred_revenue > 0 && (
                       <div className="flex items-center justify-between">
-                        <span className="text-muted-text">Min Referred Revenue:</span>
+                        <span className="text-muted-text">{tUi("admin.referrals.page.min_referred_revenue")}</span>
                         <span className="font-mono font-semibold text-text">
                           {formatMoney(tier.min_referred_revenue)}
                         </span>
                       </div>
                     )}
                     <div className="flex items-center justify-between">
-                      <span className="text-muted-text">Reward per Referral:</span>
+                      <span className="text-muted-text">{tUi("admin.referrals.page.reward_per_referral")}</span>
                       <span className="font-semibold text-emerald-600 font-mono">
                         {tier.reward_type === "discount_percent" 
                           ? `${tier.reward_value}% OFF` 
@@ -1002,7 +991,7 @@ export default function ReferralsPage() {
 
                   {tier.perks && tier.perks.length > 0 && (
                     <div className="space-y-1.5 pt-1">
-                      <div className="text-[11px] font-semibold text-text uppercase tracking-wider">Perks & Privileges:</div>
+                      <div className="text-[11px] font-semibold text-text uppercase tracking-wider">{tUi("admin.referrals.page.perks_privileges")}</div>
                       <ul className="space-y-1 text-xs text-muted-text">
                         {tier.perks.map((p, pIdx) => (
                           <li key={pIdx} className="flex items-start gap-1.5">
@@ -1025,10 +1014,9 @@ export default function ReferralsPage() {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-base font-bold text-text">Issued Rewards & Voucher Audit</h2>
+              <h2 className="text-base font-bold text-text">{tUi("admin.referrals.page.issued_rewards_voucher_audit")}</h2>
               <p className="text-xs text-muted-text">
-                All reward vouchers, client discounts, and referral credits generated by the system.
-              </p>
+                {tUi("admin.referrals.page.all_reward_vouchers_client_discounts_and_referral_cred")}</p>
             </div>
             <Button
               size="sm"
@@ -1052,7 +1040,7 @@ export default function ReferralsPage() {
               className="gap-1.5 text-xs"
             >
               <Plus className="w-3.5 h-3.5" />
-              <span>Issue Manual Reward</span>
+              <span>{tUi("admin.referrals.page.issue_manual_reward")}</span>
             </Button>
           </div>
 
@@ -1061,20 +1049,20 @@ export default function ReferralsPage() {
               {rewards.length === 0 ? (
                 <div className="p-12 text-center text-muted-text text-xs space-y-2">
                   <Gift className="w-8 h-8 mx-auto opacity-40" />
-                  <p>No rewards issued yet.</p>
+                  <p>{tUi("admin.referrals.page.no_rewards_issued_yet")}</p>
                 </div>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs">
                     <thead>
                       <tr className="border-b border-border bg-muted/20 text-muted-text uppercase text-[10px] font-semibold tracking-wider">
-                        <th className="py-3 px-4">Client User</th>
-                        <th className="py-3 px-4">Reward Title</th>
-                        <th className="py-3 px-4">Voucher Code</th>
-                        <th className="py-3 px-4">Type & Value</th>
-                        <th className="py-3 px-4">Status</th>
-                        <th className="py-3 px-4">Issued / Expires</th>
-                        <th className="py-3 px-4 text-right">Actions</th>
+                        <th className="py-3 px-4">{tUi("admin.referrals.page.client_user")}</th>
+                        <th className="py-3 px-4">{tUi("admin.referrals.page.reward_title")}</th>
+                        <th className="py-3 px-4">{tUi("admin.referrals.page.voucher_code")}</th>
+                        <th className="py-3 px-4">{tUi("admin.referrals.page.type_value")}</th>
+                        <th className="py-3 px-4">{tUi("admin.clients.th_status")}</th>
+                        <th className="py-3 px-4">{tUi("admin.referrals.page.issued_expires")}</th>
+                        <th className="py-3 px-4 text-right">{tUi("admin.clients.th_actions")}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border/60">
@@ -1110,8 +1098,8 @@ export default function ReferralsPage() {
                             </span>
                           </td>
                           <td className="py-3 px-4 text-muted-text font-mono text-[11px]">
-                            <div>Issued: {rw.created_at ? new Date(rw.created_at).toLocaleDateString() : "—"}</div>
-                            {rw.expires_at && <div>Exp: {new Date(rw.expires_at).toLocaleDateString()}</div>}
+                            <div>{tUi("admin.referrals.page.issued")}{rw.created_at ? new Date(rw.created_at).toLocaleDateString() : "—"}</div>
+                            {rw.expires_at && <div>{tUi("admin.referrals.page.exp")}{new Date(rw.expires_at).toLocaleDateString()}</div>}
                           </td>
                           <td className="py-3 px-4 text-right">
                             <div className="flex items-center justify-end gap-1.5">
@@ -1120,20 +1108,18 @@ export default function ReferralsPage() {
                                   type="button"
                                   onClick={() => handleUpdateRewardStatus(rw.id, "redeemed")}
                                   className="p-1 px-2 text-[11px] rounded bg-muted hover:bg-muted/80 text-text font-medium transition-colors"
-                                  title="Mark Voucher as Redeemed on Invoice"
+                                  title={tUi("admin.referrals.page.mark_voucher_as_redeemed_on_invoice")}
                                 >
-                                  Mark Redeemed
-                                </button>
+                                  {tUi("admin.referrals.page.mark_redeemed")}</button>
                               )}
                               {rw.status !== "revoked" && (
                                 <button
                                   type="button"
                                   onClick={() => handleUpdateRewardStatus(rw.id, "revoked")}
                                   className="p-1 px-2 text-[11px] rounded bg-red-500/10 text-red-600 hover:bg-red-500/20 font-medium transition-colors"
-                                  title="Revoke / Cancel Voucher"
+                                  title={tUi("admin.referrals.page.revoke_cancel_voucher")}
                                 >
-                                  Revoke
-                                </button>
+                                  {tUi("admin.referrals.page.revoke")}</button>
                               )}
                             </div>
                           </td>
@@ -1154,11 +1140,10 @@ export default function ReferralsPage() {
           <CardHeader className="p-5 pb-3">
             <CardTitle className="text-base font-bold flex items-center gap-2">
               <Settings className="w-4 h-4 text-primary" />
-              <span>Referral Program Configuration</span>
+              <span>{tUi("admin.referrals.page.referral_program_configuration")}</span>
             </CardTitle>
             <CardDescription className="text-xs">
-              Configure trigger conditions, welcome discounts for referees, and fraud limits.
-            </CardDescription>
+              {tUi("admin.referrals.page.configure_trigger_conditions_welcome_discounts_for_ref")}</CardDescription>
           </CardHeader>
 
           <CardContent className="p-5 pt-0">
@@ -1166,17 +1151,16 @@ export default function ReferralsPage() {
               {settingsSuccess && (
                 <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-xs font-medium flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 shrink-0" />
-                  <span>Program settings updated successfully!</span>
+                  <span>{tUi("admin.referrals.page.program_settings_updated_successfully")}</span>
                 </div>
               )}
 
               {/* Enable toggle */}
               <div className="flex items-center justify-between p-3 rounded-xl bg-muted/30 border border-border">
                 <div>
-                  <div className="text-xs font-semibold text-text">Enable Referral Program</div>
+                  <div className="text-xs font-semibold text-text">{tUi("admin.referrals.page.enable_referral_program")}</div>
                   <div className="text-[11px] text-muted-text">
-                    Allow clients to view their referral link, invite peers, and receive rewards.
-                  </div>
+                    {tUi("admin.referrals.page.allow_clients_to_view_their_referral_link_invite_peers")}</div>
                 </div>
                 <input
                   type="checkbox"
@@ -1188,7 +1172,7 @@ export default function ReferralsPage() {
 
               {/* Program Currency */}
               <div className="space-y-1.5">
-                <Label className="text-xs font-medium">Referral & Store Credit Currency</Label>
+                <Label className="text-xs font-medium">{tUi("admin.referrals.page.referral_store_credit_currency")}</Label>
                 <select
                   value={settings.currency || "USD"}
                   onChange={(e) => setSettings({ ...settings, currency: e.target.value })}
@@ -1201,30 +1185,28 @@ export default function ReferralsPage() {
                   ))}
                 </select>
                 <p className="text-[11px] text-muted-text">
-                  The primary currency used for referral bonus vouchers, qualifying thresholds, and client store credit balances (e.g., HUF, USD, EUR).
-                </p>
+                  {tUi("admin.referrals.page.the_primary_currency_used_for_referral_bonus_vouchers_")}</p>
               </div>
 
               {/* Trigger Condition */}
               <div className="space-y-1.5">
-                <Label className="text-xs font-medium">When is a referral considered Converted?</Label>
+                <Label className="text-xs font-medium">{tUi("admin.referrals.page.when_is_a_referral_considered_converted")}</Label>
                 <select
                   value={settings.referral_trigger}
                   onChange={(e) => setSettings({ ...settings, referral_trigger: e.target.value as any })}
                   className="w-full p-2 text-xs rounded-lg border border-border bg-surface text-text focus:outline-none focus:ring-1 focus:ring-primary"
                 >
-                  <option value="on_first_paid_invoice">On First Paid Invoice (Recommended)</option>
-                  <option value="on_registration">On Client Registration (Instant)</option>
+                  <option value="on_first_paid_invoice">{tUi("admin.referrals.page.on_first_paid_invoice_recommended")}</option>
+                  <option value="on_registration">{tUi("admin.referrals.page.on_client_registration_instant")}</option>
                 </select>
                 <p className="text-[11px] text-muted-text">
-                  Requiring a paid invoice ensures you only issue referral rewards once real revenue is generated.
-                </p>
+                  {tUi("admin.referrals.page.requiring_a_paid_invoice_ensures_you_only_issue_referr")}</p>
               </div>
 
               {/* Min invoice amount */}
               <div className="space-y-1.5">
                 <Label className="text-xs font-medium">
-                  Minimum Invoice Amount to Qualify ({getCurrencySymbol(settings.currency)})
+                  {tUi("admin.referrals.page.minimum_invoice_amount_to_qualify")}{getCurrencySymbol(settings.currency)})
                 </Label>
                 <Input
                   type="number"
@@ -1238,24 +1220,24 @@ export default function ReferralsPage() {
 
               {/* Referee welcome reward */}
               <div className="p-3.5 rounded-xl bg-muted/30 border border-border space-y-3">
-                <div className="text-xs font-semibold text-text">Referee Welcome Reward (For New Client)</div>
+                <div className="text-xs font-semibold text-text">{tUi("admin.referrals.page.referee_welcome_reward_for_new_client")}</div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1">
-                    <Label className="text-[11px] text-muted-text">Reward Type</Label>
+                    <Label className="text-[11px] text-muted-text">{tUi("admin.referrals.page.reward_type")}</Label>
                     <select
                       value={settings.referee_reward_type}
                       onChange={(e) => setSettings({ ...settings, referee_reward_type: e.target.value as any })}
                       className="w-full p-2 text-xs rounded-lg border border-border bg-surface text-text focus:outline-none focus:ring-1 focus:ring-primary"
                     >
-                      <option value="discount_percent">Percentage Discount (%)</option>
-                      <option value="store_credit">Store Credit ({getCurrencySymbol(settings.currency)})</option>
-                      <option value="fixed_discount">Fixed Amount Discount ({getCurrencySymbol(settings.currency)})</option>
+                      <option value="discount_percent">{tUi("admin.referrals.page.percentage_discount")}</option>
+                      <option value="store_credit">{tUi("admin.referrals.page.store_credit")}{getCurrencySymbol(settings.currency)})</option>
+                      <option value="fixed_discount">{tUi("admin.referrals.page.fixed_amount_discount")}{getCurrencySymbol(settings.currency)})</option>
                     </select>
                   </div>
 
                   <div className="space-y-1">
                     <Label className="text-[11px] text-muted-text">
-                      Reward Value ({settings.referee_reward_type === "discount_percent" ? "%" : getCurrencySymbol(settings.currency)})
+                      {tUi("admin.referrals.page.reward_value")}{settings.referee_reward_type === "discount_percent" ? "%" : getCurrencySymbol(settings.currency)})
                     </Label>
                     <Input
                       type="number"
@@ -1270,7 +1252,7 @@ export default function ReferralsPage() {
 
               {/* Expiration days */}
               <div className="space-y-1.5">
-                <Label className="text-xs font-medium">Voucher Expiration (Days)</Label>
+                <Label className="text-xs font-medium">{tUi("admin.referrals.page.voucher_expiration_days")}</Label>
                 <Input
                   type="number"
                   min="7"
@@ -1289,12 +1271,12 @@ export default function ReferralsPage() {
                 {savingSettings ? (
                   <>
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    <span>Saving Settings...</span>
+                    <span>{tUi("admin.settings.saving_settings")}</span>
                   </>
                 ) : (
                   <>
                     <Check className="w-3.5 h-3.5" />
-                    <span>Save Program Settings</span>
+                    <span>{tUi("admin.referrals.page.save_program_settings")}</span>
                   </>
                 )}
               </Button>
@@ -1325,11 +1307,11 @@ export default function ReferralsPage() {
 
             <form onSubmit={handleSaveTier} className="p-5 space-y-4 max-h-[80vh] overflow-y-auto">
               <div className="space-y-1">
-                <Label className="text-xs font-medium">Tier Name <span className="text-red-500">*</span></Label>
+                <Label className="text-xs font-medium">{tUi("admin.referrals.page.tier_name")}<span className="text-red-500">*</span></Label>
                 <Input
                   type="text"
                   required
-                  placeholder="e.g. Gold VIP Ambassador"
+                  placeholder={tUi("admin.referrals.page.e_g_gold_vip_ambassador")}
                   value={editingTier.name || ""}
                   onChange={(e) => setEditingTier({ ...editingTier, name: e.target.value })}
                   className="text-xs"
@@ -1338,7 +1320,7 @@ export default function ReferralsPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <Label className="text-xs font-medium">Min Successful Referrals</Label>
+                  <Label className="text-xs font-medium">{tUi("admin.referrals.page.min_successful_referrals_2")}</Label>
                   <Input
                     type="number"
                     min="0"
@@ -1351,7 +1333,7 @@ export default function ReferralsPage() {
 
                 <div className="space-y-1">
                   <Label className="text-xs font-medium">
-                    Min Referred Revenue ({getCurrencySymbol(settings?.currency)})
+                    {tUi("admin.referrals.page.min_referred_revenue_2")}{getCurrencySymbol(settings?.currency)})
                   </Label>
                   <Input
                     type="number"
@@ -1365,21 +1347,21 @@ export default function ReferralsPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <Label className="text-xs font-medium">Reward Type</Label>
+                  <Label className="text-xs font-medium">{tUi("admin.referrals.page.reward_type")}</Label>
                   <select
                     value={editingTier.reward_type || "store_credit"}
                     onChange={(e) => setEditingTier({ ...editingTier, reward_type: e.target.value as any })}
                     className="w-full p-2 text-xs rounded-lg border border-border bg-surface text-text focus:outline-none focus:ring-1 focus:ring-primary"
                   >
-                    <option value="store_credit">Store Credit ({getCurrencySymbol(settings?.currency)})</option>
-                    <option value="discount_percent">Discount Percentage (%)</option>
-                    <option value="fixed_discount">Fixed Discount ({getCurrencySymbol(settings?.currency)})</option>
+                    <option value="store_credit">{tUi("admin.referrals.page.store_credit")}{getCurrencySymbol(settings?.currency)})</option>
+                    <option value="discount_percent">{tUi("admin.referrals.page.discount_percentage")}</option>
+                    <option value="fixed_discount">{tUi("admin.referrals.page.fixed_discount")}{getCurrencySymbol(settings?.currency)})</option>
                   </select>
                 </div>
 
                 <div className="space-y-1">
                   <Label className="text-xs font-medium">
-                    Reward Value ({editingTier.reward_type === "discount_percent" ? "%" : getCurrencySymbol(settings?.currency)})
+                    {tUi("admin.referrals.page.reward_value")}{editingTier.reward_type === "discount_percent" ? "%" : getCurrencySymbol(settings?.currency)})
                   </Label>
                   <Input
                     type="number"
@@ -1393,10 +1375,10 @@ export default function ReferralsPage() {
               </div>
 
               <div className="space-y-1">
-                <Label className="text-xs font-medium">Reward Description</Label>
+                <Label className="text-xs font-medium">{tUi("admin.referrals.page.reward_description")}</Label>
                 <Input
                   type="text"
-                  placeholder="e.g. $50 Store Credit per booking"
+                  placeholder={tUi("admin.referrals.page.e_g_50_store_credit_per_booking")}
                   value={editingTier.reward_description || ""}
                   onChange={(e) => setEditingTier({ ...editingTier, reward_description: e.target.value })}
                   className="text-xs"
@@ -1405,7 +1387,7 @@ export default function ReferralsPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <Label className="text-xs font-medium">Badge Color (Hex)</Label>
+                  <Label className="text-xs font-medium">{tUi("admin.referrals.page.badge_color_hex")}</Label>
                   <div className="flex items-center gap-2">
                     <input
                       type="color"
@@ -1423,23 +1405,23 @@ export default function ReferralsPage() {
                 </div>
 
                 <div className="space-y-1">
-                  <Label className="text-xs font-medium">Icon</Label>
+                  <Label className="text-xs font-medium">{tUi("admin.services.icon")}</Label>
                   <select
                     value={editingTier.icon || "award"}
                     onChange={(e) => setEditingTier({ ...editingTier, icon: e.target.value })}
                     className="w-full p-2 text-xs rounded-lg border border-border bg-surface text-text focus:outline-none focus:ring-1 focus:ring-primary"
                   >
-                    <option value="award">Award</option>
-                    <option value="star">Star</option>
-                    <option value="shield">Shield</option>
-                    <option value="trophy">Trophy</option>
-                    <option value="crown">Crown</option>
+                    <option value="award">{tUi("admin.referrals.page.award")}</option>
+                    <option value="star">{tUi("admin.referrals.page.star")}</option>
+                    <option value="shield">{tUi("admin.referrals.page.shield")}</option>
+                    <option value="trophy">{tUi("admin.referrals.page.trophy")}</option>
+                    <option value="crown">{tUi("admin.referrals.page.crown")}</option>
                   </select>
                 </div>
               </div>
 
               <div className="space-y-1">
-                <Label className="text-xs font-medium">Perks (1 per line)</Label>
+                <Label className="text-xs font-medium">{tUi("admin.referrals.page.perks_1_per_line")}</Label>
                 <textarea
                   rows={3}
                   value={editingTier.perks?.join("\n") || ""}
@@ -1447,7 +1429,7 @@ export default function ReferralsPage() {
                     ...editingTier,
                     perks: e.target.value.split("\n").filter(p => p.trim().length > 0)
                   })}
-                  placeholder="VIP Priority Turnaround&#10;Complimentary Drone Shoot Upgrade"
+                  placeholder={tUi("admin.referrals.page.vip_priority_turnaround_10_complimentary_drone_shoot_u")}
                   className="w-full p-2 text-xs rounded-md border border-border bg-surface text-text focus:outline-none focus:ring-1 focus:ring-primary"
                 />
               </div>
@@ -1459,8 +1441,7 @@ export default function ReferralsPage() {
                   size="sm"
                   onClick={() => setIsTierModalOpen(false)}
                 >
-                  Cancel
-                </Button>
+                  {tUi("admin.clients.cancel")}</Button>
                 <Button
                   type="submit"
                   size="sm"
@@ -1469,7 +1450,7 @@ export default function ReferralsPage() {
                   className="gap-1.5"
                 >
                   {savingTier ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
-                  <span>Save Tier</span>
+                  <span>{tUi("admin.referrals.page.save_tier")}</span>
                 </Button>
               </div>
             </form>
@@ -1484,7 +1465,7 @@ export default function ReferralsPage() {
             <div className="p-5 border-b border-border flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Gift className="w-4 h-4 text-primary" />
-                <h3 className="font-bold text-sm text-text">Issue Custom VIP Reward Voucher</h3>
+                <h3 className="font-bold text-sm text-text">{tUi("admin.referrals.page.issue_custom_vip_reward_voucher")}</h3>
               </div>
               <button
                 type="button"
@@ -1499,7 +1480,7 @@ export default function ReferralsPage() {
               {manualRewardModal.userName ? (
                 <div className="p-3 rounded-xl bg-muted/40 border border-border flex items-center justify-between">
                   <div>
-                    <div className="text-[11px] text-muted-text">Crediting User:</div>
+                    <div className="text-[11px] text-muted-text">{tUi("admin.referrals.page.crediting_user")}</div>
                     <div className="text-xs font-bold text-text">{manualRewardModal.userName}</div>
                   </div>
                   <Button
@@ -1512,17 +1493,16 @@ export default function ReferralsPage() {
                     }}
                     className="text-[11px] h-7 text-primary hover:text-primary"
                   >
-                    Change Client
-                  </Button>
+                    {tUi("admin.referrals.page.change_client")}</Button>
                 </div>
               ) : (
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <Label className="text-xs font-medium">
-                      Select Client from Database <span className="text-red-500">*</span>
+                      {tUi("admin.referrals.page.select_client_from_database")}<span className="text-red-500">*</span>
                     </Label>
                     <span className="text-[10px] text-muted-text font-mono">
-                      {clientList.length} registered client{clientList.length !== 1 ? "s" : ""}
+                      {clientList.length} {tUi("admin.referrals.page.registered_client")}{clientList.length !== 1 ? "s" : ""}
                     </span>
                   </div>
 
@@ -1531,7 +1511,7 @@ export default function ReferralsPage() {
                       <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-text pointer-events-none" />
                       <Input
                         type="text"
-                        placeholder="Search client by name, email, or code..."
+                        placeholder={tUi("admin.referrals.page.search_client_by_name_email_or_code")}
                         value={clientSearch}
                         onChange={(e) => setClientSearch(e.target.value)}
                         className="pl-8 text-xs h-8"
@@ -1542,7 +1522,7 @@ export default function ReferralsPage() {
                   {loadingClients ? (
                     <div className="p-3 text-center text-xs text-muted-text flex items-center justify-center gap-2 bg-muted/30 rounded-lg">
                       <Loader2 className="w-3.5 h-3.5 animate-spin text-primary" />
-                      <span>Fetching clients from database...</span>
+                      <span>{tUi("admin.referrals.page.fetching_clients_from_database")}</span>
                     </div>
                   ) : (
                     <select
@@ -1559,7 +1539,7 @@ export default function ReferralsPage() {
                       }}
                       className="w-full p-2.5 text-xs rounded-lg border border-border bg-surface text-text focus:outline-none focus:ring-1 focus:ring-primary font-medium"
                     >
-                      <option value="">-- Choose a registered client ({clientList.length} available) --</option>
+                      <option value="">{tUi("admin.referrals.page.choose_a_registered_client")}{clientList.length} {tUi("admin.referrals.page.available")}</option>
                       {clientList
                         .filter(c => {
                           if (!clientSearch) return true;
@@ -1591,21 +1571,21 @@ export default function ReferralsPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <Label className="text-xs font-medium">Reward Type</Label>
+                  <Label className="text-xs font-medium">{tUi("admin.referrals.page.reward_type")}</Label>
                   <select
                     value={manualRewardModal.rewardType}
                     onChange={(e) => setManualRewardModal({ ...manualRewardModal, rewardType: e.target.value as any })}
                     className="w-full p-2 text-xs rounded-lg border border-border bg-surface text-text focus:outline-none focus:ring-1 focus:ring-primary"
                   >
-                    <option value="store_credit">Store Credit ({getCurrencySymbol(manualRewardModal.currency || settings?.currency)})</option>
-                    <option value="discount_percent">Discount Percentage (%)</option>
-                    <option value="fixed_discount">Fixed Discount ({getCurrencySymbol(manualRewardModal.currency || settings?.currency)})</option>
+                    <option value="store_credit">{tUi("admin.referrals.page.store_credit")}{getCurrencySymbol(manualRewardModal.currency || settings?.currency)})</option>
+                    <option value="discount_percent">{tUi("admin.referrals.page.discount_percentage")}</option>
+                    <option value="fixed_discount">{tUi("admin.referrals.page.fixed_discount")}{getCurrencySymbol(manualRewardModal.currency || settings?.currency)})</option>
                   </select>
                 </div>
 
                 <div className="space-y-1">
                   <Label className="text-xs font-medium">
-                    Value ({manualRewardModal.rewardType === "discount_percent" ? "%" : getCurrencySymbol(manualRewardModal.currency || settings?.currency)})
+                    {tUi("admin.referrals.page.value")}{manualRewardModal.rewardType === "discount_percent" ? "%" : getCurrencySymbol(manualRewardModal.currency || settings?.currency)})
                   </Label>
                   <Input
                     type="number"
@@ -1619,7 +1599,7 @@ export default function ReferralsPage() {
               </div>
 
               <div className="space-y-1">
-                <Label className="text-xs font-medium">Currency</Label>
+                <Label className="text-xs font-medium">{tUi("admin.extra_services.field_currency")}</Label>
                 <select
                   value={manualRewardModal.currency || settings?.currency || "USD"}
                   onChange={(e) => setManualRewardModal({ ...manualRewardModal, currency: e.target.value })}
@@ -1634,7 +1614,7 @@ export default function ReferralsPage() {
               </div>
 
               <div className="space-y-1">
-                <Label className="text-xs font-medium">Voucher Title</Label>
+                <Label className="text-xs font-medium">{tUi("admin.referrals.page.voucher_title")}</Label>
                 <Input
                   type="text"
                   required
@@ -1645,7 +1625,7 @@ export default function ReferralsPage() {
               </div>
 
               <div className="space-y-1">
-                <Label className="text-xs font-medium">Description</Label>
+                <Label className="text-xs font-medium">{tUi("admin.portfolio_form.description")}</Label>
                 <Input
                   type="text"
                   value={manualRewardModal.description}
@@ -1655,7 +1635,7 @@ export default function ReferralsPage() {
               </div>
 
               <div className="space-y-1">
-                <Label className="text-xs font-medium">Expires In (Days)</Label>
+                <Label className="text-xs font-medium">{tUi("admin.referrals.page.expires_in_days")}</Label>
                 <Input
                   type="number"
                   min="7"
@@ -1672,8 +1652,7 @@ export default function ReferralsPage() {
                   size="sm"
                   onClick={() => setManualRewardModal(prev => ({ ...prev, isOpen: false }))}
                 >
-                  Cancel
-                </Button>
+                  {tUi("admin.clients.cancel")}</Button>
                 <Button
                   type="submit"
                   size="sm"
@@ -1682,7 +1661,7 @@ export default function ReferralsPage() {
                   className="gap-1.5"
                 >
                   {issuingReward ? <Loader2 className="w-3 h-3 animate-spin" /> : <Gift className="w-3 h-3" />}
-                  <span>Issue Voucher</span>
+                  <span>{tUi("admin.referrals.page.issue_voucher")}</span>
                 </Button>
               </div>
             </form>

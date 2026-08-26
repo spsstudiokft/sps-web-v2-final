@@ -1,3 +1,4 @@
+import { useLanguage } from "../../../contexts/LanguageContext";
 import React from "react";
 import { 
   Search, 
@@ -50,6 +51,7 @@ export function InvoiceFilterBar({
   onClientEmailChange,
   clients = []
 }: InvoiceFilterBarProps) {
+  const { tUi } = useLanguage();
   return (
     <div className="bg-surface border border-border rounded-xl p-3.5 shadow-xs space-y-3">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
@@ -130,12 +132,12 @@ export function InvoiceFilterBar({
               onChange={(e) => onPeriodChange(e.target.value)}
               className="bg-background border border-border rounded-md px-2.5 py-1 text-xs text-text focus:outline-none focus:ring-1 focus:ring-primary"
             >
-              <option value="all">All Dates</option>
-              <option value="this_month">This Month</option>
-              <option value="last_month">Last Month</option>
-              <option value="this_quarter">This Quarter</option>
-              <option value="this_year">This Year</option>
-              <option value="custom">Custom Date Range</option>
+              <option value="all">{tUi("admin.budget.filter.all_dates")}</option>
+              <option value="this_month">{tUi("admin.budget.filter.this_month")}</option>
+              <option value="last_month">{tUi("admin.budget.filter.last_month")}</option>
+              <option value="this_quarter">{tUi("admin.budget.filter.this_quarter")}</option>
+              <option value="this_year">{tUi("admin.budget.filter.this_year")}</option>
+              <option value="custom">{tUi("admin.budget.filter.custom_range")}</option>
             </select>
           </div>
 
@@ -173,8 +175,7 @@ export function InvoiceFilterBar({
               className="h-7 px-2 text-[11px] inline-flex items-center gap-1 text-muted-text hover:text-text"
             >
               <RotateCcw className="w-3 h-3" />
-              Reset Filters
-            </Button>
+              {tUi("admin.faq_categories.reset_filters")}</Button>
           )}
         </div>
       </div>

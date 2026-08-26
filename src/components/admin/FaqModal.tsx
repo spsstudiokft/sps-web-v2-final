@@ -1,3 +1,4 @@
+import { useLanguage } from "../../contexts/LanguageContext";
 import React, { useState, useEffect } from "react";
 import { FAQItem, FAQCategory } from "../../lib/types";
 import { TranslatableInput } from "./TranslatableInput";
@@ -54,6 +55,7 @@ export function FaqModal({
   onSave,
   onCategoryCreated,
 }: FaqModalProps) {
+  const { tUi } = useLanguage();
   const [formData, setFormData] = useState<Partial<FAQItem>>({
     question: "",
     answer: "",
@@ -317,7 +319,7 @@ export function FaqModal({
                         </option>
                       ))
                     ) : (
-                      <option value="General">General</option>
+                      <option value="General">{tUi("admin.faqs.general_category")}</option>
                     )}
                     <option value="custom">+ Type Custom Name...</option>
                   </select>
@@ -343,7 +345,7 @@ export function FaqModal({
             {/* Visibility & Sort Order */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-border">
               <div>
-                <Label className="text-sm font-medium text-text mb-2 block">Visibility</Label>
+                <Label className="text-sm font-medium text-text mb-2 block">{tUi("admin.pricing.th_visibility")}</Label>
                 <label className="flex items-center gap-3 p-3 rounded-xl border border-border bg-surface/50 cursor-pointer hover:bg-surface transition-colors">
                   <input
                     type="checkbox"
@@ -357,7 +359,7 @@ export function FaqModal({
                     className="w-4 h-4 rounded text-primary focus:ring-primary"
                   />
                   <div>
-                    <div className="text-sm font-medium text-text">Published on Site</div>
+                    <div className="text-sm font-medium text-text">{tUi("admin.services.published_on_site")}</div>
                     <div className="text-xs text-muted-text">
                       When checked, this FAQ appears in the public FAQs section.
                     </div>
@@ -366,7 +368,7 @@ export function FaqModal({
               </div>
 
               <div>
-                <Label className="text-sm font-medium text-text mb-2 block">Sort Order Position</Label>
+                <Label className="text-sm font-medium text-text mb-2 block">{tUi("admin.services.label_sort_order")}</Label>
                 <Input
                   type="number"
                   value={formData.sort_order ?? 0}
@@ -426,8 +428,7 @@ export function FaqModal({
           {/* Modal Footer */}
           <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-border bg-surface/50">
             <Button type="button" variant="ghost" onClick={onClose} disabled={isSubmitting}>
-              Cancel
-            </Button>
+              {tUi("admin.clients.cancel")}</Button>
             <Button
               type="submit"
               form="faq-form"
@@ -435,7 +436,7 @@ export function FaqModal({
               className="flex items-center gap-2"
             >
               {isSubmitting ? (
-                <span>Saving...</span>
+                <span>{tUi("admin.pricing.btn_saving")}</span>
               ) : (
                 <>
                   <Check className="w-4 h-4" />

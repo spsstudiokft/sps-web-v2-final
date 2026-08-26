@@ -1,3 +1,4 @@
+import { useLanguage } from "../../contexts/LanguageContext";
 import React, { useState, useEffect, useMemo } from "react";
 import { Project, PortfolioItem } from "../../lib/types";
 import { Button } from "../ui/Button";
@@ -56,6 +57,7 @@ export function ProjectModal({
   onClose,
   onSave,
 }: ProjectModalProps) {
+  const { tUi } = useLanguage();
   const [formData, setFormData] = useState<Partial<Project> & { portfolio_ids?: string[] }>({
     name: "",
     description: "",
@@ -309,9 +311,9 @@ export function ProjectModal({
                 value={formData.status || "active"}
                 onChange={(e) => setFormData((prev) => ({ ...prev, status: e.target.value as any }))}
               >
-                <option value="active">Active</option>
-                <option value="completed">Completed</option>
-                <option value="archived">Archived</option>
+                <option value="active">{tUi("admin.clients.status_active")}</option>
+                <option value="completed">{tUi("admin.projects.status_completed")}</option>
+                <option value="archived">{tUi("admin.projects.status_archived")}</option>
               </select>
             </div>
 
@@ -342,7 +344,7 @@ export function ProjectModal({
               </div>
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="project-property-select" className="text-sm font-semibold text-text">Linked Property <span className="text-muted-text font-normal">(optional)</span></Label>
+              <Label htmlFor="project-property-select" className="text-sm font-semibold text-text">Linked Property <span className="text-muted-text font-normal">{tUi("admin.budget.optional")}</span></Label>
               <select id="project-property-select" disabled={!formData.client_id} className="w-full px-3.5 py-2.5 border border-border bg-surface text-text rounded-xl focus:ring-2 focus:ring-primary focus:border-primary outline-none sm:text-sm transition-all disabled:opacity-60" value={formData.property_id || ""} onChange={(e) => setFormData((prev) => ({ ...prev, property_id: e.target.value || null }))}>
                 <option value="">-- No Property Linked --</option>
                 {clientProperties.map((property) => <option key={property.id} value={property.id}>{property.property_name || property.address}{property.property_name ? ` · ${property.address}` : ""}</option>)}
@@ -355,8 +357,7 @@ export function ProjectModal({
           {/* Description */}
           <div className="space-y-1.5">
             <Label htmlFor="project-description-input" className="text-sm font-semibold text-text">
-              Description & Notes
-            </Label>
+              {tUi("admin.budget.modal.description")}</Label>
             <textarea
               id="project-description-input"
               rows={3}
@@ -401,8 +402,7 @@ export function ProjectModal({
                   onClick={handleDeselectAllFiltered}
                   className="text-muted-text hover:text-text font-medium"
                 >
-                  Clear Selection
-                </button>
+                  {tUi("admin.customers.clear_selection")}</button>
               </div>
             </div>
 
@@ -495,8 +495,7 @@ export function ProjectModal({
               disabled={saving}
               className="flex-1 sm:flex-none"
             >
-              Cancel
-            </Button>
+              {tUi("admin.clients.cancel")}</Button>
             <Button
               type="submit"
               form="project-editor-form"
@@ -506,8 +505,7 @@ export function ProjectModal({
               {saving ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden="true" />
-                  Saving...
-                </>
+                  {tUi("admin.pricing.btn_saving")}</>
               ) : (
                 <>
                   <Check className="w-4 h-4 mr-2" aria-hidden="true" />

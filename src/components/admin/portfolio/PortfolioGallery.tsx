@@ -36,6 +36,7 @@ import {
 } from "lucide-react";
 import { getNormalizedGallery, isVideoMedia } from "../../../lib/mediaUtils";
 import { AdminPagination } from "../AdminPagination";
+import { useLanguage } from "../../../contexts/LanguageContext";
 
 interface Props {
   items: PortfolioItem[];
@@ -48,6 +49,7 @@ interface Props {
 }
 
 export function PortfolioGallery({ items: initialItems, onEdit, onDelete, onReorder, onBulkAction, onQuickSave }: Props) {
+  const { tUi, currentLanguage } = useLanguage();
   const [items, setItems] = useState<PortfolioItem[]>(initialItems);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState("");
@@ -208,7 +210,7 @@ export function PortfolioGallery({ items: initialItems, onEdit, onDelete, onReor
             }`}
           >
             <Layers className="w-3.5 h-3.5" />
-            <span>All Items ({totalCount})</span>
+            <span>{tUi("admin.portfolio.gallery.all_items", currentLanguage, { count: totalCount })}</span>
           </button>
 
           <button
@@ -221,7 +223,7 @@ export function PortfolioGallery({ items: initialItems, onEdit, onDelete, onReor
             }`}
           >
             <Camera className="w-3.5 h-3.5 text-sky-500" />
-            <span>Photos / Images (Row 1) ({photoCount})</span>
+            <span>{tUi("admin.portfolio.gallery.photos", currentLanguage, { count: photoCount })}</span>
           </button>
 
           <button
@@ -234,7 +236,7 @@ export function PortfolioGallery({ items: initialItems, onEdit, onDelete, onReor
             }`}
           >
             <Plane className="w-3.5 h-3.5 text-purple-500" />
-            <span>Drone Videos (Row 2) ({droneVideoCount})</span>
+            <span>{tUi("admin.portfolio.gallery.drone_videos", currentLanguage, { count: droneVideoCount })}</span>
           </button>
 
           <button
@@ -247,7 +249,7 @@ export function PortfolioGallery({ items: initialItems, onEdit, onDelete, onReor
             }`}
           >
             <Film className="w-3.5 h-3.5 text-amber-500" />
-            <span>Interior Walkthroughs (Row 3) ({interiorVideoCount})</span>
+            <span>{tUi("admin.portfolio.gallery.interior_videos", currentLanguage, { count: interiorVideoCount })}</span>
           </button>
 
           <button
@@ -260,7 +262,7 @@ export function PortfolioGallery({ items: initialItems, onEdit, onDelete, onReor
             }`}
           >
             <Plane className="w-3.5 h-3.5 text-emerald-500" />
-            <span>Drone Photos (Row 4) ({dronePhotoCount})</span>
+            <span>{tUi("admin.portfolio.gallery.drone_photos", currentLanguage, { count: dronePhotoCount })}</span>
           </button>
         </div>
 
@@ -269,7 +271,7 @@ export function PortfolioGallery({ items: initialItems, onEdit, onDelete, onReor
           <div className="relative flex-1 max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-text" />
             <Input 
-              placeholder="Search by title, keywords or description..." 
+              placeholder={tUi("admin.portfolio.gallery.search_items", currentLanguage)} 
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               className="pl-9 text-sm"
@@ -283,13 +285,13 @@ export function PortfolioGallery({ items: initialItems, onEdit, onDelete, onReor
               value={filterItemType}
               onChange={e => setFilterItemType(e.target.value)}
             >
-              <option value="all">All Item Categories</option>
-              <option value="image">📷 Photos / Images (Row 1)</option>
-              <option value="drone_video">🛸 Drone Aerial Videos (Row 2)</option>
-              <option value="interior_video">🏠 Interior Walkthroughs (Row 3)</option>
-              <option value="drone_photo">🚁 Drone Photos (Row 4)</option>
-              <option value="video">🎥 All Video Items</option>
-              <option value="mixed">✨ Mixed Galleries</option>
+              <option value="all">{tUi("admin.portfolio.gallery.all_categories", currentLanguage)}</option>
+              <option value="image">{tUi("admin.portfolio.gallery.photos_filter", currentLanguage)}</option>
+              <option value="drone_video">{tUi("admin.portfolio.gallery.drone_videos_filter", currentLanguage)}</option>
+              <option value="interior_video">{tUi("admin.portfolio.gallery.interior_videos_filter", currentLanguage)}</option>
+              <option value="drone_photo">{tUi("admin.portfolio.gallery.drone_photos_filter", currentLanguage)}</option>
+              <option value="video">{tUi("admin.portfolio.gallery.all_videos", currentLanguage)}</option>
+              <option value="mixed">{tUi("admin.portfolio.gallery.mixed", currentLanguage)}</option>
             </select>
             
             {/* Status Dropdown */}
@@ -298,9 +300,9 @@ export function PortfolioGallery({ items: initialItems, onEdit, onDelete, onReor
               value={filterStatus}
               onChange={e => setFilterStatus(e.target.value)}
             >
-              <option value="all">All Status</option>
-              <option value="published">Published</option>
-              <option value="draft">Draft (Hidden)</option>
+              <option value="all">{tUi("admin.portfolio.gallery.all_status", currentLanguage)}</option>
+              <option value="published">{tUi("common.published", currentLanguage)}</option>
+              <option value="draft">{tUi("admin.portfolio.gallery.draft_hidden", currentLanguage)}</option>
             </select>
           </div>
         </div>
@@ -320,16 +322,16 @@ export function PortfolioGallery({ items: initialItems, onEdit, onDelete, onReor
               <Square className="w-4 h-4 text-muted-text" />
             )}
             <span>
-              {selectedIds.size === 0 
-                ? `Select All (${filteredItems.length})` 
-                : `${selectedIds.size} Selected`}
+              {selectedIds.size === 0
+                ? tUi("admin.portfolio.gallery.select_all_count", currentLanguage, { count: filteredItems.length })
+                : tUi("admin.portfolio.gallery.selected_count", currentLanguage, { count: selectedIds.size })}
             </span>
           </button>
         </div>
 
         {selectedIds.size > 0 && (
           <div className="flex items-center gap-2 flex-wrap animate-in fade-in duration-150">
-            <span className="text-xs text-muted-text mr-1">Bulk:</span>
+            <span className="text-xs text-muted-text mr-1">{tUi("admin.portfolio.gallery.bulk", currentLanguage)}</span>
             <Button
               size="sm"
               variant="secondary"
@@ -337,7 +339,7 @@ export function PortfolioGallery({ items: initialItems, onEdit, onDelete, onReor
               className="text-xs h-7.5 px-2.5 text-emerald-600 hover:text-emerald-700 flex items-center gap-1"
             >
               <Eye className="w-3.5 h-3.5" />
-              <span>Publish</span>
+              <span>{tUi("common.publish", currentLanguage)}</span>
             </Button>
             <Button
               size="sm"
@@ -346,7 +348,7 @@ export function PortfolioGallery({ items: initialItems, onEdit, onDelete, onReor
               className="text-xs h-7.5 px-2.5 text-amber-600 hover:text-amber-700 flex items-center gap-1"
             >
               <EyeOff className="w-3.5 h-3.5" />
-              <span>Draft</span>
+              <span>{tUi("admin.portfolio.gallery.draft", currentLanguage)}</span>
             </Button>
             <Button
               size="sm"
@@ -355,7 +357,7 @@ export function PortfolioGallery({ items: initialItems, onEdit, onDelete, onReor
               className="text-xs h-7.5 px-2.5 flex items-center gap-1"
             >
               <Trash2 className="w-3.5 h-3.5" />
-              <span>Delete</span>
+              <span>{tUi("common.delete", currentLanguage)}</span>
             </Button>
           </div>
         )}
@@ -394,11 +396,11 @@ export function PortfolioGallery({ items: initialItems, onEdit, onDelete, onReor
             <Filter className="w-6 h-6 opacity-60" />
           </div>
           <div className="max-w-md mx-auto space-y-1">
-            <h4 className="text-sm font-bold text-text">No Portfolio Items Found</h4>
+            <h4 className="text-sm font-bold text-text">{tUi("admin.portfolio.gallery.no_portfolio_items", currentLanguage)}</h4>
             <p className="text-xs text-muted-text">
               {items.length === 0
-                ? "Click 'Add Portfolio Item' above to upload photography, video walkthroughs, or YouTube/Vimeo embeds."
-                : "No portfolio items matched your current search filters."}
+                ? tUi("admin.portfolio.gallery.empty_add_hint", currentLanguage)
+                : tUi("admin.portfolio.gallery.empty_filter_hint", currentLanguage)}
             </p>
           </div>
         </div>

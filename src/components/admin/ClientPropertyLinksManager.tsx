@@ -1,3 +1,4 @@
+import { useLanguage } from "../../contexts/LanguageContext";
 import React, { useState, useEffect } from "react";
 import { ClientProperty, ClientLink } from "../../lib/types";
 import { Button } from "../ui/Button";
@@ -39,6 +40,7 @@ export function ClientPropertyLinksManager({
   className = "",
   defaultExpanded = true
 }: ClientPropertyLinksManagerProps) {
+  const { tUi } = useLanguage();
   const [activeTab, setActiveTab] = useState<"properties" | "links">("properties");
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [urlErrors, setUrlErrors] = useState<Record<string, string>>({});
@@ -166,7 +168,7 @@ export function ClientPropertyLinksManager({
             )}
           >
             <Building size={14} />
-            <span>Properties</span>
+            <span>{tUi("client.home.properties")}</span>
             <span className="ml-1 px-1.5 py-0.2 rounded-full bg-primary/10 text-primary text-[11px] font-mono">
               {properties.length}
             </span>
@@ -269,7 +271,7 @@ export function ClientPropertyLinksManager({
                               type="button"
                               onClick={() => handleCopy(prop.address || "", prop.id || String(idx))}
                               className="p-1 rounded text-muted-text hover:text-text hover:bg-muted/40 transition-colors"
-                              title="Copy address"
+                              title={tUi("client.home.copy_address")}
                             >
                               {copiedId === (prop.id || String(idx)) ? (
                                 <Check size={13} className="text-emerald-500" />
@@ -282,7 +284,7 @@ export function ClientPropertyLinksManager({
                               target="_blank"
                               rel="noopener noreferrer"
                               className="p-1 rounded text-muted-text hover:text-primary hover:bg-muted/40 transition-colors"
-                              title="View on Google Maps"
+                              title={tUi("client.home.view_maps")}
                             >
                               <ExternalLink size={13} />
                             </a>
@@ -296,7 +298,7 @@ export function ClientPropertyLinksManager({
                               onClick={() => handleMoveProperty(idx, "up")}
                               disabled={idx === 0}
                               className="p-1 rounded text-muted-text hover:text-text disabled:opacity-30"
-                              title="Move Up"
+                              title={tUi("admin.faqs.move_up")}
                             >
                               <ArrowUp size={13} />
                             </button>
@@ -305,7 +307,7 @@ export function ClientPropertyLinksManager({
                               onClick={() => handleMoveProperty(idx, "down")}
                               disabled={idx === properties.length - 1}
                               className="p-1 rounded text-muted-text hover:text-text disabled:opacity-30"
-                              title="Move Down"
+                              title={tUi("admin.faqs.move_down")}
                             >
                               <ArrowDown size={13} />
                             </button>
@@ -400,7 +402,7 @@ export function ClientPropertyLinksManager({
                                 type="button"
                                 onClick={() => handleCopy(lnk.url || "", linkId)}
                                 className="p-1 rounded text-muted-text hover:text-text hover:bg-muted/40 transition-colors"
-                                title="Copy link"
+                                title={tUi("admin.team.copy_link")}
                               >
                                 {copiedId === linkId ? (
                                   <Check size={13} className="text-emerald-500" />
@@ -427,7 +429,7 @@ export function ClientPropertyLinksManager({
                                 onClick={() => handleMoveLink(idx, "up")}
                                 disabled={idx === 0}
                                 className="p-1 rounded text-muted-text hover:text-text disabled:opacity-30"
-                                title="Move Up"
+                                title={tUi("admin.faqs.move_up")}
                               >
                                 <ArrowUp size={13} />
                               </button>
@@ -436,7 +438,7 @@ export function ClientPropertyLinksManager({
                                 onClick={() => handleMoveLink(idx, "down")}
                                 disabled={idx === links.length - 1}
                                 className="p-1 rounded text-muted-text hover:text-text disabled:opacity-30"
-                                title="Move Down"
+                                title={tUi("admin.faqs.move_down")}
                               >
                                 <ArrowDown size={13} />
                               </button>

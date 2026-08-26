@@ -10,6 +10,7 @@ import {
 import { BudgetAdminSettings, BudgetPeriodStatus } from "../../../types";
 import { Button } from "../../ui/Button";
 import { cn } from "../../../lib/utils";
+import { useLanguage } from "../../../contexts/LanguageContext";
 
 interface BudgetSettingsModalProps {
   isOpen: boolean;
@@ -37,6 +38,7 @@ export function BudgetSettingsModal({
   onSave,
   currentSettings
 }: BudgetSettingsModalProps) {
+  const { tUi } = useLanguage();
   const [defaultColor, setDefaultColor] = useState<string>("#3B82F6");
   const [defaultCurrency, setDefaultCurrency] = useState<string>("USD");
   const [monthlyTargetIncome, setMonthlyTargetIncome] = useState<string>("5000");
@@ -75,7 +77,7 @@ export function BudgetSettingsModal({
       });
       onClose();
     } catch (err: any) {
-      setErrorMessage(err.message || "Failed to save budget preferences.");
+      setErrorMessage(err.message || tUi("admin.budget.settings.save_failed"));
     } finally {
       setIsSubmitting(false);
     }
@@ -94,10 +96,10 @@ export function BudgetSettingsModal({
             />
             <div>
               <h2 className="text-lg font-bold text-text font-heading">
-                Budget Preferences & Customization
+                {tUi("admin.budget.settings.title")}
               </h2>
               <p className="text-xs text-muted-text">
-                Personalize your financial theme color, currency, and period targets
+                {tUi("admin.budget.settings.subtitle")}
               </p>
             </div>
           </div>
@@ -123,7 +125,7 @@ export function BudgetSettingsModal({
             <div className="flex items-center justify-between mb-2">
               <label className="text-xs font-semibold text-text flex items-center gap-1.5">
                 <Palette className="w-4 h-4 text-primary" />
-                Personal Theme Color
+                {tUi("admin.budget.settings.theme_color")}
               </label>
               <div className="flex items-center gap-1.5">
                 <input
@@ -136,7 +138,7 @@ export function BudgetSettingsModal({
               </div>
             </div>
             <p className="text-xs text-muted-text mb-3">
-              Your entries across the studio and consolidated superadmin views will be color-coded with this accent.
+              {tUi("admin.budget.settings.color_help")}
             </p>
 
             <div className="grid grid-cols-5 gap-2">
@@ -163,20 +165,20 @@ export function BudgetSettingsModal({
           {/* Default Currency */}
           <div>
             <label className="block text-xs font-semibold text-text mb-1.5">
-              Default Currency
+              {tUi("admin.budget.settings.default_currency")}
             </label>
             <select
               value={defaultCurrency}
               onChange={(e) => setDefaultCurrency(e.target.value)}
               className="w-full py-2.5 px-3 bg-background border border-border rounded-xl text-sm font-semibold text-text focus:ring-2 focus:ring-primary focus:outline-none"
             >
-              <option value="USD">USD ($) - US Dollar</option>
-              <option value="EUR">EUR (€) - Euro</option>
-              <option value="HUF">HUF (Ft) - Hungarian Forint</option>
-              <option value="GBP">GBP (£) - British Pound</option>
-              <option value="CAD">CAD ($) - Canadian Dollar</option>
-              <option value="CHF">CHF (Fr) - Swiss Franc</option>
-              <option value="AUD">AUD ($) - Australian Dollar</option>
+              <option value="USD">USD ($)</option>
+              <option value="EUR">EUR (€)</option>
+              <option value="HUF">HUF (Ft)</option>
+              <option value="GBP">GBP (£)</option>
+              <option value="CAD">CAD ($)</option>
+              <option value="CHF">CHF (Fr)</option>
+              <option value="AUD">AUD ($)</option>
             </select>
           </div>
 
@@ -185,7 +187,7 @@ export function BudgetSettingsModal({
             <div>
               <label className="block text-xs font-semibold text-text mb-1.5 flex items-center gap-1">
                 <Target className="w-3.5 h-3.5 text-emerald-500" />
-                Monthly Revenue Target
+                {tUi("admin.budget.settings.monthly_target")}
               </label>
               <input
                 type="number"
@@ -201,7 +203,7 @@ export function BudgetSettingsModal({
             <div>
               <label className="block text-xs font-semibold text-text mb-1.5 flex items-center gap-1">
                 <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
-                Monthly Expense Cap
+                {tUi("admin.budget.settings.monthly_cap")}
               </label>
               <input
                 type="number"
@@ -218,19 +220,19 @@ export function BudgetSettingsModal({
           {/* Overall Period Budget Status */}
           <div>
             <label className="block text-xs font-semibold text-text mb-1.5">
-              Overall Period Health / Status
+              {tUi("admin.budget.settings.period_status")}
             </label>
             <select
               value={periodStatus}
               onChange={(e) => setPeriodStatus(e.target.value as BudgetPeriodStatus)}
               className="w-full py-2.5 px-3 bg-background border border-border rounded-xl text-sm text-text focus:ring-2 focus:ring-primary focus:outline-none"
             >
-              <option value="on_track">🟢 On Track (Revenue beating forecasts)</option>
-              <option value="in_progress">🔵 In Progress (Standard monthly cadence)</option>
-              <option value="planned">⚪ Planned (Initial projections)</option>
-              <option value="over_budget">🔴 Over Budget (Expenses exceeding limits)</option>
-              <option value="reviewed">🟣 Reviewed (Audit completed)</option>
-              <option value="closed">🔒 Closed (Period finalized & archived)</option>
+              <option value="on_track">🟢 {tUi("admin.budget.settings.status_on_track")}</option>
+              <option value="in_progress">🔵 {tUi("admin.budget.settings.status_in_progress")}</option>
+              <option value="planned">⚪ {tUi("admin.budget.settings.status_planned")}</option>
+              <option value="over_budget">🔴 {tUi("admin.budget.settings.status_over_budget")}</option>
+              <option value="reviewed">🟣 {tUi("admin.budget.settings.status_reviewed")}</option>
+              <option value="closed">🔒 {tUi("admin.budget.settings.status_closed")}</option>
             </select>
           </div>
 
@@ -238,11 +240,11 @@ export function BudgetSettingsModal({
           <div>
             <label className="block text-xs font-semibold text-text mb-1.5 flex items-center gap-1">
               <FileText className="w-3.5 h-3.5 text-muted-text" />
-              Strategic Period Notes & Goals
+              {tUi("admin.budget.settings.strategic_notes")}
             </label>
             <textarea
               rows={3}
-              placeholder="e.g. Focus on luxury real estate campaigns; reinvesting 20% into new cinema drone lenses..."
+              placeholder={tUi("admin.budget.settings.notes_placeholder")}
               value={periodNotes}
               onChange={(e) => setPeriodNotes(e.target.value)}
               className="w-full px-3 py-2 bg-background border border-border rounded-xl text-xs text-text focus:ring-2 focus:ring-primary focus:outline-none"
@@ -258,7 +260,7 @@ export function BudgetSettingsModal({
               onClick={onClose}
               disabled={isSubmitting}
             >
-              Cancel
+              {tUi("admin.budget.modal.cancel")}
             </Button>
             <Button
               type="submit"
@@ -267,7 +269,7 @@ export function BudgetSettingsModal({
               className="flex items-center gap-2"
             >
               <CheckCircle2 className="w-4 h-4" />
-              Save Preferences
+              {tUi("admin.budget.settings.save")}
             </Button>
           </div>
         </form>

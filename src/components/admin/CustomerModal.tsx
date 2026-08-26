@@ -386,7 +386,7 @@ export function CustomerModal({
                     {tUi("admin.submissions.customer_exists_warning", currentLanguage) || "A customer with this email already exists"}
                   </div>
                   <p className="text-xs text-muted-text leading-relaxed">
-                    Customer <strong>{existingCustomer.name}</strong> is already registered with email <span className="font-mono text-text">{existingCustomer.email}</span>.
+                    {tUi("admin.customers.th_customer")}<strong>{existingCustomer.name}</strong> is already registered with email <span className="font-mono text-text">{existingCustomer.email}</span>.
                   </p>
                 </div>
               </div>
@@ -582,7 +582,7 @@ export function CustomerModal({
                   <span>Automatic Portal Access Enforcement</span>
                 </div>
                 <p className="text-[11px] leading-relaxed opacity-90">
-                  Setting this customer to <strong>Inactive</strong> will automatically disable their client portal user account, revoke login permissions, and immediately terminate any active authentication sessions.
+                  Setting this customer to <strong>{tUi("admin.customers.status_inactive")}</strong> will automatically disable their client portal user account, revoke login permissions, and immediately terminate any active authentication sessions.
                 </p>
               </div>
             )}
@@ -651,7 +651,7 @@ export function CustomerModal({
             {saving ? (
               <>
                 <Loader2 size={16} className="animate-spin" />
-                <span>Saving...</span>
+                <span>{tUi("admin.pricing.btn_saving")}</span>
               </>
             ) : (
               <>

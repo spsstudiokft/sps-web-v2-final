@@ -1,3 +1,4 @@
+import { useLanguage } from "../../../contexts/LanguageContext";
 import React, { useState } from "react";
 import { createPortal } from "react-dom";
 import { 
@@ -59,6 +60,7 @@ export function InvoiceTable({
   onOpenNewModal,
   showToast
 }: InvoiceTableProps) {
+  const { tUi } = useLanguage();
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
   const [menuPosition, setMenuPosition] = useState<{ top?: number; bottom?: number; right: number } | null>(null);
 
@@ -180,13 +182,13 @@ export function InvoiceTable({
         <table className="w-full text-left text-xs">
           <thead className="bg-background border-b border-border text-muted-text font-semibold uppercase tracking-wider text-[11px]">
             <tr>
-              <th className="py-3.5 px-4">Invoice #</th>
+              <th className="py-3.5 px-4">{tUi("client.invoices.number")}</th>
               <th className="py-3.5 px-4">Client & Property</th>
               <th className="py-3.5 px-4">Issue / Due Date</th>
-              <th className="py-3.5 px-4">Status</th>
-              <th className="py-3.5 px-4 text-right">Amount</th>
-              <th className="py-3.5 px-4 text-right">Paid</th>
-              <th className="py-3.5 px-4 text-right">Actions</th>
+              <th className="py-3.5 px-4">{tUi("admin.clients.th_status")}</th>
+              <th className="py-3.5 px-4 text-right">{tUi("admin.budget.table.th_amount")}</th>
+              <th className="py-3.5 px-4 text-right">{tUi("client.invoices.paid")}</th>
+              <th className="py-3.5 px-4 text-right">{tUi("admin.clients.th_actions")}</th>
             </tr>
           </thead>
 

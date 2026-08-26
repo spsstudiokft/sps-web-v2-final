@@ -587,7 +587,7 @@ export default function InfoBarPage() {
                           disabled={index === 0}
                           onClick={() => handleMoveOrder(index, -1)}
                           className="p-1 rounded-md hover:bg-background text-muted-text hover:text-text disabled:opacity-20 disabled:hover:bg-transparent"
-                          title="Move up"
+                          title={tUi("admin.faq_categories.move_up")}
                         >
                           <ArrowUp className="w-3.5 h-3.5" />
                         </button>
@@ -595,7 +595,7 @@ export default function InfoBarPage() {
                           disabled={index === messages.length - 1}
                           onClick={() => handleMoveOrder(index, 1)}
                           className="p-1 rounded-md hover:bg-background text-muted-text hover:text-text disabled:opacity-20 disabled:hover:bg-transparent"
-                          title="Move down"
+                          title={tUi("admin.faq_categories.move_down")}
                         >
                           <ArrowDown className="w-3.5 h-3.5" />
                         </button>
@@ -791,7 +791,7 @@ export default function InfoBarPage() {
                     className="p-2 rounded-xl border border-border bg-surface hover:bg-surface/80 text-muted-text hover:text-text text-xs flex items-center gap-1.5 transition-colors"
                   >
                     <Edit className="w-3.5 h-3.5" />
-                    <span>Edit</span>
+                    <span>{tUi("admin.customers.edit")}</span>
                   </button>
 
                   <button
@@ -799,7 +799,7 @@ export default function InfoBarPage() {
                     className="p-2 rounded-xl border border-rose-500/20 bg-rose-500/10 text-rose-500 hover:bg-rose-500/20 text-xs flex items-center gap-1.5 transition-colors"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
-                    <span>Delete</span>
+                    <span>{tUi("admin.customers.delete")}</span>
                   </button>
                 </div>
               </div>
@@ -1138,8 +1138,7 @@ export default function InfoBarPage() {
                   }}
                   className="px-4 py-2 rounded-xl border border-border bg-surface hover:bg-surface/80 text-text text-sm font-semibold"
                 >
-                  Cancel
-                </button>
+                  {tUi("admin.clients.cancel")}</button>
                 <button
                   type="submit"
                   className="px-5 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-bold hover:opacity-90 shadow-sm"
@@ -1319,8 +1318,7 @@ export default function InfoBarPage() {
                   }}
                   className="px-4 py-2 rounded-xl border border-border bg-surface hover:bg-surface/80 text-text text-sm font-semibold"
                 >
-                  Cancel
-                </button>
+                  {tUi("admin.clients.cancel")}</button>
                 <button
                   type="submit"
                   className="px-5 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-bold hover:opacity-90 shadow-sm"

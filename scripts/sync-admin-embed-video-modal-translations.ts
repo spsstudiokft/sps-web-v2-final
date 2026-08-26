@@ -1,0 +1,4 @@
+import { translationService } from "../src/server/services/translationService.js";
+import { adminEmbedVideoModalTranslations } from "../src/lib/adminEmbedVideoModalTranslations.js";
+async function main() { const records = Object.entries(adminEmbedVideoModalTranslations).flatMap(([locale, dictionary]) => Object.entries(dictionary).map(([key, value]) => ({ locale, key, value, group_name: "admin.portfolio.video_modal" }))); const count = await translationService.batchUpsert(records); const stats = await translationService.getStats(); console.log({ updated: count, keys: Object.keys(adminEmbedVideoModalTranslations.en).length, locales: Object.keys(adminEmbedVideoModalTranslations), missingCounts: stats.missingCounts }); }
+main().catch((error) => { console.error(error); process.exitCode = 1; });

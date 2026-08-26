@@ -22,6 +22,7 @@ import {
 import { BudgetSummary } from "../../../types";
 import { cn } from "../../../lib/utils";
 import { formatConfiguredCurrency } from "../../../lib/currency";
+import { useLanguage } from "../../../contexts/LanguageContext";
 
 interface BudgetChartSectionProps {
   summary: BudgetSummary | null;
@@ -47,6 +48,7 @@ export function BudgetChartSection({
   currency = "USD",
   isSuperAdmin = false
 }: BudgetChartSectionProps) {
+  const { tUi } = useLanguage();
   const [activeTab, setActiveTab] = useState<"cashflow" | "categories" | "status" | "admins">("cashflow");
 
   if (!summary) return null;
@@ -116,8 +118,7 @@ export function BudgetChartSection({
             )}
           >
             <PieChartIcon className="w-3.5 h-3.5" />
-            Categories
-          </button>
+            {tUi("admin.portfolio.tab_categories")}</button>
 
           <button
             type="button"
@@ -209,7 +210,7 @@ export function BudgetChartSection({
           {/* Incomes by category */}
           <div className="bg-background rounded-xl p-4 border border-border">
             <h4 className="text-sm font-semibold text-emerald-600 dark:text-emerald-400 mb-3 flex items-center justify-between">
-              <span>Income Categories</span>
+              <span>{tUi("admin.budget.chart.income_categories")}</span>
               <span className="font-heading">{formatCurrency(summary.totalIncome)}</span>
             </h4>
             {topIncomes.length > 0 ? (
@@ -240,14 +241,14 @@ export function BudgetChartSection({
                 })}
               </div>
             ) : (
-              <div className="py-8 text-center text-xs text-muted-text">No income categories logged.</div>
+              <div className="py-8 text-center text-xs text-muted-text">{tUi("admin.budget.chart.no_income_categories")}</div>
             )}
           </div>
 
           {/* Outcomes by category */}
           <div className="bg-background rounded-xl p-4 border border-border">
             <h4 className="text-sm font-semibold text-rose-600 dark:text-rose-400 mb-3 flex items-center justify-between">
-              <span>Expense Categories</span>
+              <span>{tUi("admin.budget.chart.expense_categories")}</span>
               <span className="font-heading">{formatCurrency(summary.totalOutcome)}</span>
             </h4>
             {topOutcomes.length > 0 ? (
@@ -278,7 +279,7 @@ export function BudgetChartSection({
                 })}
               </div>
             ) : (
-              <div className="py-8 text-center text-xs text-muted-text">No expense categories logged.</div>
+              <div className="py-8 text-center text-xs text-muted-text">{tUi("admin.budget.chart.no_expense_categories")}</div>
             )}
           </div>
         </div>
@@ -319,15 +320,15 @@ export function BudgetChartSection({
                 </PieChart>
               </ResponsiveContainer>
             ) : (
-              <div className="text-xs text-muted-text">No status data available.</div>
+              <div className="text-xs text-muted-text">{tUi("admin.budget.chart.no_status")}</div>
             )}
           </div>
 
           <div className="space-y-3">
             <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg flex items-center justify-between">
               <div>
-                <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-300">Confirmed Entries</span>
-                <p className="text-xs text-emerald-600/80 dark:text-emerald-400/80">Locked in, billed or paid</p>
+                <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-300">{tUi("admin.budget.chart.confirmed_entries")}</span>
+                <p className="text-xs text-emerald-600/80 dark:text-emerald-400/80">{tUi("admin.budget.chart.confirmed_help")}</p>
               </div>
               <span className="text-sm font-bold text-emerald-700 dark:text-emerald-300 font-heading">
                 {formatCurrency(summary.confirmedIncome + summary.confirmedOutcome)}
@@ -336,8 +337,8 @@ export function BudgetChartSection({
 
             <div className="p-3 bg-sky-500/10 border border-sky-500/20 rounded-lg flex items-center justify-between">
               <div>
-                <span className="text-xs font-semibold text-sky-700 dark:text-sky-300">Planned Entries</span>
-                <p className="text-xs text-sky-600/80 dark:text-sky-400/80">Scheduled upcoming shoots & forecasts</p>
+                <span className="text-xs font-semibold text-sky-700 dark:text-sky-300">{tUi("admin.budget.chart.planned_entries")}</span>
+                <p className="text-xs text-sky-600/80 dark:text-sky-400/80">{tUi("admin.budget.chart.planned_help")}</p>
               </div>
               <span className="text-sm font-bold text-sky-700 dark:text-sky-300 font-heading">
                 {formatCurrency(summary.plannedIncome + summary.plannedOutcome)}
@@ -346,8 +347,8 @@ export function BudgetChartSection({
 
             <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg flex items-center justify-between">
               <div>
-                <span className="text-xs font-semibold text-amber-700 dark:text-amber-300">Pending Review</span>
-                <p className="text-xs text-amber-600/80 dark:text-amber-400/80">Awaiting client payment or receipt check</p>
+                <span className="text-xs font-semibold text-amber-700 dark:text-amber-300">{tUi("admin.budget.chart.pending_entries")}</span>
+                <p className="text-xs text-amber-600/80 dark:text-amber-400/80">{tUi("admin.budget.chart.pending_help")}</p>
               </div>
               <span className="text-sm font-bold text-amber-700 dark:text-amber-300 font-heading">
                 {formatCurrency(summary.pendingIncome + summary.pendingOutcome)}
@@ -356,8 +357,8 @@ export function BudgetChartSection({
 
             <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-lg flex items-center justify-between">
               <div>
-                <span className="text-xs font-semibold text-rose-700 dark:text-rose-300">Rejected Entries</span>
-                <p className="text-xs text-rose-600/80 dark:text-rose-400/80">Cancelled shoots or denied expense items</p>
+                <span className="text-xs font-semibold text-rose-700 dark:text-rose-300">{tUi("admin.budget.chart.rejected_entries")}</span>
+                <p className="text-xs text-rose-600/80 dark:text-rose-400/80">{tUi("admin.budget.chart.rejected_help")}</p>
               </div>
               <span className="text-sm font-bold text-rose-700 dark:text-rose-300 font-heading">
                 {formatCurrency(summary.rejectedIncome + summary.rejectedOutcome)}
@@ -427,19 +428,19 @@ export function BudgetChartSection({
 
                       <div className="mt-3 pt-2.5 border-t border-border grid grid-cols-3 gap-2 text-xs">
                         <div>
-                          <span className="text-muted-text block text-[10px] uppercase font-semibold">Income</span>
+                          <span className="text-muted-text block text-[10px] uppercase font-semibold">{tUi("admin.budget.stats.total_income")}</span>
                           <span className="font-semibold text-emerald-600 dark:text-emerald-400">
                             {formatCurrency(adm.totalIncome)}
                           </span>
                         </div>
                         <div>
-                          <span className="text-muted-text block text-[10px] uppercase font-semibold">Outcome</span>
+                          <span className="text-muted-text block text-[10px] uppercase font-semibold">{tUi("admin.budget.stats.total_outcome")}</span>
                           <span className="font-semibold text-rose-600 dark:text-rose-400">
                             {formatCurrency(adm.totalOutcome)}
                           </span>
                         </div>
                         <div>
-                          <span className="text-muted-text block text-[10px] uppercase font-semibold">Net</span>
+                          <span className="text-muted-text block text-[10px] uppercase font-semibold">{tUi("admin.budget.chart.net")}</span>
                           <span className={cn(
                             "font-bold font-heading",
                             adm.net >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"
@@ -454,7 +455,7 @@ export function BudgetChartSection({
               </div>
             </div>
           ) : (
-            <div className="py-8 text-center text-xs text-muted-text">No admin comparisons available.</div>
+            <div className="py-8 text-center text-xs text-muted-text">{tUi("admin.budget.chart.no_admin_comparison")}</div>
           )}
         </div>
       )}

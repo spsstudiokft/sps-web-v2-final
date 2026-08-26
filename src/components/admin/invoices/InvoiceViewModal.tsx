@@ -1,3 +1,4 @@
+import { useLanguage } from "../../../contexts/LanguageContext";
 import React from "react";
 import { 
   X, 
@@ -44,6 +45,7 @@ export function InvoiceViewModal({
   onRecordPayment,
   showToast
 }: InvoiceViewModalProps) {
+  const { tUi } = useLanguage();
   if (!isOpen || !invoice) return null;
 
   const handleSend = () => {
@@ -240,10 +242,10 @@ export function InvoiceViewModal({
             <table className="w-full text-left text-xs">
               <thead className="bg-background text-muted-text font-bold uppercase text-[11px] border-b border-border">
                 <tr>
-                  <th className="py-3 px-4">Description</th>
+                  <th className="py-3 px-4">{tUi("admin.portfolio_form.description")}</th>
                   <th className="py-3 px-4 text-center">Qty</th>
                   <th className="py-3 px-4 text-right">Unit Price</th>
-                  <th className="py-3 px-4 text-right">Amount</th>
+                  <th className="py-3 px-4 text-right">{tUi("admin.budget.table.th_amount")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -364,10 +366,10 @@ export function InvoiceViewModal({
                 <table className="w-full text-left text-xs">
                   <thead className="bg-background text-muted-text text-[11px]">
                     <tr>
-                      <th className="p-2">Date</th>
+                      <th className="p-2">{tUi("admin.submissions.th_date")}</th>
                       <th className="p-2">Method</th>
                       <th className="p-2">Reference</th>
-                      <th className="p-2 text-right">Amount</th>
+                      <th className="p-2 text-right">{tUi("admin.budget.table.th_amount")}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
@@ -407,8 +409,7 @@ export function InvoiceViewModal({
             size="sm"
             onClick={onClose}
           >
-            Close
-          </Button>
+            {tUi("admin.team.btn_close")}</Button>
         </div>
       </div>
     </div>

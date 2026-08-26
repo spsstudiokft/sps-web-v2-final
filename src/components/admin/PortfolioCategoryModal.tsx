@@ -145,7 +145,7 @@ export function PortfolioCategoryModal({
 
     const nameText = parseText(formData.name);
     if (!nameText || nameText.trim() === "") {
-      setErrorMessage("Please provide a category name.");
+      setErrorMessage(tUi("admin.portfolio.category_modal.error_name", currentLanguage));
       return;
     }
 
@@ -166,7 +166,7 @@ export function PortfolioCategoryModal({
       });
       onClose();
     } catch (err: any) {
-      setErrorMessage(err.message || "Failed to save category. Please try again.");
+      setErrorMessage(err.message || tUi("admin.portfolio.category_modal.error_save", currentLanguage));
     } finally {
       setSaving(false);
     }
@@ -194,12 +194,14 @@ export function PortfolioCategoryModal({
             </div>
             <div>
               <h2 id="portfolio-category-modal-title" className="text-lg font-bold text-text tracking-tight leading-snug">
-                {isEditing ? "Edit Category" : "Add Portfolio Category"}
+                {isEditing
+                  ? tUi("admin.portfolio.category_modal.edit_title", currentLanguage)
+                  : tUi("admin.portfolio.category_modal.create_title", currentLanguage)}
               </h2>
               <p className="text-xs text-muted-text">
                 {isEditing
-                  ? "Update category naming, hierarchy, and public portfolio grouping."
-                  : "Create a new portfolio category to organize showcase galleries and projects."}
+                  ? tUi("admin.portfolio.category_modal.edit_subtitle", currentLanguage)
+                  : tUi("admin.portfolio.category_modal.create_subtitle", currentLanguage)}
               </p>
             </div>
           </div>
@@ -207,7 +209,7 @@ export function PortfolioCategoryModal({
             type="button"
             onClick={onClose}
             className="p-2 text-muted-text hover:text-text hover:bg-surface rounded-xl transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-            aria-label="Close dialog"
+            aria-label={tUi("admin.portfolio.category_modal.close", currentLanguage)}
           >
             <X className="w-5 h-5" aria-hidden="true" />
           </button>
@@ -232,11 +234,11 @@ export function PortfolioCategoryModal({
           {/* Category Name (Multilingual aware) */}
           <div className="space-y-1.5">
             <TranslatableInput
-              label="Category Name *"
+              label={tUi("admin.portfolio.category_modal.name", currentLanguage)}
               value={formData.name || ""}
               onChange={handleNameChange}
               siteLanguages={siteLanguages || '[{"code":"en","name":"English"}]'}
-              placeholder="e.g. Architecture & Interiors"
+              placeholder={tUi("admin.portfolio.category_modal.name_placeholder", currentLanguage)}
             />
           </div>
 
@@ -246,10 +248,10 @@ export function PortfolioCategoryModal({
               <div className="flex items-center justify-between">
                 <Label htmlFor="category-slug-input" className="text-sm font-semibold text-text flex items-center gap-1.5">
                   <LinkIcon className="w-3.5 h-3.5 text-primary" aria-hidden="true" />
-                  <span>Slug / Identifier</span>
+                  <span>{tUi("admin.portfolio.category_modal.slug", currentLanguage)}</span>
                 </Label>
                 {autoSlug ? (
-                  <span className="text-[11px] text-primary font-medium">Auto-generated</span>
+                  <span className="text-[11px] text-primary font-medium">{tUi("admin.portfolio.category_modal.auto", currentLanguage)}</span>
                 ) : (
                   <button
                     type="button"
@@ -259,7 +261,7 @@ export function PortfolioCategoryModal({
                     }}
                     className="text-[11px] text-muted-text hover:text-primary transition-colors"
                   >
-                    Reset to auto
+                    {tUi("admin.portfolio.category_modal.reset_auto", currentLanguage)}
                   </button>
                 )}
               </div>
@@ -270,18 +272,18 @@ export function PortfolioCategoryModal({
                   setAutoSlug(false);
                   setFormData((prev) => ({ ...prev, slug: e.target.value }));
                 }}
-                placeholder="e.g. architecture-interiors"
+                placeholder={tUi("admin.portfolio.category_modal.slug_placeholder", currentLanguage)}
                 className="font-mono text-sm"
               />
               <p className="text-[11px] text-muted-text">
-                Used in navigation filters and portfolio category URLs.
+                {tUi("admin.portfolio.category_modal.slug_help", currentLanguage)}
               </p>
             </div>
 
             <div className="space-y-1.5">
               <Label htmlFor="category-parent-select" className="text-sm font-semibold text-text flex items-center gap-1.5">
                 <Layers className="w-3.5 h-3.5 text-primary" aria-hidden="true" />
-                <span>Parent Category (Optional)</span>
+                <span>{tUi("admin.portfolio.category_modal.parent", currentLanguage)}</span>
               </Label>
               <select
                 id="category-parent-select"
@@ -294,18 +296,18 @@ export function PortfolioCategoryModal({
                   }))
                 }
               >
-                <option value="">-- Top-level Category (No Parent) --</option>
+                <option value="">{tUi("admin.portfolio.category_modal.top_level", currentLanguage)}</option>
                 {availableParents.map((parent) => (
                   <option key={parent.id} value={parent.id}>
                     {(() => {
                       const localizedName = translateContent(parent.name, currentLanguage, defaultLanguage) || parseText(parent.name);
-                      return tUi(localizedName, currentLanguage) || localizedName;
+                      return localizedName;
                     })()}
                   </option>
                 ))}
               </select>
               <p className="text-[11px] text-muted-text">
-                Nest under a parent to create subcategory groups.
+                {tUi("admin.portfolio.category_modal.parent_help", currentLanguage)}
               </p>
             </div>
           </div>
@@ -313,12 +315,12 @@ export function PortfolioCategoryModal({
           {/* Description (Multilingual aware) */}
           <div className="space-y-1.5">
             <TranslatableInput
-              label="Description (Optional)"
+              label={tUi("admin.portfolio.category_modal.description", currentLanguage)}
               value={formData.description || ""}
               onChange={(val) => setFormData((prev) => ({ ...prev, description: val }))}
               siteLanguages={siteLanguages || '[{"code":"en","name":"English"}]'}
               isTextarea
-              placeholder="Brief summary of projects included in this category..."
+              placeholder={tUi("admin.portfolio.category_modal.description_placeholder", currentLanguage)}
             />
           </div>
 
@@ -326,7 +328,7 @@ export function PortfolioCategoryModal({
           <div className="space-y-1.5 max-w-xs">
             <Label htmlFor="category-sort-input" className="text-sm font-semibold text-text flex items-center gap-1.5">
               <Hash className="w-3.5 h-3.5 text-primary" aria-hidden="true" />
-              <span>Display Sort Order</span>
+              <span>{tUi("admin.portfolio.category_modal.sort_order", currentLanguage)}</span>
             </Label>
             <Input
               id="category-sort-input"
@@ -342,7 +344,7 @@ export function PortfolioCategoryModal({
               className="text-sm font-mono"
             />
             <p className="text-[11px] text-muted-text">
-              Lower numbers appear first in gallery filter bars.
+              {tUi("admin.portfolio.category_modal.sort_help", currentLanguage)}
             </p>
           </div>
         </form>
@@ -350,7 +352,7 @@ export function PortfolioCategoryModal({
         {/* Modal Footer */}
         <div className="flex items-center justify-between px-6 py-4 border-t border-border bg-surface/50 shrink-0">
           <div className="text-xs text-muted-text hidden sm:block">
-            Press <kbd className="px-1.5 py-0.5 rounded bg-surface border border-border font-mono text-[10px]">Esc</kbd> to exit
+            {tUi("admin.portfolio.category_modal.press", currentLanguage)} <kbd className="px-1.5 py-0.5 rounded bg-surface border border-border font-mono text-[10px]">{tUi("admin.portfolio.category_modal.escape_key", currentLanguage)}</kbd> {tUi("admin.portfolio.category_modal.to_exit", currentLanguage)}
           </div>
           <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
             <Button
@@ -360,7 +362,7 @@ export function PortfolioCategoryModal({
               disabled={saving}
               className="flex-1 sm:flex-none"
             >
-              Cancel
+              {tUi("common.cancel", currentLanguage)}
             </Button>
             <Button
               type="submit"
@@ -371,12 +373,13 @@ export function PortfolioCategoryModal({
               {saving ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden="true" />
-                  Saving...
-                </>
+                  {tUi("admin.pricing.btn_saving")}</>
               ) : (
                 <>
                   <Check className="w-4 h-4 mr-2" aria-hidden="true" />
-                  {isEditing ? "Save Changes" : "Create Category"}
+                  {isEditing
+                    ? tUi("admin.portfolio.category_modal.save_changes", currentLanguage)
+                    : tUi("admin.portfolio.category_modal.create_button", currentLanguage)}
                 </>
               )}
             </Button>

@@ -97,7 +97,8 @@ export interface AdminResolvedBundleItem {
 export function resolveBundleItemsForAdmin(
   plan: PricingPlan,
   allPlans: PricingPlan[],
-  currentLang: string
+  currentLang: string,
+  tUi: (key: string, params?: Record<string, string | number>) => string
 ): AdminResolvedBundleItem[] {
   if (plan.type !== "bundle") return [];
 
@@ -129,7 +130,9 @@ export function resolveBundleItemsForAdmin(
 
       const name = matchedTier
         ? getDisplayText(matchedTier.title, currentLang) || matchedTier.name || raw.service_name || raw.service_title
-        : raw.service_name || raw.service_title || (isTier ? `Tier #${idx + 1}` : `Service #${idx + 1}`);
+        : raw.service_name || raw.service_title || (isTier
+          ? tUi("admin.pricing.bundle_tier_fallback", { number: idx + 1 })
+          : tUi("admin.pricing.bundle_service_fallback", { number: idx + 1 }));
 
       const qty = Number(raw.quantity) || 1;
       const unitPrice = raw.override_price !== null && raw.override_price !== undefined
@@ -220,11 +223,11 @@ function SortablePricingCard({
     zIndex: isDragging ? 50 : "auto",
   };
 
-  const title = getDisplayText(plan.title, currentLang) || tUi("admin.pricing.untitled") || "Untitled Listing";
+  const title = getDisplayText(plan.title, currentLang) || tUi("admin.pricing.untitled");
   const subtitle = getDisplayText(plan.subtitle, currentLang);
   const isBundle = plan.type === "bundle";
   const features = parseJsonArray(plan.features);
-  const bundleComponents = isBundle ? resolveBundleItemsForAdmin(plan, allPlans, currentLang) : [];
+  const bundleComponents = isBundle ? resolveBundleItemsForAdmin(plan, allPlans, currentLang, tUi) : [];
 
   return (
     <div
@@ -244,7 +247,7 @@ function SortablePricingCard({
               {...attributes}
               {...listeners}
               className="cursor-grab active:cursor-grabbing p-1.5 rounded-lg text-muted-text hover:text-text hover:bg-surface transition-colors"
-              title={tUi("admin.pricing.drag_to_reorder") || "Drag to reorder"}
+              title={tUi("admin.pricing.drag_to_reorder")}
             >
               <GripVertical className="w-4 h-4" />
             </button>
@@ -256,14 +259,14 @@ function SortablePricingCard({
             >
               {isBundle ? <Layers className="w-3 h-3" /> : <Tag className="w-3 h-3" />}
               {isBundle 
-                ? (tUi("admin.pricing.tag_bundle") || "Bundle") 
-                : (tUi("admin.pricing.tag_tier") || "Tier Plan")}
+                ? (tUi("admin.pricing.tag_bundle")) 
+                : (tUi("admin.pricing.tag_tier"))}
             </span>
 
             {Boolean(plan.is_featured) && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400">
                 <Star className="w-3 h-3 fill-current" />
-                <span>{tUi("admin.pricing.tag_featured") || "Featured"}</span>
+                <span>{tUi("admin.pricing.tag_featured")}</span>
               </span>
             )}
           </div>
@@ -275,7 +278,7 @@ function SortablePricingCard({
               onClick={onMoveUp}
               disabled={isFirst}
               className="p-1 text-muted-text hover:text-text disabled:opacity-30 rounded hover:bg-surface transition-colors"
-              title={tUi("admin.pricing.move_up") || "Move Up"}
+              title={tUi("admin.pricing.move_up")}
             >
               <ChevronUp className="w-4 h-4" />
             </button>
@@ -284,7 +287,7 @@ function SortablePricingCard({
               onClick={onMoveDown}
               disabled={isLast}
               className="p-1 text-muted-text hover:text-text disabled:opacity-30 rounded hover:bg-surface transition-colors"
-              title={tUi("admin.pricing.move_down") || "Move Down"}
+              title={tUi("admin.pricing.move_down")}
             >
               <ChevronDown className="w-4 h-4" />
             </button>
@@ -324,7 +327,7 @@ function SortablePricingCard({
             <div className="text-[11px] font-bold text-text uppercase tracking-wider flex items-center justify-between">
               <div className="flex items-center gap-1.5">
                 <Layers className="w-3.5 h-3.5 text-primary" />
-                <span>Components & Tiers ({bundleComponents.length})</span>
+                <span>{tUi("admin.pricing.bundle_components_title")} ({bundleComponents.length})</span>
               </div>
             </div>
             <div className="space-y-1.5">
@@ -338,7 +341,7 @@ function SortablePricingCard({
                         ? "bg-purple-500/10 text-purple-600 dark:text-purple-400"
                         : "bg-blue-500/10 text-blue-600 dark:text-blue-400"
                     }`}>
-                      {item.itemType === "tier" ? "Tier" : item.itemType === "extra" ? "Add-on" : "Item"}
+                      {item.itemType === "tier" ? tUi("admin.pricing.item_tier") : item.itemType === "extra" ? tUi("admin.pricing.item_addon") : tUi("admin.pricing.item_service")}
                     </span>
                     <span className="truncate text-text font-medium">
                       {item.quantity > 1 ? `${item.quantity}x ` : ""}{item.name}
@@ -346,12 +349,10 @@ function SortablePricingCard({
                     {item.status === "missing" ? (
                       <span className="text-[9px] px-1.5 py-0.5 rounded bg-rose-500/10 text-rose-500 font-bold inline-flex items-center gap-0.5">
                         <AlertCircle className="w-2.5 h-2.5" />
-                        Missing
-                      </span>
+                        {tUi("admin.translation_editor.missing")}</span>
                     ) : item.status === "inactive" ? (
                       <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-500 font-semibold">
-                        Inactive
-                      </span>
+                        {tUi("admin.customers.status_inactive")}</span>
                     ) : null}
                   </div>
                   {item.unitPrice > 0 && (
@@ -368,7 +369,7 @@ function SortablePricingCard({
         {/* Features Preview */}
         <div className="space-y-1.5 mb-2">
           <div className="text-[11px] font-semibold text-muted-text uppercase tracking-wider mb-1">
-            {tUi("admin.pricing.features_count", { count: features.length }) || `Features (${features.length}):`}
+            {tUi("admin.pricing.features_count", { count: features.length })}
           </div>
           {features.slice(0, 4).map((f, fIdx) => (
             <div key={fIdx} className="flex items-center gap-2 text-xs text-muted-text">
@@ -378,7 +379,7 @@ function SortablePricingCard({
           ))}
           {features.length > 4 && (
             <div className="text-[11px] text-muted-text italic pl-5">
-              +{features.length - 4} {tUi("admin.pricing.more_features") || "more features..."}
+              +{features.length - 4} {tUi("admin.pricing.more_features")}
             </div>
           )}
         </div>
@@ -396,10 +397,10 @@ function SortablePricingCard({
                 ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20"
                 : "bg-surface border border-border text-muted-text hover:text-text"
             }`}
-            title={Boolean(plan.is_enabled) ? (tUi("admin.pricing.status_enabled") || "Enabled") : (tUi("admin.pricing.status_disabled") || "Disabled")}
+            title={Boolean(plan.is_enabled) ? (tUi("admin.pricing.status_enabled")) : (tUi("admin.pricing.status_disabled"))}
           >
             {Boolean(plan.is_enabled) ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
-            <span>{Boolean(plan.is_enabled) ? (tUi("admin.pricing.status_enabled") || "Enabled") : (tUi("admin.pricing.status_disabled") || "Disabled")}</span>
+            <span>{Boolean(plan.is_enabled) ? (tUi("admin.pricing.status_enabled")) : (tUi("admin.pricing.status_disabled"))}</span>
           </button>
 
           {/* Featured toggle button */}
@@ -411,7 +412,7 @@ function SortablePricingCard({
                 ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
                 : "text-muted-text hover:text-text hover:bg-surface"
             }`}
-            title={Boolean(plan.is_featured) ? (tUi("admin.pricing.unmark_featured") || "Unmark as featured") : (tUi("admin.pricing.mark_featured") || "Mark as featured")}
+            title={Boolean(plan.is_featured) ? (tUi("admin.pricing.unmark_featured")) : (tUi("admin.pricing.mark_featured"))}
           >
             <Star className={`w-3.5 h-3.5 ${Boolean(plan.is_featured) ? "fill-current" : ""}`} />
           </button>
@@ -423,7 +424,7 @@ function SortablePricingCard({
             variant="ghost"
             onClick={() => onEdit(plan)}
             className="h-8 w-8 p-0 text-muted-text hover:text-text"
-            title={tUi("admin.pricing.action_edit") || "Edit Plan"}
+            title={tUi("admin.pricing.action_edit")}
           >
             <Edit2 className="w-3.5 h-3.5" />
           </Button>
@@ -432,7 +433,7 @@ function SortablePricingCard({
             variant="ghost"
             onClick={() => onDelete(plan)}
             className="h-8 w-8 p-0 text-muted-text hover:text-red-500"
-            title={tUi("admin.pricing.action_delete") || "Delete Plan"}
+            title={tUi("admin.pricing.action_delete")}
           >
             <Trash2 className="w-3.5 h-3.5" />
           </Button>
@@ -480,11 +481,11 @@ function SortablePricingRow({
     opacity: isDragging ? 0.4 : 1,
   };
 
-  const title = getDisplayText(plan.title, currentLang) || tUi("admin.pricing.untitled") || "Untitled Listing";
+  const title = getDisplayText(plan.title, currentLang) || tUi("admin.pricing.untitled");
   const subtitle = getDisplayText(plan.subtitle, currentLang);
   const isBundle = plan.type === "bundle";
   const features = parseJsonArray(plan.features);
-  const bundleComponents = isBundle ? resolveBundleItemsForAdmin(plan, allPlans, currentLang) : [];
+  const bundleComponents = isBundle ? resolveBundleItemsForAdmin(plan, allPlans, currentLang, tUi) : [];
 
   return (
     <tr
@@ -499,7 +500,7 @@ function SortablePricingRow({
           {...attributes}
           {...listeners}
           className="cursor-grab active:cursor-grabbing p-1 text-muted-text hover:text-text rounded hover:bg-surface transition-colors"
-          title={tUi("admin.pricing.drag_to_reorder") || "Drag to reorder"}
+          title={tUi("admin.pricing.drag_to_reorder")}
         >
           <GripVertical className="w-4 h-4" />
         </button>
@@ -512,7 +513,7 @@ function SortablePricingRow({
             onClick={onMoveUp}
             disabled={isFirst}
             className="p-1 text-muted-text hover:text-text disabled:opacity-20 rounded"
-            title={tUi("admin.pricing.move_up") || "Move Up"}
+            title={tUi("admin.pricing.move_up")}
           >
             <ChevronUp className="w-3.5 h-3.5" />
           </button>
@@ -521,7 +522,7 @@ function SortablePricingRow({
             onClick={onMoveDown}
             disabled={isLast}
             className="p-1 text-muted-text hover:text-text disabled:opacity-20 rounded"
-            title={tUi("admin.pricing.move_down") || "Move Down"}
+            title={tUi("admin.pricing.move_down")}
           >
             <ChevronDown className="w-3.5 h-3.5" />
           </button>
@@ -536,8 +537,8 @@ function SortablePricingRow({
             }`}
           >
             {isBundle 
-              ? (tUi("admin.pricing.tag_bundle") || "Bundle") 
-              : (tUi("admin.pricing.tag_tier") || "Tier")}
+              ? (tUi("admin.pricing.tag_bundle")) 
+              : (tUi("admin.pricing.tag_tier"))}
           </span>
           <div>
             <div className="font-bold text-text flex items-center gap-1.5">
@@ -583,7 +584,7 @@ function SortablePricingRow({
 
       <td className="p-3">
         <span className="text-xs text-muted-text">
-          {features.length} {tUi("admin.pricing.bullet_points") || "bullet points"}
+          {features.length} {tUi("admin.pricing.bullet_points")}
         </span>
       </td>
 
@@ -598,7 +599,7 @@ function SortablePricingRow({
           }`}
         >
           {Boolean(plan.is_enabled) ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
-          <span>{Boolean(plan.is_enabled) ? (tUi("admin.pricing.status_enabled") || "Enabled") : (tUi("admin.pricing.status_disabled") || "Disabled")}</span>
+          <span>{Boolean(plan.is_enabled) ? (tUi("admin.pricing.status_enabled")) : (tUi("admin.pricing.status_disabled"))}</span>
         </button>
       </td>
 
@@ -612,7 +613,7 @@ function SortablePricingRow({
                 ? "text-amber-500 bg-amber-500/10"
                 : "text-muted-text hover:text-text"
             }`}
-            title={Boolean(plan.is_featured) ? (tUi("admin.pricing.unmark_featured") || "Unmark as featured") : (tUi("admin.pricing.mark_featured") || "Mark as featured")}
+            title={Boolean(plan.is_featured) ? (tUi("admin.pricing.unmark_featured")) : (tUi("admin.pricing.mark_featured"))}
           >
             <Star className={`w-4 h-4 ${Boolean(plan.is_featured) ? "fill-current" : ""}`} />
           </button>
@@ -621,7 +622,7 @@ function SortablePricingRow({
             variant="ghost"
             onClick={() => onEdit(plan)}
             className="h-8 w-8 p-0 text-muted-text hover:text-text"
-            title={tUi("admin.pricing.action_edit") || "Edit"}
+            title={tUi("admin.pricing.action_edit")}
           >
             <Edit2 className="w-4 h-4" />
           </Button>
@@ -630,7 +631,7 @@ function SortablePricingRow({
             variant="ghost"
             onClick={() => onDelete(plan)}
             className="h-8 w-8 p-0 text-muted-text hover:text-red-500"
-            title={tUi("admin.pricing.action_delete") || "Delete"}
+            title={tUi("admin.pricing.action_delete")}
           >
             <Trash2 className="w-4 h-4" />
           </Button>
@@ -642,7 +643,7 @@ function SortablePricingRow({
 
 export default function PricingPage() {
   const { currentLang, tUi } = useLanguage();
-  usePageTitle(tUi("admin.pricing.title") || "Pricing & Packages", "Admin");
+  usePageTitle(tUi("admin.pricing.title"), "Admin");
   const { fetchApi } = useApi();
 
   const [pricingTab, setPricingTab] = useState<"plans" | "addons" | "fees">("plans");
@@ -690,7 +691,7 @@ export default function PricingPage() {
         setPlans(Array.isArray(pricingData) ? pricingData : []);
       } else {
         const err = await pricingRes.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to load pricing packages");
+        throw new Error(err.error || tUi("admin.pricing.err_load_failed"));
       }
 
       if (settingsRes.ok) {
@@ -699,7 +700,7 @@ export default function PricingPage() {
       }
     } catch (error: any) {
       console.error("Failed to load pricing admin data:", error);
-      showToast(error.message || tUi("admin.pricing.err_load_failed") || "Failed to load pricing packages.", "error");
+      showToast(error.message || tUi("admin.pricing.err_load_failed"), "error");
     } finally {
       setLoading(false);
     }
@@ -772,12 +773,12 @@ export default function PricingPage() {
         });
         if (!res.ok) {
           const err = await res.json().catch(() => ({}));
-          throw new Error(err.error || "Failed to save reorder changes");
+          throw new Error(err.error || tUi("admin.pricing.msg_reorder_failed"));
         }
-        showToast(tUi("admin.pricing.msg_reorder_success") || "Pricing order updated successfully.");
+        showToast(tUi("admin.pricing.msg_reorder_success"));
       } catch (error: any) {
         console.error("Failed to persist pricing order:", error);
-        showToast(error.message || tUi("admin.pricing.msg_reorder_failed") || "Failed to save reorder changes.", "error");
+        showToast(error.message || tUi("admin.pricing.msg_reorder_failed"), "error");
         loadData();
       }
     }
@@ -803,12 +804,12 @@ export default function PricingPage() {
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to update order");
+        throw new Error(err.error || tUi("admin.pricing.msg_reorder_failed"));
       }
-      showToast(tUi("admin.pricing.msg_order_updated") || "Order updated.");
+      showToast(tUi("admin.pricing.msg_order_updated"));
     } catch (error: any) {
       console.error("Failed to move item:", error);
-      showToast(error.message || tUi("admin.pricing.msg_reorder_failed") || "Failed to update order.", "error");
+      showToast(error.message || tUi("admin.pricing.msg_reorder_failed"), "error");
       loadData();
     }
   };
@@ -828,16 +829,16 @@ export default function PricingPage() {
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to update status");
+        throw new Error(err.error || tUi("admin.pricing.err_status_failed"));
       }
       showToast(
         newStatus 
-          ? (tUi("admin.pricing.msg_plan_enabled") || "Plan enabled and visible on site.") 
-          : (tUi("admin.pricing.msg_plan_disabled") || "Plan disabled.")
+          ? (tUi("admin.pricing.msg_plan_enabled")) 
+          : (tUi("admin.pricing.msg_plan_disabled"))
       );
     } catch (error: any) {
       console.error("Failed to toggle status:", error);
-      showToast(error.message || tUi("admin.pricing.err_status_failed") || "Failed to update status.", "error");
+      showToast(error.message || tUi("admin.pricing.err_status_failed"), "error");
       loadData();
     }
   };
@@ -857,16 +858,16 @@ export default function PricingPage() {
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to update featured flag");
+        throw new Error(err.error || tUi("admin.pricing.err_featured_failed"));
       }
       showToast(
         newFeatured 
-          ? (tUi("admin.pricing.msg_plan_featured") || "Marked as featured listing.") 
-          : (tUi("admin.pricing.msg_plan_unfeatured") || "Unmarked as featured.")
+          ? (tUi("admin.pricing.msg_plan_featured")) 
+          : (tUi("admin.pricing.msg_plan_unfeatured"))
       );
     } catch (error: any) {
       console.error("Failed to toggle featured:", error);
-      showToast(error.message || tUi("admin.pricing.err_featured_failed") || "Failed to update featured flag.", "error");
+      showToast(error.message || tUi("admin.pricing.err_featured_failed"), "error");
       loadData();
     }
   };
@@ -882,9 +883,9 @@ export default function PricingPage() {
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to update pricing plan");
+        throw new Error(err.error || tUi("admin.pricing.err_save_failed"));
       }
-      showToast(tUi("admin.pricing.msg_save_success") || "Pricing package updated successfully.");
+      showToast(tUi("admin.pricing.msg_save_success"));
     } else {
       // Create
       const res = await fetchApi("/api/admin/pricing", {
@@ -894,9 +895,9 @@ export default function PricingPage() {
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to create pricing plan");
+        throw new Error(err.error || tUi("admin.pricing.err_save_failed"));
       }
-      showToast(tUi("admin.pricing.msg_create_success") || "Pricing package created successfully.");
+      showToast(tUi("admin.pricing.msg_create_success"));
     }
     await loadData();
   };
@@ -911,14 +912,14 @@ export default function PricingPage() {
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to delete pricing plan");
+        throw new Error(err.error || tUi("admin.pricing.err_delete_failed"));
       }
-      showToast(tUi("admin.pricing.msg_delete_success") || "Pricing package deleted.");
+      showToast(tUi("admin.pricing.msg_delete_success"));
       setDeleteConfirmPlan(null);
       await loadData();
     } catch (error: any) {
       console.error("Failed to delete pricing plan:", error);
-      showToast(error.message || tUi("admin.pricing.err_delete_failed") || "Failed to delete pricing package.", "error");
+      showToast(error.message || tUi("admin.pricing.err_delete_failed"), "error");
     } finally {
       setIsDeleting(false);
     }
@@ -946,8 +947,8 @@ export default function PricingPage() {
 
       {/* Page Header */}
       <PageHeader
-        title={tUi("admin.pricing.title") || "Pricing & Packages"}
-        description={tUi("admin.pricing.description") || "Manage pricing tiers, service packages, bundled offers, and client rates displayed on the homepage."}
+        title={tUi("admin.pricing.title")}
+        description={tUi("admin.pricing.description")}
         action={
           pricingTab === "plans" ? (
             <div className="flex items-center gap-2.5">
@@ -960,7 +961,7 @@ export default function PricingPage() {
                 className="gap-2"
               >
                 <Layers className="w-4 h-4 text-accent" />
-                <span>{tUi("admin.pricing.btn_add_bundle") || "Add Bundle"}</span>
+                <span>{tUi("admin.pricing.btn_add_bundle")}</span>
               </Button>
 
               <Button
@@ -971,7 +972,7 @@ export default function PricingPage() {
                 className="gap-2"
               >
                 <Plus className="w-4 h-4" />
-                <span>{tUi("admin.pricing.btn_add_plan") || "Add Pricing Plan"}</span>
+                <span>{tUi("admin.pricing.btn_add_plan")}</span>
               </Button>
             </div>
           ) : null
@@ -990,7 +991,7 @@ export default function PricingPage() {
           }`}
         >
           <Tag className="w-4 h-4" />
-          <span>Plans & Bundles</span>
+          <span>{tUi("admin.pricing.tab_packages")}</span>
           <span className={`text-xs px-1.5 py-0.2 rounded-md ${pricingTab === "plans" ? "bg-background/20 text-background" : "bg-border text-muted-text"}`}>
             {stats.total}
           </span>
@@ -1006,7 +1007,7 @@ export default function PricingPage() {
           }`}
         >
           <Sparkles className="w-4 h-4" />
-          <span>Add-on Services (Extras)</span>
+          <span>{tUi("admin.pricing.tab_addons")}</span>
         </button>
 
         <button
@@ -1019,7 +1020,7 @@ export default function PricingPage() {
           }`}
         >
           <Car className="w-4 h-4" />
-          <span>Fees & Surcharges</span>
+          <span>{tUi("admin.pricing.tab_fees")}</span>
         </button>
       </div>
 
@@ -1031,7 +1032,7 @@ export default function PricingPage() {
             <Card className="bg-surface/50 border-border">
               <CardContent className="p-4">
                 <div className="text-xs font-semibold text-muted-text uppercase tracking-wider mb-1">
-                  {tUi("admin.pricing.stat_total") || "Total Packages"}
+                  {tUi("admin.pricing.stat_total")}
                 </div>
                 <div className="text-2xl font-black text-text">{stats.total}</div>
               </CardContent>
@@ -1041,7 +1042,7 @@ export default function PricingPage() {
               <CardContent className="p-4">
                 <div className="text-xs font-semibold text-muted-text uppercase tracking-wider mb-1 flex items-center gap-1">
                   <Tag className="w-3 h-3 text-primary" />
-                  <span>{tUi("admin.pricing.stat_tiers") || "Standard Tiers"}</span>
+                  <span>{tUi("admin.pricing.stat_tiers")}</span>
                 </div>
                 <div className="text-2xl font-black text-text">{stats.tiers}</div>
               </CardContent>
@@ -1051,7 +1052,7 @@ export default function PricingPage() {
               <CardContent className="p-4">
                 <div className="text-xs font-semibold text-muted-text uppercase tracking-wider mb-1 flex items-center gap-1">
                   <Layers className="w-3 h-3 text-accent" />
-                  <span>{tUi("admin.pricing.stat_bundles") || "Service Bundles"}</span>
+                  <span>{tUi("admin.pricing.stat_bundles")}</span>
                 </div>
                 <div className="text-2xl font-black text-text">{stats.bundles}</div>
               </CardContent>
@@ -1061,7 +1062,7 @@ export default function PricingPage() {
               <CardContent className="p-4">
                 <div className="text-xs font-semibold text-muted-text uppercase tracking-wider mb-1 flex items-center gap-1">
                   <Eye className="w-3 h-3 text-emerald-500" />
-                  <span>{tUi("admin.pricing.stat_active") || "Active on Site"}</span>
+                  <span>{tUi("admin.pricing.stat_active")}</span>
                 </div>
                 <div className="text-2xl font-black text-text">{stats.enabled}</div>
               </CardContent>
@@ -1077,7 +1078,7 @@ export default function PricingPage() {
                   <Input
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder={tUi("admin.pricing.search_placeholder") || "Search plans, features, bundles..."}
+                    placeholder={tUi("admin.pricing.search_placeholder")}
                     className="pl-9 text-sm"
                   />
                 </div>
@@ -1088,9 +1089,9 @@ export default function PricingPage() {
                     onChange={(e) => setTypeFilter(e.target.value as any)}
                     className="h-10 px-3 rounded-lg border border-border bg-background text-text text-sm focus:ring-2 focus:ring-primary outline-none"
                   >
-                    <option value="all">{tUi("admin.pricing.filter_all_types") || "All Types"}</option>
-                    <option value="tier">{tUi("admin.pricing.filter_standard_plans", { count: stats.tiers }) || `Standard Plans (${stats.tiers})`}</option>
-                    <option value="bundle">{tUi("admin.pricing.filter_bundles", { count: stats.bundles }) || `Bundles (${stats.bundles})`}</option>
+                    <option value="all">{tUi("admin.pricing.filter_all_types")}</option>
+                    <option value="tier">{tUi("admin.pricing.filter_standard_plans", { count: stats.tiers })}</option>
+                    <option value="bundle">{tUi("admin.pricing.filter_bundles", { count: stats.bundles })}</option>
                   </select>
 
                   <select
@@ -1098,9 +1099,9 @@ export default function PricingPage() {
                     onChange={(e) => setStatusFilter(e.target.value as any)}
                     className="h-10 px-3 rounded-lg border border-border bg-background text-text text-sm focus:ring-2 focus:ring-primary outline-none"
                   >
-                    <option value="all">{tUi("admin.pricing.filter_all_statuses") || "All Statuses"}</option>
-                    <option value="enabled">{tUi("admin.pricing.filter_enabled_only", { count: stats.enabled }) || `Enabled Only (${stats.enabled})`}</option>
-                    <option value="disabled">{tUi("admin.pricing.filter_disabled_only", { count: stats.total - stats.enabled }) || `Disabled Only (${stats.total - stats.enabled})`}</option>
+                    <option value="all">{tUi("admin.pricing.filter_all_statuses")}</option>
+                    <option value="enabled">{tUi("admin.pricing.filter_enabled_only", { count: stats.enabled })}</option>
+                    <option value="disabled">{tUi("admin.pricing.filter_disabled_only", { count: stats.total - stats.enabled })}</option>
                   </select>
                 </div>
               </div>
@@ -1111,7 +1112,7 @@ export default function PricingPage() {
                   size="sm"
                   onClick={loadData}
                   className="h-9 px-3 text-muted-text hover:text-text"
-                  title={tUi("admin.pricing.btn_refresh") || "Refresh"}
+                  title={tUi("admin.pricing.btn_refresh")}
                 >
                   <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
                 </Button>
@@ -1123,7 +1124,7 @@ export default function PricingPage() {
                     className={`p-1.5 rounded-md transition-colors ${
                       viewMode === "grid" ? "bg-primary text-background" : "text-muted-text hover:text-text"
                     }`}
-                    title={tUi("admin.pricing.view_grid") || "Grid view"}
+                    title={tUi("admin.pricing.view_grid")}
                   >
                     <LayoutGrid className="w-4 h-4" />
                   </button>
@@ -1133,7 +1134,7 @@ export default function PricingPage() {
                     className={`p-1.5 rounded-md transition-colors ${
                       viewMode === "list" ? "bg-primary text-background" : "text-muted-text hover:text-text"
                     }`}
-                    title={tUi("admin.pricing.view_list") || "List view"}
+                    title={tUi("admin.pricing.view_list")}
                   >
                     <List className="w-4 h-4" />
                   </button>
@@ -1146,18 +1147,18 @@ export default function PricingPage() {
           {loading ? (
             <div className="py-20 text-center text-muted-text">
               <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-3 opacity-50" />
-              <p>{tUi("admin.pricing.loading") || "Loading pricing listings..."}</p>
+              <p>{tUi("admin.pricing.loading")}</p>
             </div>
           ) : filteredPlans.length === 0 ? (
             <div className="py-16 text-center rounded-2xl border-2 border-dashed border-border bg-surface/30 p-8">
               <Tag className="w-12 h-12 text-muted-text mx-auto mb-3 opacity-40" />
               <h3 className="text-base font-bold text-text mb-1">
-                {tUi("admin.pricing.empty_title") || "No Pricing Packages Found"}
+                {tUi("admin.pricing.empty_title")}
               </h3>
               <p className="text-sm text-muted-text max-w-md mx-auto mb-6">
                 {searchQuery || typeFilter !== "all" || statusFilter !== "all"
-                  ? (tUi("admin.pricing.empty_search_desc") || "No packages match your search filters. Try adjusting your search query.")
-                  : (tUi("admin.pricing.empty_desc") || "Get started by adding your first pricing tier or service bundle to showcase your offers.")}
+                  ? (tUi("admin.pricing.empty_search_desc"))
+                  : (tUi("admin.pricing.empty_desc"))}
               </p>
               <div className="flex items-center justify-center gap-3">
                 <Button
@@ -1168,7 +1169,7 @@ export default function PricingPage() {
                   className="gap-2"
                 >
                   <Plus className="w-4 h-4" />
-                  <span>{tUi("admin.pricing.btn_create_first") || "Create First Plan"}</span>
+                  <span>{tUi("admin.pricing.btn_create_first")}</span>
                 </Button>
               </div>
             </div>
@@ -1207,12 +1208,12 @@ export default function PricingPage() {
                       <thead className="bg-surface/80 text-xs font-semibold text-muted-text uppercase tracking-wider border-b border-border">
                         <tr>
                           <th className="p-3 w-10"></th>
-                          <th className="p-3 w-20">{tUi("admin.pricing.th_order") || "Order"}</th>
-                          <th className="p-3">{tUi("admin.pricing.th_plan") || "Plan / Bundle"}</th>
-                          <th className="p-3">{tUi("admin.pricing.th_price") || "Price"}</th>
-                          <th className="p-3">{tUi("admin.pricing.th_features") || "Features"}</th>
-                          <th className="p-3">{tUi("admin.pricing.th_visibility") || "Visibility"}</th>
-                          <th className="p-3 text-right">{tUi("admin.pricing.th_actions") || "Actions"}</th>
+                          <th className="p-3 w-20">{tUi("admin.pricing.th_order")}</th>
+                          <th className="p-3">{tUi("admin.pricing.th_plan")}</th>
+                          <th className="p-3">{tUi("admin.pricing.th_price")}</th>
+                          <th className="p-3">{tUi("admin.pricing.th_features")}</th>
+                          <th className="p-3">{tUi("admin.pricing.th_visibility")}</th>
+                          <th className="p-3 text-right">{tUi("admin.pricing.th_actions")}</th>
                         </tr>
                       </thead>
                       <SortableContext items={filteredPlans.map((p) => p.id)} strategy={verticalListSortingStrategy}>
@@ -1285,12 +1286,12 @@ export default function PricingPage() {
             </div>
 
             <h3 className="text-lg font-bold text-text mb-2">
-              {tUi("admin.pricing.delete_modal_title") || "Delete Pricing Package?"}
+              {tUi("admin.pricing.delete_modal_title")}
             </h3>
             <p className="text-sm text-muted-text mb-6">
-              {tUi("admin.pricing.delete_modal_confirm_prefix") || "Are you sure you want to delete "}
+              {tUi("admin.pricing.delete_modal_confirm_prefix")}
               <strong className="text-text">{getDisplayText(deleteConfirmPlan.title, currentLang)}</strong>?{" "}
-              {tUi("admin.pricing.delete_modal_warning") || "This action cannot be undone. If you just want to temporarily hide it, you can disable it instead."}
+              {tUi("admin.pricing.delete_modal_warning")}
             </p>
 
             <div className="flex items-center justify-end gap-3">
@@ -1299,7 +1300,7 @@ export default function PricingPage() {
                 onClick={() => setDeleteConfirmPlan(null)}
                 disabled={isDeleting}
               >
-                {tUi("Cancel") || "Cancel"}
+                {tUi("Cancel")}
               </Button>
               <Button
                 variant="destructive"
@@ -1308,8 +1309,8 @@ export default function PricingPage() {
                 className="bg-red-600 hover:bg-red-700 text-white"
               >
                 {isDeleting 
-                  ? (tUi("admin.pricing.btn_deleting") || "Deleting...") 
-                  : (tUi("admin.pricing.btn_delete_confirm") || "Delete Package")}
+                  ? (tUi("admin.pricing.btn_deleting")) 
+                  : (tUi("admin.pricing.btn_delete_confirm"))}
               </Button>
             </div>
           </div>

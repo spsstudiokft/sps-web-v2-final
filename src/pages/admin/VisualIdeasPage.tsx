@@ -25,12 +25,12 @@ export default function VisualIdeasPage() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
 
-  usePageTitle(tUi("admin.visual_ideas.title") || "Ingatlanvizuál ötletek", "Admin");
+  usePageTitle(tUi("admin.visual_ideas.title"), "Admin");
 
   useEffect(() => {
     fetchApi("/api/admin/settings")
       .then(async (response) => {
-        if (!response.ok) throw new Error(`Settings request failed (${response.status})`);
+        if (!response.ok) throw new Error(tUi("admin.visual_ideas.load_failed", { status: response.status }));
         return response.json();
       })
       .then((data: SiteSettings) => {
@@ -42,7 +42,7 @@ export default function VisualIdeasPage() {
         });
         setItems(parseVisualIdeas(data.visual_ideas_items));
       })
-      .catch((error) => setMessage(error instanceof Error ? error.message : "Failed to load settings"))
+      .catch((error) => setMessage(error instanceof Error ? error.message : tUi("admin.visual_ideas.load_failed", { status: "–" })))
       .finally(() => setLoading(false));
   }, [fetchApi]);
 
@@ -84,10 +84,10 @@ export default function VisualIdeasPage() {
           visual_ideas_items: JSON.stringify(items.slice(0, MAX_VISUAL_IDEAS)),
         }),
       });
-      if (!response.ok) throw new Error(`Save failed (${response.status})`);
-      setMessage(tUi("admin.visual_ideas.saved") || "A szekció mentése sikerült.");
+      if (!response.ok) throw new Error(tUi("admin.visual_ideas.save_failed", { status: response.status }));
+      setMessage(tUi("admin.visual_ideas.saved"));
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Failed to save section");
+      setMessage(error instanceof Error ? error.message : tUi("admin.visual_ideas.save_failed", { status: "–" }));
     } finally {
       setSaving(false);
     }
@@ -101,9 +101,9 @@ export default function VisualIdeasPage() {
   return (
     <div className="mx-auto max-w-7xl p-4 sm:p-6 lg:p-8">
       <PageHeader
-        title={tUi("admin.visual_ideas.title") || "Ingatlanvizuál ötletek"}
-        description={tUi("admin.visual_ideas.subtitle") || "A publikus, árak előtti szöveges kártyaszekció kezelése. Legfeljebb 15 kártya jelenhet meg."}
-        action={<Button onClick={save} disabled={saving}><Save className="mr-2 h-4 w-4" />{saving ? (tUi("admin.visual_ideas.saving") || "Mentés…") : (tUi("admin.visual_ideas.save") || "Változtatások mentése")}</Button>}
+        title={tUi("admin.visual_ideas.title")}
+        description={tUi("admin.visual_ideas.subtitle")}
+        action={<Button onClick={save} disabled={saving}><Save className="mr-2 h-4 w-4" />{saving ? tUi("admin.visual_ideas.saving") : tUi("admin.visual_ideas.save")}</Button>}
       />
 
       {message && <div className="mb-6 rounded-xl border border-primary/25 bg-primary/10 px-4 py-3 text-sm font-medium text-text">{message}</div>}
@@ -112,8 +112,8 @@ export default function VisualIdeasPage() {
         <CardContent className="space-y-6 p-5 sm:p-6">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h2 className="font-bold text-text">{tUi("admin.visual_ideas.section_settings") || "Szekcióbeállítások"}</h2>
-              <p className="mt-1 text-sm text-muted-text">{tUi("admin.visual_ideas.section_settings_desc") || "A szekció nem kerül be a publikus navigációba."}</p>
+              <h2 className="font-bold text-text">{tUi("admin.visual_ideas.section_settings")}</h2>
+              <p className="mt-1 text-sm text-muted-text">{tUi("admin.visual_ideas.section_settings_desc")}</p>
             </div>
             <button
               type="button"
@@ -121,20 +121,20 @@ export default function VisualIdeasPage() {
               className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-bold ${enabled ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" : "border-border bg-surface text-muted-text"}`}
             >
               {enabled ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-              {enabled ? (tUi("admin.visual_ideas.visible") || "Látható") : (tUi("admin.visual_ideas.hidden") || "Elrejtve")}
+              {enabled ? tUi("admin.visual_ideas.visible") : tUi("admin.visual_ideas.hidden")}
             </button>
           </div>
-          <TranslatableInput label={tUi("admin.visual_ideas.section_title") || "Szekció címe"} value={settings.visual_ideas_title} onChange={(value) => setSettings((current) => ({ ...current, visual_ideas_title: value }))} siteLanguages={siteLanguages} />
-          <TranslatableInput label={tUi("admin.visual_ideas.section_description") || "Szekció bevezetője"} value={settings.visual_ideas_description} onChange={(value) => setSettings((current) => ({ ...current, visual_ideas_description: value }))} siteLanguages={siteLanguages} isTextarea />
+          <TranslatableInput label={tUi("admin.visual_ideas.section_title")} value={settings.visual_ideas_title} onChange={(value) => setSettings((current) => ({ ...current, visual_ideas_title: value }))} siteLanguages={siteLanguages} />
+          <TranslatableInput label={tUi("admin.visual_ideas.section_description")} value={settings.visual_ideas_description} onChange={(value) => setSettings((current) => ({ ...current, visual_ideas_description: value }))} siteLanguages={siteLanguages} isTextarea />
         </CardContent>
       </Card>
 
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-xl font-bold text-text">{tUi("admin.visual_ideas.cards") || "Kártyák"}</h2>
+          <h2 className="text-xl font-bold text-text">{tUi("admin.visual_ideas.cards")}</h2>
           <p className="text-sm text-muted-text">{items.length} / {MAX_VISUAL_IDEAS}</p>
         </div>
-        <Button variant="secondary" onClick={addItem} disabled={items.length >= MAX_VISUAL_IDEAS}><Plus className="mr-2 h-4 w-4" />{tUi("admin.visual_ideas.add_card") || "Új kártya"}</Button>
+        <Button variant="secondary" onClick={addItem} disabled={items.length >= MAX_VISUAL_IDEAS}><Plus className="mr-2 h-4 w-4" />{tUi("admin.visual_ideas.add_card")}</Button>
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -148,16 +148,16 @@ export default function VisualIdeasPage() {
                   className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-bold ${item.is_visible === false ? "border-border bg-surface text-muted-text" : "border-emerald-500/25 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"}`}
                 >
                   {item.is_visible === false ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-                  {tUi("admin.visual_ideas.card") || "Kártya"} {index + 1}
+                  {tUi("admin.visual_ideas.card")} {index + 1}
                 </button>
                 <div className="flex items-center gap-1">
-                  <button type="button" onClick={() => moveItem(index, -1)} disabled={index === 0} className="rounded-lg p-2 text-muted-text hover:bg-surface hover:text-text disabled:opacity-25" aria-label="Move up"><ChevronUp className="h-4 w-4" /></button>
-                  <button type="button" onClick={() => moveItem(index, 1)} disabled={index === items.length - 1} className="rounded-lg p-2 text-muted-text hover:bg-surface hover:text-text disabled:opacity-25" aria-label="Move down"><ChevronDown className="h-4 w-4" /></button>
-                  <button type="button" onClick={() => setItems((current) => current.filter((_, itemIndex) => itemIndex !== index))} className="rounded-lg p-2 text-red-500 hover:bg-red-500/10" aria-label="Delete card"><Trash2 className="h-4 w-4" /></button>
+                  <button type="button" onClick={() => moveItem(index, -1)} disabled={index === 0} className="rounded-lg p-2 text-muted-text hover:bg-surface hover:text-text disabled:opacity-25" aria-label={tUi("admin.faq_categories.move_up")}><ChevronUp className="h-4 w-4" /></button>
+                  <button type="button" onClick={() => moveItem(index, 1)} disabled={index === items.length - 1} className="rounded-lg p-2 text-muted-text hover:bg-surface hover:text-text disabled:opacity-25" aria-label={tUi("admin.faq_categories.move_down")}><ChevronDown className="h-4 w-4" /></button>
+                  <button type="button" onClick={() => setItems((current) => current.filter((_, itemIndex) => itemIndex !== index))} className="rounded-lg p-2 text-red-500 hover:bg-red-500/10" aria-label={tUi("admin.visual_ideas.delete_card")}><Trash2 className="h-4 w-4" /></button>
                 </div>
               </div>
-              <TranslatableInput label={tUi("admin.visual_ideas.card_title") || "Kártya címe"} value={item.title} onChange={(value) => updateItem(index, { title: value })} siteLanguages={siteLanguages} />
-              <TranslatableInput label={tUi("admin.visual_ideas.card_description") || "Kártya leírása"} value={item.description} onChange={(value) => updateItem(index, { description: value })} siteLanguages={siteLanguages} isTextarea />
+              <TranslatableInput label={tUi("admin.visual_ideas.card_title")} value={item.title} onChange={(value) => updateItem(index, { title: value })} siteLanguages={siteLanguages} />
+              <TranslatableInput label={tUi("admin.visual_ideas.card_description")} value={item.description} onChange={(value) => updateItem(index, { description: value })} siteLanguages={siteLanguages} isTextarea />
             </CardContent>
           </Card>
         ))}

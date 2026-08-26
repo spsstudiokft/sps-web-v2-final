@@ -93,10 +93,10 @@ export default function BudgetPage() {
 
   usePageTitle(
     activeTab === "invoices"
-      ? "Client Invoices"
+      ? tUi("admin.financial.page_title_invoices")
       : activeTab === "payment-requests"
-      ? "Payment Requests & Approvals"
-      : "Budget & Cashflow"
+      ? tUi("admin.financial.page_title_requests")
+      : tUi("admin.financial.page_title_budget")
   );
 
   // Keep search params in sync with activeTab
@@ -330,7 +330,7 @@ export default function BudgetPage() {
 
     } catch (error: any) {
       console.error("Failed to load budget data:", error);
-      showToast("Failed to load budget data. Please try again.", "error");
+      showToast(tUi("admin.budget.toast.load_failed"), "error");
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
@@ -386,7 +386,7 @@ export default function BudgetPage() {
       }
     } catch (error: any) {
       console.error("Failed to load invoices:", error);
-      showToast("Failed to load invoices data.", "error");
+      showToast(tUi("admin.invoices.toast.load_failed"), "error");
     } finally {
       setInvoiceLoading(false);
       setInvoiceRefreshing(false);
@@ -473,7 +473,7 @@ export default function BudgetPage() {
         throw new Error(err.error || "Failed to update budget entry");
       }
 
-      showToast("Budget entry updated successfully");
+      showToast(tUi("admin.budget.toast.updated"));
     } else {
       const res = await fetch("/api/admin/budgets", {
         method: "POST",
@@ -486,7 +486,7 @@ export default function BudgetPage() {
         throw new Error(err.error || "Failed to create budget entry");
       }
 
-      showToast("Budget entry created successfully");
+      showToast(tUi("admin.budget.toast.created"));
     }
 
     setEntryToEdit(null);
@@ -547,7 +547,7 @@ export default function BudgetPage() {
         return;
       }
 
-      showToast("Budget entry deleted successfully");
+      showToast(tUi("admin.budget.toast.deleted"));
       setDeleteConfirmId(null);
       fetchData(true);
     } catch (e: any) {
@@ -572,7 +572,7 @@ export default function BudgetPage() {
       throw new Error(err.error || "Failed to save budget settings");
     }
 
-    showToast("Budget preferences saved successfully");
+    showToast(tUi("admin.budget.toast.settings_saved"));
     fetchData(true);
   };
 
@@ -631,7 +631,7 @@ export default function BudgetPage() {
         throw new Error(err.error || "Failed to update invoice");
       }
 
-      showToast("Invoice updated successfully");
+      showToast(tUi("admin.invoices.toast.updated"));
     } else {
       const res = await fetch("/api/admin/invoices", {
         method: "POST",
@@ -644,7 +644,7 @@ export default function BudgetPage() {
         throw new Error(err.error || "Failed to create invoice");
       }
 
-      showToast("Invoice created successfully");
+      showToast(tUi("admin.invoices.toast.created"));
     }
 
     setIsInvoiceFormOpen(false);
@@ -672,7 +672,7 @@ export default function BudgetPage() {
         return;
       }
 
-      showToast("Invoice deleted successfully");
+      showToast(tUi("admin.invoices.toast.deleted"));
       setDeleteInvoiceConfirmId(null);
       fetchInvoices(true);
     } catch (e: any) {
@@ -811,7 +811,7 @@ export default function BudgetPage() {
   // Export to CSV
   const handleExportCSV = () => {
     if (entries.length === 0) {
-      showToast("No entries to export.", "error");
+      showToast(tUi("admin.budget.toast.no_export"), "error");
       return;
     }
 
@@ -851,7 +851,7 @@ export default function BudgetPage() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    showToast("CSV export downloaded successfully");
+    showToast(tUi("admin.budget.toast.exported"));
   };
 
   return (
@@ -979,7 +979,7 @@ export default function BudgetPage() {
             variant="outline"
             onClick={() => setIsSettingsModalOpen(true)}
             className="flex items-center gap-1.5 cursor-pointer text-xs h-9"
-            title="Set the default currency for all financial summary cards"
+            title={tUi("admin.financial.currency_help")}
           >
             <Settings2 className="w-3.5 h-3.5" />
             <span>{tUi("admin.financial.currency", { currency: currentSettings?.default_currency || "USD" })}</span>
@@ -1244,8 +1244,7 @@ export default function BudgetPage() {
                 size="sm"
                 onClick={() => setDeleteConfirmId(null)}
               >
-                Cancel
-              </Button>
+                {tUi("admin.clients.cancel")}</Button>
               <button
                 type="button"
                 onClick={() => handleDeleteEntry(deleteConfirmId)}
@@ -1278,8 +1277,7 @@ export default function BudgetPage() {
                 size="sm"
                 onClick={() => setDeleteInvoiceConfirmId(null)}
               >
-                Cancel
-              </Button>
+                {tUi("admin.clients.cancel")}</Button>
               <button
                 type="button"
                 onClick={() => handleDeleteInvoice(deleteInvoiceConfirmId)}

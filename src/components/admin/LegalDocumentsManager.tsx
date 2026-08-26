@@ -1,3 +1,4 @@
+import { useLanguage } from "../../contexts/LanguageContext";
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { BookOpen, CheckCircle2, Cookie, FileCheck2, FileWarning, Scale, X } from "lucide-react";
@@ -20,6 +21,7 @@ const DOCUMENTS: Array<{ type: LegalType; label: string; description: string; ic
 const EMPTY_DOCUMENTS: LegalDocuments = { privacy: {}, terms: {}, cookies: {}, legal_notice: {} };
 
 export function LegalDocumentsManager({ languages, defaultLanguage }: { languages: Language[]; defaultLanguage: string }) {
+  const { tUi } = useLanguage();
   const { fetchApi } = useApi();
   const [documents, setDocuments] = useState<LegalDocuments>(EMPTY_DOCUMENTS);
   const [editingType, setEditingType] = useState<LegalType | null>(null);
@@ -102,7 +104,7 @@ export function LegalDocumentsManager({ languages, defaultLanguage }: { language
         <div className="fixed inset-0 z-[9999] w-screen h-[100dvh] bg-background overflow-hidden flex flex-col">
           <div className="aero-frost-modal h-full w-full flex flex-col bg-background overflow-hidden">
             <div className="px-4 sm:px-6 py-3.5 border-b border-border flex items-center justify-between gap-4 shrink-0 bg-background/90 backdrop-blur-xl">
-              <div className="min-w-0"><h3 className="text-lg font-bold text-text truncate">{DOCUMENTS.find((doc) => doc.type === editingType)?.label} Editor</h3><p className="text-xs text-muted-text hidden sm:block">Formatted content is published directly to the matching footer modal.</p></div>
+              <div className="min-w-0"><h3 className="text-lg font-bold text-text truncate">{DOCUMENTS.find((doc) => doc.type === editingType)?.label} {tUi("admin.team.role_editor")}</h3><p className="text-xs text-muted-text hidden sm:block">Formatted content is published directly to the matching footer modal.</p></div>
               <div className="flex items-center gap-2 shrink-0"><Button onClick={save} disabled={saving}>{saving ? "Saving…" : "Save & Publish"}</Button><button type="button" aria-label="Close editor" onClick={() => setEditingType(null)} className="p-2.5 rounded-xl text-muted-text hover:text-text hover:bg-surface"><X className="w-5 h-5" /></button></div>
             </div>
             <div className="px-4 sm:px-6 py-3 border-b border-border bg-background shrink-0">

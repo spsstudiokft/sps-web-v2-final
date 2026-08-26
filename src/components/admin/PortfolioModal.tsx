@@ -246,18 +246,18 @@ export function PortfolioModal({
     const maxMb = expectedCategory === "video" ? MAX_VIDEO_SIZE_MB : MAX_IMAGE_SIZE_MB;
     const maxBytes = maxMb * 1024 * 1024;
     if (file.size > maxBytes) {
-      throw new Error(`File "${file.name}" (${formatFileSize(file.size)}) exceeds the maximum allowed limit of ${formatFileSize(maxBytes)}.`);
+      throw new Error(tUi("admin.portfolio.editor.file_too_large", { name: file.name, size: formatFileSize(file.size), limit: formatFileSize(maxBytes) }));
     }
 
     if (expectedCategory === "video") {
       const isVideoType = ALLOWED_VIDEO_TYPES.includes(file.type) || /\.(mp4|webm|mov|m4v|ogg|avi|mkv)$/i.test(file.name);
       if (!isVideoType) {
-        throw new Error(`Invalid video format for "${file.name}". Please upload MP4, WebM, or MOV.`);
+        throw new Error(tUi("admin.portfolio.editor.invalid_video", { name: file.name }));
       }
     } else {
       const isImageType = ALLOWED_IMAGE_TYPES.includes(file.type) || /\.(jpg|jpeg|png|webp|avif|gif|svg|tif|tiff)$/i.test(file.name);
       if (!isImageType) {
-        throw new Error(`Invalid image format for "${file.name}". Please upload JPG, PNG, WebP, or AVIF.`);
+        throw new Error(tUi("admin.portfolio.editor.invalid_image", { name: file.name }));
       }
     }
 
@@ -304,13 +304,13 @@ export function PortfolioModal({
           };
         });
       } catch (err: any) {
-        setErrorMessage(err.message || "Failed to upload images.");
+        setErrorMessage(err.message || tUi("admin.portfolio.editor.upload_images_failed"));
       }
       return;
     }
 
     setIsUploading(true);
-    setUploadProgressText("Preparing photos for upload...");
+    setUploadProgressText(tUi("admin.portfolio.editor.preparing_photos"));
     setErrorMessage("");
     const newItems: GalleryMediaItem[] = [];
     const fileArray = Array.from(files);
@@ -323,7 +323,7 @@ export function PortfolioModal({
       for (let i = 0; i < fileArray.length; i++) {
         const file = fileArray[i];
         const seqNumber = existingPhotoCount + i + 1;
-        setUploadProgressText(`Uploading photo ${i + 1} of ${fileArray.length}: ${file.name} (${formatFileSize(file.size)})...`);
+        setUploadProgressText(tUi("admin.portfolio.editor.uploading_photo", { current: i + 1, total: fileArray.length, name: file.name, size: formatFileSize(file.size) }));
         setUploadProgress({ fileName: file.name, kind: "image", currentFile: i + 1, totalFiles: fileArray.length, filePercent: 0, overallPercent: Math.round((completedBytes / batchTotalBytes) * 100), loaded: 0, total: file.size });
         
         const result = await uploadSingleFile(
@@ -337,7 +337,7 @@ export function PortfolioModal({
             useStructuredName: true
           },
           (percent, loaded, total) => {
-            setUploadProgressText(`Uploading photo ${i + 1} of ${fileArray.length}: ${percent}% (${formatFileSize(loaded)} / ${formatFileSize(total)})`);
+            setUploadProgressText(tUi("admin.portfolio.editor.uploading_photo_progress", { current: i + 1, total: fileArray.length, percent, loaded: formatFileSize(loaded), size: formatFileSize(total) }));
             setUploadProgress({
               fileName: file.name,
               kind: "image",
@@ -378,7 +378,7 @@ export function PortfolioModal({
         }));
       }
     } catch (err: any) {
-      setErrorMessage(err.message || "Failed to upload images. Please check file formats and sizes.");
+      setErrorMessage(err.message || tUi("admin.portfolio.editor.upload_images_check_failed"));
     } finally {
       setIsUploading(false);
       setUploadProgressText("");
@@ -409,13 +409,13 @@ export function PortfolioModal({
           media_type: "video",
         }));
       } catch (err: any) {
-        setErrorMessage(err.message || "Failed to upload video.");
+        setErrorMessage(err.message || tUi("admin.portfolio.editor.upload_video_failed"));
       }
       return;
     }
 
     setIsUploading(true);
-    setUploadProgressText(`Uploading video "${file.name}" (0% of ${formatFileSize(file.size)})...`);
+    setUploadProgressText(tUi("admin.portfolio.editor.uploading_video_start", { name: file.name, size: formatFileSize(file.size) }));
     setUploadProgress({ fileName: file.name, kind: "video", currentFile: 1, totalFiles: 1, filePercent: 0, overallPercent: 0, loaded: 0, total: file.size });
     setErrorMessage("");
     const projName = parseTitleText(formData.title) || "project";
@@ -436,7 +436,7 @@ export function PortfolioModal({
           useStructuredName: true
         },
         (percent, loaded, total) => {
-          setUploadProgressText(`Uploading video "${file.name}": ${percent}% (${formatFileSize(loaded)} of ${formatFileSize(total)})`);
+          setUploadProgressText(tUi("admin.portfolio.editor.uploading_video_progress", { name: file.name, percent, loaded: formatFileSize(loaded), size: formatFileSize(total) }));
           setUploadProgress({ fileName: file.name, kind: "video", currentFile: 1, totalFiles: 1, filePercent: percent, overallPercent: percent, loaded, total });
         }
       );
@@ -464,7 +464,7 @@ export function PortfolioModal({
         media_type: "video",
       }));
     } catch (err: any) {
-      setErrorMessage(err.message || "Failed to upload video.");
+      setErrorMessage(err.message || tUi("admin.portfolio.editor.upload_video_failed"));
     } finally {
       setIsUploading(false);
       setUploadProgressText("");
@@ -474,11 +474,11 @@ export function PortfolioModal({
   // Video Poster / Thumbnail upload helper
   const handleUploadThumbnailOnly = async (file: File): Promise<string> => {
     setIsUploading(true);
-    setUploadProgressText(`Uploading thumbnail "${file.name}"...`);
+    setUploadProgressText(tUi("admin.portfolio.editor.uploading_thumbnail", { name: file.name }));
     setUploadProgress({ fileName: file.name, kind: "image", currentFile: 1, totalFiles: 1, filePercent: 0, overallPercent: 0, loaded: 0, total: file.size });
     try {
       const res = await uploadSingleFile(file, "image", undefined, (percent, loaded, total) => {
-        setUploadProgressText(`Uploading thumbnail "${file.name}": ${percent}%`);
+        setUploadProgressText(tUi("admin.portfolio.editor.uploading_thumbnail_progress", { name: file.name, percent }));
         setUploadProgress({ fileName: file.name, kind: "image", currentFile: 1, totalFiles: 1, filePercent: percent, overallPercent: percent, loaded, total });
       });
       return res.compressedUrl || res.url;
@@ -494,7 +494,7 @@ export function PortfolioModal({
     if (!file) return;
 
     setIsUploading(true);
-    setUploadProgressText(`Uploading cover image "${file.name}" (${formatFileSize(file.size)})...`);
+    setUploadProgressText(tUi("admin.portfolio.editor.uploading_cover", { name: file.name, size: formatFileSize(file.size) }));
     setUploadProgress({ fileName: file.name, kind: "image", currentFile: 1, totalFiles: 1, filePercent: 0, overallPercent: 0, loaded: 0, total: file.size });
     setErrorMessage("");
 
@@ -504,7 +504,7 @@ export function PortfolioModal({
         categoryName: "cover",
         useStructuredName: true
       }, (percent, loaded, total) => {
-        setUploadProgressText(`Uploading cover: ${percent}% (${formatFileSize(loaded)} of ${formatFileSize(total)})`);
+        setUploadProgressText(tUi("admin.portfolio.editor.uploading_cover_progress", { percent, loaded: formatFileSize(loaded), size: formatFileSize(total) }));
         setUploadProgress({ fileName: file.name, kind: "image", currentFile: 1, totalFiles: 1, filePercent: percent, overallPercent: percent, loaded, total });
       });
       setFormData((prev) => ({
@@ -512,7 +512,7 @@ export function PortfolioModal({
         thumbnail_url: result.thumbnailUrl || result.compressedUrl || result.url,
       }));
     } catch (err: any) {
-      setErrorMessage(err.message || "Failed to upload cover image.");
+      setErrorMessage(err.message || tUi("admin.portfolio.editor.upload_cover_failed"));
     } finally {
       setIsUploading(false);
       setUploadProgressText("");
@@ -543,7 +543,7 @@ export function PortfolioModal({
 
     const titleText = parseTitleText(formData.title);
     if (!titleText) {
-      setErrorMessage("Please enter a title for the portfolio item.");
+      setErrorMessage(tUi("admin.portfolio.editor.title_required"));
       setActiveSection("details");
       return;
     }
@@ -566,7 +566,7 @@ export function PortfolioModal({
       });
       onClose();
     } catch (err: any) {
-      setErrorMessage(err.message || "Failed to save portfolio item. Please try again.");
+      setErrorMessage(err.message || tUi("admin.portfolio.editor.save_failed"));
     } finally {
       setIsSubmitting(false);
     }
@@ -609,17 +609,16 @@ export function PortfolioModal({
             </div>
             <div>
               <h2 id="portfolio-modal-title" className="text-lg font-bold text-text tracking-tight leading-snug">
-                {isEditing ? "Edit Portfolio Item" : "Create Portfolio Item"}
+                {isEditing ? tUi("admin.portfolio.editor.edit_title") : tUi("admin.portfolio.editor.create_title")}
               </h2>
               <p className="text-xs text-muted-text">
-                Set item type (Image, Drone video, Interior video) to control public row assignment and media playback.
-              </p>
+                {tUi("admin.portfolio.editor.set_item_type_image_drone_video_interior_video_to_cont")}</p>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            aria-label="Close modal"
+            aria-label={tUi("admin.portfolio.editor.close_modal")}
             className="p-2 text-muted-text hover:text-text hover:bg-surface rounded-xl transition-colors"
           >
             <X className="w-5 h-5" />
@@ -638,7 +637,7 @@ export function PortfolioModal({
             }`}
           >
             <Tag className="w-3.5 h-3.5" />
-            <span>Type & Details</span>
+            <span>{tUi("admin.portfolio.modal.details", currentLanguage)}</span>
           </button>
 
           <button
@@ -651,7 +650,7 @@ export function PortfolioModal({
             }`}
           >
             <Layers className="w-3.5 h-3.5" />
-            <span>Media Gallery</span>
+            <span>{tUi("admin.portfolio.modal.gallery", currentLanguage)}</span>
             <span className="ml-1 px-2 py-0.5 rounded-full bg-surface border border-border text-[10px] font-bold">
               {parsedGalleryItems.length}
             </span>
@@ -667,7 +666,7 @@ export function PortfolioModal({
             }`}
           >
             <Sparkles className="w-3.5 h-3.5" />
-            <span>SEO & Tags</span>
+            <span>{tUi("admin.portfolio.modal.seo", currentLanguage)}</span>
           </button>
         </div>
 
@@ -699,17 +698,17 @@ export function PortfolioModal({
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <div className="font-bold text-text truncate" title={uploadProgress.fileName}>
-                        {uploadProgress.fileName || "Média előkészítése..."}
+                        {uploadProgress.fileName || tUi("admin.portfolio.editor.preparing_media")}
                       </div>
                       <div className="text-xs text-muted-text mt-0.5">
                         {uploadProgress.totalFiles > 1
-                          ? `${uploadProgress.currentFile}. fájl / ${uploadProgress.totalFiles}`
-                          : uploadProgress.kind === "video" ? "Videó feltöltése" : "Kép feltöltése"}
+                          ? tUi("admin.portfolio.editor.file_counter", { current: uploadProgress.currentFile, total: uploadProgress.totalFiles })
+                          : uploadProgress.kind === "video" ? tUi("admin.portfolio.editor.uploading_video") : tUi("admin.portfolio.editor.uploading_image")}
                       </div>
                     </div>
                     <div className="text-right shrink-0">
                       <div className="text-2xl leading-none font-black tabular-nums text-primary">{uploadProgress.overallPercent}%</div>
-                      <div className="text-[10px] uppercase tracking-wider text-muted-text mt-1">összesen</div>
+                      <div className="text-[10px] uppercase tracking-wider text-muted-text mt-1">{tUi("admin.portfolio.editor.osszesen")}</div>
                     </div>
                   </div>
 
@@ -724,9 +723,9 @@ export function PortfolioModal({
 
                   <div className="mt-2 flex items-center justify-between gap-3 text-[11px] text-muted-text tabular-nums">
                     <span>{uploadProgress.loaded > 0 ? formatFileSize(uploadProgress.loaded) : "0 KB"} / {uploadProgress.total > 0 ? formatFileSize(uploadProgress.total) : "—"}</span>
-                    <span>Aktuális fájl: {uploadProgress.filePercent}%</span>
+                    <span>{tUi("admin.portfolio.editor.aktualis_fajl")}{uploadProgress.filePercent}%</span>
                   </div>
-                  <span className="sr-only">{uploadProgressText || "Processing media upload..."}</span>
+                  <span className="sr-only">{uploadProgressText || tUi("admin.portfolio.editor.processing_upload")}</span>
                 </div>
               </div>
             </div>
@@ -739,7 +738,7 @@ export function PortfolioModal({
               <div className="p-5 rounded-2xl bg-surface border border-border space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="portfolio-category-select">Assigned Category</Label>
+                    <Label htmlFor="portfolio-category-select">{tUi("admin.portfolio.modal.category", currentLanguage)}</Label>
                     <select
                       id="portfolio-category-select"
                       className="mt-1.5 block w-full px-3.5 py-2.5 border border-border bg-background text-text rounded-xl focus:ring-2 focus:ring-primary focus:border-primary outline-none sm:text-sm transition-all"
@@ -748,7 +747,7 @@ export function PortfolioModal({
                         setFormData((prev) => ({ ...prev, category_id: e.target.value }))
                       }
                     >
-                      <option value="">-- Select Category --</option>
+                      <option value="">{tUi("admin.portfolio.modal.select_category", currentLanguage)}</option>
                       {categories.map((c) => (
                         <option key={c.id} value={c.id}>
                           {getCategoryLabel(c)} {c.slug ? `(${c.slug})` : ""}
@@ -758,7 +757,7 @@ export function PortfolioModal({
                   </div>
 
                   <div>
-                    <Label htmlFor="portfolio-sort-order">Sort Order (Priority)</Label>
+                    <Label htmlFor="portfolio-sort-order">{tUi("admin.portfolio.modal.sort_order", currentLanguage)}</Label>
                     <div className="relative mt-1.5">
                       <ArrowUpDown className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-text" />
                       <Input
@@ -779,15 +778,15 @@ export function PortfolioModal({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-4">
                   <TranslatableInput
-                    label="Media Title *"
+                    label={tUi("admin.portfolio.modal.media_title", currentLanguage)}
                     value={formData.title}
                     onChange={(val) => setFormData((prev) => ({ ...prev, title: val }))}
                     siteLanguages={siteLanguages}
-                    placeholder="e.g. Sunset Coastal Estate Walkthrough, Aerial Mountain Villa"
+                    placeholder={tUi("admin.portfolio.editor.e_g_sunset_coastal_estate_walkthrough_aerial_mountain_")}
                   />
 
                   <div>
-                    <Label htmlFor="portfolio-target-url">External Project / Client Virtual Tour URL</Label>
+                    <Label htmlFor="portfolio-target-url">{tUi("admin.portfolio.modal.target_url", currentLanguage)}</Label>
                     <div className="relative mt-1.5">
                       <LinkIcon
                         className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-text"
@@ -795,7 +794,7 @@ export function PortfolioModal({
                       />
                       <Input
                         id="portfolio-target-url"
-                        placeholder="https://matterport.com/... or client showcase URL"
+                        placeholder={tUi("admin.portfolio.editor.https_matterport_com_or_client_showcase_url")}
                         value={formData.target_url}
                         onChange={(e) =>
                           setFormData((prev) => ({ ...prev, target_url: e.target.value }))
@@ -808,17 +807,17 @@ export function PortfolioModal({
 
                 <div className="space-y-4">
                   <TranslatableInput
-                    label="Description / Captions"
+                    label={tUi("admin.portfolio.modal.description", currentLanguage)}
                     value={formData.description}
                     onChange={(val) => setFormData((prev) => ({ ...prev, description: val }))}
                     siteLanguages={siteLanguages}
                     isTextarea
-                    placeholder="Provide details about the camera gear, resolution (4K 60FPS), lighting, location..."
+                    placeholder={tUi("admin.portfolio.editor.provide_details_about_the_camera_gear_resolution_4k_60")}
                   />
 
                   <div className="p-4 rounded-xl bg-surface border border-border space-y-3">
                     <Label className="text-xs font-semibold uppercase tracking-wider text-muted-text">
-                      Visibility & Highlights
+                      {tUi("admin.portfolio.modal.visibility", currentLanguage)}
                     </Label>
 
                     <label className="flex items-center justify-between p-3 rounded-lg border border-border bg-background hover:bg-surface transition-colors cursor-pointer select-none">
@@ -826,10 +825,10 @@ export function PortfolioModal({
                         <Star className="w-4 h-4 text-amber-500" aria-hidden="true" />
                         <div>
                           <span className="text-sm font-semibold text-text block leading-snug">
-                            Featured Spotlight
+                            {tUi("admin.portfolio.modal.featured", currentLanguage)}
                           </span>
                           <span className="text-xs text-muted-text block">
-                            Highlight with golden badge in animated showcases
+                            {tUi("admin.portfolio.modal.featured_help", currentLanguage)}
                           </span>
                         </div>
                       </div>
@@ -852,10 +851,10 @@ export function PortfolioModal({
                         )}
                         <div>
                           <span className="text-sm font-semibold text-text block leading-snug">
-                            {formData.is_published ? "Published & Live" : "Draft (Hidden)"}
+                            {formData.is_published ? tUi("admin.portfolio.modal.published_live", currentLanguage) : tUi("admin.portfolio.gallery.draft_hidden", currentLanguage)}
                           </span>
                           <span className="text-xs text-muted-text block">
-                            Control visibility on the public portfolio gallery
+                            {tUi("admin.portfolio.modal.visibility_help", currentLanguage)}
                           </span>
                         </div>
                       </div>
@@ -897,9 +896,9 @@ export function PortfolioModal({
                       <FileImage className="w-4 h-4" />
                     </div>
                     <div>
-                      <h4 className="text-sm font-bold text-text">Primary Cover / Spotlight Thumbnail</h4>
+                      <h4 className="text-sm font-bold text-text">{tUi("admin.portfolio.modal.cover", currentLanguage)}</h4>
                       <p className="text-xs text-muted-text">
-                        Displayed in grid previews and hero cards. Defaults to the first gallery item if left blank.
+                        {tUi("admin.portfolio.modal.cover_help", currentLanguage)}
                       </p>
                     </div>
                   </div>
@@ -909,14 +908,14 @@ export function PortfolioModal({
                   <div className="sm:col-span-2 space-y-3">
                     <div className="flex gap-2">
                       <Input
-                        placeholder="https://... cover thumbnail image URL"
+                        placeholder={tUi("admin.portfolio.editor.https_cover_thumbnail_image_url")}
                         value={formData.thumbnail_url}
                         onChange={(e) => setFormData((prev) => ({ ...prev, thumbnail_url: e.target.value }))}
                         className="text-xs font-mono flex-1"
                       />
                       <label className="shrink-0 px-3 py-2 border border-border bg-background hover:bg-surface rounded-xl text-xs font-semibold cursor-pointer flex items-center gap-1.5 transition-colors shadow-xs">
                         <Upload className="w-3.5 h-3.5" />
-                        <span>Upload Cover</span>
+                        <span>{tUi("admin.portfolio.modal.upload_cover", currentLanguage)}</span>
                         <input
                           ref={coverThumbInputRef}
                           type="file"
@@ -927,7 +926,7 @@ export function PortfolioModal({
                       </label>
                     </div>
                     <p className="text-[11px] text-muted-text">
-                      Leave empty to automatically use the first photo or video thumbnail in the gallery above.
+                      {tUi("admin.portfolio.modal.cover_auto_help", currentLanguage)}
                     </p>
                   </div>
 
@@ -939,9 +938,9 @@ export function PortfolioModal({
                         className="w-20 h-14 object-cover rounded-lg bg-surface border border-border"
                       />
                       <div className="text-xs">
-                        <span className="font-semibold text-text block">Active Cover</span>
+                        <span className="font-semibold text-text block">{tUi("admin.portfolio.modal.active_cover", currentLanguage)}</span>
                         <span className="text-[11px] text-muted-text truncate block max-w-[120px]">
-                          {formData.thumbnail_url ? "Custom cover" : "Auto from gallery"}
+                          {formData.thumbnail_url ? tUi("admin.portfolio.modal.custom_cover", currentLanguage) : tUi("admin.portfolio.modal.auto_cover", currentLanguage)}
                         </span>
                       </div>
                     </div>
@@ -953,11 +952,11 @@ export function PortfolioModal({
               <div className="pt-2 border-t border-border">
                 <details className="text-xs">
                   <summary className="text-muted-text cursor-pointer hover:text-text font-medium select-none">
-                    Advanced: Raw JSON Media Structure
+                    {tUi("admin.portfolio.modal.advanced_json", currentLanguage)}
                   </summary>
                   <div className="mt-2.5">
                     <Input
-                      placeholder='[{"url": "https://...", "type": "image"}]'
+                      placeholder={tUi("admin.portfolio.editor.url_https_type_image")}
                       value={formData.image_urls}
                       onChange={(e) =>
                         setFormData((prev) => ({ ...prev, image_urls: e.target.value }))
@@ -974,32 +973,30 @@ export function PortfolioModal({
           {activeSection === "seo" && (
             <div className="space-y-6">
               <div>
-                <h3 className="text-sm font-bold text-text mb-1">Search Engine Optimization</h3>
+                <h3 className="text-sm font-bold text-text mb-1">{tUi("admin.portfolio.modal.seo_title", currentLanguage)}</h3>
                 <p className="text-xs text-muted-text mb-4">
-                  Boost discoverability on search engines with targeted media keywords and tags.
+                  {tUi("admin.portfolio.modal.seo_help", currentLanguage)}
                 </p>
                 <KeywordTagInput
-                  label="Keywords & Tags"
-                  description="Keywords specific to this portfolio item (e.g., real estate drone, interior 4k, architectural photography)."
+                  label={tUi("admin.portfolio.modal.keywords", currentLanguage)}
+                  description={tUi("admin.portfolio.modal.keywords_help", currentLanguage)}
                   keywords={formData.keywords || ""}
                   onChange={(val) => setFormData((prev) => ({ ...prev, keywords: val }))}
-                  placeholder="Type keyword and press Enter or comma..."
+                  placeholder={tUi("admin.portfolio.modal.keywords_placeholder", currentLanguage)}
                 />
               </div>
 
               <div className="p-4 rounded-xl bg-surface border border-border space-y-2">
                 <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-text">
-                  Search Result Preview
-                </h4>
+                  {tUi("admin.portfolio.editor.search_result_preview")}</h4>
                 <div className="p-3 bg-background rounded-lg border border-border space-y-1">
                   <div className="text-sm font-medium text-primary hover:underline cursor-pointer truncate">
-                    {parseTitleText(formData.title) || "Portfolio Item Title"} | Media Portfolio
-                  </div>
+                    {parseTitleText(formData.title) || tUi("admin.portfolio.editor.preview_title")} {tUi("admin.portfolio.editor.media_portfolio")}</div>
                   <div className="text-xs text-emerald-700 dark:text-emerald-400">
-                    https://yourstudio.com/portfolio/{formData.category_id || "showcase"}
+                    {tUi("admin.portfolio.editor.https_yourstudio_com_portfolio")}{formData.category_id || "showcase"}
                   </div>
                   <div className="text-xs text-muted-text line-clamp-2">
-                    {parseTitleText(formData.description) || "High resolution architectural photography, cinematic 4k video walkthroughs, and aerial perspectives."}
+                    {parseTitleText(formData.description) || tUi("admin.portfolio.editor.preview_description")}
                   </div>
                 </div>
               </div>
@@ -1011,16 +1008,15 @@ export function PortfolioModal({
         <div className="px-6 py-4 border-t border-border bg-surface/50 flex items-center justify-between shrink-0">
           <div className="text-xs text-muted-text flex items-center gap-2">
             <span className="font-semibold text-text">
-              {parsedGalleryItems.length} media attached
-            </span>
+              {parsedGalleryItems.length} {tUi("admin.portfolio.editor.media_attached")}</span>
             {videoCount > 0 && (
               <span className="px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-600 dark:text-purple-400 font-semibold text-[10px]">
-                {videoCount} video{videoCount === 1 ? "" : "s"}
+                {tUi("admin.portfolio.editor.video_count", { count: videoCount })}
               </span>
             )}
             {photoCount > 0 && (
               <span className="px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-600 dark:text-sky-400 font-semibold text-[10px]">
-                {photoCount} photo{photoCount === 1 ? "" : "s"}
+                {tUi("admin.portfolio.editor.photo_count", { count: photoCount })}
               </span>
             )}
           </div>
@@ -1032,8 +1028,7 @@ export function PortfolioModal({
               onClick={onClose}
               disabled={isSubmitting}
             >
-              Cancel
-            </Button>
+              {tUi("admin.clients.cancel")}</Button>
             <Button
               type="button"
               onClick={handleSubmit}
@@ -1043,8 +1038,7 @@ export function PortfolioModal({
               {isSubmitting ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                  Saving...
-                </>
+                  {tUi("admin.pricing.btn_saving")}</>
               ) : isEditing ? (
                 "Save Changes"
               ) : (

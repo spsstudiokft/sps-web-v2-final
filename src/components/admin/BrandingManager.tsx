@@ -190,8 +190,7 @@ export function ImageUploadCard({
               )}
               {isOptional && (
                 <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-muted-text/10 text-muted-text">
-                  Optional
-                </span>
+                  {tUi("admin.settings.form_availability_optional")}</span>
               )}
             </div>
             <p className="text-xs text-muted-text mt-1 leading-relaxed">{description}</p>
@@ -559,10 +558,10 @@ export function BrandingManager({ settings, onChange, token }: BrandingManagerPr
 
               {/* Mock Nav links */}
               <div className="hidden md:flex items-center gap-5 text-xs font-medium opacity-80">
-                <span>About</span>
-                <span>Services</span>
-                <span>Portfolio</span>
-                <span>Contact</span>
+                <span>{tUi("nav.about")}</span>
+                <span>{tUi("admin.nav.services")}</span>
+                <span>{tUi("admin.nav.portfolio")}</span>
+                <span>{tUi("admin.submissions.th_contact")}</span>
               </div>
 
               <div className="px-3.5 py-1.5 rounded-full text-xs font-semibold bg-primary text-primary-foreground shadow-xs">

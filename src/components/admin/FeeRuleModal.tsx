@@ -241,12 +241,12 @@ export function FeeRuleModal({
     setErrorMessage("");
 
     if (!formData.name || (typeof formData.name === "string" && !formData.name.trim())) {
-      setErrorMessage(tUi("admin.fee_rules.error_name") || "Fee rule name is required");
+      setErrorMessage(tUi("admin.fee_rules.error_name"));
       return;
     }
 
     if (formData.amount === undefined || formData.amount === null || isNaN(Number(formData.amount)) || Number(formData.amount) < 0) {
-      setErrorMessage(tUi("admin.fee_rules.error_amount") || "Amount must be a valid positive number");
+      setErrorMessage(tUi("admin.fee_rules.error_amount"));
       return;
     }
 
@@ -267,7 +267,7 @@ export function FeeRuleModal({
       });
       onClose();
     } catch (err: any) {
-      setErrorMessage(err.message || "Failed to save fee rule");
+      setErrorMessage(err.message || tUi("admin.pricing.fees.update_failed"));
     } finally {
       setIsSubmitting(false);
     }
@@ -312,11 +312,11 @@ export function FeeRuleModal({
             <div>
               <h2 className="text-xl font-bold text-text">
                 {formData.id
-                  ? tUi("admin.fee_rules.edit_title") || "Edit Fee Rule"
-                  : tUi("admin.fee_rules.create_title") || "Create Fee / Surcharge Rule"}
+                  ? tUi("admin.fee_rules.edit_title")
+                  : tUi("admin.fee_rules.create_title")}
               </h2>
               <p className="text-xs text-muted-text">
-                {tUi("admin.fee_rules.modal_subtitle") || "Configure fixed, percentage, or distance-based fees with conditional triggers"}
+                {tUi("admin.fee_rules.modal_subtitle")}
               </p>
             </div>
           </div>
@@ -340,7 +340,7 @@ export function FeeRuleModal({
         <form onSubmit={handleSubmit} className="p-6 space-y-5 max-h-[75vh] overflow-y-auto">
           {/* Fee Rule Name */}
           <TranslatableInput
-            label={tUi("admin.fee_rules.field_name") || "Fee Rule Name"}
+            label={tUi("admin.fee_rules.field_name")}
             value={formData.name}
             onChange={(val) => setFormData((prev) => ({ ...prev, name: val }))}
             siteLanguages={siteLanguages}
@@ -348,19 +348,19 @@ export function FeeRuleModal({
 
           {/* Description */}
           <div>
-            <Label className="mb-1.5 block">{tUi("admin.fee_rules.field_description") || "Description / Fee Terms"}</Label>
+            <Label className="mb-1.5 block">{tUi("admin.fee_rules.field_description")}</Label>
             <Textarea
               value={formData.description || ""}
               onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
               rows={2}
-              placeholder="e.g. Standard travel fee outside metro area or rush surcharge..."
+              placeholder={tUi("admin.pricing.fee_modal.e_g_standard_travel_fee_outside_metro_area_or_rush_sur")}
             />
           </div>
 
           {/* Fee Type Selection */}
           <div className="p-4 rounded-2xl bg-surface/40 border border-border/70 space-y-3">
             <Label className="text-xs font-semibold text-text uppercase tracking-wider block">
-              {tUi("admin.fee_rules.fee_type_label") || "Fee Calculation Type"}
+              {tUi("admin.fee_rules.fee_type_label")}
             </Label>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               <button
@@ -373,8 +373,8 @@ export function FeeRuleModal({
                 }`}
               >
                 <DollarSign className="w-4 h-4 mx-auto mb-1" />
-                <span className="text-xs block font-semibold">Fixed Fee</span>
-                <span className="text-[10px] opacity-80 block">Flat surcharge</span>
+                <span className="text-xs block font-semibold">{tUi("admin.pricing.fee_modal.fixed_fee")}</span>
+                <span className="text-[10px] opacity-80 block">{tUi("admin.pricing.fee_modal.flat_surcharge")}</span>
               </button>
 
               <button
@@ -387,8 +387,8 @@ export function FeeRuleModal({
                 }`}
               >
                 <Percent className="w-4 h-4 mx-auto mb-1" />
-                <span className="text-xs block font-semibold">Percentage</span>
-                <span className="text-[10px] opacity-80 block">% of subtotal</span>
+                <span className="text-xs block font-semibold">{tUi("admin.pricing.fee_modal.percentage")}</span>
+                <span className="text-[10px] opacity-80 block">{tUi("admin.pricing.fee_modal.of_subtotal")}</span>
               </button>
 
               <button
@@ -401,8 +401,8 @@ export function FeeRuleModal({
                 }`}
               >
                 <Navigation className="w-4 h-4 mx-auto mb-1" />
-                <span className="text-xs block font-semibold">Flat Distance</span>
-                <span className="text-[10px] opacity-80 block">Fixed rate / km</span>
+                <span className="text-xs block font-semibold">{tUi("admin.pricing.fee_modal.flat_distance")}</span>
+                <span className="text-[10px] opacity-80 block">{tUi("admin.pricing.fee_modal.fixed_rate_km")}</span>
               </button>
 
               <button
@@ -415,8 +415,8 @@ export function FeeRuleModal({
                 }`}
               >
                 <Sliders className="w-4 h-4 mx-auto mb-1" />
-                <span className="text-xs block font-semibold">Tiered Distance</span>
-                <span className="text-[10px] opacity-80 block">Zone-based rates</span>
+                <span className="text-xs block font-semibold">{tUi("admin.pricing.fee_modal.tiered_distance")}</span>
+                <span className="text-[10px] opacity-80 block">{tUi("admin.pricing.fee_modal.zone_based_rates")}</span>
               </button>
             </div>
           </div>
@@ -447,19 +447,19 @@ export function FeeRuleModal({
             </div>
 
             <div>
-              <Label className="mb-1.5 block text-xs">Minimum Fee Floor (Optional)</Label>
+              <Label className="mb-1.5 block text-xs">{tUi("admin.pricing.fee_modal.minimum_fee_floor_optional")}</Label>
               <Input
                 type="number"
                 min="0"
                 step="any"
                 value={formData.min_fee ?? ""}
                 onChange={(e) => setFormData((prev) => ({ ...prev, min_fee: e.target.value === "" ? 0 : Number(e.target.value) }))}
-                placeholder="0 = No minimum"
+                placeholder={tUi("admin.pricing.fee_modal.0_no_minimum")}
               />
             </div>
 
             <div>
-              <Label className="mb-1.5 block text-xs">Currency</Label>
+              <Label className="mb-1.5 block text-xs">{tUi("admin.extra_services.field_currency")}</Label>
               <select
                 value={formData.currency || "USD"}
                 onChange={(e) => setFormData((prev) => ({ ...prev, currency: e.target.value }))}
@@ -483,39 +483,36 @@ export function FeeRuleModal({
                 <div>
                   <h3 className="text-sm font-semibold text-text flex items-center gap-2">
                     <MapPin className="w-4 h-4 text-primary" />
-                    Distance Zones & Allowances
-                  </h3>
+                    {tUi("admin.pricing.fee_modal.distance_zones_allowances")}</h3>
                   <p className="text-xs text-muted-text">
-                    Configure free distance radius and tiered rate brackets
-                  </p>
+                    {tUi("admin.pricing.fee_modal.configure_free_distance_radius_and_tiered_rate_bracket")}</p>
                 </div>
                 {formData.fee_type === "distance_tiered" && (
                   <Button type="button" size="sm" variant="outline" onClick={handleAddTier} className="gap-1 text-xs">
                     <Plus className="w-3.5 h-3.5" />
-                    Add Zone Tier
-                  </Button>
+                    {tUi("admin.pricing.fee_modal.add_zone_tier")}</Button>
                 )}
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <Label className="text-xs text-muted-text mb-1 block">Free Travel Radius (km)</Label>
+                  <Label className="text-xs text-muted-text mb-1 block">{tUi("admin.pricing.fee_modal.free_travel_radius_km")}</Label>
                   <Input
                     type="number"
                     min="0"
                     value={formData.min_distance ?? 0}
                     onChange={(e) => setFormData((p) => ({ ...p, min_distance: Number(e.target.value) }))}
-                    placeholder="e.g. 15 km free"
+                    placeholder={tUi("admin.pricing.fee_modal.e_g_15_km_free")}
                   />
                 </div>
                 <div>
-                  <Label className="text-xs text-muted-text mb-1 block">Max Travel Limit (km)</Label>
+                  <Label className="text-xs text-muted-text mb-1 block">{tUi("admin.pricing.fee_modal.max_travel_limit_km")}</Label>
                   <Input
                     type="number"
                     min="0"
                     value={formData.max_distance ?? ""}
                     onChange={(e) => setFormData((p) => ({ ...p, max_distance: e.target.value === "" ? null : Number(e.target.value) }))}
-                    placeholder="Optional max distance cap"
+                    placeholder={tUi("admin.pricing.fee_modal.optional_max_distance_cap")}
                   />
                 </div>
               </div>
@@ -523,9 +520,9 @@ export function FeeRuleModal({
               {formData.fee_type === "distance_tiered" && (
                 <div className="space-y-2 pt-2 border-t border-border/40">
                   <div className="grid grid-cols-12 gap-2 text-xs font-semibold text-muted-text px-1">
-                    <span className="col-span-4">From (km)</span>
-                    <span className="col-span-4">To (km)</span>
-                    <span className="col-span-3">Rate / km</span>
+                    <span className="col-span-4">{tUi("admin.pricing.fee_modal.from_km")}</span>
+                    <span className="col-span-4">{tUi("admin.pricing.fee_modal.to_km")}</span>
+                    <span className="col-span-3">{tUi("admin.pricing.fee_modal.rate_km")}</span>
                     <span className="col-span-1"></span>
                   </div>
 
@@ -543,7 +540,7 @@ export function FeeRuleModal({
                         <Input
                           type="number"
                           min="0"
-                          placeholder="∞ (Any)"
+                          placeholder={tUi("admin.pricing.fee_modal.any")}
                           value={tier.to_km !== null && tier.to_km !== undefined ? tier.to_km : ""}
                           onChange={(e) => handleUpdateTier(idx, "to_km", e.target.value)}
                         />
@@ -577,12 +574,11 @@ export function FeeRuleModal({
           <div className="p-4 rounded-2xl bg-surface/40 border border-border/70 space-y-4">
             <h3 className="text-sm font-semibold text-text flex items-center gap-2">
               <Filter className="w-4 h-4 text-primary" />
-              Application Conditions & Thresholds
-            </h3>
+              {tUi("admin.pricing.fee_modal.application_conditions_thresholds")}</h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <Label className="text-xs text-muted-text mb-1 block">Applicable Order Type</Label>
+                <Label className="text-xs text-muted-text mb-1 block">{tUi("admin.pricing.fee_modal.applicable_order_type")}</Label>
                 <select
                   value={formData.applicable_order_types || "all"}
                   onChange={(e) => setFormData((p) => ({ ...p, applicable_order_types: e.target.value }))}
@@ -597,11 +593,11 @@ export function FeeRuleModal({
               </div>
 
               <div>
-                <Label className="text-xs text-muted-text mb-1 block">Geographic Region Filter</Label>
+                <Label className="text-xs text-muted-text mb-1 block">{tUi("admin.pricing.fee_modal.geographic_region_filter")}</Label>
                 <Input
                   value={formData.applicable_regions || ""}
                   onChange={(e) => setFormData((p) => ({ ...p, applicable_regions: e.target.value }))}
-                  placeholder="e.g. All Regions or Budapest / Pest County"
+                  placeholder={tUi("admin.pricing.fee_modal.e_g_all_regions_or_budapest_pest_county")}
                 />
               </div>
             </div>
@@ -609,23 +605,23 @@ export function FeeRuleModal({
             {/* Min / Max order amount thresholds */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-border/40">
               <div>
-                <Label className="text-xs text-muted-text mb-1 block">Min Order Amount Threshold</Label>
+                <Label className="text-xs text-muted-text mb-1 block">{tUi("admin.pricing.fee_modal.min_order_amount_threshold")}</Label>
                 <Input
                   type="number"
                   min="0"
                   value={formData.min_order_amount ?? ""}
                   onChange={(e) => setFormData((p) => ({ ...p, min_order_amount: e.target.value === "" ? null : Number(e.target.value) }))}
-                  placeholder="Applies when order total ≥ amount"
+                  placeholder={tUi("admin.pricing.fee_modal.applies_when_order_total_amount")}
                 />
               </div>
               <div>
-                <Label className="text-xs text-muted-text mb-1 block">Max Order Amount Threshold</Label>
+                <Label className="text-xs text-muted-text mb-1 block">{tUi("admin.pricing.fee_modal.max_order_amount_threshold")}</Label>
                 <Input
                   type="number"
                   min="0"
                   value={formData.max_order_amount ?? ""}
                   onChange={(e) => setFormData((p) => ({ ...p, max_order_amount: e.target.value === "" ? null : Number(e.target.value) }))}
-                  placeholder="Applies when order total ≤ amount"
+                  placeholder={tUi("admin.pricing.fee_modal.applies_when_order_total_amount_2")}
                 />
               </div>
             </div>
@@ -646,15 +642,13 @@ export function FeeRuleModal({
                   className="w-4 h-4 rounded border-border text-primary focus:ring-primary"
                 />
                 <span className="text-xs font-medium text-text">
-                  Restrict fee to specific Pricing Plans / Bundles
-                </span>
+                  {tUi("admin.pricing.fee_modal.restrict_fee_to_specific_pricing_plans_bundles")}</span>
               </label>
 
               {restrictPlansToggle && (
                 <div className="p-3 rounded-xl bg-background border border-border/80 space-y-2 max-h-40 overflow-y-auto">
                   <p className="text-xs text-muted-text">
-                    Select plans this fee rule applies to:
-                  </p>
+                    {tUi("admin.pricing.fee_modal.select_plans_this_fee_rule_applies_to")}</p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     {availablePlans.map((plan) => {
                       const isChecked = selectedPlans.includes(plan.id);
@@ -689,17 +683,16 @@ export function FeeRuleModal({
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-semibold text-primary flex items-center gap-2">
                 <Calculator className="w-4 h-4" />
-                Live Fee Calculation Simulator
-              </h3>
+                {tUi("admin.pricing.fee_modal.live_fee_calculation_simulator")}</h3>
               <span className="text-xs font-bold text-primary">
-                Calculated: {formatCurrencyPrice(simulationResult.fee, formData.currency || "USD")}
+                {tUi("admin.pricing.fee_modal.calculated")}{formatCurrencyPrice(simulationResult.fee, formData.currency || "USD")}
               </span>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {(formData.fee_type === "distance" || formData.fee_type === "distance_tiered") && (
                 <div>
-                  <Label className="text-xs text-muted-text mb-1 block">Test Distance (km)</Label>
+                  <Label className="text-xs text-muted-text mb-1 block">{tUi("admin.pricing.fee_modal.test_distance_km")}</Label>
                   <Input
                     type="number"
                     min="0"
@@ -710,7 +703,7 @@ export function FeeRuleModal({
               )}
               {formData.fee_type === "percentage" && (
                 <div>
-                  <Label className="text-xs text-muted-text mb-1 block">Test Order Subtotal</Label>
+                  <Label className="text-xs text-muted-text mb-1 block">{tUi("admin.pricing.fee_modal.test_order_subtotal")}</Label>
                   <Input
                     type="number"
                     min="0"
@@ -722,7 +715,7 @@ export function FeeRuleModal({
             </div>
 
             <p className="text-xs text-muted-text bg-background/80 p-2.5 rounded-xl border border-border">
-              <span className="font-semibold text-text">Formula Result: </span>
+              <span className="font-semibold text-text">{tUi("admin.pricing.fee_modal.formula_result")}</span>
               {simulationResult.explanation}
             </p>
           </div>
@@ -738,8 +731,7 @@ export function FeeRuleModal({
               />
               <div>
                 <span className="text-xs font-semibold text-text block">
-                  Mandatory Fee
-                </span>
+                  {tUi("admin.pricing.fee_modal.mandatory_fee")}</span>
                 <span className="text-[11px] text-muted-text">
                   {formData.is_mandatory ? "Auto-applied on quote" : "Optional surcharge"}
                 </span>
@@ -755,11 +747,9 @@ export function FeeRuleModal({
               />
               <div>
                 <span className="text-xs font-semibold text-text block">
-                  Active / Enabled
-                </span>
+                  {tUi("admin.pricing.fee_modal.active_enabled")}</span>
                 <span className="text-[11px] text-muted-text">
-                  Enforces calculation
-                </span>
+                  {tUi("admin.pricing.fee_modal.enforces_calculation")}</span>
               </div>
             </label>
 
@@ -772,11 +762,9 @@ export function FeeRuleModal({
               />
               <div>
                 <span className="text-xs font-semibold text-text block">
-                  Public Transparency
-                </span>
+                  {tUi("admin.pricing.fee_modal.public_transparency")}</span>
                 <span className="text-[11px] text-muted-text">
-                  Show on pricing page
-                </span>
+                  {tUi("admin.pricing.fee_modal.show_on_pricing_page")}</span>
               </div>
             </label>
           </div>
@@ -784,14 +772,14 @@ export function FeeRuleModal({
           {/* Modal Actions */}
           <div className="flex items-center justify-end gap-3 pt-4 border-t border-border">
             <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
-              {tUi("common.cancel") || "Cancel"}
+              {tUi("common.cancel")}
             </Button>
             <Button type="submit" disabled={isSubmitting}>
               {isSubmitting
-                ? tUi("common.saving") || "Saving..."
+                ? tUi("common.saving")
                 : formData.id
-                ? tUi("common.save_changes") || "Save Changes"
-                : tUi("admin.fee_rules.create_btn") || "Create Fee Rule"}
+                ? tUi("common.save_changes")
+                : tUi("admin.fee_rules.create_btn")}
             </Button>
           </div>
         </form>

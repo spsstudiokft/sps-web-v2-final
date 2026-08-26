@@ -1,3 +1,4 @@
+import { useLanguage } from "../../../contexts/LanguageContext";
 import React, { useEffect, useState } from "react";
 import { FolderCog, Pencil, Plus, Save, Trash2, X } from "lucide-react";
 
@@ -17,6 +18,7 @@ interface Props {
 }
 
 export function PaymentRequestCategoriesModal({ isOpen, token, categories, onClose, onChanged, showToast }: Props) {
+  const { tUi } = useLanguage();
   const [newName, setNewName] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");
@@ -103,7 +105,7 @@ export function PaymentRequestCategoriesModal({ isOpen, token, categories, onClo
         <div className="p-5 space-y-4">
           <div className="flex gap-2">
             <input value={newName} onChange={(e) => setNewName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && createCategory()} placeholder="New category name" className="flex-1 px-3 py-2 rounded-lg border border-border bg-background text-text text-sm" />
-            <button disabled={busy || !newName.trim()} onClick={createCategory} className="px-3 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-semibold flex items-center gap-1.5 disabled:opacity-50"><Plus className="w-4 h-4" /> Add</button>
+            <button disabled={busy || !newName.trim()} onClick={createCategory} className="px-3 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-semibold flex items-center gap-1.5 disabled:opacity-50"><Plus className="w-4 h-4" /> {tUi("admin.pricing.btn_add")}</button>
           </div>
 
           <div className="space-y-2 max-h-[50vh] overflow-y-auto pr-1">

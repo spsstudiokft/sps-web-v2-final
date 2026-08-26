@@ -3,6 +3,7 @@ import { Button } from "../../ui/Button";
 import { Input } from "../../ui/Input";
 import { Label } from "../../ui/Label";
 import { parseVideoUrl, GalleryMediaItem, GalleryItemType } from "../../../lib/mediaUtils";
+import { useLanguage } from "../../../contexts/LanguageContext";
 import { 
   X, 
   Video as VideoIcon, 
@@ -29,6 +30,7 @@ export function EmbedVideoModal({
   onAddVideo,
   onUploadThumbnail
 }: EmbedVideoModalProps) {
+  const { tUi, currentLanguage } = useLanguage();
   const [videoUrl, setVideoUrl] = useState("");
   const [itemType, setItemType] = useState<GalleryItemType>("drone_video");
   const [title, setTitle] = useState("");
@@ -63,7 +65,7 @@ export function EmbedVideoModal({
       const url = await onUploadThumbnail(file);
       setCustomThumbnail(url);
     } catch (err: any) {
-      setError(err.message || "Failed to upload thumbnail image");
+      setError(err.message || tUi("admin.portfolio.video_modal.thumbnail_upload_failed", currentLanguage));
     } finally {
       setIsUploadingThumb(false);
     }
@@ -72,13 +74,13 @@ export function EmbedVideoModal({
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     if (!videoUrl.trim()) {
-      setError("Please enter a YouTube, Vimeo, or direct video URL.");
+      setError(tUi("admin.portfolio.video_modal.required_url", currentLanguage));
       return;
     }
 
     const info = parseVideoUrl(videoUrl);
     if (!info.embedUrl && !info.originalUrl) {
-      setError("Please provide a valid video URL.");
+      setError(tUi("admin.portfolio.video_modal.invalid_url", currentLanguage));
       return;
     }
 
@@ -87,7 +89,11 @@ export function EmbedVideoModal({
       url: videoUrl.trim(),
       type: "video",
       item_type: itemType,
-      title: title.trim() || (info.type === "youtube" ? "YouTube Video" : info.type === "vimeo" ? "Vimeo Video" : "Video Clip"),
+      title: title.trim() || (info.type === "youtube"
+        ? tUi("admin.portfolio.video_modal.default_youtube_title", currentLanguage)
+        : info.type === "vimeo"
+        ? tUi("admin.portfolio.video_modal.default_vimeo_title", currentLanguage)
+        : tUi("admin.portfolio.video_modal.default_video_title", currentLanguage)),
       caption: caption.trim(),
       thumbnail_url: detectedThumbnail,
       embed_type: info.type,
@@ -116,14 +122,15 @@ export function EmbedVideoModal({
               <VideoIcon className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-text">Embed External Video</h3>
-              <p className="text-xs text-muted-text">YouTube, Vimeo, or Direct Video Streams</p>
+              <h3 className="text-base font-bold text-text">{tUi("admin.portfolio.video_modal.title", currentLanguage)}</h3>
+              <p className="text-xs text-muted-text">{tUi("admin.portfolio.video_modal.subtitle", currentLanguage)}</p>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
             className="p-1.5 text-muted-text hover:text-text hover:bg-surface rounded-lg transition-colors"
+            aria-label={tUi("admin.portfolio.video_modal.close", currentLanguage)}
           >
             <X className="w-5 h-5" />
           </button>
@@ -141,7 +148,7 @@ export function EmbedVideoModal({
           {/* Media Type Selector */}
           <div>
             <Label className="text-xs font-semibold block mb-1.5">
-              Video Category / Showcase Row Assignment *
+              {tUi("admin.portfolio.video_modal.category_assignment", currentLanguage)}
             </Label>
             <div className="grid grid-cols-2 gap-2">
               <button
@@ -157,8 +164,8 @@ export function EmbedVideoModal({
                   <VideoIcon className="w-4 h-4" />
                 </div>
                 <div>
-                  <div className="text-xs font-bold text-text">Drone Video</div>
-                  <div className="text-[11px] text-muted-text">Showcased in Row 2</div>
+                  <div className="text-xs font-bold text-text">{tUi("admin.portfolio.media.drone_video", currentLanguage)}</div>
+                  <div className="text-[11px] text-muted-text">{tUi("admin.portfolio.video_modal.row_2_hint", currentLanguage)}</div>
                 </div>
               </button>
 
@@ -175,8 +182,8 @@ export function EmbedVideoModal({
                   <Film className="w-4 h-4" />
                 </div>
                 <div>
-                  <div className="text-xs font-bold text-text">Interior Video</div>
-                  <div className="text-[11px] text-muted-text">Showcased in Row 3</div>
+                  <div className="text-xs font-bold text-text">{tUi("admin.portfolio.media.interior_video", currentLanguage)}</div>
+                  <div className="text-[11px] text-muted-text">{tUi("admin.portfolio.video_modal.row_3_hint", currentLanguage)}</div>
                 </div>
               </button>
             </div>
@@ -185,11 +192,11 @@ export function EmbedVideoModal({
           {/* Video URL Input */}
           <div>
             <Label htmlFor="embed-video-url" className="text-xs font-semibold">
-              Video URL or Embed Link *
+              {tUi("admin.portfolio.video_modal.url", currentLanguage)}
             </Label>
             <Input
               id="embed-video-url"
-              placeholder="https://www.youtube.com/watch?v=... or https://vimeo.com/..."
+              placeholder={tUi("admin.portfolio.video_modal.url_placeholder", currentLanguage)}
               value={videoUrl}
               onChange={(e) => {
                 setVideoUrl(e.target.value);
@@ -199,15 +206,15 @@ export function EmbedVideoModal({
               className="mt-1.5 text-sm"
             />
             <div className="mt-1.5 flex items-center justify-between text-[11px] text-muted-text">
-              <span>Supports YouTube, Vimeo, MP4, WebM URLs</span>
+              <span>{tUi("admin.portfolio.video_modal.url_help", currentLanguage)}</span>
               {parsedInfo.type === "youtube" && (
                 <span className="text-purple-600 dark:text-purple-400 font-semibold flex items-center gap-1">
-                  <Check className="w-3 h-3" /> YouTube Video Detected
+                  <Check className="w-3 h-3" /> {tUi("admin.portfolio.video_modal.youtube_detected", currentLanguage)}
                 </span>
               )}
               {parsedInfo.type === "vimeo" && (
                 <span className="text-sky-600 dark:text-sky-400 font-semibold flex items-center gap-1">
-                  <Check className="w-3 h-3" /> Vimeo Video Detected
+                  <Check className="w-3 h-3" /> {tUi("admin.portfolio.video_modal.vimeo_detected", currentLanguage)}
                 </span>
               )}
             </div>
@@ -217,14 +224,14 @@ export function EmbedVideoModal({
           {videoUrl.trim() && (
             <div className="p-3 bg-surface rounded-xl border border-border space-y-2">
               <span className="text-[11px] font-bold uppercase tracking-wider text-muted-text block">
-                Preview & Poster
+                {tUi("admin.portfolio.video_modal.preview", currentLanguage)}
               </span>
 
               <div className="aspect-video w-full bg-black rounded-lg overflow-hidden relative shadow-inner flex items-center justify-center">
                 {parsedInfo.type === "youtube" && parsedInfo.videoId ? (
                   <iframe
                     src={`https://www.youtube-nocookie.com/embed/${parsedInfo.videoId}?rel=0`}
-                    title="YouTube video player"
+                    title={tUi("admin.portfolio.video_modal.youtube_player", currentLanguage)}
                     className="w-full h-full"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                     allowFullScreen
@@ -232,7 +239,7 @@ export function EmbedVideoModal({
                 ) : parsedInfo.type === "vimeo" && parsedInfo.videoId ? (
                   <iframe
                     src={`https://player.vimeo.com/video/${parsedInfo.videoId}`}
-                    title="Vimeo video player"
+                    title={tUi("admin.portfolio.video_modal.vimeo_player", currentLanguage)}
                     className="w-full h-full"
                     allow="autoplay; fullscreen; picture-in-picture"
                     allowFullScreen
@@ -246,13 +253,13 @@ export function EmbedVideoModal({
                 ) : detectedThumbnail ? (
                   <img
                     src={detectedThumbnail}
-                    alt="Preview poster"
+                    alt={tUi("admin.portfolio.video_modal.preview_poster_alt", currentLanguage)}
                     className="w-full h-full object-cover"
                   />
                 ) : (
                   <div className="flex flex-col items-center text-muted-text text-xs p-4">
                     <VideoIcon className="w-8 h-8 opacity-40 mb-1" />
-                    <span>Video stream attached</span>
+                    <span>{tUi("admin.portfolio.video_modal.stream_attached", currentLanguage)}</span>
                   </div>
                 )}
               </div>
@@ -263,11 +270,11 @@ export function EmbedVideoModal({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <Label htmlFor="embed-video-title" className="text-xs font-semibold">
-                Video Title (Optional)
+                {tUi("admin.portfolio.video_modal.title_field", currentLanguage)}
               </Label>
               <Input
                 id="embed-video-title"
-                placeholder="e.g. 4K Cinematic Walkthrough"
+                placeholder={tUi("admin.portfolio.video_modal.title_placeholder", currentLanguage)}
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 className="mt-1 text-xs"
@@ -275,11 +282,11 @@ export function EmbedVideoModal({
             </div>
             <div>
               <Label htmlFor="embed-video-caption" className="text-xs font-semibold">
-                Caption / Description (Optional)
+                {tUi("admin.portfolio.video_modal.caption", currentLanguage)}
               </Label>
               <Input
                 id="embed-video-caption"
-                placeholder="e.g. Captured in 4K 60FPS with aerial drone"
+                placeholder={tUi("admin.portfolio.video_modal.caption_placeholder", currentLanguage)}
                 value={caption}
                 onChange={(e) => setCaption(e.target.value)}
                 className="mt-1 text-xs"
@@ -290,12 +297,14 @@ export function EmbedVideoModal({
           {/* Custom Poster / Thumbnail */}
           <div>
             <Label htmlFor="embed-video-poster" className="text-xs font-semibold">
-              Cover Poster / Thumbnail URL (Optional)
+              {tUi("admin.portfolio.video_modal.poster_label", currentLanguage)}
             </Label>
             <div className="flex gap-2 mt-1">
               <Input
                 id="embed-video-poster"
-                placeholder={parsedInfo.type === "youtube" ? "Auto-detected from YouTube (or override here)" : "https://... image poster"}
+                placeholder={parsedInfo.type === "youtube"
+                  ? tUi("admin.portfolio.video_modal.poster_youtube_placeholder", currentLanguage)
+                  : tUi("admin.portfolio.video_modal.poster_placeholder", currentLanguage)}
                 value={customThumbnail}
                 onChange={(e) => setCustomThumbnail(e.target.value)}
                 className="text-xs font-mono flex-1"
@@ -303,7 +312,9 @@ export function EmbedVideoModal({
               {onUploadThumbnail && (
                 <label className="shrink-0 px-3 py-2 border border-border bg-surface hover:bg-surface/80 rounded-lg text-xs font-medium cursor-pointer flex items-center gap-1.5 transition-colors">
                   <Upload className="w-3.5 h-3.5" />
-                  <span>{isUploadingThumb ? "..." : "Upload Poster"}</span>
+                  <span>{isUploadingThumb
+                    ? tUi("admin.portfolio.video_modal.poster_uploading", currentLanguage)
+                    : tUi("admin.portfolio.video_modal.poster_upload", currentLanguage)}</span>
                   <input
                     type="file"
                     accept="image/*"
@@ -317,10 +328,10 @@ export function EmbedVideoModal({
               <div className="mt-2 flex items-center gap-2">
                 <img
                   src={detectedThumbnail}
-                  alt="Poster preview"
+                  alt={tUi("admin.portfolio.video_modal.poster_preview_alt", currentLanguage)}
                   className="w-16 h-10 object-cover rounded border border-border bg-surface"
                 />
-                <span className="text-[11px] text-muted-text">Active cover poster</span>
+                <span className="text-[11px] text-muted-text">{tUi("admin.portfolio.video_modal.active_poster", currentLanguage)}</span>
               </div>
             )}
           </div>
@@ -333,14 +344,14 @@ export function EmbedVideoModal({
               onClick={onClose}
               className="text-xs"
             >
-              Cancel
+              {tUi("common.cancel", currentLanguage)}
             </Button>
             <Button
               type="submit"
               className="text-xs bg-purple-600 hover:bg-purple-700 text-white"
             >
               <Check className="w-3.5 h-3.5 mr-1.5" />
-              Add Video to Gallery
+              {tUi("admin.portfolio.video_modal.add", currentLanguage)}
             </Button>
           </div>
         </form>

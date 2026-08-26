@@ -25,8 +25,8 @@ import {
   AlertCircle
 } from "lucide-react";
 
-function parseCategoryName(val?: string): string {
-  if (!val) return "Untitled Category";
+function parseCategoryName(val?: string, fallback = "Untitled category"): string {
+  if (!val) return fallback;
   try {
     const parsed = JSON.parse(val);
     if (typeof parsed === "object" && parsed !== null) {
@@ -75,9 +75,9 @@ export default function PortfolioPage() {
         fetchApi("/api/admin/settings")
       ]);
       
-      if (!pRes.ok) throw new Error("Failed to fetch portfolios");
-      if (!cRes.ok) throw new Error("Failed to fetch categories");
-      if (!sRes.ok) throw new Error("Failed to fetch settings");
+      if (!pRes.ok) throw new Error(tUi("admin.portfolio.page.fetch_items_failed"));
+      if (!cRes.ok) throw new Error(tUi("admin.portfolio.page.fetch_categories_failed"));
+      if (!sRes.ok) throw new Error(tUi("admin.portfolio.page.fetch_settings_failed"));
       
       setItems(await pRes.json());
       setCategories(await cRes.json());
@@ -95,7 +95,7 @@ export default function PortfolioPage() {
     if (!categorySearch.trim()) return categories;
     const q = categorySearch.toLowerCase();
     return categories.filter((c) => {
-      const name = parseCategoryName(c.name).toLowerCase();
+      const name = parseCategoryName(c.name, tUi("admin.portfolio.untitled_category")).toLowerCase();
       const slug = (c.slug || "").toLowerCase();
       const desc = (c.description || "").toLowerCase();
       return name.includes(q) || slug.includes(q) || desc.includes(q);
@@ -152,7 +152,7 @@ export default function PortfolioPage() {
 
     if (!res.ok) {
       const errData = await res.json().catch(() => ({}));
-      throw new Error(errData.error || "Failed to save portfolio item");
+      throw new Error(errData.error || tUi("admin.portfolio.page.save_item_failed"));
     }
 
     setIsItemModalOpen(false);
@@ -251,7 +251,7 @@ export default function PortfolioPage() {
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || "Failed to save category");
+      throw new Error(err.error || tUi("admin.portfolio.page.save_category_failed"));
     }
 
     setBannerMessage({
@@ -271,7 +271,7 @@ export default function PortfolioPage() {
     try {
       const res = await fetchApi(`/api/admin/categories/${id}`, { method: "DELETE" });
       if (!res.ok) {
-        throw new Error("Failed to delete category");
+        throw new Error(tUi("admin.portfolio.page.delete_category_failed"));
       }
       setBannerMessage({ text: tUi("admin.portfolio.category_deleted_success", currentLanguage), type: "success" });
       setTimeout(() => setBannerMessage(null), 4000);
@@ -459,11 +459,11 @@ export default function PortfolioPage() {
                             </div>
                             <div className="min-w-0">
                               <div className="font-semibold text-text truncate max-w-[200px] sm:max-w-xs">
-                                {parseCategoryName(cat.name)}
+                                {parseCategoryName(cat.name, tUi("admin.portfolio.untitled_category"))}
                               </div>
                               {cat.description && (
                                 <div className="text-xs text-muted-text truncate max-w-[200px] sm:max-w-xs">
-                                  {parseCategoryName(cat.description)}
+                                  {parseCategoryName(cat.description, tUi("admin.portfolio.untitled_category"))}
                                 </div>
                               )}
                             </div>
@@ -481,10 +481,10 @@ export default function PortfolioPage() {
                           {cat.parent_name ? (
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-surface border border-border text-text font-medium">
                               <Layers className="w-3 h-3 text-primary" aria-hidden="true" />
-                              {parseCategoryName(cat.parent_name)}
+                              {parseCategoryName(cat.parent_name, tUi("admin.portfolio.untitled_category"))}
                             </span>
                           ) : (
-                            <span className="text-muted-text">Top-level</span>
+                            <span className="text-muted-text">{tUi("admin.faq_categories.top_level")}</span>
                           )}
                         </td>
 

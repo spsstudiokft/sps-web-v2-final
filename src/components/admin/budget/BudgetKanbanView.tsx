@@ -15,6 +15,8 @@ import {
 import { BudgetEntry, BudgetStatus } from "../../../types";
 import { cn } from "../../../lib/utils";
 import { formatConfiguredCurrency } from "../../../lib/currency";
+import { useLanguage } from "../../../contexts/LanguageContext";
+import { translateBudgetCategory } from "../../../lib/budgetLabels";
 
 interface BudgetKanbanViewProps {
   entries: BudgetEntry[];
@@ -37,6 +39,7 @@ export function BudgetKanbanView({
   onOpenNewModal,
   currency = "USD"
 }: BudgetKanbanViewProps) {
+  const { tUi } = useLanguage();
   const formatMoney = (amount: number, curr: string = currency) => formatConfiguredCurrency(amount, curr, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 
   const columns: {
@@ -49,7 +52,7 @@ export function BudgetKanbanView({
   }[] = [
     {
       id: "planned",
-      title: "Planned & Projected",
+      title: tUi("admin.budget.kanban.planned"),
       icon: Sparkles,
       headerBg: "bg-sky-500/10",
       headerText: "text-sky-700 dark:text-sky-300",
@@ -57,7 +60,7 @@ export function BudgetKanbanView({
     },
     {
       id: "pending",
-      title: "Pending Review",
+      title: tUi("admin.budget.kanban.pending"),
       icon: Clock,
       headerBg: "bg-amber-500/10",
       headerText: "text-amber-700 dark:text-amber-300",
@@ -65,7 +68,7 @@ export function BudgetKanbanView({
     },
     {
       id: "confirmed",
-      title: "Confirmed & Cleared",
+      title: tUi("admin.budget.kanban.confirmed"),
       icon: CheckCircle2,
       headerBg: "bg-emerald-500/10",
       headerText: "text-emerald-700 dark:text-emerald-300",
@@ -73,7 +76,7 @@ export function BudgetKanbanView({
     },
     {
       id: "rejected",
-      title: "Rejected / Cancelled",
+      title: tUi("admin.budget.kanban.rejected"),
       icon: AlertCircle,
       headerBg: "bg-rose-500/10",
       headerText: "text-rose-700 dark:text-rose-300",
@@ -152,7 +155,7 @@ export function BudgetKanbanView({
                       {/* Top: Category & Type */}
                       <div className="flex items-center justify-between">
                         <span className="font-semibold text-xs text-text truncate">
-                          {entry.category || "General"}
+                          {translateBudgetCategory(entry.category, tUi)}
                         </span>
                         <span className={cn(
                           "inline-flex items-center gap-0.5 px-2 py-0.5 rounded text-[10px] font-bold border",
@@ -161,7 +164,7 @@ export function BudgetKanbanView({
                             : "bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-500/20"
                         )}>
                           {isIncome ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
-                          {isIncome ? "Income" : "Expense"}
+                          {tUi(isIncome ? "admin.budget.modal.income" : "admin.budget.modal.outcome")}
                         </span>
                       </div>
 
@@ -207,9 +210,9 @@ export function BudgetKanbanView({
                                 type="button"
                                 onClick={() => onQuickStatusChange(entry.id, col.id === "planned" ? "pending" : "confirmed")}
                                 className="px-2 py-0.5 text-[10px] font-semibold bg-surface border border-border hover:bg-emerald-500/10 text-muted-text hover:text-emerald-600 dark:hover:text-emerald-400 rounded flex items-center gap-0.5 transition-colors"
-                                title="Move to next status"
+                                title={tUi("admin.budget.kanban.advance_title")}
                               >
-                                <span>Advance</span>
+                                <span>{tUi("admin.budget.kanban.advance")}</span>
                                 <ChevronRight className="w-3 h-3" />
                               </button>
                             )}
@@ -217,7 +220,7 @@ export function BudgetKanbanView({
                               type="button"
                               onClick={() => onEdit(entry)}
                               className="p-1 text-muted-text hover:text-primary rounded hover:bg-surface transition-colors"
-                              title="Edit Entry"
+                              title={tUi("admin.budget.table.edit")}
                             >
                               <Edit3 className="w-3.5 h-3.5" />
                             </button>
@@ -225,15 +228,14 @@ export function BudgetKanbanView({
                               type="button"
                               onClick={() => onDelete(entry.id)}
                               className="p-1 text-muted-text hover:text-rose-600 dark:hover:text-rose-400 rounded hover:bg-surface transition-colors"
-                              title="Delete Entry"
+                              title={tUi("admin.budget.table.delete")}
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
                           </div>
                         ) : (
                           <span className="text-[10px] text-muted-text italic flex items-center gap-0.5 ml-auto">
-                            <Lock className="w-2.5 h-2.5" /> Read-only
-                          </span>
+                            <Lock className="w-2.5 h-2.5" /> {tUi("admin.budget.table.read_only")}</span>
                         )}
                       </div>
                     </div>

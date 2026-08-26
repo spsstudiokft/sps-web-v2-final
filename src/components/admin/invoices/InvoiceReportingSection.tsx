@@ -1,3 +1,4 @@
+import { useLanguage } from "../../../contexts/LanguageContext";
 import React from "react";
 import { 
   BarChart2, 
@@ -26,6 +27,7 @@ export function InvoiceReportingSection({
   invoices,
   currency = "USD"
 }: InvoiceReportingSectionProps) {
+  const { tUi } = useLanguage();
   const formatMoney = (amount: number) => formatConfiguredCurrency(amount, currency || "USD", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   const handleExportCSV = () => {
@@ -124,11 +126,11 @@ export function InvoiceReportingSection({
               <table className="w-full text-left text-xs">
                 <thead className="border-b border-border text-muted-text text-[11px] uppercase font-semibold">
                   <tr>
-                    <th className="pb-2.5">Client</th>
-                    <th className="pb-2.5 text-center">Invoices</th>
+                    <th className="pb-2.5">{tUi("admin.projects.th_client")}</th>
+                    <th className="pb-2.5 text-center">{tUi("admin.financial.tab_invoices")}</th>
                     <th className="pb-2.5 text-right">Invoiced</th>
-                    <th className="pb-2.5 text-right">Paid</th>
-                    <th className="pb-2.5 text-right">Outstanding</th>
+                    <th className="pb-2.5 text-right">{tUi("client.invoices.paid")}</th>
+                    <th className="pb-2.5 text-right">{tUi("admin.invoices.stats.outstanding")}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">

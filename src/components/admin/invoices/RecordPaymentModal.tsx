@@ -1,3 +1,4 @@
+import { useLanguage } from "../../../contexts/LanguageContext";
 import React, { useState } from "react";
 import { 
   X, 
@@ -28,6 +29,7 @@ export function RecordPaymentModal({
   onRecord,
   showToast
 }: RecordPaymentModalProps) {
+  const { tUi } = useLanguage();
   if (!isOpen || !invoice) return null;
 
   const remainingDue = Math.max(0, Number(invoice.total_amount) - Number(invoice.amount_paid));
@@ -215,8 +217,7 @@ export function RecordPaymentModal({
               onClick={onClose}
               disabled={loading}
             >
-              Cancel
-            </Button>
+              {tUi("admin.clients.cancel")}</Button>
 
             <Button
               type="submit"

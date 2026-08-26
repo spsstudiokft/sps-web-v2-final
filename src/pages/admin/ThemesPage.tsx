@@ -155,13 +155,13 @@ export default function ThemesPage() {
       });
 
       if (!res.ok) {
-        throw new Error("Failed to save and apply themes.");
+        throw new Error(tUi("themeManager.save_apply_failed", currentLanguage));
       }
 
       await reloadThemes();
       showBanner(tUi("themeManager.theme_saved", currentLanguage) || "Theme styling successfully saved and applied to website and dashboard!");
     } catch (err: any) {
-      showBanner(err.message || "Failed to apply themes", "error");
+      showBanner(err.message || tUi("themeManager.save_apply_failed", currentLanguage), "error");
     } finally {
       setSaving(false);
     }
@@ -174,8 +174,8 @@ export default function ThemesPage() {
       setSaving(true);
       if (themeToSave.isPreset || !themeToSave.id.startsWith("custom-theme-")) {
         // Prompt for custom theme name
-        setNewThemeName(`${themeToSave.name} (Custom Copy)`);
-        setNewThemeDescription(`Customized styling based on ${themeToSave.name}`);
+        setNewThemeName(tUi("themeManager.custom_copy_name", { name: themeToSave.name }, currentLanguage));
+        setNewThemeDescription(tUi("themeManager.custom_copy_description", { name: themeToSave.name }, currentLanguage));
         setNewThemeTarget(activeTarget);
         setIsNewThemeModalOpen(true);
         setSaving(false);
@@ -194,12 +194,12 @@ export default function ThemesPage() {
         })
       });
 
-      if (!res.ok) throw new Error("Failed to update custom theme");
+      if (!res.ok) throw new Error(tUi("themeManager.update_failed", currentLanguage));
       const msg = tUi("themeManager.theme_updated", { name: themeToSave.name }, currentLanguage);
       showBanner(msg);
       fetchThemesAndSettings();
     } catch (err: any) {
-      showBanner(err.message || "Failed to update custom theme", "error");
+      showBanner(err.message || tUi("themeManager.update_failed", currentLanguage), "error");
     } finally {
       setSaving(false);
     }
@@ -231,7 +231,7 @@ export default function ThemesPage() {
         })
       });
 
-      if (!res.ok) throw new Error("Failed to create new theme");
+      if (!res.ok) throw new Error(tUi("themeManager.create_failed", currentLanguage));
       const created = await res.json();
 
       setIsNewThemeModalOpen(false);
@@ -247,7 +247,7 @@ export default function ThemesPage() {
         setActiveWorkingTheme(created.theme.config);
       }
     } catch (err: any) {
-      showBanner(err.message || "Failed to create theme", "error");
+      showBanner(err.message || tUi("themeManager.create_failed", currentLanguage), "error");
     } finally {
       setSaving(false);
     }
@@ -262,12 +262,12 @@ export default function ThemesPage() {
       const res = await fetchApi(`/api/admin/themes/${themeId}`, {
         method: "DELETE"
       });
-      if (!res.ok) throw new Error("Failed to delete theme");
+      if (!res.ok) throw new Error(tUi("themeManager.delete_failed", currentLanguage));
       const msg = tUi("themeManager.theme_deleted", { name: themeName }, currentLanguage);
       showBanner(msg);
       fetchThemesAndSettings();
     } catch (err: any) {
-      showBanner(err.message || "Failed to delete theme", "error");
+      showBanner(err.message || tUi("themeManager.delete_failed", currentLanguage), "error");
     }
   };
 
@@ -300,7 +300,7 @@ export default function ThemesPage() {
           id: `custom-theme-${Date.now()}`,
           isPreset: false
         });
-        const msg = tUi("themeManager.json_imported", { name: parsed.name || "Custom" }, currentLanguage);
+        const msg = tUi("themeManager.json_imported", { name: parsed.name || tUi("themeManager.custom_name", currentLanguage) }, currentLanguage);
         showBanner(msg);
       } catch (err) {
         showBanner(tUi("themeManager.invalid_json", currentLanguage), "error");
@@ -522,7 +522,7 @@ export default function ThemesPage() {
                             type="button"
                             onClick={() => handleDeleteTheme(t.id, t.name)}
                             className="p-1 text-muted-text hover:text-red-500 rounded-md transition-colors"
-                            title="Delete custom theme"
+                            title={tUi("themeManager.delete_custom_theme", currentLanguage)}
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
@@ -535,17 +535,17 @@ export default function ThemesPage() {
                           <span 
                             className="w-3 h-3 rounded-full border border-black/10 shadow-2xs" 
                             style={{ backgroundColor: config.colors?.light?.primary || "#0f172a" }} 
-                            title="Primary Color"
+                            title={tUi("themeEditor.color_primary", currentLanguage)}
                           />
                           <span 
                             className="w-3 h-3 rounded-full border border-black/10 shadow-2xs" 
                             style={{ backgroundColor: config.colors?.light?.accent || "#3b82f6" }} 
-                            title="Accent Color"
+                            title={tUi("themeEditor.color_accent")}
                           />
                           <span 
                             className="w-3 h-3 rounded-full border border-black/10 shadow-2xs" 
                             style={{ backgroundColor: config.colors?.light?.background || "#ffffff" }} 
-                            title="Background Color"
+                            title={tUi("themeEditor.color_background", currentLanguage)}
                           />
                         </div>
 

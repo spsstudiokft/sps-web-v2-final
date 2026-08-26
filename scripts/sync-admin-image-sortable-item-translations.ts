@@ -1,0 +1,4 @@
+import { translationService } from "../src/server/services/translationService.js";
+import { adminImageSortableItemTranslations } from "../src/lib/adminImageSortableItemTranslations.js";
+async function main() { const records = Object.entries(adminImageSortableItemTranslations).flatMap(([locale, dictionary]) => Object.entries(dictionary).map(([key, value]) => ({ locale, key, value, group_name: "admin.portfolio.media_card" }))); const count = await translationService.batchUpsert(records); const stats = await translationService.getStats(); console.log({ updated: count, keys: Object.keys(adminImageSortableItemTranslations.en).length, locales: Object.keys(adminImageSortableItemTranslations), missingCounts: stats.missingCounts }); }
+main().catch((error) => { console.error(error); process.exitCode = 1; });

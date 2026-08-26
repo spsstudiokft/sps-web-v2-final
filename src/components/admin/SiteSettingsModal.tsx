@@ -86,7 +86,7 @@ export function SiteSettingsModal({
     } catch (err: any) {
       setAppwriteDiagnostic({
         success: false,
-        message: err.message || "Failed to contact diagnostic service"
+        message: err.message || tUi("admin.settings.runtime.diagnostic_failed")
       });
     } finally {
       setIsTestingAppwrite(false);
@@ -118,13 +118,13 @@ export function SiteSettingsModal({
   if (!isOpen) return null;
 
   const settingsTabs = [
-    { id: "general" as const, group: "site", label: tUi("admin.settings.tab_general", currentLanguage) || "General", icon: Sliders },
-    { id: "branding" as const, group: "site", label: tUi("admin.settings.tab_branding", currentLanguage) || "Branding & Logos", icon: ImageIcon },
-    { id: "translations" as const, group: "site", label: tUi("admin.settings.tab_translations", currentLanguage) || "Languages & Translations", icon: Languages },
-    { id: "content" as const, group: "content", label: tUi("admin.settings.tab_content", currentLanguage) || "Hero & About", icon: FileText },
-    { id: "seo" as const, group: "content", label: tUi("admin.settings.tab_seo_keywords", currentLanguage) || "SEO & Keywords", icon: Search },
-    { id: "contact" as const, group: "communication", label: tUi("admin.settings.tab_contact", currentLanguage) || "Contact & Inquiries", icon: Phone },
-    { id: "email" as const, group: "communication", label: tUi("admin.settings.tab_email_resend", currentLanguage) || "Email & Resend", icon: Mail },
+    { id: "general" as const, group: "site", label: tUi("admin.settings.tab_general", currentLanguage), icon: Sliders },
+    { id: "branding" as const, group: "site", label: tUi("admin.settings.tab_branding", currentLanguage), icon: ImageIcon },
+    { id: "translations" as const, group: "site", label: tUi("admin.settings.tab_translations", currentLanguage), icon: Languages },
+    { id: "content" as const, group: "content", label: tUi("admin.settings.tab_content", currentLanguage), icon: FileText },
+    { id: "seo" as const, group: "content", label: tUi("admin.settings.tab_seo_keywords", currentLanguage), icon: Search },
+    { id: "contact" as const, group: "communication", label: tUi("admin.settings.tab_contact", currentLanguage), icon: Phone },
+    { id: "email" as const, group: "communication", label: tUi("admin.settings.tab_email_resend", currentLanguage), icon: Mail },
   ];
   const selectSettingsGroup = (group: "site" | "content" | "communication") => {
     setSettingsGroup(group);
@@ -160,7 +160,7 @@ export function SiteSettingsModal({
     if (settings.contact_email && settings.contact_email.trim() !== "") {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(settings.contact_email.trim())) {
-        setErrorMessage(tUi("admin.settings.validation_email", currentLanguage) || "Please enter a valid contact email address.");
+        setErrorMessage(tUi("admin.settings.validation_email", currentLanguage));
         setActiveTab("content");
         return false;
       }
@@ -207,12 +207,12 @@ export function SiteSettingsModal({
 
       await reloadSettings();
 
-      setSuccessMessage(tUi("admin.settings.success_updated", currentLanguage) || "Site settings have been successfully updated!");
+      setSuccessMessage(tUi("admin.settings.success_updated", currentLanguage));
       setTimeout(() => {
         onClose();
       }, 700);
     } catch (err: any) {
-      setErrorMessage(err.message || "Failed to save settings. Please try again.");
+      setErrorMessage(err.message || tUi("admin.settings.runtime.save_failed"));
     } finally {
       setSaving(false);
     }
@@ -240,10 +240,10 @@ export function SiteSettingsModal({
             </div>
             <div>
               <h2 id="site-settings-modal-title" className="text-lg font-bold text-text tracking-tight leading-snug">
-                {tUi("admin.settings.modal_title", currentLanguage) || "Site & System Settings"}
+                {tUi("admin.settings.modal_title", currentLanguage)}
               </h2>
               <p className="text-xs text-muted-text">
-                {tUi("admin.settings.modal_subtitle", currentLanguage) || "Manage global studio branding, multiline content, themes, localization, and SEO."}
+                {tUi("admin.settings.modal_subtitle", currentLanguage)}
               </p>
             </div>
           </div>
@@ -251,7 +251,7 @@ export function SiteSettingsModal({
             type="button"
             onClick={onClose}
             className="p-2 text-muted-text hover:text-text hover:bg-surface rounded-xl transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-            aria-label="Close dialog"
+            aria-label={tUi("admin.settings.modal.close_dialog")}
           >
             <X className="w-5 h-5" aria-hidden="true" />
           </button>
@@ -259,7 +259,7 @@ export function SiteSettingsModal({
 
         {/* Two-level navigation keeps all settings discoverable without one long tab row. */}
         <div className="px-4 sm:px-6 pt-3 border-b border-border bg-surface/20 shrink-0">
-          <div className="grid grid-cols-3 gap-1 rounded-xl bg-background/60 border border-border p-1" role="tablist" aria-label="Settings categories">
+          <div className="grid grid-cols-3 gap-1 rounded-xl bg-background/60 border border-border p-1" role="tablist" aria-label={tUi("admin.settings.modal.settings_categories")}>
             {[{ id: "site" as const, label: "Site & Brand", icon: SettingsIcon }, { id: "content" as const, label: "Content & SEO", icon: Search }, { id: "communication" as const, label: "Contact & Email", icon: Mail }].map((group) => { const Icon = group.icon; const selected = settingsGroup === group.id; return <button key={group.id} type="button" role="tab" aria-selected={selected} onClick={() => selectSettingsGroup(group.id)} className={`min-w-0 flex items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-[11px] sm:text-xs font-bold transition-colors ${selected ? "bg-primary text-primary-foreground shadow-xs" : "text-muted-text hover:bg-surface hover:text-text"}`}><Icon className="w-3.5 h-3.5 shrink-0" /><span className="truncate">{group.label}</span></button>; })}
           </div>
           <div className="flex items-center gap-1 pt-2 overflow-x-auto scrollbar-none">
@@ -299,14 +299,14 @@ export function SiteSettingsModal({
               <div className="p-5 rounded-2xl bg-surface border border-border space-y-4">
                 <div className="flex items-center gap-2 text-text font-bold text-sm">
                   <Sparkles className="w-4 h-4 text-primary" aria-hidden="true" />
-                  <span>{tUi("admin.settings.section_studio_identity", currentLanguage) || "Studio Identity & Title"}</span>
+                  <span>{tUi("admin.settings.section_studio_identity", currentLanguage)}</span>
                 </div>
                 <TranslatableInput
-                  label={tUi("admin.settings.studio_name", currentLanguage) || "Studio Name"}
+                  label={tUi("admin.settings.studio_name", currentLanguage)}
                   value={settings.studio_name}
                   onChange={(val) => handleChange("studio_name", val)}
                   siteLanguages={siteLangs}
-                  placeholder="e.g. SPS Studio | Premier Real Estate Media"
+                  placeholder={tUi("admin.settings.modal.e_g_sps_studio_premier_real_estate_media")}
                 />
               </div>
 
@@ -320,25 +320,25 @@ export function SiteSettingsModal({
               <div className="p-5 rounded-2xl bg-surface border border-border space-y-4">
                 <div className="flex items-center gap-2 text-text font-bold text-sm">
                   <Layers className="w-4 h-4 text-primary" aria-hidden="true" />
-                  <span>Footer information</span>
+                  <span>{tUi("admin.settings.modal.footer_information")}</span>
                 </div>
                 <div>
-                  <Label htmlFor="footer-version">Website version badge</Label>
-                  <Input id="footer-version" className="mt-1.5" placeholder="e.g. v2.0.0" value={settings.footer_version || ""} onChange={(e) => handleChange("footer_version", e.target.value)} />
+                  <Label htmlFor="footer-version">{tUi("admin.settings.modal.website_version_badge")}</Label>
+                  <Input id="footer-version" className="mt-1.5" placeholder={tUi("admin.settings.modal.e_g_v2_0_0")} value={settings.footer_version || ""} onChange={(e) => handleChange("footer_version", e.target.value)} />
                 </div>
-                <TranslatableInput label="AI-generated code security notice" value={settings.footer_ai_notice || ""} onChange={(val) => handleChange("footer_ai_notice", val)} siteLanguages={siteLangs} isTextarea placeholder="This website's complete structure runs on AI-generated code and is operated securely." />
+                <TranslatableInput label="AI-generated code security notice" value={settings.footer_ai_notice || ""} onChange={(val) => handleChange("footer_ai_notice", val)} siteLanguages={siteLangs} isTextarea placeholder={tUi("footer.ai_notice")} />
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <TranslatableInput label="Created-with prefix" value={settings.footer_created_prefix || ""} onChange={(val) => handleChange("footer_created_prefix", val)} siteLanguages={siteLangs} placeholder="Created with" />
+                  <TranslatableInput label="Created-with prefix" value={settings.footer_created_prefix || ""} onChange={(val) => handleChange("footer_created_prefix", val)} siteLanguages={siteLangs} placeholder={tUi("footer.created_with")} />
                   <TranslatableInput label="Created-in suffix" value={settings.footer_created_suffix || ""} onChange={(val) => handleChange("footer_created_suffix", val)} siteLanguages={siteLangs} placeholder="in" />
                 </div>
-                <p className="text-xs text-muted-text">Social buttons use the enabled links configured in the Social Links Tree Manager.</p>
+                <p className="text-xs text-muted-text">{tUi("admin.settings.modal.social_buttons_use_the_enabled_links_configured_in_the")}</p>
               </div>
 
               {/* Theme Colors */}
               <div className="p-5 rounded-2xl bg-surface border border-border space-y-4">
                 <div className="flex items-center gap-2 text-text font-bold text-sm">
                   <Palette className="w-4 h-4 text-primary" aria-hidden="true" />
-                  <span>{tUi("admin.settings.section_theme_palette", currentLanguage) || "Theme & Color Palette"}</span>
+                  <span>{tUi("admin.settings.section_theme_palette", currentLanguage)}</span>
                 </div>
                 <ThemeManager
                   value={settings.theme_colors}
@@ -350,19 +350,19 @@ export function SiteSettingsModal({
               <div className="p-5 rounded-2xl bg-surface border border-border space-y-4">
                 <div className="flex items-center gap-2 text-text font-bold text-sm">
                   <Database className="w-4 h-4 text-primary" aria-hidden="true" />
-                  <span>{tUi("admin.settings.section_media_storage", currentLanguage) || "Media Storage Provider"}</span>
+                  <span>{tUi("admin.settings.section_media_storage", currentLanguage)}</span>
                 </div>
                 <div>
-                  <Label htmlFor="media-provider-select">{tUi("admin.settings.active_storage_backend", currentLanguage) || "Active Storage Backend"}</Label>
+                  <Label htmlFor="media-provider-select">{tUi("admin.settings.active_storage_backend", currentLanguage)}</Label>
                   <select
                     id="media-provider-select"
                     className="mt-1.5 block w-full px-4 py-2.5 border border-border bg-background text-text rounded-xl focus:ring-2 focus:ring-primary focus:border-primary outline-none sm:text-sm transition-all"
                     value={settings.media_provider || "r2"}
                     onChange={(e) => handleChange("media_provider", e.target.value)}
                   >
-                    <option value="r2">Cloudflare R2 Object Storage (Recommended for 10 GB+)</option>
-                    <option value="appwrite">Appwrite Storage</option>
-                    <option value="local">Local High-Capacity Disk Storage</option>
+                    <option value="r2">{tUi("admin.settings.modal.cloudflare_r2_object_storage_recommended_for_10_gb")}</option>
+                    <option value="appwrite">{tUi("admin.settings.modal.appwrite_storage")}</option>
+                    <option value="local">{tUi("admin.settings.modal.local_high_capacity_disk_storage")}</option>
                   </select>
                 </div>
 
@@ -371,8 +371,7 @@ export function SiteSettingsModal({
                     <div className="flex items-center justify-between">
                       <div className="text-xs font-semibold text-text flex items-center gap-1.5">
                         <Database className="w-3.5 h-3.5 text-primary" />
-                        Appwrite Storage Configuration
-                      </div>
+                        {tUi("admin.settings.modal.appwrite_storage_configuration")}</div>
                       <button
                         type="button"
                         onClick={testAppwriteConnection}
@@ -382,50 +381,48 @@ export function SiteSettingsModal({
                         {isTestingAppwrite ? (
                           <>
                             <Loader2 className="w-3 h-3 animate-spin" />
-                            Testing Connection...
-                          </>
+                            {tUi("admin.settings.modal.testing_connection")}</>
                         ) : (
                           <>
                             <ShieldCheck className="w-3 h-3" />
-                            Test Connection & Bucket
-                          </>
+                            {tUi("admin.settings.modal.test_connection_bucket")}</>
                         )}
                       </button>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       <div>
-                        <Label htmlFor="appwrite-endpoint" className="text-xs">API Endpoint</Label>
+                        <Label htmlFor="appwrite-endpoint" className="text-xs">{tUi("admin.settings.modal.api_endpoint")}</Label>
                         <Input
                           id="appwrite-endpoint"
-                          placeholder="https://cloud.appwrite.io/v1"
+                          placeholder={tUi("admin.settings.modal.https_cloud_appwrite_io_v1")}
                           value={settings.appwrite_endpoint || ""}
                           onChange={(e) => handleChange("appwrite_endpoint", e.target.value)}
                           className="mt-1 text-xs"
                         />
                       </div>
                       <div>
-                        <Label htmlFor="appwrite-project-id" className="text-xs">Project ID</Label>
+                        <Label htmlFor="appwrite-project-id" className="text-xs">{tUi("admin.settings.modal.project_id")}</Label>
                         <Input
                           id="appwrite-project-id"
-                          placeholder="your-project-id"
+                          placeholder={tUi("admin.settings.modal.your_project_id")}
                           value={settings.appwrite_project_id || ""}
                           onChange={(e) => handleChange("appwrite_project_id", e.target.value)}
                           className="mt-1 text-xs"
                         />
                       </div>
                       <div>
-                        <Label htmlFor="appwrite-bucket-id" className="text-xs">Storage Bucket ID</Label>
+                        <Label htmlFor="appwrite-bucket-id" className="text-xs">{tUi("admin.settings.modal.storage_bucket_id")}</Label>
                         <Input
                           id="appwrite-bucket-id"
-                          placeholder="default"
+                          placeholder={tUi("admin.settings.modal.default")}
                           value={settings.appwrite_bucket_id || ""}
                           onChange={(e) => handleChange("appwrite_bucket_id", e.target.value)}
                           className="mt-1 text-xs"
                         />
                       </div>
                       <div>
-                        <Label htmlFor="appwrite-api-key" className="text-xs">API Secret Key</Label>
+                        <Label htmlFor="appwrite-api-key" className="text-xs">{tUi("admin.settings.modal.api_secret_key")}</Label>
                         <Input
                           id="appwrite-api-key"
                           type="password"
@@ -446,8 +443,8 @@ export function SiteSettingsModal({
                         </div>
                         {appwriteDiagnostic.bucket && (
                           <div className="mt-2 space-y-1 text-[11px] opacity-90">
-                            <div><strong>Bucket:</strong> {appwriteDiagnostic.bucket.name} (ID: {appwriteDiagnostic.bucket.id})</div>
-                            <div><strong>Configured Max File Size:</strong> {appwriteDiagnostic.bucket.maximumFileSizeFormatted}</div>
+                            <div><strong>{tUi("admin.settings.modal.bucket")}</strong> {appwriteDiagnostic.bucket.name} {tUi("admin.settings.modal.id")}{appwriteDiagnostic.bucket.id})</div>
+                            <div><strong>{tUi("admin.settings.modal.configured_max_file_size")}</strong> {appwriteDiagnostic.bucket.maximumFileSizeFormatted}</div>
                           </div>
                         )}
                         {appwriteDiagnostic.advice && (
@@ -465,48 +462,43 @@ export function SiteSettingsModal({
                       >
                         <span className="flex items-center gap-1.5">
                           <HelpCircle className="w-3.5 h-3.5" />
-                          Self-Hosted 10 GB Video Uploads & HTTP 413 Setup Guide
-                        </span>
+                          {tUi("admin.settings.modal.self_hosted_10_gb_video_uploads_http_413_setup_guide")}</span>
                         <span>{show413Guide ? "▲ Hide" : "▼ Show"}</span>
                       </button>
 
                       {show413Guide && (
                         <div className="mt-2 p-3 bg-muted/40 rounded-lg text-xs space-y-2.5 text-muted-text border border-border">
-                          <div className="font-semibold text-text">Why does HTTP 413 (Content Too Large) happen despite a 10 GB bucket limit?</div>
+                          <div className="font-semibold text-text">{tUi("admin.settings.modal.why_does_http_413_content_too_large_happen_despite_a_1")}</div>
                           <p>
-                            In self-hosted Appwrite, the bucket setting is only a client filter. The actual upload capacity is governed by <strong>Appwrite container variables</strong> and <strong>reverse proxy buffers</strong>.
+                            {tUi("admin.settings.modal.in_self_hosted_appwrite_the_bucket_setting_is_only_a_c")}<strong>{tUi("admin.settings.modal.appwrite_container_variables")}</strong> {tUi("admin.settings.modal.and")}<strong>{tUi("admin.settings.modal.reverse_proxy_buffers")}</strong>.
                           </p>
 
                           <div className="space-y-1.5">
-                            <div className="font-medium text-text">1. Self-Hosted Appwrite Environment (.env):</div>
+                            <div className="font-medium text-text">{tUi("admin.settings.modal.1_self_hosted_appwrite_environment_env")}</div>
                             <div className="p-2 bg-black/90 text-green-400 font-mono text-[11px] rounded overflow-x-auto select-all">
-                              _APP_STORAGE_LIMIT=10737418240<br/>
-                              _APP_STORAGE_PREVIEW_LIMIT=52428800
-                            </div>
-                            <div className="text-[11px]">Set <code>_APP_STORAGE_LIMIT</code> to at least 10 GB in bytes (<code>10737418240</code>). Then restart with <code>docker compose up -d --force-recreate</code>.</div>
+                              {tUi("admin.settings.modal.app_storage_limit_10737418240")}<br/>
+                              {tUi("admin.settings.modal.app_storage_preview_limit_52428800")}</div>
+                            <div className="text-[11px]">{tUi("admin.settings.modal.set")}<code>{tUi("admin.settings.modal.app_storage_limit")}</code> {tUi("admin.settings.modal.to_at_least_10_gb_in_bytes")}<code>10737418240</code>{tUi("admin.settings.modal.then_restart_with")}<code>{tUi("admin.settings.modal.docker_compose_up_d_force_recreate")}</code>.</div>
                           </div>
 
                           <div className="space-y-1.5">
-                            <div className="font-medium text-text">2. Nginx Reverse Proxy (if placed in front of Appwrite):</div>
+                            <div className="font-medium text-text">{tUi("admin.settings.modal.2_nginx_reverse_proxy_if_placed_in_front_of_appwrite")}</div>
                             <div className="p-2 bg-black/90 text-green-400 font-mono text-[11px] rounded overflow-x-auto select-all">
-                              # Inside http or server block in nginx.conf:<br/>
-                              client_max_body_size 10G;
-                            </div>
-                            <div className="text-[11px]">If Nginx sits in front of Appwrite, set <code>client_max_body_size 10G;</code> (or <code>0</code> for unlimited).</div>
+                              {tUi("admin.settings.modal.inside_http_or_server_block_in_nginx_conf")}<br/>
+                              {tUi("admin.settings.modal.client_max_body_size_10g")}</div>
+                            <div className="text-[11px]">{tUi("admin.settings.modal.if_nginx_sits_in_front_of_appwrite_set")}<code>{tUi("admin.settings.modal.client_max_body_size_10g")}</code> {tUi("admin.settings.modal.or")}<code>0</code> {tUi("admin.settings.modal.for_unlimited")}</div>
                           </div>
 
                           <div className="space-y-1.5">
-                            <div className="font-medium text-text">3. Apache Reverse Proxy (if used):</div>
+                            <div className="font-medium text-text">{tUi("admin.settings.modal.3_apache_reverse_proxy_if_used")}</div>
                             <div className="p-2 bg-black/90 text-green-400 font-mono text-[11px] rounded overflow-x-auto select-all">
-                              LimitRequestBody 0
-                            </div>
+                              {tUi("admin.settings.modal.limitrequestbody_0")}</div>
                           </div>
 
                           <div className="space-y-1.5">
-                            <div className="font-medium text-text">4. Client-Side Chunking:</div>
+                            <div className="font-medium text-text">{tUi("admin.settings.modal.4_client_side_chunking")}</div>
                             <div className="text-[11px]">
-                              Our studio automatically streams large videos in <strong>5 MB chunks</strong> with live progress bars to bypass browser and cloud ingress payload constraints.
-                            </div>
+                              {tUi("admin.settings.modal.our_studio_automatically_streams_large_videos_in")}<strong>{tUi("admin.settings.modal.5_mb_chunks")}</strong> {tUi("admin.settings.modal.with_live_progress_bars_to_bypass_browser_and_cloud_in")}</div>
                           </div>
                         </div>
                       )}
@@ -516,40 +508,40 @@ export function SiteSettingsModal({
 
                 {settings.media_provider === "r2" && (
                   <div className="mt-3 p-4 bg-background rounded-xl border border-border space-y-3">
-                    <div className="text-xs font-semibold text-text">Cloudflare R2 Configuration (Optional if set in .env)</div>
+                    <div className="text-xs font-semibold text-text">{tUi("admin.settings.modal.cloudflare_r2_configuration_optional_if_set_in_env")}</div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       <div>
-                        <Label htmlFor="r2-account-id" className="text-xs">Account ID</Label>
+                        <Label htmlFor="r2-account-id" className="text-xs">{tUi("admin.settings.modal.account_id")}</Label>
                         <Input
                           id="r2-account-id"
-                          placeholder="Cloudflare Account ID"
+                          placeholder={tUi("admin.settings.modal.cloudflare_account_id")}
                           value={settings.r2_account_id || ""}
                           onChange={(e) => handleChange("r2_account_id", e.target.value)}
                           className="mt-1 text-xs"
                         />
                       </div>
                       <div>
-                        <Label htmlFor="r2-bucket-name" className="text-xs">Bucket Name</Label>
+                        <Label htmlFor="r2-bucket-name" className="text-xs">{tUi("admin.settings.modal.bucket_name")}</Label>
                         <Input
                           id="r2-bucket-name"
-                          placeholder="portfolio-media"
+                          placeholder={tUi("admin.settings.modal.portfolio_media")}
                           value={settings.r2_bucket_name || ""}
                           onChange={(e) => handleChange("r2_bucket_name", e.target.value)}
                           className="mt-1 text-xs"
                         />
                       </div>
                       <div>
-                        <Label htmlFor="r2-access-key" className="text-xs">Access Key ID</Label>
+                        <Label htmlFor="r2-access-key" className="text-xs">{tUi("admin.settings.modal.access_key_id")}</Label>
                         <Input
                           id="r2-access-key"
-                          placeholder="Access Key ID"
+                          placeholder={tUi("admin.settings.modal.access_key_id")}
                           value={settings.r2_access_key_id || ""}
                           onChange={(e) => handleChange("r2_access_key_id", e.target.value)}
                           className="mt-1 text-xs"
                         />
                       </div>
                       <div>
-                        <Label htmlFor="r2-secret-key" className="text-xs">Secret Access Key</Label>
+                        <Label htmlFor="r2-secret-key" className="text-xs">{tUi("admin.settings.modal.secret_access_key")}</Label>
                         <Input
                           id="r2-secret-key"
                           type="password"
@@ -560,10 +552,10 @@ export function SiteSettingsModal({
                         />
                       </div>
                       <div className="md:col-span-2">
-                        <Label htmlFor="r2-public-domain" className="text-xs">Public Domain / Custom Domain</Label>
+                        <Label htmlFor="r2-public-domain" className="text-xs">{tUi("admin.settings.modal.public_domain_custom_domain")}</Label>
                         <Input
                           id="r2-public-domain"
-                          placeholder="media.yourdomain.com (optional)"
+                          placeholder={tUi("admin.settings.modal.media_yourdomain_com_optional")}
                           value={settings.r2_public_domain || ""}
                           onChange={(e) => handleChange("r2_public_domain", e.target.value)}
                           className="mt-1 text-xs"
@@ -575,8 +567,7 @@ export function SiteSettingsModal({
 
                 {settings.media_provider === "local" && (
                   <p className="text-xs text-muted-text">
-                    Local storage saves uploaded images and videos directly to the server filesystem under <code className="text-text font-mono text-[11px]">/uploads</code> with support for large files up to 10 GB.
-                  </p>
+                    {tUi("admin.settings.modal.local_storage_saves_uploaded_images_and_videos_directl")}<code className="text-text font-mono text-[11px]">{tUi("admin.settings.modal.uploads")}</code> {tUi("admin.settings.modal.with_support_for_large_files_up_to_10_gb")}</p>
                 )}
               </div>
             </div>
@@ -598,7 +589,7 @@ export function SiteSettingsModal({
               <div className="p-5 rounded-2xl bg-surface border border-border space-y-4">
                 <div className="flex items-center gap-2 text-text font-bold text-sm">
                   <Globe className="w-4 h-4 text-primary" aria-hidden="true" />
-                  <span>{tUi("admin.settings.section_languages_default", currentLanguage) || "Supported Languages & Default Locale"}</span>
+                  <span>{tUi("admin.settings.section_languages_default", currentLanguage)}</span>
                 </div>
                 <LanguageManager
                   siteLanguages={settings.site_languages || ""}
@@ -628,22 +619,22 @@ export function SiteSettingsModal({
               <div className="p-5 rounded-2xl bg-surface border border-border space-y-4">
                 <div className="flex items-center gap-2 text-text font-bold text-sm">
                   <Mail className="w-4 h-4 text-primary" aria-hidden="true" />
-                  <span>{tUi("admin.settings.section_contact_copy", currentLanguage) || "Contact Section Header & Narrative"}</span>
+                  <span>{tUi("admin.settings.section_contact_copy", currentLanguage)}</span>
                 </div>
                 <TranslatableInput
-                  label={tUi("admin.settings.contact_title", currentLanguage) || "Contact Section Title"}
+                  label={tUi("admin.settings.contact_title", currentLanguage)}
                   value={settings.contact_title}
                   onChange={(val) => handleChange("contact_title", val)}
                   siteLanguages={siteLangs}
-                  placeholder="e.g. Let's work together."
+                  placeholder={tUi("admin.settings.modal.e_g_let_s_work_together")}
                 />
                 <TranslatableInput
-                  label={tUi("admin.settings.contact_description", currentLanguage) || "Contact Section Description"}
+                  label={tUi("admin.settings.contact_description", currentLanguage)}
                   value={settings.contact_description}
                   onChange={(val) => handleChange("contact_description", val)}
                   siteLanguages={siteLangs}
                   isTextarea
-                  placeholder="e.g. Ready to showcase your property? Get in touch with us to schedule a photoshoot."
+                  placeholder={tUi("admin.settings.modal.e_g_ready_to_showcase_your_property_get_in_touch_with_")}
                 />
               </div>
 
@@ -651,26 +642,26 @@ export function SiteSettingsModal({
               <div className="p-5 rounded-2xl bg-surface border border-border space-y-4">
                 <div className="flex items-center gap-2 text-text font-bold text-sm">
                   <MapPin className="w-4 h-4 text-primary" aria-hidden="true" />
-                  <span>{tUi("admin.settings.section_contact_details", currentLanguage) || "Contact Details & Office Location"}</span>
+                  <span>{tUi("admin.settings.section_contact_details", currentLanguage)}</span>
                 </div>
                 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="contact_email">{tUi("admin.settings.contact_email", currentLanguage) || "Public Contact Email"}</Label>
+                    <Label htmlFor="contact_email">{tUi("admin.settings.contact_email", currentLanguage)}</Label>
                     <div className="relative mt-1.5">
                       <Mail className="w-4 h-4 text-muted-text absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                       <Input
                         id="contact_email"
                         type="email"
                         className="pl-10"
-                        placeholder="contact@spsstudio.com"
+                        placeholder={tUi("admin.settings.modal.contact_spsstudio_com")}
                         value={settings.contact_email || ""}
                         onChange={(e) => handleChange("contact_email", e.target.value)}
                       />
                     </div>
                   </div>
                   <div>
-                    <Label htmlFor="contact_phone">{tUi("admin.settings.contact_phone", currentLanguage) || "Direct Phone / Hotline"}</Label>
+                    <Label htmlFor="contact_phone">{tUi("admin.settings.contact_phone", currentLanguage)}</Label>
                     <div className="relative mt-1.5">
                       <Phone className="w-4 h-4 text-muted-text absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                       <Input
@@ -687,28 +678,28 @@ export function SiteSettingsModal({
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="contact_address">{tUi("admin.settings.contact_address", currentLanguage) || "Studio Physical Address"}</Label>
+                    <Label htmlFor="contact_address">{tUi("admin.settings.contact_address", currentLanguage)}</Label>
                     <div className="relative mt-1.5">
                       <MapPin className="w-4 h-4 text-muted-text absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                       <Input
                         id="contact_address"
                         type="text"
                         className="pl-10"
-                        placeholder="e.g. 1052 Budapest, Váci utca 12."
+                        placeholder={tUi("admin.settings.modal.e_g_1052_budapest_vaci_utca_12")}
                         value={settings.contact_address || ""}
                         onChange={(e) => handleChange("contact_address", e.target.value)}
                       />
                     </div>
                   </div>
                   <div>
-                    <Label htmlFor="contact_hours">{tUi("admin.settings.contact_hours", currentLanguage) || "Business / Office Hours"}</Label>
+                    <Label htmlFor="contact_hours">{tUi("admin.settings.contact_hours", currentLanguage)}</Label>
                     <div className="relative mt-1.5">
                       <Clock className="w-4 h-4 text-muted-text absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                       <Input
                         id="contact_hours"
                         type="text"
                         className="pl-10"
-                        placeholder="e.g. Mon - Fri: 9:00 AM - 6:00 PM"
+                        placeholder={tUi("admin.settings.modal.e_g_mon_fri_9_00_am_6_00_pm")}
                         value={settings.contact_hours || ""}
                         onChange={(e) => handleChange("contact_hours", e.target.value)}
                       />
@@ -717,17 +708,17 @@ export function SiteSettingsModal({
                 </div>
 
                 <div>
-                  <Label htmlFor="contact_map_embed">{tUi("admin.settings.contact_map_embed", currentLanguage) || "Google Maps Embed URL or iframe"}</Label>
+                  <Label htmlFor="contact_map_embed">{tUi("admin.settings.contact_map_embed", currentLanguage)}</Label>
                   <Input
                     id="contact_map_embed"
                     type="text"
                     className="mt-1.5 font-mono text-xs"
-                    placeholder="https://www.google.com/maps/embed?pb=..."
+                    placeholder={tUi("admin.settings.modal.https_www_google_com_maps_embed_pb")}
                     value={settings.contact_map_embed || ""}
                     onChange={(e) => handleChange("contact_map_embed", e.target.value)}
                   />
                   <p className="text-2xs text-muted-text mt-1">
-                    {tUi("admin.settings.contact_map_embed_hint", currentLanguage) || "Paste a Google Maps embed URL (https://www.google.com/maps/embed?...) or standard embed code."}
+                    {tUi("admin.settings.contact_map_embed_hint", currentLanguage)}
                   </p>
                 </div>
               </div>
@@ -736,16 +727,16 @@ export function SiteSettingsModal({
               <div className="p-5 rounded-2xl bg-surface border border-border space-y-4">
                 <div className="flex items-center gap-2 text-text font-bold text-sm">
                   <Sliders className="w-4 h-4 text-primary" aria-hidden="true" />
-                  <span>{tUi("admin.settings.section_form_fields", currentLanguage) || "Inquiry Form Configuration"}</span>
+                  <span>{tUi("admin.settings.section_form_fields", currentLanguage)}</span>
                 </div>
 
                 <div className="space-y-3 divide-y divide-border">
                   {/* Phone Field Toggle & Mandatory Setting */}
                   <div className="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div>
-                      <div className="text-sm font-semibold text-text">{tUi("admin.settings.form_phone_field", currentLanguage) || "Phone Number Field"}</div>
+                      <div className="text-sm font-semibold text-text">{tUi("admin.settings.form_phone_field", currentLanguage)}</div>
                       <div className="text-xs text-muted-text">
-                        {tUi("admin.settings.form_phone_enable", currentLanguage) || "Show Phone Number field on Inquiry Form"}
+                        {tUi("admin.settings.form_phone_enable", currentLanguage)}
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
@@ -765,11 +756,11 @@ export function SiteSettingsModal({
                   {(settings.contact_form_show_phone !== "0" && settings.contact_form_show_phone !== "false") && (
                     <div className="pt-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 pl-4 border-l-2 border-primary/30">
                       <div>
-                        <div className="text-xs font-semibold text-text">{tUi("admin.settings.form_phone_require", currentLanguage) || "Require Phone Number (Mandatory Field)"}</div>
+                        <div className="text-xs font-semibold text-text">{tUi("admin.settings.form_phone_require", currentLanguage)}</div>
                         <div className="text-2xs text-muted-text">
                           {settings.contact_form_require_phone === "1" || settings.contact_form_require_phone === "true" 
-                            ? (tUi("admin.settings.form_phone_required", currentLanguage) || "Required")
-                            : (tUi("admin.settings.form_phone_optional", currentLanguage) || "Optional")}
+                            ? (tUi("admin.settings.form_phone_required", currentLanguage))
+                            : (tUi("admin.settings.form_phone_optional", currentLanguage))}
                         </div>
                       </div>
                       <label className="relative inline-flex items-center cursor-pointer">
@@ -787,9 +778,9 @@ export function SiteSettingsModal({
                   {/* Property Address Toggle */}
                   <div className="pt-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div>
-                      <div className="text-sm font-semibold text-text">{tUi("contact.property_address", currentLanguage) || "Property Address Field"}</div>
+                      <div className="text-sm font-semibold text-text">{tUi("contact.property_address", currentLanguage)}</div>
                       <div className="text-xs text-muted-text">
-                        {tUi("admin.settings.form_address_enable", currentLanguage) || "Show 'Property Address' field"}
+                        {tUi("admin.settings.form_address_enable", currentLanguage)}
                       </div>
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer">
@@ -806,9 +797,9 @@ export function SiteSettingsModal({
                   {/* Availability Date-Time Range Field Toggle & Configuration */}
                   <div className="pt-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div>
-                      <div className="text-sm font-semibold text-text">{tUi("contact.availability_field", currentLanguage) || "Availability Date–Time Range Field"}</div>
+                      <div className="text-sm font-semibold text-text">{tUi("contact.availability_field", currentLanguage)}</div>
                       <div className="text-xs text-muted-text">
-                        {tUi("admin.settings.form_availability_enable", currentLanguage) || "Show the preferred photoshoot date and time range picker"}
+                        {tUi("admin.settings.form_availability_enable", currentLanguage)}
                       </div>
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer">
@@ -827,11 +818,11 @@ export function SiteSettingsModal({
                     <div className="pt-3 pl-4 border-l-2 border-primary/30 space-y-3">
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                         <div>
-                          <div className="text-xs font-semibold text-text">{tUi("admin.settings.form_availability_require", currentLanguage) || "Require Availability (Mandatory Field)"}</div>
+                          <div className="text-xs font-semibold text-text">{tUi("admin.settings.form_availability_require", currentLanguage)}</div>
                           <div className="text-2xs text-muted-text">
                             {settings.contact_form_require_availability === "1" || settings.contact_form_require_availability === "true" 
-                              ? (tUi("admin.settings.form_availability_required", currentLanguage) || "Required")
-                              : (tUi("admin.settings.form_availability_optional", currentLanguage) || "Optional")}
+                              ? (tUi("admin.settings.form_availability_required", currentLanguage))
+                              : (tUi("admin.settings.form_availability_optional", currentLanguage))}
                           </div>
                         </div>
                         <label className="relative inline-flex items-center cursor-pointer">
@@ -847,18 +838,18 @@ export function SiteSettingsModal({
 
                       <div className="space-y-3 pt-1">
                         <TranslatableInput
-                          label={tUi("admin.settings.form_availability_custom_label", currentLanguage) || "Custom Field Label"}
+                          label={tUi("admin.settings.form_availability_custom_label", currentLanguage)}
                           value={settings.contact_form_availability_label || ""}
                           onChange={(val) => handleChange("contact_form_availability_label", val)}
                           siteLanguages={siteLangs}
-                          placeholder="When I would like to schedule the photoshoot"
+                          placeholder={tUi("contact.when_contacted")}
                         />
                         <TranslatableInput
-                          label={tUi("admin.settings.form_availability_custom_help", currentLanguage) || "Custom Help Text"}
+                          label={tUi("admin.settings.form_availability_custom_help", currentLanguage)}
                           value={settings.contact_form_availability_help_text || ""}
                           onChange={(val) => handleChange("contact_form_availability_help_text", val)}
                           siteLanguages={siteLangs}
-                          placeholder="Please specify your preferred date and time window for the photoshoot."
+                          placeholder={tUi("contact.availability_help_default")}
                         />
                       </div>
                     </div>
@@ -877,27 +868,27 @@ export function SiteSettingsModal({
               <div className="p-5 rounded-2xl bg-surface border border-border space-y-4">
                 <div className="flex items-center gap-2 text-text font-bold text-sm">
                   <FileText className="w-4 h-4 text-primary" aria-hidden="true" />
-                  <span>{tUi("admin.settings.section_hero_copy", currentLanguage) || "Hero Section Copy"}</span>
+                  <span>{tUi("admin.settings.section_hero_copy", currentLanguage)}</span>
                 </div>
                 <TranslatableInput
-                  label={tUi("admin.settings.hero_headline", currentLanguage) || "Hero Headline"}
+                  label={tUi("admin.settings.hero_headline", currentLanguage)}
                   value={settings.hero_headline}
                   onChange={(val) => handleChange("hero_headline", val)}
                   siteLanguages={siteLangs}
-                  placeholder="e.g. Elevating Real Estate Presentations"
+                  placeholder={tUi("admin.settings.modal.e_g_elevating_real_estate_presentations")}
                 />
                 <TranslatableInput
-                  label={tUi("admin.settings.hero_subheadline", currentLanguage) || "Hero Subheadline"}
+                  label={tUi("admin.settings.hero_subheadline", currentLanguage)}
                   value={settings.hero_subheadline}
                   onChange={(val) => handleChange("hero_subheadline", val)}
                   siteLanguages={siteLangs}
                   isTextarea
-                  placeholder="e.g. Delivering high-impact visual media for luxury properties."
+                  placeholder={tUi("admin.settings.modal.e_g_delivering_high_impact_visual_media_for_luxury_pro")}
                 />
                 <div className="flex items-center justify-between gap-4 rounded-xl border border-border bg-background/50 px-4 py-3">
                   <div>
-                    <Label className="text-sm font-semibold text-text">{tUi("admin.settings.hero_production_card", currentLanguage) || "Produkciós területek kártya"}</Label>
-                    <p className="mt-1 text-xs text-muted-text">{tUi("admin.settings.hero_production_card_help", currentLanguage) || "A Hero jobb oldalán látható Fotózás, Filmes videó és Drón kártya megjelenítése."}</p>
+                    <Label className="text-sm font-semibold text-text">{tUi("admin.settings.hero_production_card", currentLanguage)}</Label>
+                    <p className="mt-1 text-xs text-muted-text">{tUi("admin.settings.hero_production_card_help", currentLanguage)}</p>
                   </div>
                   <button
                     type="button"
@@ -915,25 +906,25 @@ export function SiteSettingsModal({
               <div className="p-5 rounded-2xl bg-surface border border-border space-y-4">
                 <div className="flex items-center gap-2 text-text font-bold text-sm">
                   <Sparkles className="w-4 h-4 text-primary" aria-hidden="true" />
-                  <span>{tUi("admin.settings.section_vision_copy", currentLanguage) || "Our Vision Section"}</span>
+                  <span>{tUi("admin.settings.section_vision_copy", currentLanguage)}</span>
                 </div>
                 <p className="text-xs text-muted-text leading-relaxed">
-                  {tUi("admin.settings.section_vision_description", currentLanguage) || "Edit the centered headline and supporting statement displayed between the hero and the studio introduction."}
+                  {tUi("admin.settings.section_vision_description", currentLanguage)}
                 </p>
                 <TranslatableInput
-                  label={tUi("admin.settings.vision_headline", currentLanguage) || "Vision Headline"}
+                  label={tUi("admin.settings.vision_headline", currentLanguage)}
                   value={settings.vision_headline || ""}
                   onChange={(val) => handleChange("vision_headline", val)}
                   siteLanguages={siteLangs}
-                  placeholder="e.g. We believe every space deserves to be seen at its best."
+                  placeholder={tUi("admin.settings.modal.e_g_we_believe_every_space_deserves_to_be_seen_at_its_")}
                 />
                 <TranslatableInput
-                  label={tUi("admin.settings.vision_statement", currentLanguage) || "Vision Statement"}
+                  label={tUi("admin.settings.vision_statement", currentLanguage)}
                   value={settings.vision_statement || ""}
                   onChange={(val) => handleChange("vision_statement", val)}
                   siteLanguages={siteLangs}
                   isTextarea
-                  placeholder="Describe the studio's visual philosophy and the value it creates for clients."
+                  placeholder={tUi("admin.settings.modal.describe_the_studio_s_visual_philosophy_and_the_value_")}
                 />
               </div>
 
@@ -941,15 +932,15 @@ export function SiteSettingsModal({
               <div className="p-5 rounded-2xl bg-surface border border-border space-y-4">
                 <div className="flex items-center gap-2 text-text font-bold text-sm">
                   <FileText className="w-4 h-4 text-primary" aria-hidden="true" />
-                  <span>{tUi("admin.settings.section_about_narrative", currentLanguage) || "About Studio Narrative"}</span>
+                  <span>{tUi("admin.settings.section_about_narrative", currentLanguage)}</span>
                 </div>
                 <TranslatableInput
-                  label={tUi("admin.settings.about_bio_label", currentLanguage) || "About Us Bio / Overview"}
+                  label={tUi("admin.settings.about_bio_label", currentLanguage)}
                   value={settings.about_text}
                   onChange={(val) => handleChange("about_text", val)}
                   siteLanguages={siteLangs}
                   isTextarea
-                  placeholder="Describe your studio history, visual expertise, and high-standard photography gear..."
+                  placeholder={tUi("admin.settings.modal.describe_your_studio_history_visual_expertise_and_high")}
                 />
               </div>
             </div>
@@ -961,7 +952,7 @@ export function SiteSettingsModal({
               <div className="p-5 rounded-2xl bg-surface border border-border space-y-4">
                 <div className="flex items-center gap-2 text-text font-bold text-sm">
                   <Search className="w-4 h-4 text-primary" aria-hidden="true" />
-                  <span>{tUi("admin.settings.section_seo_metadata", currentLanguage) || "Search Engine Optimization & Metadata"}</span>
+                  <span>{tUi("admin.settings.section_seo_metadata", currentLanguage)}</span>
                 </div>
                 <SeoSettingsManager
                   settings={settings}
@@ -976,11 +967,11 @@ export function SiteSettingsModal({
           {activeTab === "email" && (
             <div className="space-y-6">
               <div className="p-5 rounded-2xl bg-surface border border-border space-y-3">
-                <div className="flex items-center gap-2 text-text font-bold text-sm"><ExternalLink className="w-4 h-4 text-primary" /><span>Google review automation</span></div>
+                <div className="flex items-center gap-2 text-text font-bold text-sm"><ExternalLink className="w-4 h-4 text-primary" /><span>{tUi("admin.settings.modal.google_review_automation")}</span></div>
                 <div>
-                  <Label htmlFor="google-review-url">Google review destination URL</Label>
-                  <Input id="google-review-url" type="url" className="mt-1.5 font-mono text-xs" placeholder="https://g.page/r/.../review" value={settings.google_review_url || ""} onChange={(e) => handleChange("google_review_url", e.target.value)} />
-                  <p className="text-xs text-muted-text mt-1.5">Clients reach this address through a tracked link. Their first click automatically stops all remaining review reminders.</p>
+                  <Label htmlFor="google-review-url">{tUi("admin.settings.modal.google_review_destination_url")}</Label>
+                  <Input id="google-review-url" type="url" className="mt-1.5 font-mono text-xs" placeholder={tUi("admin.settings.modal.https_g_page_r_review")} value={settings.google_review_url || ""} onChange={(e) => handleChange("google_review_url", e.target.value)} />
+                  <p className="text-xs text-muted-text mt-1.5">{tUi("admin.settings.modal.clients_reach_this_address_through_a_tracked_link_thei")}</p>
                 </div>
               </div>
               <EmailSettingsManager settings={settings} onChange={(key, val) => handleChange(key, val)} />
@@ -997,7 +988,7 @@ export function SiteSettingsModal({
             disabled={saving}
             className="w-full sm:w-auto"
           >
-            {tUi("common.cancel", currentLanguage) || "Cancel"}
+            {tUi("common.cancel", currentLanguage)}
           </Button>
 
           <div className="flex items-center gap-3 w-full sm:w-auto">
@@ -1011,12 +1002,12 @@ export function SiteSettingsModal({
               {saving ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
-                  <span>{tUi("admin.settings.saving_settings", currentLanguage) || "Saving Settings..."}</span>
+                  <span>{tUi("admin.settings.saving_settings", currentLanguage)}</span>
                 </>
               ) : (
                 <>
                   <Check className="w-4 h-4" aria-hidden="true" />
-                  <span>{tUi("admin.settings.save_all", currentLanguage) || "Save All Settings"}</span>
+                  <span>{tUi("admin.settings.save_all", currentLanguage)}</span>
                 </>
               )}
             </Button>

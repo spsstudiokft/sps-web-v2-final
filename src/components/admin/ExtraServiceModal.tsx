@@ -40,47 +40,47 @@ interface ExtraServiceModalProps {
 }
 
 const AVAILABLE_ICONS = [
-  { id: "sparkles", label: "Sparkles", icon: Sparkles },
-  { id: "camera", label: "Camera", icon: Camera },
-  { id: "video", label: "Video", icon: Video },
-  { id: "moon", label: "Twilight Moon", icon: Moon },
-  { id: "plane", label: "Drone / Aerial", icon: Plane },
-  { id: "ruler", label: "Floor Plan / Ruler", icon: Ruler },
-  { id: "armchair", label: "Staging / Interior", icon: Armchair },
-  { id: "zap", label: "Express / Speed", icon: Zap },
-  { id: "tag", label: "Tag / Promo", icon: Tag },
-  { id: "layers", label: "Layers / Package", icon: Layers }
+  { id: "sparkles", labelKey: "admin.pricing.extra_modal.icon.sparkles", icon: Sparkles },
+  { id: "camera", labelKey: "admin.pricing.extra_modal.icon.camera", icon: Camera },
+  { id: "video", labelKey: "admin.pricing.extra_modal.icon.video", icon: Video },
+  { id: "moon", labelKey: "admin.pricing.extra_modal.icon.twilight", icon: Moon },
+  { id: "plane", labelKey: "admin.pricing.extra_modal.icon.aerial", icon: Plane },
+  { id: "ruler", labelKey: "admin.pricing.extra_modal.icon.floor_plan", icon: Ruler },
+  { id: "armchair", labelKey: "admin.pricing.extra_modal.icon.staging", icon: Armchair },
+  { id: "zap", labelKey: "admin.pricing.extra_modal.icon.express", icon: Zap },
+  { id: "tag", labelKey: "admin.pricing.extra_modal.icon.promo", icon: Tag },
+  { id: "layers", labelKey: "admin.pricing.extra_modal.icon.package", icon: Layers }
 ];
 
 const PRESET_CATEGORIES = [
-  "Photography",
-  "Video",
-  "Aerial & Drone",
-  "Digital & 3D",
-  "Planning & Floorplans",
-  "Expedited Delivery",
-  "General Add-on"
+  { value: "Photography", labelKey: "admin.pricing.extra_modal.category.photography" },
+  { value: "Video", labelKey: "admin.pricing.extra_modal.category.video" },
+  { value: "Aerial & Drone", labelKey: "admin.pricing.extra_modal.category.aerial" },
+  { value: "Digital & 3D", labelKey: "admin.pricing.extra_modal.category.digital" },
+  { value: "Planning & Floorplans", labelKey: "admin.pricing.extra_modal.category.floorplans" },
+  { value: "Expedited Delivery", labelKey: "admin.pricing.extra_modal.category.expedited" },
+  { value: "General Add-on", labelKey: "admin.pricing.extra_modal.category.general" }
 ];
 
 const PRESET_UNITS = [
-  { id: "item", label: "per item / order" },
-  { id: "photo", label: "per photo" },
-  { id: "shoot", label: "per photoshoot" },
-  { id: "room", label: "per room" },
-  { id: "floor", label: "per floor" },
-  { id: "pack", label: "per pack" },
-  { id: "reel", label: "per video / reel" },
-  { id: "minute", label: "per minute" },
-  { id: "property", label: "per property" },
-  { id: "month", label: "per month (recurring)" }
+  { id: "item", labelKey: "admin.pricing.extra_modal.unit.item" },
+  { id: "photo", labelKey: "admin.pricing.extra_modal.unit.photo" },
+  { id: "shoot", labelKey: "admin.pricing.extra_modal.unit.shoot" },
+  { id: "room", labelKey: "admin.pricing.extra_modal.unit.room" },
+  { id: "floor", labelKey: "admin.pricing.extra_modal.unit.floor" },
+  { id: "pack", labelKey: "admin.pricing.extra_modal.unit.pack" },
+  { id: "reel", labelKey: "admin.pricing.extra_modal.unit.reel" },
+  { id: "minute", labelKey: "admin.pricing.extra_modal.unit.minute" },
+  { id: "property", labelKey: "admin.pricing.extra_modal.unit.property" },
+  { id: "month", labelKey: "admin.pricing.extra_modal.unit.month" }
 ];
 
 const AVAILABLE_ROLES = [
-  { id: "all", label: "All Customers & Visitors" },
-  { id: "client", label: "Standard Registered Clients" },
-  { id: "agent", label: "Real Estate Agents / Realtors" },
-  { id: "broker", label: "Brokerages & Agencies" },
-  { id: "commercial", label: "Commercial Accounts" }
+  { id: "all", labelKey: "admin.pricing.extra_modal.role.all" },
+  { id: "client", labelKey: "admin.pricing.extra_modal.role.client" },
+  { id: "agent", labelKey: "admin.pricing.extra_modal.role.agent" },
+  { id: "broker", labelKey: "admin.pricing.extra_modal.role.broker" },
+  { id: "commercial", labelKey: "admin.pricing.extra_modal.role.commercial" }
 ];
 
 export function ExtraServiceModal({
@@ -250,12 +250,12 @@ export function ExtraServiceModal({
     setErrorMessage("");
 
     if (!formData.title || (typeof formData.title === "string" && !formData.title.trim())) {
-      setErrorMessage(tUi("admin.extra_services.error_title") || "Title is required");
+      setErrorMessage(tUi("admin.extra_services.error_title"));
       return;
     }
 
     if (formData.price === undefined || formData.price === null || isNaN(Number(formData.price)) || Number(formData.price) < 0) {
-      setErrorMessage(tUi("admin.extra_services.error_price") || "Valid price is required (must be 0 or positive)");
+      setErrorMessage(tUi("admin.extra_services.error_price"));
       return;
     }
 
@@ -274,7 +274,7 @@ export function ExtraServiceModal({
       });
       onClose();
     } catch (err: any) {
-      setErrorMessage(err.message || "Failed to save extra service");
+      setErrorMessage(err.message || tUi("admin.pricing.extra_modal.error_save"));
     } finally {
       setIsSubmitting(false);
     }
@@ -303,11 +303,11 @@ export function ExtraServiceModal({
             <div>
               <h2 className="text-xl font-bold text-text">
                 {formData.id
-                  ? tUi("admin.extra_services.edit_title") || "Edit Add-on Service"
-                  : tUi("admin.extra_services.create_title") || "Create New Add-on Service"}
+                  ? tUi("admin.extra_services.edit_title")
+                  : tUi("admin.extra_services.create_title")}
               </h2>
               <p className="text-xs text-muted-text">
-                {tUi("admin.extra_services.modal_subtitle") || "Configure a la carte extras, pricing model, plan links, and site visibility"}
+                {tUi("admin.extra_services.modal_subtitle")}
               </p>
             </div>
           </div>
@@ -331,7 +331,7 @@ export function ExtraServiceModal({
         <form onSubmit={handleSubmit} className="p-6 space-y-5 max-h-[75vh] overflow-y-auto">
           {/* Translatable Title */}
           <TranslatableInput
-            label={tUi("admin.extra_services.field_title") || "Add-on Title"}
+            label={tUi("admin.extra_services.field_title")}
             value={formData.title}
             onChange={(val) => setFormData((prev) => ({ ...prev, title: val }))}
             siteLanguages={siteLanguages}
@@ -339,7 +339,7 @@ export function ExtraServiceModal({
 
           {/* Translatable Subtitle */}
           <TranslatableInput
-            label={tUi("admin.extra_services.field_subtitle") || "Short Subtitle / Key Benefit"}
+            label={tUi("admin.extra_services.field_subtitle")}
             value={formData.subtitle || ""}
             onChange={(val) => setFormData((prev) => ({ ...prev, subtitle: val }))}
             siteLanguages={siteLanguages}
@@ -348,26 +348,26 @@ export function ExtraServiceModal({
           {/* Category & Icon */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label className="mb-1.5 block">{tUi("admin.extra_services.field_category") || "Category"}</Label>
+              <Label className="mb-1.5 block">{tUi("admin.extra_services.field_category")}</Label>
               <div className="space-y-2">
                 <Input
                   value={formData.category || ""}
                   onChange={(e) => setFormData((prev) => ({ ...prev, category: e.target.value }))}
-                  placeholder="e.g. Photography, Aerial, Video"
+                  placeholder={tUi("admin.pricing.extra_modal.category_placeholder")}
                 />
                 <div className="flex flex-wrap gap-1.5">
                   {PRESET_CATEGORIES.map((cat) => (
                     <button
-                      key={cat}
+                      key={cat.value}
                       type="button"
-                      onClick={() => setFormData((prev) => ({ ...prev, category: cat }))}
+                      onClick={() => setFormData((prev) => ({ ...prev, category: cat.value }))}
                       className={`text-[11px] px-2 py-0.5 rounded-md border transition-colors ${
-                        formData.category === cat
+                        formData.category === cat.value
                           ? "bg-primary text-background border-primary"
                           : "bg-surface text-muted-text border-border hover:text-text"
                       }`}
                     >
-                      {cat}
+                      {tUi(cat.labelKey)}
                     </button>
                   ))}
                 </div>
@@ -375,13 +375,13 @@ export function ExtraServiceModal({
             </div>
 
             <div>
-              <Label className="mb-1.5 block">{tUi("admin.extra_services.field_icon") || "Icon Badge"}</Label>
+              <Label className="mb-1.5 block">{tUi("admin.extra_services.field_icon")}</Label>
               <div className="grid grid-cols-5 gap-1.5 p-2 rounded-xl bg-surface/50 border border-border">
-                {AVAILABLE_ICONS.map(({ id, label, icon: IconComp }) => (
+                {AVAILABLE_ICONS.map(({ id, labelKey, icon: IconComp }) => (
                   <button
                     key={id}
                     type="button"
-                    title={label}
+                    title={tUi(labelKey)}
                     onClick={() => setFormData((prev) => ({ ...prev, icon: id }))}
                     className={`flex items-center justify-center p-2 rounded-lg transition-all ${
                       formData.icon === id
@@ -400,14 +400,14 @@ export function ExtraServiceModal({
           <div className="p-4 rounded-2xl bg-surface/40 border border-border/70 space-y-4">
             <h3 className="text-sm font-semibold text-text flex items-center gap-2">
               <DollarSign className="w-4 h-4 text-primary" />
-              {tUi("admin.extra_services.pricing_header") || "Pricing Model & Amount"}
+              {tUi("admin.extra_services.pricing_header")}
             </h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {/* Price Type Selector */}
               <div>
                 <Label className="text-xs text-muted-text mb-1.5 block">
-                  {tUi("admin.extra_services.price_type") || "Price Calculation Type"}
+                  {tUi("admin.extra_services.price_type")}
                 </Label>
                 <div className="grid grid-cols-2 gap-2">
                   <button
@@ -420,7 +420,7 @@ export function ExtraServiceModal({
                     }`}
                   >
                     <DollarSign className="w-3.5 h-3.5" />
-                    Fixed Amount
+                    {tUi("admin.pricing.extra_modal.fixed_amount")}
                   </button>
                   <button
                     type="button"
@@ -432,7 +432,7 @@ export function ExtraServiceModal({
                     }`}
                   >
                     <Percent className="w-3.5 h-3.5" />
-                    % of Plan / Order
+                    {tUi("admin.pricing.extra_modal.percentage_of_plan")}
                   </button>
                 </div>
               </div>
@@ -440,7 +440,7 @@ export function ExtraServiceModal({
               {/* Billing Frequency Selector */}
               <div>
                 <Label className="text-xs text-muted-text mb-1.5 block">
-                  {tUi("admin.extra_services.billing_type") || "Billing Frequency"}
+                  {tUi("admin.extra_services.billing_type")}
                 </Label>
                 <div className="grid grid-cols-2 gap-2">
                   <button
@@ -453,7 +453,7 @@ export function ExtraServiceModal({
                     }`}
                   >
                     <Clock className="w-3.5 h-3.5" />
-                    One-time
+                    {tUi("admin.pricing.addons.billing_one_time")}
                   </button>
                   <button
                     type="button"
@@ -465,7 +465,7 @@ export function ExtraServiceModal({
                     }`}
                   >
                     <Layers className="w-3.5 h-3.5" />
-                    Recurring / Retainer
+                    {tUi("admin.pricing.extra_modal.recurring")}
                   </button>
                 </div>
               </div>
@@ -476,8 +476,8 @@ export function ExtraServiceModal({
               <div>
                 <Label className="mb-1.5 block text-xs">
                   {formData.price_type === "percentage"
-                    ? "Percentage (% rate)"
-                    : tUi("admin.extra_services.field_price") || "Base Price"}
+                    ? tUi("admin.pricing.extra_modal.percentage_rate")
+                    : tUi("admin.extra_services.field_price")}
                 </Label>
                 <div className="relative">
                   <Input
@@ -496,7 +496,7 @@ export function ExtraServiceModal({
 
               <div>
                 <Label className="mb-1.5 block text-xs">
-                  {tUi("admin.extra_services.field_original_price") || "Original Price (Anchor)"}
+                  {tUi("admin.extra_services.field_original_price")}
                 </Label>
                 <Input
                   type="number"
@@ -504,12 +504,12 @@ export function ExtraServiceModal({
                   step="any"
                   value={formData.original_price ?? ""}
                   onChange={(e) => setFormData((prev) => ({ ...prev, original_price: e.target.value === "" ? null : Number(e.target.value) }))}
-                  placeholder="Optional discount strike"
+                  placeholder={tUi("admin.pricing.extra_modal.original_price_placeholder")}
                 />
               </div>
 
               <div>
-                <Label className="mb-1.5 block text-xs">{tUi("admin.extra_services.field_currency") || "Currency"}</Label>
+                <Label className="mb-1.5 block text-xs">{tUi("admin.extra_services.field_currency")}</Label>
                 <select
                   value={formData.currency || "USD"}
                   onChange={(e) => setFormData((prev) => ({ ...prev, currency: e.target.value }))}
@@ -531,7 +531,7 @@ export function ExtraServiceModal({
           <div className="p-4 rounded-2xl bg-surface/40 border border-border/70 space-y-3">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label className="mb-1.5 block">{tUi("admin.extra_services.field_unit") || "Pricing Unit / Tag"}</Label>
+                <Label className="mb-1.5 block">{tUi("admin.extra_services.field_unit")}</Label>
                 <select
                   value={formData.unit || "item"}
                   onChange={(e) => setFormData((prev) => ({ ...prev, unit: e.target.value }))}
@@ -539,14 +539,14 @@ export function ExtraServiceModal({
                 >
                   {PRESET_UNITS.map((u) => (
                     <option key={u.id} value={u.id}>
-                      {u.label}
+                      {tUi(u.labelKey)}
                     </option>
                   ))}
                 </select>
               </div>
 
               <div>
-                <Label className="mb-1.5 block">{tUi("admin.extra_services.field_quantity_allowed") || "Quantity Selection"}</Label>
+                <Label className="mb-1.5 block">{tUi("admin.extra_services.field_quantity_allowed")}</Label>
                 <div className="flex items-center gap-3 pt-1">
                   <label className="inline-flex items-center gap-2 cursor-pointer">
                     <input
@@ -556,7 +556,7 @@ export function ExtraServiceModal({
                       className="w-4 h-4 rounded border-border text-primary focus:ring-primary"
                     />
                     <span className="text-sm font-medium text-text">
-                      {tUi("admin.extra_services.allow_quantity_label") || "Clients can select quantity (e.g. 1-10 items)"}
+                      {tUi("admin.extra_services.allow_quantity_label")}
                     </span>
                   </label>
                 </div>
@@ -567,7 +567,7 @@ export function ExtraServiceModal({
               <div className="grid grid-cols-2 gap-4 pt-2 border-t border-border/40">
                 <div>
                   <Label className="text-xs text-muted-text mb-1 block">
-                    {tUi("admin.extra_services.min_qty") || "Min Quantity"}
+                    {tUi("admin.extra_services.min_qty")}
                   </Label>
                   <Input
                     type="number"
@@ -578,7 +578,7 @@ export function ExtraServiceModal({
                 </div>
                 <div>
                   <Label className="text-xs text-muted-text mb-1 block">
-                    {tUi("admin.extra_services.max_qty") || "Max Quantity"}
+                    {tUi("admin.extra_services.max_qty")}
                   </Label>
                   <Input
                     type="number"
@@ -595,7 +595,7 @@ export function ExtraServiceModal({
           <div className="p-4 rounded-2xl bg-surface/40 border border-border/70 space-y-3">
             <h3 className="text-sm font-semibold text-text flex items-center gap-2">
               <Filter className="w-4 h-4 text-primary" />
-              {tUi("admin.extra_services.restrictions_header") || "Availability & Plan Restrictions"}
+              {tUi("admin.extra_services.restrictions_header")}
             </h3>
 
             {/* Plan restriction toggle */}
@@ -614,17 +614,17 @@ export function ExtraServiceModal({
                   className="w-4 h-4 rounded border-border text-primary focus:ring-primary"
                 />
                 <span className="text-sm font-medium text-text">
-                  Restrict to specific Pricing Plans / Bundles (Optional)
+                  {tUi("admin.pricing.extra_modal.restrict_plans")}
                 </span>
               </label>
 
               {restrictPlansToggle && (
                 <div className="p-3 rounded-xl bg-background border border-border/80 space-y-2 max-h-48 overflow-y-auto">
                   <p className="text-xs text-muted-text">
-                    Select the packages where this add-on should be offered:
+                    {tUi("admin.pricing.extra_modal.select_packages")}
                   </p>
                   {availablePlans.length === 0 ? (
-                    <p className="text-xs text-muted-text italic">No pricing plans found.</p>
+                    <p className="text-xs text-muted-text italic">{tUi("admin.pricing.extra_modal.no_plans")}</p>
                   ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       {availablePlans.map((plan) => {
@@ -658,7 +658,7 @@ export function ExtraServiceModal({
             {/* User role restrictions */}
             <div className="pt-2 border-t border-border/40">
               <Label className="text-xs text-muted-text mb-1.5 block">
-                Customer Role Access:
+                {tUi("admin.pricing.extra_modal.role_access")}
               </Label>
               <div className="flex flex-wrap gap-2">
                 {AVAILABLE_ROLES.map((role) => {
@@ -674,7 +674,7 @@ export function ExtraServiceModal({
                           : "bg-background text-muted-text border-border hover:text-text"
                       }`}
                     >
-                      {role.label}
+                      {tUi(role.labelKey)}
                     </button>
                   );
                 })}
@@ -684,12 +684,12 @@ export function ExtraServiceModal({
 
           {/* Description */}
           <div>
-            <Label className="mb-1.5 block">{tUi("admin.extra_services.field_description") || "Detailed Description"}</Label>
+            <Label className="mb-1.5 block">{tUi("admin.extra_services.field_description")}</Label>
             <Textarea
               value={formData.description || ""}
               onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
               rows={2}
-              placeholder="Explain what is included in this add-on and when clients should choose it..."
+              placeholder={tUi("admin.pricing.extra_modal.description_placeholder")}
             />
           </div>
 
@@ -704,10 +704,10 @@ export function ExtraServiceModal({
               />
               <div>
                 <span className="text-xs font-semibold text-text block">
-                  {tUi("admin.extra_services.featured_toggle") || "Featured Badge"}
+                  {tUi("admin.extra_services.featured_toggle")}
                 </span>
                 <span className="text-[11px] text-muted-text">
-                  Highlight on card
+                  {tUi("admin.pricing.extra_modal.featured_hint")}
                 </span>
               </div>
             </label>
@@ -721,10 +721,10 @@ export function ExtraServiceModal({
               />
               <div>
                 <span className="text-xs font-semibold text-text block">
-                  {tUi("admin.extra_services.enabled_toggle") || "Active / Enabled"}
+                  {tUi("admin.extra_services.enabled_toggle")}
                 </span>
                 <span className="text-[11px] text-muted-text">
-                  Ready for orders
+                  {tUi("admin.pricing.extra_modal.enabled_hint")}
                 </span>
               </div>
             </label>
@@ -738,10 +738,10 @@ export function ExtraServiceModal({
               />
               <div>
                 <span className="text-xs font-semibold text-text block">
-                  Show on Website
+                  {tUi("admin.pricing.extra_modal.show_website")}
                 </span>
                 <span className="text-[11px] text-muted-text">
-                  Public pricing table
+                  {tUi("admin.pricing.extra_modal.public_pricing_hint")}
                 </span>
               </div>
             </label>
@@ -750,14 +750,14 @@ export function ExtraServiceModal({
           {/* Modal Actions */}
           <div className="flex items-center justify-end gap-3 pt-4 border-t border-border">
             <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
-              {tUi("common.cancel") || "Cancel"}
+              {tUi("common.cancel")}
             </Button>
             <Button type="submit" disabled={isSubmitting}>
               {isSubmitting
-                ? tUi("common.saving") || "Saving..."
+                ? tUi("common.saving")
                 : formData.id
-                ? tUi("common.save_changes") || "Save Changes"
-                : tUi("admin.extra_services.create_btn") || "Create Add-on"}
+                ? tUi("common.save_changes")
+                : tUi("admin.extra_services.create_btn")}
             </Button>
           </div>
         </form>

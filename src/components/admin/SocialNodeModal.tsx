@@ -28,6 +28,10 @@ import {
   ChevronRight
 } from "lucide-react";
 
+const COLOR_PRESET_KEYS = [
+  "instagram", "facebook", "youtube", "linkedin", "whatsapp", "telegram", "vimeo", "pinterest"
+] as const;
+
 interface SocialNodeModalProps {
   isOpen: boolean;
   node: Partial<SocialTreeNode> | null;
@@ -97,7 +101,9 @@ export function SocialNodeModal({
         platform: initPlatform,
         url: "",
         icon: defaultType === "group" ? "share-2" : preset.icon,
-        badge: defaultType === "group" ? "" : (preset.defaultBadge || ""),
+        badge: defaultType === "group" || !preset.defaultBadge
+          ? ""
+          : tUi(`admin.social.platform_badge.${preset.id}`, currentLanguage),
         color: defaultType === "group" ? "#3B82F6" : preset.color,
         is_enabled: 1,
         is_expanded_default: 1,
@@ -111,13 +117,17 @@ export function SocialNodeModal({
 
   const handlePlatformSelect = (platId: string) => {
     const preset = getPlatformPreset(platId);
+    const translatedName = tUi(`admin.social.platform.${preset.id}`, currentLanguage);
+    const translatedBadge = preset.defaultBadge
+      ? tUi(`admin.social.platform_badge.${preset.id}`, currentLanguage)
+      : "";
     setFormData(prev => ({
       ...prev,
       platform: platId,
       icon: preset.icon,
       color: preset.color,
-      badge: prev.badge ? prev.badge : (preset.defaultBadge || ""),
-      title: prev.title || preset.name,
+      badge: prev.badge ? prev.badge : translatedBadge,
+      title: prev.title || translatedName,
       url: prev.url ? prev.url : (platId === "custom" ? "" : preset.urlPlaceholder)
     }));
   };
@@ -140,7 +150,9 @@ export function SocialNodeModal({
         platform: preset.id,
         icon: preset.icon,
         color: preset.color,
-        badge: prev.badge || preset.defaultBadge || ""
+        badge: prev.badge || (preset.defaultBadge
+          ? tUi(`admin.social.platform_badge.${preset.id}`, currentLanguage)
+          : "")
       }));
     }
   };
@@ -149,19 +161,19 @@ export function SocialNodeModal({
     e.preventDefault();
     const trimmedTitle = typeof formData.title === "string" ? formData.title.trim() : "";
     if (!trimmedTitle) {
-      setErrorMessage(tUi("admin.social.error_enter_title", currentLanguage) || "Please enter a title.");
+      setErrorMessage(tUi("admin.social.error_enter_title", currentLanguage));
       return;
     }
 
     let finalUrl = typeof formData.url === "string" ? formData.url.trim() : "";
     if (formData.type === "link") {
       if (!finalUrl) {
-        setErrorMessage(tUi("admin.social.error_enter_url", currentLanguage) || "Please enter a destination URL for this social link.");
+        setErrorMessage(tUi("admin.social.error_enter_url", currentLanguage));
         return;
       }
       const isSpecialScheme = /^(mailto:|tel:|wa\.me|t\.me|https?:\/\/|\/\/)/i.test(finalUrl);
       if (!isSpecialScheme && !finalUrl.includes(".")) {
-        setErrorMessage(tUi("admin.social.error_invalid_url", currentLanguage) || "Please enter a valid URL (e.g. https://... or mailto:)");
+        setErrorMessage(tUi("admin.social.error_invalid_url", currentLanguage));
         return;
       }
       // If user typed e.g. "instagram.com/username", auto-prefix https://
@@ -184,7 +196,7 @@ export function SocialNodeModal({
       });
       onClose();
     } catch (err: any) {
-      setErrorMessage(err.message || tUi("admin.social.error_save_failed", currentLanguage) || "Failed to save node. Please try again.");
+      setErrorMessage(err.message || tUi("admin.social.error_save_failed", currentLanguage));
     } finally {
       setIsSubmitting(false);
     }
@@ -231,7 +243,7 @@ export function SocialNodeModal({
           <button
             onClick={onClose}
             className="shrink-0 p-2 text-muted-text hover:text-text rounded-xl hover:bg-surface transition-colors"
-            aria-label="Close modal"
+            aria-label={tUi("admin.social.modal_close", currentLanguage)}
           >
             <X className="w-5 h-5" />
           </button>
@@ -332,7 +344,7 @@ export function SocialNodeModal({
                       }`}
                     >
                       <SocialIconRenderer platform={plat.id} className="w-3.5 h-3.5" color={isSelected ? "currentColor" : plat.color} />
-                      <span>{plat.name}</span>
+                      <span>{tUi(`admin.social.platform.${plat.id}`, currentLanguage)}</span>
                     </button>
                   );
                 })}
@@ -361,7 +373,7 @@ export function SocialNodeModal({
                       }`}
                     >
                       <SocialIconRenderer type="group" icon={opt.id} className="w-4 h-4" />
-                      <span className="truncate w-full text-center">{opt.label}</span>
+                      <span className="truncate w-full text-center">{tUi(`admin.social.group_icon.${opt.id}`, currentLanguage)}</span>
                     </button>
                   );
                 })}
@@ -379,7 +391,9 @@ export function SocialNodeModal({
                 id="title"
                 value={formData.title || ""}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                placeholder={formData.type === "group" ? "e.g. Main Socials" : "e.g. Instagram"}
+                placeholder={formData.type === "group"
+                  ? tUi("admin.social.group_title_placeholder", currentLanguage)
+                  : tUi("admin.social.link_title_placeholder", currentLanguage)}
                 required
                 className="h-11 rounded-2xl"
               />
@@ -393,7 +407,9 @@ export function SocialNodeModal({
                 id="subtitle"
                 value={formData.subtitle || ""}
                 onChange={(e) => setFormData({ ...formData, subtitle: e.target.value })}
-                placeholder={formData.type === "group" ? "e.g. Official channels" : "e.g. @spsstudio"}
+                placeholder={formData.type === "group"
+                  ? tUi("admin.social.group_subtitle_placeholder", currentLanguage)
+                  : tUi("admin.social.link_subtitle_placeholder", currentLanguage)}
                 className="h-11 rounded-2xl"
               />
             </div>
@@ -410,7 +426,7 @@ export function SocialNodeModal({
                   id="url"
                   value={formData.url || ""}
                   onChange={(e) => setFormData({ ...formData, url: e.target.value })}
-                  placeholder="https://instagram.com/spsstudio or wa.me/..."
+                  placeholder={tUi("admin.social.url_placeholder", currentLanguage)}
                   className="h-11 rounded-2xl pl-10"
                 />
                 <ExternalLink className="w-4 h-4 text-muted-text absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -434,17 +450,17 @@ export function SocialNodeModal({
                 <Input
                   value={formData.color || ""}
                   onChange={(e) => setFormData({ ...formData, color: e.target.value })}
-                  placeholder="#E4405F"
+                  placeholder={tUi("admin.social.color_hex_placeholder", currentLanguage)}
                   className="h-10 rounded-xl font-mono text-xs uppercase"
                 />
               </div>
               {/* Quick Swatches */}
               <div className="flex flex-wrap gap-1.5 pt-1">
-                {BRAND_COLOR_PRESETS.slice(0, 8).map((preset) => (
+                {BRAND_COLOR_PRESETS.slice(0, 8).map((preset, index) => (
                   <button
                     key={preset.name}
                     type="button"
-                    title={preset.name}
+                    title={tUi(`admin.social.color.${COLOR_PRESET_KEYS[index]}`, currentLanguage)}
                     onClick={() => setFormData({ ...formData, color: preset.color })}
                     className="w-5 h-5 rounded-full border border-border/60 hover:scale-110 transition-transform"
                     style={{ backgroundColor: preset.color }}
@@ -461,7 +477,7 @@ export function SocialNodeModal({
                 id="badge"
                 value={formData.badge || ""}
                 onChange={(e) => setFormData({ ...formData, badge: e.target.value })}
-                placeholder="e.g. Daily, 4K Video, Fast Reply"
+                placeholder={tUi("admin.social.badge_placeholder", currentLanguage)}
                 className="h-10 rounded-2xl"
               />
               <p className="text-[11px] text-muted-text">
@@ -521,7 +537,7 @@ export function SocialNodeModal({
                     <SocialIconRenderer type="group" icon={formData.icon} className="w-4 h-4 text-white" />
                   </div>
                   <div>
-                    <div className="text-sm font-bold text-text">{formData.title || "Group Title"}</div>
+                    <div className="text-sm font-bold text-text">{formData.title || tUi("admin.social.preview_group_title", currentLanguage)}</div>
                     {formData.subtitle && <div className="text-xs text-muted-text">{formData.subtitle}</div>}
                   </div>
                 </div>
@@ -542,7 +558,7 @@ export function SocialNodeModal({
                   </div>
                   <div className="min-w-0">
                     <div className="text-sm font-semibold text-text truncate flex items-center gap-2">
-                      <span>{formData.title || "Social Platform"}</span>
+                      <span>{formData.title || tUi("admin.social.preview_platform_title", currentLanguage)}</span>
                       {formData.badge && (
                         <span className="px-2 py-0.2 text-[10px] font-semibold rounded-full bg-primary/10 text-primary border border-primary/20">
                           {formData.badge}

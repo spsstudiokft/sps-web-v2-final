@@ -22,6 +22,8 @@ import { BudgetEntry, BudgetStatus } from "../../../types";
 import { Button } from "../../ui/Button";
 import { cn } from "../../../lib/utils";
 import { formatConfiguredCurrency } from "../../../lib/currency";
+import { useLanguage } from "../../../contexts/LanguageContext";
+import { translateBudgetCategory } from "../../../lib/budgetLabels";
 
 interface BudgetTableProps {
   entries: BudgetEntry[];
@@ -48,6 +50,7 @@ export function BudgetTable({
   currency = "USD",
   onOpenNewModal
 }: BudgetTableProps) {
+  const { tUi } = useLanguage();
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
 
   const formatMoney = (amount: number, curr: string = currency) => formatConfiguredCurrency(amount, curr, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -56,25 +59,25 @@ export function BudgetTable({
     switch (status) {
       case "confirmed":
         return {
-          label: "Confirmed",
+          label: tUi("admin.budget.stats.confirmed"),
           icon: CheckCircle2,
           className: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30"
         };
       case "planned":
         return {
-          label: "Planned",
+          label: tUi("admin.budget.stats.planned"),
           icon: Sparkles,
           className: "bg-sky-500/10 text-sky-700 dark:text-sky-300 border-sky-500/30"
         };
       case "pending":
         return {
-          label: "Pending",
+          label: tUi("admin.budget.stats.pending"),
           icon: Clock,
           className: "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30"
         };
       case "rejected":
         return {
-          label: "Rejected",
+          label: tUi("admin.budget.stats.rejected"),
           icon: AlertCircle,
           className: "bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-500/30"
         };
@@ -94,10 +97,10 @@ export function BudgetTable({
           <Layers className="w-7 h-7" />
         </div>
         <h3 className="text-base font-bold text-text mb-1 font-heading">
-          No budget entries found
+          {tUi("admin.budget.table.empty_title")}
         </h3>
         <p className="text-xs text-muted-text max-w-sm mx-auto mb-5">
-          There are no financial entries matching your active filters. Create a new transaction to start tracking.
+          {tUi("admin.budget.table.empty_filtered")}
         </p>
         <Button
           type="button"
@@ -106,7 +109,7 @@ export function BudgetTable({
           className="inline-flex items-center gap-2"
         >
           <DollarSign className="w-4 h-4" />
-          Add First Entry
+          {tUi("admin.budget.table.add_first")}
         </Button>
       </div>
     );
@@ -119,13 +122,13 @@ export function BudgetTable({
           {/* Table Header */}
           <thead className="bg-background border-b border-border text-muted-text font-semibold uppercase tracking-wider text-[11px]">
             <tr>
-              <th className="py-3.5 px-4">Date</th>
-              <th className="py-3.5 px-4">Type</th>
-              <th className="py-3.5 px-4">Category & Details</th>
-              {isSuperAdmin && <th className="py-3.5 px-4">Owner (Admin)</th>}
-              <th className="py-3.5 px-4">Status</th>
-              <th className="py-3.5 px-4 text-right">Amount</th>
-              <th className="py-3.5 px-4 text-right">Actions</th>
+              <th className="py-3.5 px-4">{tUi("admin.budget.table.th_date")}</th>
+              <th className="py-3.5 px-4">{tUi("admin.budget.table.th_type")}</th>
+              <th className="py-3.5 px-4">{tUi("admin.budget.table.th_category_details")}</th>
+              {isSuperAdmin && <th className="py-3.5 px-4">{tUi("admin.budget.table.th_owner")}</th>}
+              <th className="py-3.5 px-4">{tUi("admin.budget.table.th_status")}</th>
+              <th className="py-3.5 px-4 text-right">{tUi("admin.budget.table.th_amount")}</th>
+              <th className="py-3.5 px-4 text-right">{tUi("admin.budget.table.th_actions")}</th>
             </tr>
           </thead>
 
@@ -164,14 +167,14 @@ export function BudgetTable({
                         : "bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-500/20"
                     )}>
                       {isIncome ? <ArrowUpRight className="w-3.5 h-3.5" /> : <ArrowDownRight className="w-3.5 h-3.5" />}
-                      {isIncome ? "Income" : "Expense"}
+                      {tUi(isIncome ? "admin.budget.modal.income" : "admin.budget.modal.outcome")}
                     </span>
                   </td>
 
                   {/* Category & Description */}
                   <td className="py-3.5 px-4 max-w-xs">
                     <div className="font-semibold text-text">
-                      {entry.category || "General"}
+                      {translateBudgetCategory(entry.category, tUi)}
                     </div>
                     {entry.description && (
                       <div className="text-muted-text text-[11px] truncate mt-0.5" title={entry.description}>
@@ -193,12 +196,12 @@ export function BudgetTable({
                         </span>
                         {isOwner ? (
                           <span className="px-1.5 py-0.2 text-[10px] bg-primary/15 text-primary rounded font-semibold border border-primary/20">
-                            You
+                            {tUi("admin.budget.table.you")}
                           </span>
                         ) : (
                           <span className="px-1.5 py-0.2 text-[10px] bg-background text-muted-text border border-border rounded flex items-center gap-0.5">
                             <Lock className="w-2.5 h-2.5" />
-                            Read-only
+                            {tUi("admin.budget.table.read_only")}
                           </span>
                         )}
                       </div>
@@ -217,10 +220,10 @@ export function BudgetTable({
                             statusInfo.className
                           )}
                         >
-                          <option value="confirmed" className="bg-surface text-text">Confirmed</option>
-                          <option value="planned" className="bg-surface text-text">Planned</option>
-                          <option value="pending" className="bg-surface text-text">Pending</option>
-                          <option value="rejected" className="bg-surface text-text">Rejected</option>
+                          <option value="confirmed" className="bg-surface text-text">{tUi("admin.budget.stats.confirmed")}</option>
+                          <option value="planned" className="bg-surface text-text">{tUi("admin.budget.stats.planned")}</option>
+                          <option value="pending" className="bg-surface text-text">{tUi("admin.budget.stats.pending")}</option>
+                          <option value="rejected" className="bg-surface text-text">{tUi("admin.budget.stats.rejected")}</option>
                         </select>
                         <ChevronDown className="w-3 h-3 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none opacity-60" />
                       </div>
@@ -254,7 +257,7 @@ export function BudgetTable({
                             type="button"
                             onClick={() => onCreateInvoice(entry)}
                             className="p-1.5 text-muted-text hover:text-sky-600 dark:hover:text-sky-400 hover:bg-surface-hover rounded-lg transition-colors"
-                            title="Create Invoice from this Entry"
+                            title={tUi("admin.budget.table.create_invoice")}
                           >
                             <FileText className="w-4 h-4" />
                           </button>
@@ -263,7 +266,7 @@ export function BudgetTable({
                           type="button"
                           onClick={() => onEdit(entry)}
                           className="p-1.5 text-muted-text hover:text-primary hover:bg-surface-hover rounded-lg transition-colors"
-                          title="Edit Entry"
+                          title={tUi("admin.budget.table.edit")}
                         >
                           <Edit3 className="w-4 h-4" />
                         </button>
@@ -271,7 +274,7 @@ export function BudgetTable({
                           type="button"
                           onClick={() => onDuplicate(entry)}
                           className="p-1.5 text-muted-text hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-surface-hover rounded-lg transition-colors"
-                          title="Duplicate Entry"
+                          title={tUi("admin.budget.table.duplicate")}
                         >
                           <Copy className="w-4 h-4" />
                         </button>
@@ -279,7 +282,7 @@ export function BudgetTable({
                           type="button"
                           onClick={() => onDelete(entry.id)}
                           className="p-1.5 text-muted-text hover:text-rose-600 dark:hover:text-rose-400 hover:bg-surface-hover rounded-lg transition-colors"
-                          title="Delete Entry"
+                          title={tUi("admin.budget.table.delete")}
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -287,10 +290,10 @@ export function BudgetTable({
                     ) : (
                       <span 
                         className="inline-flex items-center gap-1 text-[11px] text-muted-text italic" 
-                        title="Superadmins have read-only access to entries owned by other admins."
+                        title={tUi("admin.budget.table.read_only_help")}
                       >
                         <Lock className="w-3 h-3" />
-                        Read-only
+                        {tUi("admin.budget.table.read_only")}
                       </span>
                     )}
                   </td>

@@ -211,7 +211,7 @@ export function EmailSettingsManager({ settings, onChange }: EmailSettingsManage
     if (!testRecipient || !testRecipient.includes("@")) {
       setTestResult({
         success: false,
-        error: "Please enter a valid recipient email address."
+        error: tUi("admin.email.runtime.invalid_recipient")
       });
       return;
     }
@@ -234,12 +234,12 @@ export function EmailSettingsManager({ settings, onChange }: EmailSettingsManage
       if (!res.ok || !data.success) {
         setTestResult({
           success: false,
-          error: data.error || "Failed to deliver test email."
+          error: data.error || tUi("admin.email.runtime.test_delivery_failed")
         });
       } else {
         setTestResult({
           success: true,
-          message: data.notice || "Email sent successfully!",
+          message: data.notice || tUi("admin.email.runtime.test_sent"),
           messageId: data.messageId,
           simulated: data.simulated
         });
@@ -248,7 +248,7 @@ export function EmailSettingsManager({ settings, onChange }: EmailSettingsManage
     } catch (err: any) {
       setTestResult({
         success: false,
-        error: err.message || "Network error while attempting to send email."
+        error: err.message || tUi("admin.email.runtime.test_network_failed")
       });
     } finally {
       setSendingTest(false);
@@ -257,7 +257,7 @@ export function EmailSettingsManager({ settings, onChange }: EmailSettingsManage
 
   // Handle Clear Logs
   const handleClearLogs = async () => {
-    if (!confirm("Are you sure you want to clear all email delivery logs?")) return;
+    if (!confirm(tUi("admin.email.runtime.clear_logs_confirm"))) return;
     try {
       setClearingLogs(true);
       const res = await fetchApi("/api/admin/email/logs", { method: "DELETE" });
@@ -321,16 +321,16 @@ export function EmailSettingsManager({ settings, onChange }: EmailSettingsManage
           </div>
           <div>
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-bold text-text text-sm sm:text-base">Resend Email Engine</span>
+              <span className="font-bold text-text text-sm sm:text-base">{tUi("admin.email.settings.resend_email_engine")}</span>
               {configStatus?.apiKeyPresent ? (
                 <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
                   <CheckCircle2 className="w-3 h-3" />
-                  <span>Live Delivery Active</span>
+                  <span>{tUi("admin.email.settings.live_delivery_active")}</span>
                 </span>
               ) : (
                 <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 flex items-center gap-1">
                   <AlertCircle className="w-3 h-3" />
-                  <span>Sandbox Simulation</span>
+                  <span>{tUi("admin.email.settings.sandbox_simulation")}</span>
                 </span>
               )}
             </div>
@@ -353,7 +353,7 @@ export function EmailSettingsManager({ settings, onChange }: EmailSettingsManage
             className="text-xs h-8 flex items-center gap-1.5"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loadingConfig || loadingTemplates ? "animate-spin" : ""}`} />
-            <span>Sync All</span>
+            <span>{tUi("admin.email.settings.sync_all")}</span>
           </Button>
           <a
             href="https://resend.com/overview"
@@ -361,7 +361,7 @@ export function EmailSettingsManager({ settings, onChange }: EmailSettingsManage
             rel="noopener noreferrer"
             className="px-3 py-1.5 rounded-xl border border-border bg-background hover:bg-surface text-text text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-2xs h-8"
           >
-            <span>Resend Dashboard</span>
+            <span>{tUi("admin.email.settings.resend_dashboard")}</span>
             <ExternalLink className="w-3 h-3 text-muted-text" />
           </a>
         </div>
@@ -379,7 +379,7 @@ export function EmailSettingsManager({ settings, onChange }: EmailSettingsManage
           }`}
         >
           <FileText className="w-4 h-4" />
-          <span>Email Templates & Editor</span>
+          <span>{tUi("admin.email.settings.email_templates_editor")}</span>
           <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
             activeTab === "templates" ? "bg-white/20 text-white" : "bg-surface border border-border text-muted-text"
           }`}>
@@ -397,7 +397,7 @@ export function EmailSettingsManager({ settings, onChange }: EmailSettingsManage
           }`}
         >
           <Server className="w-4 h-4" />
-          <span>Sender & Domain Settings</span>
+          <span>{tUi("admin.email.settings.sender_domain_settings")}</span>
         </button>
 
         <button
@@ -410,7 +410,7 @@ export function EmailSettingsManager({ settings, onChange }: EmailSettingsManage
           }`}
         >
           <Mail className="w-4 h-4" />
-          <span>Activity Logs & Delivery</span>
+          <span>{tUi("admin.email.settings.activity_logs_delivery")}</span>
           {logs.length > 0 && (
             <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
               activeTab === "logs" ? "bg-white/20 text-white" : "bg-surface border border-border text-muted-text"
@@ -435,7 +435,7 @@ export function EmailSettingsManager({ settings, onChange }: EmailSettingsManage
                 type="text"
                 value={templateSearch}
                 onChange={(e) => setTemplateSearch(e.target.value)}
-                placeholder="Search templates by name, key, subject, or variables..."
+                placeholder={tUi("admin.email.settings.search_templates_by_name_key_subject_or_variables")}
                 className="w-full pl-9 pr-3 py-1.5 rounded-xl border border-border bg-background text-xs text-text focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
               />
             </div>
@@ -463,15 +463,14 @@ export function EmailSettingsManager({ settings, onChange }: EmailSettingsManage
           {loadingTemplates ? (
             <div className="py-20 flex flex-col items-center justify-center text-muted-text text-sm gap-2">
               <Loader2 className="w-6 h-6 animate-spin text-primary" />
-              <span>Loading email templates catalog...</span>
+              <span>{tUi("admin.email.settings.loading_email_templates_catalog")}</span>
             </div>
           ) : filteredTemplates.length === 0 ? (
             <div className="py-16 text-center rounded-2xl border border-border bg-surface/50 p-6">
               <FileText className="w-8 h-8 text-muted-text mx-auto mb-2 opacity-50" />
-              <h3 className="text-sm font-semibold text-text">No matching templates found</h3>
+              <h3 className="text-sm font-semibold text-text">{tUi("admin.email.settings.no_matching_templates_found")}</h3>
               <p className="text-xs text-muted-text mt-1">
-                Try clearing your search terms or choosing a different category.
-              </p>
+                {tUi("admin.email.settings.try_clearing_your_search_terms_or_choosing_a_different")}</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -489,12 +488,11 @@ export function EmailSettingsManager({ settings, onChange }: EmailSettingsManage
                       </span>
                       {t.is_customized ? (
                         <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-blue-500/10 text-blue-500 border border-blue-500/20">
-                          Customized v{t.version}
+                          {tUi("admin.email.settings.customized_v")}{t.version}
                         </span>
                       ) : (
                         <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-zinc-500/10 text-muted-text border border-zinc-500/20">
-                          Default
-                        </span>
+                          {tUi("admin.languages.default")}</span>
                       )}
                     </div>
 
@@ -511,8 +509,7 @@ export function EmailSettingsManager({ settings, onChange }: EmailSettingsManage
                     {/* Subject Preview Line */}
                     <div className="p-2.5 rounded-xl bg-background border border-border text-xs space-y-0.5">
                       <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-text">
-                        Subject Line
-                      </div>
+                        {tUi("admin.email.settings.subject_line")}</div>
                       <div className="text-xs font-mono font-medium text-text truncate" title={t.subject}>
                         {t.subject}
                       </div>
@@ -523,7 +520,7 @@ export function EmailSettingsManager({ settings, onChange }: EmailSettingsManage
                       <div className="flex items-center justify-between text-[11px] text-muted-text">
                         <span className="font-semibold flex items-center gap-1">
                           <Sparkles className="w-3 h-3 text-primary" />
-                          <span>Variables ({t.available_tokens?.length || 0})</span>
+                          <span>{tUi("admin.email.settings.variables")}{t.available_tokens?.length || 0})</span>
                         </span>
                       </div>
                       <div className="flex flex-wrap gap-1 max-h-[56px] overflow-hidden">
@@ -538,8 +535,7 @@ export function EmailSettingsManager({ settings, onChange }: EmailSettingsManage
                         ))}
                         {(t.available_tokens || []).length > 4 && (
                           <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-background text-muted-text">
-                            +{(t.available_tokens || []).length - 4} more
-                          </span>
+                            +{(t.available_tokens || []).length - 4} {tUi("admin.email.settings.more")}</span>
                         )}
                       </div>
                     </div>
@@ -554,7 +550,7 @@ export function EmailSettingsManager({ settings, onChange }: EmailSettingsManage
                       className="text-xs font-semibold text-muted-text hover:text-text flex items-center gap-1.5 py-1 px-2 rounded-lg hover:bg-surface transition-colors"
                     >
                       <Eye className="w-3.5 h-3.5" />
-                      <span>Preview</span>
+                      <span>{tUi("admin.pricing.tab_preview")}</span>
                     </button>
 
                     <div className="flex items-center gap-1.5">
@@ -567,7 +563,7 @@ export function EmailSettingsManager({ settings, onChange }: EmailSettingsManage
                           setActiveTab("config");
                         }}
                         className="text-xs h-7 px-2"
-                        title="Send live test email with this template"
+                        title={tUi("admin.email.settings.send_live_test_email_with_this_template")}
                       >
                         <Send className="w-3 h-3" />
                       </Button>
@@ -579,7 +575,7 @@ export function EmailSettingsManager({ settings, onChange }: EmailSettingsManage
                         className="text-xs h-7 px-3 bg-primary hover:bg-primary/90 text-white font-medium flex items-center gap-1 shadow-xs"
                       >
                         <Edit3 className="w-3 h-3" />
-                        <span>Edit Template</span>
+                        <span>{tUi("admin.email.settings.edit_template")}</span>
                       </Button>
                     </div>
                   </div>
@@ -604,58 +600,52 @@ export function EmailSettingsManager({ settings, onChange }: EmailSettingsManage
             <div className="space-y-4 p-5 rounded-2xl border border-border bg-surface">
               <div className="flex items-center gap-2 pb-2 border-b border-border">
                 <Server className="w-4 h-4 text-primary" />
-                <h3 className="text-sm font-bold text-text">Default Outgoing Sender</h3>
+                <h3 className="text-sm font-bold text-text">{tUi("admin.email.settings.default_outgoing_sender")}</h3>
               </div>
 
               <div>
                 <Label htmlFor="resend_from_name" className="text-xs font-semibold text-text">
-                  Sender Name (From Name)
-                </Label>
+                  {tUi("admin.email.settings.sender_name_from_name")}</Label>
                 <Input
                   id="resend_from_name"
                   type="text"
                   value={settings.resend_from_name ?? "SPS Studio"}
                   onChange={(e) => onChange("resend_from_name", e.target.value)}
-                  placeholder="e.g., SPS Studio"
+                  placeholder={tUi("admin.email.settings.e_g_sps_studio")}
                   className="mt-1 text-sm font-medium"
                 />
                 <p className="text-[11px] text-muted-text mt-1">
-                  Brand name displayed to clients in email client list views.
-                </p>
+                  {tUi("admin.email.settings.brand_name_displayed_to_clients_in_email_client_list_v")}</p>
               </div>
 
               <div>
                 <Label htmlFor="resend_from_email" className="text-xs font-semibold text-text">
-                  Sender Email Address (From Email)
-                </Label>
+                  {tUi("admin.email.settings.sender_email_address_from_email")}</Label>
                 <Input
                   id="resend_from_email"
                   type="email"
                   value={settings.resend_from_email ?? "onboarding@resend.dev"}
                   onChange={(e) => onChange("resend_from_email", e.target.value)}
-                  placeholder="e.g., noreply@yourdomain.com or onboarding@resend.dev"
+                  placeholder={tUi("admin.email.settings.e_g_noreply_yourdomain_com_or_onboarding_resend_dev")}
                   className="mt-1 text-sm font-mono"
                 />
                 <p className="text-[11px] text-muted-text mt-1">
-                  Must belong to a verified custom domain in Resend (or use <code className="text-primary font-mono">onboarding@resend.dev</code> for testing).
-                </p>
+                  {tUi("admin.email.settings.must_belong_to_a_verified_custom_domain_in_resend_or_u")}<code className="text-primary font-mono">{tUi("admin.email.settings.onboarding_resend_dev")}</code> {tUi("admin.email.settings.for_testing")}</p>
               </div>
 
               <div>
                 <Label htmlFor="resend_reply_to" className="text-xs font-semibold text-text">
-                  Reply-To Email Address
-                </Label>
+                  {tUi("admin.email.settings.reply_to_email_address")}</Label>
                 <Input
                   id="resend_reply_to"
                   type="email"
                   value={settings.resend_reply_to ?? "contact@spsstudio.com"}
                   onChange={(e) => onChange("resend_reply_to", e.target.value)}
-                  placeholder="e.g., contact@spsstudio.com"
+                  placeholder={tUi("admin.email.settings.e_g_contact_spsstudio_com")}
                   className="mt-1 text-sm font-mono"
                 />
                 <p className="text-[11px] text-muted-text mt-1">
-                  Target address when recipients hit "Reply" in their email client.
-                </p>
+                  {tUi("admin.email.settings.target_address_when_recipients_hit_reply_in_their_emai")}</p>
               </div>
             </div>
 
@@ -663,60 +653,54 @@ export function EmailSettingsManager({ settings, onChange }: EmailSettingsManage
             <div className="space-y-4 p-5 rounded-2xl border border-border bg-surface">
               <div className="flex items-center gap-2 pb-2 border-b border-border">
                 <ShieldCheck className="w-4 h-4 text-primary" />
-                <h3 className="text-sm font-bold text-text">Admin Notifications & Branding</h3>
+                <h3 className="text-sm font-bold text-text">{tUi("admin.email.settings.admin_notifications_branding")}</h3>
               </div>
 
               <div>
                 <Label htmlFor="admin_notification_email" className="text-xs font-semibold text-text">
-                  Admin Alert Recipient Email
-                </Label>
+                  {tUi("admin.email.settings.admin_alert_recipient_email")}</Label>
                 <Input
                   id="admin_notification_email"
                   type="email"
                   value={settings.admin_notification_email ?? "spsstudiokft@gmail.com"}
                   onChange={(e) => onChange("admin_notification_email", e.target.value)}
-                  placeholder="e.g., admin@yourdomain.com"
+                  placeholder={tUi("admin.email.settings.e_g_admin_yourdomain_com")}
                   className="mt-1 text-sm font-mono"
                 />
                 <p className="text-[11px] text-muted-text mt-1">
-                  Receives instant notifications whenever new inquiries or bookings arrive.
-                </p>
+                  {tUi("admin.email.settings.receives_instant_notifications_whenever_new_inquiries_")}</p>
               </div>
 
               <div>
                 <Label htmlFor="email_brand_display" className="text-xs font-semibold text-text">
-                  Email Header Brand Display
-                </Label>
+                  {tUi("admin.email.settings.email_header_brand_display")}</Label>
                 <select
                   id="email_brand_display"
                   value={settings.email_brand_display || settings.header_brand_display || "logo_only"}
                   onChange={(e) => onChange("email_brand_display", e.target.value)}
                   className="w-full mt-1 h-10 px-3 rounded-xl border border-border bg-background text-sm text-text focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
                 >
-                  <option value="logo_only">Uploaded logo only</option>
-                  <option value="logo_and_name">Uploaded logo and studio name</option>
-                  <option value="name_only">Studio name only</option>
+                  <option value="logo_only">{tUi("admin.email.settings.uploaded_logo_only")}</option>
+                  <option value="logo_and_name">{tUi("admin.email.settings.uploaded_logo_and_studio_name")}</option>
+                  <option value="name_only">{tUi("admin.branding.display_name_only")}</option>
                 </select>
                 <p className="text-[11px] text-muted-text mt-1">
-                  Uses the uploaded dark-background header logo on the blue email header, with the light-background logo as fallback. Until saved separately, this follows the website header branding mode.
-                </p>
+                  {tUi("admin.email.settings.uses_the_uploaded_dark_background_header_logo_on_the_b")}</p>
               </div>
 
               <div>
                 <Label htmlFor="email_footer_text" className="text-xs font-semibold text-text">
-                  Master Email Footer Copyright & Notice
-                </Label>
+                  {tUi("admin.email.settings.master_email_footer_copyright_notice")}</Label>
                 <textarea
                   id="email_footer_text"
                   rows={3}
                   value={settings.email_footer_text ?? "SPS Studio · Premium Real Estate Visual Marketing · All rights reserved."}
                   onChange={(e) => onChange("email_footer_text", e.target.value)}
-                  placeholder="SPS Studio · All rights reserved."
+                  placeholder={tUi("admin.email.settings.sps_studio_all_rights_reserved")}
                   className="w-full mt-1 p-2.5 rounded-xl border border-border bg-background text-xs text-text focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
                 />
                 <p className="text-[11px] text-muted-text mt-1">
-                  Appended across all transactional HTML templates automatically.
-                </p>
+                  {tUi("admin.email.settings.appended_across_all_transactional_html_templates_autom")}</p>
               </div>
             </div>
 
@@ -727,22 +711,21 @@ export function EmailSettingsManager({ settings, onChange }: EmailSettingsManage
             <div className="flex items-center justify-between pb-2 border-b border-border">
               <div className="flex items-center gap-2">
                 <Send className="w-4 h-4 text-primary" />
-                <h3 className="text-sm font-bold text-text">Dispatch Live Integration Test</h3>
+                <h3 className="text-sm font-bold text-text">{tUi("admin.email.settings.dispatch_live_integration_test")}</h3>
               </div>
-              <span className="text-xs text-muted-text">Test real SMTP deliverability</span>
+              <span className="text-xs text-muted-text">{tUi("admin.email.settings.test_real_smtp_deliverability")}</span>
             </div>
 
             <form onSubmit={handleSendTest} className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
               <div className="md:col-span-4">
                 <Label htmlFor="test_recipient_input" className="text-xs font-semibold text-text">
-                  Recipient Email
-                </Label>
+                  {tUi("admin.email.settings.recipient_email")}</Label>
                 <Input
                   id="test_recipient_input"
                   type="email"
                   value={testRecipient}
                   onChange={(e) => setTestRecipient(e.target.value)}
-                  placeholder="e.g., yourname@domain.com"
+                  placeholder={tUi("admin.email.settings.e_g_yourname_domain_com")}
                   className="mt-1 text-xs"
                   required
                 />
@@ -750,8 +733,7 @@ export function EmailSettingsManager({ settings, onChange }: EmailSettingsManage
 
               <div className="md:col-span-4">
                 <Label htmlFor="test_template_select" className="text-xs font-semibold text-text">
-                  Choose Template to Test
-                </Label>
+                  {tUi("admin.email.settings.choose_template_to_test")}</Label>
                 <select
                   id="test_template_select"
                   value={selectedTemplateKey}
@@ -790,7 +772,7 @@ export function EmailSettingsManager({ settings, onChange }: EmailSettingsManage
                 </div>
                 {testResult.messageId && (
                   <div className="mt-1 font-mono text-[11px] opacity-80">
-                    Message ID: {testResult.messageId}
+                    {tUi("admin.email.settings.message_id")}{testResult.messageId}
                   </div>
                 )}
               </div>
@@ -806,7 +788,7 @@ export function EmailSettingsManager({ settings, onChange }: EmailSettingsManage
             >
               <div className="flex items-center gap-2.5">
                 <Globe className="w-4 h-4 text-primary" />
-                <span className="text-xs font-bold text-text">Custom Domain DNS Verification Guide (DKIM & SPF)</span>
+                <span className="text-xs font-bold text-text">{tUi("admin.email.settings.custom_domain_dns_verification_guide_dkim_spf")}</span>
               </div>
               {showDnsGuide ? <ChevronUp className="w-4 h-4 text-muted-text" /> : <ChevronDown className="w-4 h-4 text-muted-text" />}
             </button>
@@ -814,24 +796,23 @@ export function EmailSettingsManager({ settings, onChange }: EmailSettingsManage
             {showDnsGuide && (
               <div className="p-4 border-t border-border bg-background space-y-3 text-xs">
                 <p className="text-muted-text leading-relaxed">
-                  To send transactional emails directly from your custom domain (e.g. <code className="text-primary font-mono font-semibold">noreply@spsstudio.com</code>) without deliverability warnings, add these standard DNS records at your DNS registrar:
-                </p>
+                  {tUi("admin.email.settings.to_send_transactional_emails_directly_from_your_custom")}<code className="text-primary font-mono font-semibold">{tUi("admin.email.settings.noreply_spsstudio_com")}</code>{tUi("admin.email.settings.without_deliverability_warnings_add_these_standard_dns")}</p>
 
                 <div className="overflow-x-auto rounded-xl border border-border">
                   <table className="w-full text-xs text-left">
                     <thead className="bg-surface text-muted-text font-semibold border-b border-border">
                       <tr>
-                        <th className="p-2.5">Type</th>
-                        <th className="p-2.5">Host / Name</th>
-                        <th className="p-2.5">Value / Target</th>
-                        <th className="p-2.5">Action</th>
+                        <th className="p-2.5">{tUi("admin.budget.filter.type_label")}</th>
+                        <th className="p-2.5">{tUi("admin.email.settings.host_name")}</th>
+                        <th className="p-2.5">{tUi("admin.email.settings.value_target")}</th>
+                        <th className="p-2.5">{tUi("client.invoices.action")}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border text-text font-mono text-[11px]">
                       <tr>
-                        <td className="p-2.5 font-bold text-primary">TXT</td>
-                        <td className="p-2.5">resend._domainkey</td>
-                        <td className="p-2.5 text-muted-text truncate max-w-[200px]">k=rsa; p=MIGfMA0GCS...</td>
+                        <td className="p-2.5 font-bold text-primary">{tUi("admin.email.settings.txt")}</td>
+                        <td className="p-2.5">{tUi("admin.email.settings.resend_domainkey")}</td>
+                        <td className="p-2.5 text-muted-text truncate max-w-[200px]">{tUi("admin.email.settings.k_rsa_p_migfma0gcs")}</td>
                         <td className="p-2.5">
                           <button
                             type="button"
@@ -843,9 +824,9 @@ export function EmailSettingsManager({ settings, onChange }: EmailSettingsManage
                         </td>
                       </tr>
                       <tr>
-                        <td className="p-2.5 font-bold text-primary">TXT</td>
+                        <td className="p-2.5 font-bold text-primary">{tUi("admin.email.settings.txt")}</td>
                         <td className="p-2.5">@</td>
-                        <td className="p-2.5 text-muted-text">v=spf1 include:resend.com ~all</td>
+                        <td className="p-2.5 text-muted-text">{tUi("admin.email.settings.v_spf1_include_resend_com_all")}</td>
                         <td className="p-2.5">
                           <button
                             type="button"
@@ -874,8 +855,8 @@ export function EmailSettingsManager({ settings, onChange }: EmailSettingsManage
           <div className="flex flex-wrap items-center justify-between gap-3 pb-2 border-b border-border">
             <div className="flex items-center gap-2">
               <Mail className="w-4 h-4 text-primary" />
-              <h3 className="text-sm font-bold text-text">Transactional Delivery Logs</h3>
-              <span className="text-xs text-muted-text">({filteredLogs.length} events)</span>
+              <h3 className="text-sm font-bold text-text">{tUi("admin.email.settings.transactional_delivery_logs")}</h3>
+              <span className="text-xs text-muted-text">({filteredLogs.length} {tUi("admin.email.settings.events")}</span>
             </div>
 
             <div className="flex items-center gap-2 flex-wrap">
@@ -905,7 +886,7 @@ export function EmailSettingsManager({ settings, onChange }: EmailSettingsManage
                 className="text-xs h-7 px-2.5 flex items-center gap-1"
               >
                 <RefreshCw className={`w-3 h-3 ${loadingLogs ? "animate-spin" : ""}`} />
-                <span>Refresh</span>
+                <span>{tUi("admin.faq_categories.refresh")}</span>
               </Button>
 
               {logs.length > 0 && (
@@ -918,7 +899,7 @@ export function EmailSettingsManager({ settings, onChange }: EmailSettingsManage
                   className="text-xs h-7 px-2.5 text-red-500 hover:text-red-600 hover:bg-red-500/10 border-red-500/20"
                 >
                   <Trash2 className="w-3 h-3 mr-1" />
-                  <span>Clear Logs</span>
+                  <span>{tUi("admin.email.settings.clear_logs")}</span>
                 </Button>
               )}
             </div>
@@ -927,22 +908,21 @@ export function EmailSettingsManager({ settings, onChange }: EmailSettingsManage
           {loadingLogs ? (
             <div className="py-16 flex items-center justify-center text-muted-text text-xs gap-2">
               <Loader2 className="w-4 h-4 animate-spin text-primary" />
-              <span>Loading delivery logs...</span>
+              <span>{tUi("admin.email.settings.loading_delivery_logs")}</span>
             </div>
           ) : filteredLogs.length === 0 ? (
             <div className="py-12 text-center text-muted-text text-xs">
-              No email events matching current filter recorded yet.
-            </div>
+              {tUi("admin.email.settings.no_email_events_matching_current_filter_recorded_yet")}</div>
           ) : (
             <div className="overflow-x-auto rounded-xl border border-border">
               <table className="w-full text-xs text-left">
                 <thead className="bg-background border-b border-border text-muted-text font-semibold">
                   <tr>
-                    <th className="p-2.5">Status</th>
-                    <th className="p-2.5">Recipient</th>
-                    <th className="p-2.5">Subject</th>
-                    <th className="p-2.5">Template</th>
-                    <th className="p-2.5">Timestamp</th>
+                    <th className="p-2.5">{tUi("admin.clients.th_status")}</th>
+                    <th className="p-2.5">{tUi("admin.team.th_recipient")}</th>
+                    <th className="p-2.5">{tUi("admin.email.settings.subject")}</th>
+                    <th className="p-2.5">{tUi("admin.email.settings.template")}</th>
+                    <th className="p-2.5">{tUi("admin.email.settings.timestamp")}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border text-text">
@@ -951,16 +931,13 @@ export function EmailSettingsManager({ settings, onChange }: EmailSettingsManage
                       <td className="p-2.5">
                         {log.status === "sent" ? (
                           <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                            Sent
-                          </span>
+                            {tUi("client.invoice_status.sent")}</span>
                         ) : log.status === "mock_logged" ? (
                           <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
-                            Simulated
-                          </span>
+                            {tUi("admin.email.settings.simulated")}</span>
                         ) : (
                           <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20" title={log.error_message || ""}>
-                            Failed
-                          </span>
+                            {tUi("admin.email.settings.failed")}</span>
                         )}
                       </td>
                       <td className="p-2.5 font-mono text-[11px] max-w-[160px] truncate">{log.recipient}</td>
@@ -1025,7 +1002,7 @@ export function EmailSettingsManager({ settings, onChange }: EmailSettingsManage
                     }`}
                   >
                     <Monitor className="w-3.5 h-3.5" />
-                    <span>Desktop</span>
+                    <span>{tUi("admin.email.settings.desktop")}</span>
                   </button>
                   <button
                     type="button"
@@ -1035,7 +1012,7 @@ export function EmailSettingsManager({ settings, onChange }: EmailSettingsManage
                     }`}
                   >
                     <Smartphone className="w-3.5 h-3.5" />
-                    <span>Mobile</span>
+                    <span>{tUi("admin.email.settings.mobile")}</span>
                   </button>
                   <button
                     type="button"
@@ -1045,7 +1022,7 @@ export function EmailSettingsManager({ settings, onChange }: EmailSettingsManage
                     }`}
                   >
                     <Code className="w-3.5 h-3.5" />
-                    <span>Text</span>
+                    <span>{tUi("themePreview.swatch_short_text")}</span>
                   </button>
                 </div>
 
@@ -1059,7 +1036,7 @@ export function EmailSettingsManager({ settings, onChange }: EmailSettingsManage
                   className="text-xs h-8 bg-primary hover:bg-primary/90 text-white font-medium"
                 >
                   <Edit3 className="w-3.5 h-3.5 mr-1" />
-                  <span>Open in Editor</span>
+                  <span>{tUi("admin.email.settings.open_in_editor")}</span>
                 </Button>
 
                 <button
@@ -1074,7 +1051,7 @@ export function EmailSettingsManager({ settings, onChange }: EmailSettingsManage
 
             {/* Subject Banner */}
             <div className="p-3 px-5 bg-background border-b border-border text-xs">
-              <span className="font-semibold text-muted-text">Subject: </span>
+              <span className="font-semibold text-muted-text">{tUi("admin.email.settings.subject_2")}</span>
               <span className="font-bold text-text">{quickPreviewSubject}</span>
             </div>
 
@@ -1083,7 +1060,7 @@ export function EmailSettingsManager({ settings, onChange }: EmailSettingsManage
               {quickPreviewLoading ? (
                 <div className="py-20 flex items-center justify-center text-muted-text text-sm gap-2">
                   <Loader2 className="w-5 h-5 animate-spin text-primary" />
-                  <span>Rendering email preview...</span>
+                  <span>{tUi("admin.email.settings.rendering_email_preview")}</span>
                 </div>
               ) : quickPreviewDevice === "text" ? (
                 <div className="w-full max-w-[620px] bg-background border border-border p-5 rounded-xl font-mono text-xs text-text whitespace-pre-wrap shadow-md">
@@ -1094,7 +1071,7 @@ export function EmailSettingsManager({ settings, onChange }: EmailSettingsManage
                   quickPreviewDevice === "mobile" ? "w-[375px]" : "w-full max-w-[620px]"
                 }`}>
                   <iframe
-                    title="Quick Email Preview"
+                    title={tUi("admin.email.settings.quick_email_preview")}
                     srcDoc={quickPreviewHtml}
                     className="w-full min-h-[520px] bg-white border-0"
                   />
@@ -1104,7 +1081,7 @@ export function EmailSettingsManager({ settings, onChange }: EmailSettingsManage
 
             {/* Footer */}
             <div className="p-3 px-5 bg-surface border-t border-border flex items-center justify-between text-xs text-muted-text">
-              <span>Inline CSS rendered · Multi-client tested</span>
+              <span>{tUi("admin.email.settings.inline_css_rendered_multi_client_tested")}</span>
               <Button
                 type="button"
                 variant="outline"
@@ -1112,8 +1089,7 @@ export function EmailSettingsManager({ settings, onChange }: EmailSettingsManage
                 onClick={() => setShowQuickPreviewModal(false)}
                 className="text-xs h-7"
               >
-                Close Preview
-              </Button>
+                {tUi("admin.email.settings.close_preview")}</Button>
             </div>
 
           </div>

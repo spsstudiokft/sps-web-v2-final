@@ -68,11 +68,11 @@ export function FeesTab({ siteLanguages, showToast }: FeesTabProps) {
         setFeeRules(Array.isArray(data) ? data : []);
       } else {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to load fee rules");
+        throw new Error(err.error || tUi("admin.pricing.fees.load_failed"));
       }
     } catch (error: any) {
       console.error("Failed to load fee rules:", error);
-      showToast(error.message || "Failed to load fee rules", "error");
+      showToast(error.message || tUi("admin.pricing.fees.load_failed"), "error");
     } finally {
       setLoading(false);
     }
@@ -111,10 +111,10 @@ export function FeesTab({ siteLanguages, showToast }: FeesTabProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...rule, is_enabled: newStatus }),
       });
-      if (!res.ok) throw new Error("Failed to update status");
-      showToast(newStatus ? "Fee rule enabled" : "Fee rule disabled");
+      if (!res.ok) throw new Error(tUi("admin.pricing.fees.status_failed"));
+      showToast(tUi(newStatus ? "admin.pricing.fees.enabled" : "admin.pricing.fees.disabled"));
     } catch (err: any) {
-      showToast(err.message || "Failed to update status", "error");
+      showToast(err.message || tUi("admin.pricing.fees.status_failed"), "error");
       loadData();
     }
   };
@@ -128,9 +128,9 @@ export function FeesTab({ siteLanguages, showToast }: FeesTabProps) {
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to update fee rule");
+        throw new Error(err.error || tUi("admin.pricing.fees.update_failed"));
       }
-      showToast("Fee rule updated successfully");
+      showToast(tUi("admin.pricing.fees.updated"));
     } else {
       const res = await fetchApi("/api/admin/fee-rules", {
         method: "POST",
@@ -139,9 +139,9 @@ export function FeesTab({ siteLanguages, showToast }: FeesTabProps) {
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to create fee rule");
+        throw new Error(err.error || tUi("admin.pricing.fees.create_failed"));
       }
-      showToast("Fee rule created successfully");
+      showToast(tUi("admin.pricing.fees.created"));
     }
     await loadData();
   };
@@ -155,13 +155,13 @@ export function FeesTab({ siteLanguages, showToast }: FeesTabProps) {
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to delete fee rule");
+        throw new Error(err.error || tUi("admin.pricing.fees.delete_failed"));
       }
-      showToast("Fee rule deleted successfully");
+      showToast(tUi("admin.pricing.fees.deleted"));
       setDeleteConfirmFee(null);
       await loadData();
     } catch (error: any) {
-      showToast(error.message || "Failed to delete fee rule", "error");
+      showToast(error.message || tUi("admin.pricing.fees.delete_failed"), "error");
     } finally {
       setIsDeleting(false);
     }
@@ -178,7 +178,7 @@ export function FeesTab({ siteLanguages, showToast }: FeesTabProps) {
               <Input
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search fee rules, descriptions, regions..."
+                placeholder={tUi("admin.pricing.fees.search")}
                 className="pl-9 text-sm"
               />
             </div>
@@ -189,11 +189,11 @@ export function FeesTab({ siteLanguages, showToast }: FeesTabProps) {
                 onChange={(e) => setTypeFilter(e.target.value)}
                 className="h-10 px-3 rounded-lg border border-border bg-background text-text text-sm focus:ring-2 focus:ring-primary outline-none"
               >
-                <option value="all">All Fee Types</option>
-                <option value="fixed">Fixed Flat Fee</option>
-                <option value="percentage">Percentage (%) Fee</option>
-                <option value="distance">Distance Flat Rate</option>
-                <option value="distance_tiered">Tiered Distance Zones</option>
+                <option value="all">{tUi("admin.pricing.fees.all_types")}</option>
+                <option value="fixed">{tUi("admin.pricing.fees.fixed")}</option>
+                <option value="percentage">{tUi("admin.pricing.fees.percentage")}</option>
+                <option value="distance">{tUi("admin.pricing.fees.distance")}</option>
+                <option value="distance_tiered">{tUi("admin.pricing.fees.distance_tiered")}</option>
               </select>
 
               <select
@@ -201,9 +201,9 @@ export function FeesTab({ siteLanguages, showToast }: FeesTabProps) {
                 onChange={(e) => setStatusFilter(e.target.value as any)}
                 className="h-10 px-3 rounded-lg border border-border bg-background text-text text-sm focus:ring-2 focus:ring-primary outline-none"
               >
-                <option value="all">All Statuses</option>
-                <option value="enabled">Enabled Only</option>
-                <option value="disabled">Disabled Only</option>
+                <option value="all">{tUi("admin.pricing.all_statuses")}</option>
+                <option value="enabled">{tUi("admin.pricing.enabled_only")}</option>
+                <option value="disabled">{tUi("admin.pricing.disabled_only")}</option>
               </select>
             </div>
           </div>
@@ -214,7 +214,7 @@ export function FeesTab({ siteLanguages, showToast }: FeesTabProps) {
               size="sm"
               onClick={loadData}
               className="h-10 px-3 text-muted-text hover:text-text"
-              title="Refresh"
+              title={tUi("admin.pricing.refresh")}
             >
               <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
             </Button>
@@ -227,7 +227,7 @@ export function FeesTab({ siteLanguages, showToast }: FeesTabProps) {
               className="gap-2 h-10"
             >
               <Plus className="w-4 h-4" />
-              <span>Create Fee Rule</span>
+              <span>{tUi("admin.pricing.fees.create")}</span>
             </Button>
           </div>
         </CardContent>
@@ -237,14 +237,14 @@ export function FeesTab({ siteLanguages, showToast }: FeesTabProps) {
       {loading ? (
         <div className="py-20 text-center text-muted-text">
           <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-3 opacity-50" />
-          <p>Loading fee rules...</p>
+          <p>{tUi("admin.pricing.fees.loading")}</p>
         </div>
       ) : filteredFeeRules.length === 0 ? (
         <div className="py-16 text-center rounded-2xl border-2 border-dashed border-border bg-surface/30 p-8">
           <Car className="w-12 h-12 text-muted-text mx-auto mb-3 opacity-40" />
-          <h3 className="text-base font-bold text-text mb-1">No Fee Rules Configured</h3>
+          <h3 className="text-base font-bold text-text mb-1">{tUi("admin.pricing.fees.empty_title")}</h3>
           <p className="text-sm text-muted-text max-w-md mx-auto mb-6">
-            Configure delivery fees, travel surcharges, rush handling fees, or percentage service fees with automatic threshold triggers.
+            {tUi("admin.pricing.fees.empty_desc")}
           </p>
           <Button
             onClick={() => {
@@ -254,13 +254,13 @@ export function FeesTab({ siteLanguages, showToast }: FeesTabProps) {
             className="gap-2"
           >
             <Plus className="w-4 h-4" />
-            <span>Create First Fee Rule</span>
+            <span>{tUi("admin.pricing.fees.create_first")}</span>
           </Button>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {filteredFeeRules.map((rule) => {
-            const name = getDisplayText(rule.name, currentLang) || "Untitled Fee Rule";
+            const name = getDisplayText(rule.name, currentLang) || tUi("admin.pricing.fees.untitled");
             const isEnabled = Boolean(rule.is_enabled);
             const isMandatory = Boolean(rule.is_mandatory);
 
@@ -294,13 +294,7 @@ export function FeesTab({ siteLanguages, showToast }: FeesTabProps) {
                       <div>
                         <h4 className="text-base font-bold text-text">{name}</h4>
                         <span className="text-[10px] font-semibold text-muted-text uppercase tracking-wider">
-                          {rule.fee_type === "fixed"
-                            ? "Fixed Fee"
-                            : rule.fee_type === "percentage"
-                            ? "Percentage Fee"
-                            : rule.fee_type === "distance"
-                            ? "Distance Rate"
-                            : "Tiered Distance Zones"}
+                          {tUi(rule.fee_type === "fixed" ? "admin.pricing.fees.type_fixed" : rule.fee_type === "percentage" ? "admin.pricing.fees.type_percentage" : rule.fee_type === "distance" ? "admin.pricing.fees.type_distance" : "admin.pricing.fees.type_distance_tiered")}
                         </span>
                       </div>
                     </div>
@@ -312,7 +306,7 @@ export function FeesTab({ siteLanguages, showToast }: FeesTabProps) {
                         className={`p-1.5 rounded-lg text-xs transition-colors ${
                           isEnabled ? "text-emerald-600 hover:bg-emerald-500/10" : "text-muted-text hover:bg-surface"
                         }`}
-                        title={isEnabled ? "Enabled (Click to disable)" : "Disabled (Click to enable)"}
+                        title={tUi(isEnabled ? "admin.pricing.fees.enabled_title" : "admin.pricing.fees.disabled_title")}
                       >
                         {isEnabled ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
                       </button>
@@ -335,18 +329,18 @@ export function FeesTab({ siteLanguages, showToast }: FeesTabProps) {
                       }`}
                     >
                       <ShieldCheck className="w-3 h-3" />
-                      {isMandatory ? "Mandatory Fee" : "Optional / Surcharge"}
+                      {tUi(isMandatory ? "admin.pricing.fees.mandatory" : "admin.pricing.fees.optional_surcharge")}
                     </span>
 
                     {rule.min_distance && rule.min_distance > 0 ? (
                       <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                        {rule.min_distance} {rule.unit || "km"} Free
+                        {rule.min_distance} {rule.unit || "km"} {tUi("admin.pricing.fees.free")}
                       </span>
                     ) : null}
 
                     {applicablePlans.length > 0 && (
                       <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-primary/10 text-primary border border-primary/20 flex items-center gap-1">
-                        <Filter className="w-3 h-3" /> {applicablePlans.length} Plans
+                        <Filter className="w-3 h-3" /> {applicablePlans.length} {tUi("admin.pricing.fees.plans")}
                       </span>
                     )}
 
@@ -365,12 +359,12 @@ export function FeesTab({ siteLanguages, showToast }: FeesTabProps) {
                       {rule.fee_type === "fixed"
                         ? formatCurrencyPrice(rule.amount, rule.currency)
                         : rule.fee_type === "percentage"
-                        ? `${rule.amount}% of order`
+                        ? `${rule.amount}% ${tUi("admin.pricing.fees.of_order")}`
                         : `${formatCurrencyPrice(rule.amount, rule.currency)} / ${rule.unit || "km"}`}
                     </span>
                     {rule.min_fee && rule.min_fee > 0 ? (
                       <span className="text-[11px] text-muted-text block">
-                        Min floor: {formatCurrencyPrice(rule.min_fee, rule.currency)}
+                        {tUi("admin.pricing.fees.min_floor")} {formatCurrencyPrice(rule.min_fee, rule.currency)}
                       </span>
                     ) : null}
                   </div>
@@ -386,8 +380,7 @@ export function FeesTab({ siteLanguages, showToast }: FeesTabProps) {
                       className="h-8 px-2.5 text-xs text-muted-text hover:text-text"
                     >
                       <Edit2 className="w-3.5 h-3.5 mr-1" />
-                      Edit
-                    </Button>
+                      {tUi("admin.customers.edit")}</Button>
                     <Button
                       size="sm"
                       variant="ghost"
@@ -424,17 +417,16 @@ export function FeesTab({ siteLanguages, showToast }: FeesTabProps) {
               <AlertTriangle className="w-6 h-6" />
             </div>
 
-            <h3 className="text-lg font-bold text-text mb-2">Delete Fee Rule?</h3>
+            <h3 className="text-lg font-bold text-text mb-2">{tUi("admin.pricing.fees.delete_title")}</h3>
             <p className="text-sm text-muted-text mb-6">
-              Are you sure you want to delete <strong>{getDisplayText(deleteConfirmFee.name, currentLang)}</strong>? This will stop calculating this fee on future orders and pricing checks.
+              {tUi("admin.pricing.delete_modal_confirm_prefix")}<strong>{getDisplayText(deleteConfirmFee.name, currentLang)}</strong>? {tUi("admin.pricing.fees.delete_warning")}
             </p>
 
             <div className="flex items-center justify-end gap-3">
               <Button variant="secondary" onClick={() => setDeleteConfirmFee(null)} disabled={isDeleting}>
-                Cancel
-              </Button>
+                {tUi("admin.clients.cancel")}</Button>
               <Button variant="destructive" onClick={handleDeleteFee} disabled={isDeleting} className="bg-red-600 hover:bg-red-700 text-white">
-                {isDeleting ? "Deleting..." : "Delete Fee"}
+                {isDeleting ? tUi("admin.pricing.fees.deleting") : tUi("admin.pricing.fees.delete_action")}
               </Button>
             </div>
           </div>

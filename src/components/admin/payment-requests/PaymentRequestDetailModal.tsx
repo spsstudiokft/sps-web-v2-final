@@ -1,3 +1,4 @@
+import { useLanguage } from "../../../contexts/LanguageContext";
 import React from "react";
 import { 
   X, 
@@ -41,6 +42,7 @@ export function PaymentRequestDetailModal({
   onOpenReview,
   onOpenEdit
 }: PaymentRequestDetailModalProps) {
+  const { tUi } = useLanguage();
   if (!isOpen || !request) return null;
 
   const isOwner = request.requester_id === currentUserId;
@@ -179,8 +181,7 @@ export function PaymentRequestDetailModal({
                     <span>{request.requester_name}</span>
                     {isOwner && (
                       <span className="text-[9px] px-1.5 py-0.2 rounded bg-primary/15 text-primary font-bold">
-                        You
-                      </span>
+                        {tUi("admin.team.you_badge")}</span>
                     )}
                   </div>
                   <div className="text-xs text-muted-text">
@@ -393,8 +394,7 @@ export function PaymentRequestDetailModal({
             onClick={onClose}
             className="px-4 py-2 text-xs font-medium text-muted-text hover:text-text rounded-lg transition-colors cursor-pointer"
           >
-            Close
-          </button>
+            {tUi("admin.team.btn_close")}</button>
 
           <div className="flex items-center gap-2">
             {/* Superadmin Quick Review Button */}

@@ -181,10 +181,10 @@ export function BudgetStatsCards({
             <span className="text-2xl lg:text-3xl font-bold text-text tracking-tight font-heading">
               {summary.profitMargin.toFixed(1)}%
             </span>
-            <span className="text-xs text-muted-text">net margin</span>
+            <span className="text-xs text-muted-text">{tUi("admin.budget.stats.net_margin")}</span>
           </div>
           <div className="mt-3 flex items-center justify-between text-xs text-muted-text border-t border-border pt-2.5">
-            <span>Total Entries:</span>
+            <span>{tUi("admin.budget.stats.total_entries")}:</span>
             <span className="font-semibold text-text">{summary.totalEntries} records</span>
           </div>
         </div>

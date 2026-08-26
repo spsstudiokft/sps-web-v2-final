@@ -1,3 +1,4 @@
+import { useLanguage } from "../../../contexts/LanguageContext";
 import React, { useState, useEffect } from "react";
 import { 
   X, 
@@ -55,6 +56,7 @@ export function InvoiceFormModal({
   initialData = null,
   showToast
 }: InvoiceFormModalProps) {
+  const { tUi } = useLanguage();
   const [loading, setLoading] = useState(false);
   const [invoiceNumber, setInvoiceNumber] = useState("");
   const [clientId, setClientId] = useState("");
@@ -459,7 +461,7 @@ export function InvoiceFormModal({
               <div>
                 <label className="block text-[11px] font-semibold text-text mb-1">Linked Project (Optional)</label>
                 <select value={projectId} disabled={!clientId} onChange={(e) => setProjectId(e.target.value)} className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-xs text-text focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-60">
-                  <option value="">-- No project linked --</option>
+                  <option value="">{tUi("admin.budget.modal.no_project")}</option>
                   {projects.filter((project) => project.client_id === clientId).map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
                 </select>
               </div>
@@ -542,8 +544,7 @@ export function InvoiceFormModal({
 
               <div>
                 <label className="block text-[11px] font-semibold text-text mb-1">
-                  Currency
-                </label>
+                  {tUi("admin.extra_services.field_currency")}</label>
                 <select
                   value={selectedCurrency}
                   onChange={(e) => setSelectedCurrency(e.target.value)}
@@ -618,17 +619,16 @@ export function InvoiceFormModal({
                 className="h-7 text-xs inline-flex items-center gap-1"
               >
                 <Plus className="w-3.5 h-3.5" />
-                Add Item
-              </Button>
+                {tUi("admin.portfolio.add_item")}</Button>
             </div>
 
             <div className="space-y-2">
               {/* Header */}
               <div className="grid grid-cols-12 gap-2 text-[11px] font-bold text-muted-text uppercase px-2">
-                <div className="col-span-6">Description</div>
+                <div className="col-span-6">{tUi("admin.portfolio_form.description")}</div>
                 <div className="col-span-2 text-center">Qty / Hrs</div>
                 <div className="col-span-2 text-right">Unit Price</div>
-                <div className="col-span-1 text-right">Total</div>
+                <div className="col-span-1 text-right">{tUi("common.total")}</div>
                 <div className="col-span-1"></div>
               </div>
 
@@ -810,8 +810,7 @@ export function InvoiceFormModal({
             onClick={onClose}
             disabled={loading}
           >
-            Cancel
-          </Button>
+            {tUi("admin.clients.cancel")}</Button>
 
           <div className="flex items-center gap-2">
             <Button
@@ -823,7 +822,7 @@ export function InvoiceFormModal({
               className="inline-flex items-center gap-2 min-w-[120px] justify-center"
             >
               {loading ? (
-                <span>Saving...</span>
+                <span>{tUi("admin.pricing.btn_saving")}</span>
               ) : (
                 <>
                   <Check className="w-4 h-4" />

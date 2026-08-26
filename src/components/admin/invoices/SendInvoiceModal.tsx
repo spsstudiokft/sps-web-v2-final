@@ -1,3 +1,4 @@
+import { useLanguage } from "../../../contexts/LanguageContext";
 import React, { useState } from "react";
 import { 
   X, 
@@ -29,6 +30,7 @@ export function SendInvoiceModal({
   onSend,
   showToast
 }: SendInvoiceModalProps) {
+  const { tUi } = useLanguage();
   if (!isOpen || !invoice) return null;
 
   const [customMessage, setCustomMessage] = useState(invoice.notes || "");
@@ -150,8 +152,7 @@ export function SendInvoiceModal({
               onClick={onClose}
               disabled={loading}
             >
-              Cancel
-            </Button>
+              {tUi("admin.clients.cancel")}</Button>
 
             <Button
               type="submit"

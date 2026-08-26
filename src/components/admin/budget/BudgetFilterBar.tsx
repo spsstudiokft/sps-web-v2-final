@@ -18,6 +18,8 @@ import {
 import { BudgetAdminItem } from "../../../types";
 import { Button } from "../../ui/Button";
 import { cn } from "../../../lib/utils";
+import { useLanguage } from "../../../contexts/LanguageContext";
+import { translateBudgetCategory } from "../../../lib/budgetLabels";
 
 interface BudgetFilterBarProps {
   search: string;
@@ -78,6 +80,7 @@ export function BudgetFilterBar({
   onRefresh,
   isRefreshing
 }: BudgetFilterBarProps) {
+  const { tUi } = useLanguage();
   const hasActiveFilters = search || typeFilter !== "all" || statusFilter !== "all" || categoryFilter !== "all" || periodFilter !== "all" || (isSuperAdmin && selectedAdminId !== "all");
 
   const clearAllFilters = () => {
@@ -100,7 +103,7 @@ export function BudgetFilterBar({
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-text" />
           <input
             type="text"
-            placeholder="Search descriptions, categories, admins..."
+            placeholder={tUi("admin.budget.filter.search_admins")}
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
             className="w-full pl-9 pr-8 py-2 bg-background border border-border rounded-lg text-sm text-text placeholder-muted-text focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-colors"
@@ -128,10 +131,10 @@ export function BudgetFilterBar({
                   ? "bg-surface text-text shadow-xs border border-border font-semibold"
                   : "text-muted-text hover:text-text"
               )}
-              title="Table View"
+              title={tUi("admin.budget.tabs.table")}
             >
               <LayoutList className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Table</span>
+              <span className="hidden sm:inline">{tUi("admin.budget.filter.table")}</span>
             </button>
             <button
               type="button"
@@ -142,10 +145,10 @@ export function BudgetFilterBar({
                   ? "bg-surface text-text shadow-xs border border-border font-semibold"
                   : "text-muted-text hover:text-text"
               )}
-              title="Kanban Board View"
+              title={tUi("admin.budget.tabs.kanban")}
             >
               <KanbanSquare className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Board</span>
+              <span className="hidden sm:inline">{tUi("admin.budget.filter.board")}</span>
             </button>
           </div>
 
@@ -157,7 +160,7 @@ export function BudgetFilterBar({
             onClick={onRefresh}
             disabled={isRefreshing}
             className="p-2"
-            title="Refresh budget data"
+            title={tUi("admin.budget.filter.refresh")}
           >
             <RefreshCw className={cn("w-3.5 h-3.5", isRefreshing && "animate-spin text-primary")} />
           </Button>
@@ -169,10 +172,10 @@ export function BudgetFilterBar({
             size="sm"
             onClick={onOpenAuditLogsModal}
             className="flex items-center gap-1.5"
-            title="View Audit Trail"
+            title={tUi("admin.budget.audit.title")}
           >
             <History className="w-3.5 h-3.5 text-muted-text" />
-            <span className="hidden md:inline">Audit Trail</span>
+            <span className="hidden md:inline">{tUi("admin.budget.audit_logs")}</span>
           </Button>
 
           {/* Settings / Targets */}
@@ -182,10 +185,10 @@ export function BudgetFilterBar({
             size="sm"
             onClick={onOpenSettingsModal}
             className="flex items-center gap-1.5"
-            title="Budget Preferences & Color Customization"
+            title={tUi("admin.budget.settings.title")}
           >
             <Settings2 className="w-3.5 h-3.5 text-muted-text" />
-            <span className="hidden md:inline">Preferences</span>
+            <span className="hidden md:inline">{tUi("admin.budget.settings")}</span>
           </Button>
 
           {/* Export CSV */}
@@ -195,10 +198,10 @@ export function BudgetFilterBar({
             size="sm"
             onClick={onExportCSV}
             className="flex items-center gap-1.5"
-            title="Export to CSV file"
+            title={tUi("admin.budget.export_csv")}
           >
             <Download className="w-3.5 h-3.5 text-muted-text" />
-            <span className="hidden sm:inline">Export</span>
+            <span className="hidden sm:inline">{tUi("admin.budget.filter.export")}</span>
           </Button>
 
           {/* New Entry Primary CTA */}
@@ -209,7 +212,7 @@ export function BudgetFilterBar({
             className="flex items-center gap-1.5"
           >
             <Plus className="w-4 h-4" />
-            <span>Add Entry</span>
+            <span>{tUi("admin.budget.add_entry")}</span>
           </Button>
         </div>
       </div>
@@ -221,13 +224,13 @@ export function BudgetFilterBar({
         {isSuperAdmin && (
           <div className="flex items-center gap-1.5 bg-primary/10 border border-primary/20 rounded-lg px-2.5 py-1 text-xs">
             <Users className="w-3.5 h-3.5 text-primary" />
-            <span className="font-semibold text-text">Admin:</span>
+            <span className="font-semibold text-text">{tUi("admin.budget.filter.admin")}</span>
             <select
               value={selectedAdminId}
               onChange={(e) => onAdminChange(e.target.value)}
               className="bg-transparent font-medium text-text focus:outline-none cursor-pointer text-xs"
             >
-              <option value="all" className="bg-surface text-text">Consolidated (All Admins)</option>
+              <option value="all" className="bg-surface text-text">{tUi("admin.budget.filter.all_admins")}</option>
               {adminsList.map((adm) => (
                 <option key={adm.id} value={adm.id} className="bg-surface text-text">
                   {adm.name} ({adm.role})
@@ -243,12 +246,12 @@ export function BudgetFilterBar({
           onChange={(e) => onPeriodFilterChange(e.target.value)}
           className="bg-background border border-border rounded-lg px-2.5 py-1.5 text-text font-medium focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-colors cursor-pointer text-xs"
         >
-          <option value="all" className="bg-surface text-text">All Dates</option>
-          <option value="this_month" className="bg-surface text-text">This Month</option>
-          <option value="last_month" className="bg-surface text-text">Last Month</option>
-          <option value="this_quarter" className="bg-surface text-text">This Quarter</option>
-          <option value="this_year" className="bg-surface text-text">This Year</option>
-          <option value="custom" className="bg-surface text-text">Custom Date Range</option>
+          <option value="all" className="bg-surface text-text">{tUi("admin.budget.filter.all_dates")}</option>
+          <option value="this_month" className="bg-surface text-text">{tUi("admin.budget.filter.this_month")}</option>
+          <option value="last_month" className="bg-surface text-text">{tUi("admin.budget.filter.last_month")}</option>
+          <option value="this_quarter" className="bg-surface text-text">{tUi("admin.budget.filter.this_quarter")}</option>
+          <option value="this_year" className="bg-surface text-text">{tUi("admin.budget.filter.this_year")}</option>
+          <option value="custom" className="bg-surface text-text">{tUi("admin.budget.filter.custom_range")}</option>
         </select>
 
         {/* Custom Date Range pickers if periodFilter === 'custom' */}
@@ -260,7 +263,7 @@ export function BudgetFilterBar({
               onChange={(e) => onStartDateChange(e.target.value)}
               className="bg-transparent text-text text-xs outline-none"
             />
-            <span className="text-muted-text">to</span>
+            <span className="text-muted-text">{tUi("admin.budget.filter.to")}</span>
             <input
               type="date"
               value={endDate}
@@ -276,9 +279,9 @@ export function BudgetFilterBar({
           onChange={(e) => onTypeFilterChange(e.target.value)}
           className="bg-background border border-border rounded-lg px-2.5 py-1.5 text-text font-medium focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-colors cursor-pointer text-xs"
         >
-          <option value="all" className="bg-surface text-text">All Types</option>
-          <option value="income" className="bg-surface text-text">Incomes Only (+)</option>
-          <option value="outcome" className="bg-surface text-text">Outcomes Only (-)</option>
+          <option value="all" className="bg-surface text-text">{tUi("admin.budget.filter.all_types")}</option>
+          <option value="income" className="bg-surface text-text">{tUi("admin.budget.tabs.income")}</option>
+          <option value="outcome" className="bg-surface text-text">{tUi("admin.budget.tabs.outcome")}</option>
         </select>
 
         {/* Status Filter */}
@@ -287,11 +290,11 @@ export function BudgetFilterBar({
           onChange={(e) => onStatusFilterChange(e.target.value)}
           className="bg-background border border-border rounded-lg px-2.5 py-1.5 text-text font-medium focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-colors cursor-pointer text-xs"
         >
-          <option value="all" className="bg-surface text-text">All Statuses</option>
-          <option value="confirmed" className="bg-surface text-text">Confirmed</option>
-          <option value="planned" className="bg-surface text-text">Planned</option>
-          <option value="pending" className="bg-surface text-text">Pending</option>
-          <option value="rejected" className="bg-surface text-text">Rejected</option>
+          <option value="all" className="bg-surface text-text">{tUi("admin.budget.filter.all_statuses")}</option>
+          <option value="confirmed" className="bg-surface text-text">{tUi("admin.budget.stats.confirmed")}</option>
+          <option value="planned" className="bg-surface text-text">{tUi("admin.budget.stats.planned")}</option>
+          <option value="pending" className="bg-surface text-text">{tUi("admin.budget.stats.pending")}</option>
+          <option value="rejected" className="bg-surface text-text">{tUi("admin.budget.stats.rejected")}</option>
         </select>
 
         {/* Category Filter */}
@@ -300,9 +303,9 @@ export function BudgetFilterBar({
           onChange={(e) => onCategoryFilterChange(e.target.value)}
           className="bg-background border border-border rounded-lg px-2.5 py-1.5 text-text font-medium focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-colors cursor-pointer text-xs"
         >
-          <option value="all" className="bg-surface text-text">All Categories</option>
+          <option value="all" className="bg-surface text-text">{tUi("admin.budget.filter.all_categories")}</option>
           {categoriesList.map((cat) => (
-            <option key={cat} value={cat} className="bg-surface text-text">{cat}</option>
+            <option key={cat} value={cat} className="bg-surface text-text">{translateBudgetCategory(cat, tUi)}</option>
           ))}
         </select>
 
@@ -314,7 +317,7 @@ export function BudgetFilterBar({
             className="text-xs text-primary hover:underline px-2 py-1 font-medium flex items-center gap-1"
           >
             <RotateCcw className="w-3 h-3" />
-            <span>Clear Filters</span>
+            <span>{tUi("admin.budget.filter.clear")}</span>
           </button>
         )}
       </div>

@@ -1,3 +1,4 @@
+import { useLanguage } from "../../../contexts/LanguageContext";
 import React, { useState } from "react";
 import { 
   X, 
@@ -36,6 +37,7 @@ export function PaymentRequestReviewModal({
   onSuccess,
   showToast
 }: PaymentRequestReviewModalProps) {
+  const { tUi } = useLanguage();
   if (!isOpen || !request) return null;
 
   const [action, setAction] = useState<"approve" | "deny" | "on_hold">("approve");
@@ -329,8 +331,7 @@ export function PaymentRequestReviewModal({
             disabled={isSubmitting}
             className="px-4 py-2 text-xs font-medium text-muted-text hover:text-text rounded-lg transition-colors cursor-pointer"
           >
-            Cancel
-          </button>
+            {tUi("admin.clients.cancel")}</button>
           <button
             type="button"
             onClick={handleSubmit}

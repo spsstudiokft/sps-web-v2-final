@@ -1,3 +1,4 @@
+import { useLanguage } from "../../contexts/LanguageContext";
 import React, { useState, useEffect } from "react";
 import { FAQCategory } from "../../lib/types";
 import { TranslatableInput } from "./TranslatableInput";
@@ -67,6 +68,7 @@ export function FaqCategoryModal({
   onClose,
   onSave,
 }: FaqCategoryModalProps) {
+  const { tUi } = useLanguage();
   const [formData, setFormData] = useState<Partial<FAQCategory>>({
     name: "",
     slug: "",
@@ -210,10 +212,10 @@ export function FaqCategoryModal({
               <div className="flex items-center justify-between mb-1.5">
                 <Label className="text-xs font-semibold text-text flex items-center gap-1.5">
                   <LinkIcon className="w-3.5 h-3.5 text-primary" />
-                  <span>Slug / Identifier</span>
+                  <span>{tUi("admin.faq_categories.th_slug")}</span>
                 </Label>
                 {autoSlug ? (
-                  <span className="text-[11px] text-primary font-medium">Auto-generated</span>
+                  <span className="text-[11px] text-primary font-medium">{tUi("admin.portfolio.category_modal.auto")}</span>
                 ) : (
                   <button
                     type="button"
@@ -223,8 +225,7 @@ export function FaqCategoryModal({
                     }}
                     className="text-[11px] text-muted-text hover:text-primary transition-colors"
                   >
-                    Reset to auto
-                  </button>
+                    {tUi("admin.portfolio.category_modal.reset_auto")}</button>
                 )}
               </div>
               <Input
@@ -286,7 +287,7 @@ export function FaqCategoryModal({
           {/* Visibility & Sort Order */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-border">
             <div>
-              <Label className="text-sm font-medium text-text mb-2 block">Visibility</Label>
+              <Label className="text-sm font-medium text-text mb-2 block">{tUi("admin.pricing.th_visibility")}</Label>
               <label className="flex items-center gap-3 p-3 rounded-xl border border-border bg-surface/50 cursor-pointer hover:bg-surface transition-colors">
                 <input
                   type="checkbox"
@@ -300,7 +301,7 @@ export function FaqCategoryModal({
                   className="w-4 h-4 rounded text-primary focus:ring-primary"
                 />
                 <div>
-                  <div className="text-sm font-medium text-text">Published on Site</div>
+                  <div className="text-sm font-medium text-text">{tUi("admin.services.published_on_site")}</div>
                   <div className="text-xs text-muted-text">
                     Display category and its filter tab in public FAQs.
                   </div>
@@ -311,7 +312,7 @@ export function FaqCategoryModal({
             <div>
               <Label className="text-sm font-medium text-text mb-2 block flex items-center gap-1.5">
                 <Hash className="w-3.5 h-3.5 text-primary" />
-                <span>Sort Order</span>
+                <span>{tUi("admin.faq_categories.th_sort")}</span>
               </Label>
               <Input
                 type="number"
@@ -345,7 +346,7 @@ export function FaqCategoryModal({
                 </span>
                 {parentName && (
                   <span className="text-[11px] text-muted-text bg-background border border-border px-2 py-0.5 rounded-md">
-                    Child of: <strong>{parentName}</strong>
+                    {tUi("admin.faq_categories.child_of")}<strong>{parentName}</strong>
                   </span>
                 )}
               </div>
@@ -361,8 +362,7 @@ export function FaqCategoryModal({
         {/* Modal Footer */}
         <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-border bg-surface/50">
           <Button type="button" variant="ghost" onClick={onClose} disabled={isSubmitting}>
-            Cancel
-          </Button>
+            {tUi("admin.clients.cancel")}</Button>
           <Button
             type="submit"
             form="faq-category-form"
@@ -370,7 +370,7 @@ export function FaqCategoryModal({
             className="flex items-center gap-2"
           >
             {isSubmitting ? (
-              <span>Saving...</span>
+              <span>{tUi("admin.pricing.btn_saving")}</span>
             ) : (
               <>
                 <Check className="w-4 h-4" />

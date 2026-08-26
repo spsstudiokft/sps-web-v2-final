@@ -1,6 +1,148 @@
 # Modification Log
 
+## 2026-08-26
+
+### Admin email-settings localization
+
+- Replaced 75 unique static email-settings strings with translation keys across templates, sender configuration, test delivery, DNS guidance, logs, and quick previews.
+- Completed five-language coverage for the Resend status header, template navigation, catalog search, loading/empty states, variables, sender and domain configuration, live tests, DNS guidance, logs, quick previews, editor actions, confirmations, and runtime feedback.
+- Added targeted local-database synchronization for the consolidated email-settings translation set.
+
+### Admin site-settings modal localization
+
+- Completed five-language localization for general settings, storage providers, Appwrite diagnostics, HTTP 413 infrastructure guidance, Cloudflare R2, contact forms, Hero/About content, and Google-review automation.
+- Removed 57 inline English translation fallbacks, localized runtime diagnostic/save failures, and added database synchronization for the consolidated settings-modal translation set.
+
 ## 2026-08-25
+
+### Admin site-settings modal localization groundwork
+
+- Replaced 76 unique static settings-modal strings with translation keys across general settings, storage diagnostics, contact content, hero/about content, and review automation.
+- Completed five-language coverage for general settings, branding/SEO/contact navigation, footer metadata, version labels, and social-link guidance; remaining sections are being migrated incrementally.
+
+### Admin team-management localization groundwork
+
+- Replaced 101 unique static team-management strings with translation keys across invitations, members, teams, template previews, and account dialogs.
+- Completed five-language coverage for the overview, invitation table, teams, members, template preview, invitation/account dialogs, member editor, confirmations, validation, and runtime feedback.
+- Added database synchronization for the consolidated team-management translation set.
+
+### Admin referrals page localization groundwork
+
+- Replaced 121 unique static referral-management strings with translation keys across the overview, logs, tiers, rewards, settings, and reward dialogs.
+- Completed the English, Hungarian, German, Spanish, and French dictionaries for the overview, logs, tiers, rewards, settings, editor dialogs, confirmations, and runtime feedback.
+- Added database synchronization for the consolidated referrals-page translation set and throttled/key-extraction modes to the localization helper.
+
+### Admin portfolio page localization
+
+- Completed five-language coverage for portfolio tabs, category management, search, confirmations, table headings, empty states, success feedback, and API failure messages.
+- Added localized unnamed-category handling and database synchronization for the portfolio page translation set.
+
+### Admin portfolio editor modal localization
+
+- Localized portfolio details, gallery cover, SEO preview, counters, validation, upload progress and failure states across all five supported languages.
+- Added database synchronization for the portfolio editor modal translation set and removed its remaining inline interface copy.
+
+### Admin embedded-video modal localization
+
+- Localized video-category assignment, URL detection, previews, poster uploads, metadata placeholders, validation, and fallback titles across all five supported languages.
+- Added accessible labels for the modal close action, players, posters, and thumbnails.
+
+### Admin gallery media-card localization
+
+- Localized filename validation, optimized-file controls, media typing, metadata editing, fallback descriptions, and video preview labels across all five supported languages.
+- Added accessible labels for media previews and icon-only actions, and localized storage filename synchronization errors.
+
+### Admin image gallery manager localization
+
+- Localized gallery filters, upload guidance, filename restructuring, video-poster generation, bulk media typing, pagination, feedback, and empty states across all five supported languages.
+- Replaced mixed Hungarian and English runtime processing messages with parameterized translation keys.
+
+### Admin portfolio sortable-card localization
+
+- Localized portfolio-card media badges, tooltips, fallback labels, publishing controls, and quick-edit actions across all five supported languages.
+- Added accessible labels to icon-only save, cancel, and delete actions and corrected translated category rendering.
+
+### Admin portfolio gallery localization
+
+- Completed five-language localization for gallery counters, media and status filters, bulk actions, selection counts, and empty states.
+- Replaced the remaining inline selection and empty-result messages with database-backed translation keys.
+
+### Admin portfolio category modal localization
+
+- Completed five-language localization for the portfolio-category editor, including headers, hierarchy fields, slug guidance, validation, accessibility labels, and actions.
+- Corrected parent-category rendering so translated content is displayed directly instead of being treated as another translation key.
+
+### Admin social links page localization
+
+- Localized the social-link tree controls, tooltips, group states, empty/loading states, success feedback, and API error fallbacks across all five supported languages.
+- Added a targeted local-database synchronization script for the page translation set.
+
+### Admin social node modal localization
+
+- Localized the social-node editor's placeholders, accessibility label, preview defaults, platform presets, suggested badges, group icons, and color preset tooltips across all five supported languages.
+- Added a targeted local-database synchronization script for the modal translation set.
+
+### Admin extra service modal localization
+
+- Replaced static add-on modal copy, option lists, role labels, icon tooltips, placeholders, hints, and runtime save errors with translation keys.
+- Added reviewed English, Hungarian, German, Spanish, and French translations plus a targeted local-database synchronization script.
+
+### Fee rule editor localization
+
+- Localized the fee-rule editor's calculation types, distance tiers, thresholds, plan restrictions, simulator, status controls, help text, placeholders, and validation feedback across all five supported languages.
+
+### Pricing fees tab localization
+
+- Completed five-language localization for fee-rule filters, types, badges, calculations, status actions, notifications, empty states, and deletion confirmation.
+
+### Pricing add-ons tab localization
+
+- Completed five-language localization for the Pricing add-ons tab, including filters, empty states, price and billing badges, visibility/status actions, notifications, and deletion confirmation.
+
+### Pricing editor modal localization
+
+- Localized the Pricing editor modal's remaining component builder, billing, bundle-value, feature, quantity, and accessibility copy across all five supported languages.
+- Removed embedded English UI fallbacks and localized runtime catalog fallback names while preserving editable pricing content defaults.
+
+### Pricing admin page localization
+
+- Removed embedded English fallbacks from the Pricing admin page so its complete existing translation registry is authoritative.
+- Added five-language labels for bundle item types and unnamed tier/service entries, and replaced runtime English error fallbacks with existing localized messages.
+
+### Themes admin localization
+
+- Localized the remaining Themes admin tooltips and runtime save, update, create, and delete errors across all five supported languages.
+- Localized generated custom-theme names/descriptions and the imported-theme fallback name instead of storing English-only copy.
+
+### Visual Ideas admin localization
+
+- Completed the Visual Ideas admin page localization by adding translated load/save errors and delete-card accessibility text in all five supported languages.
+- Removed embedded Hungarian and English UI fallbacks so the page now consistently uses the translation registry and database.
+
+### Projects admin localization
+
+- Completed the Projects admin page translation set in English, Hungarian, German, Spanish, and French, including statuses, empty states, errors, portfolio fallbacks, and the timeline action.
+- Replaced the remaining static tooltip and runtime-only English fallbacks with translation keys.
+
+### Admin panel existing translation wiring
+
+- Replaced 252 static admin-panel labels, placeholders, titles, and accessible labels across 52 pages and modals with their already available translation keys.
+- Added reusable AST-based audit and migration scripts to distinguish existing-key matches from genuinely new admin translation copy and safely wire existing records into React components.
+- Extended the admin localization audit with per-file key, missing-locale, English-fallback, and remaining-static-copy counts.
+- Preserved reactive language switching by adding `useLanguage().tUi` only at component scope; verified the resulting client bundle with a production build.
+
+### Admin translation audit and editor
+
+- Localized the translation editor's controls, filters, pagination, database actions, confirmations, and result messages with dedicated English and Hungarian keys.
+- Added a reusable admin static-copy audit command that reports untranslated JSX text and literal accessibility attributes by module and line.
+- Completed every file-backed locale dictionary with safe English fallback values, added the missing common publish/title keys, and kept raw translation keys from leaking into partially translated locales.
+- Synchronized missing hardcoded translations into the local database without overwriting existing editor customizations; all five locales now have equal key counts with no missing records, placeholder mismatches, or JSON-shaped values.
+
+### Budget manager localization
+
+- Replaced the remaining static budget-manager copy with translation keys across the financial page header, notifications, filters, table, Kanban view, charts, statistics, consolidated admin banner, entry editor, preferences, and audit-log modal.
+- Added complete English and Hungarian financial labels for date presets, statuses, actions, empty states, help text, validation feedback, and all predefined income/expense categories; German, Spanish, and French continue to receive the module's complete English fallback instead of raw keys.
+- Centralized translation of stored legacy budget category values so existing database records remain unchanged while their labels follow the selected interface language.
 
 ### Admin list performance
 
@@ -42,6 +184,10 @@
 - Removed duplicate temporary-disk writes from gallery batch restructuring: downloaded videos and generated image variants now upload directly from memory to R2/Appwrite, preventing Vercel `/tmp` exhaustion (`ENOSPC`) while preserving sequential processing.
 
 ## 2026-08-24
+
+### Portfolio admin translations
+
+- Added reusable Portfolio Manager UI translation keys and localized the gallery controls and external-video modal, including validation and confirmation messages.
 
 ### Business object chain and deletion safety
 

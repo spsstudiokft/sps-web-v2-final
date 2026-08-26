@@ -13,6 +13,7 @@ import {
 import { BudgetAuditLog } from "../../../types";
 import { Button } from "../../ui/Button";
 import { cn } from "../../../lib/utils";
+import { useLanguage } from "../../../contexts/LanguageContext";
 
 interface BudgetAuditLogsModalProps {
   isOpen: boolean;
@@ -25,6 +26,7 @@ export function BudgetAuditLogsModal({
   onClose,
   token
 }: BudgetAuditLogsModalProps) {
+  const { tUi } = useLanguage();
   const [logs, setLogs] = useState<BudgetAuditLog[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [filterAction, setFilterAction] = useState<string>("all");
@@ -109,11 +111,9 @@ export function BudgetAuditLogsModal({
             </div>
             <div>
               <h2 className="text-lg font-bold text-text font-heading">
-                Budget Audit Trail & Logs
-              </h2>
+                {tUi("admin.budget.audit.title")}</h2>
               <p className="text-xs text-muted-text">
-                Detailed chronological record of all budget creations, modifications, and deletions
-              </p>
+                {tUi("admin.budget.audit.subtitle")}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -122,7 +122,7 @@ export function BudgetAuditLogsModal({
               onClick={fetchLogs}
               disabled={isLoading}
               className="p-1.5 rounded-lg text-muted-text hover:text-text hover:bg-surface-hover transition-colors"
-              title="Refresh logs"
+              title={tUi("admin.budget.audit.refresh")}
             >
               <RefreshCw className={cn("w-4 h-4", isLoading && "animate-spin text-primary")} />
             </button>
@@ -139,22 +139,22 @@ export function BudgetAuditLogsModal({
         {/* Filter Toolbar */}
         <div className="px-6 py-3 border-b border-border flex items-center justify-between gap-2 bg-background shrink-0 text-xs">
           <div className="flex items-center gap-1.5">
-            <span className="font-semibold text-text">Filter Action:</span>
+            <span className="font-semibold text-text">{tUi("admin.budget.audit.filter_action")}:</span>
             <select
               value={filterAction}
               onChange={(e) => setFilterAction(e.target.value)}
               className="bg-surface border border-border rounded-lg px-2.5 py-1 text-text font-medium focus:outline-none"
             >
               <option value="all">All Actions ({logs.length})</option>
-              <option value="create">Created Entry</option>
-              <option value="update">Updated Entry</option>
-              <option value="delete">Deleted Entry</option>
-              <option value="settings_update">Settings Update</option>
+              <option value="create">{tUi("admin.budget.audit.created")}</option>
+              <option value="update">{tUi("admin.budget.audit.updated")}</option>
+              <option value="delete">{tUi("admin.budget.audit.deleted")}</option>
+              <option value="settings_update">{tUi("admin.budget.audit.settings_updated")}</option>
             </select>
           </div>
 
           <span className="text-muted-text">
-            Showing {filteredLogs.length} events
+            {tUi("admin.faq_categories.showing")}{filteredLogs.length} events
           </span>
         </div>
 
@@ -206,22 +206,22 @@ export function BudgetAuditLogsModal({
                   {/* Details Render */}
                   {log.action === "create" && (
                     <div className="text-muted-text bg-surface p-2.5 rounded-lg border border-border text-[11px]">
-                      Created <strong className="text-text capitalize">{details.type}</strong>: <strong className="text-text">${details.amount} {details.currency}</strong> ({details.category || "General"}) on <strong className="text-text">{details.date}</strong> with status <em className="text-text">{details.status}</em>
+                      {tUi("admin.budget.audit.created_summary", { type: details.type, amount: details.amount, currency: details.currency, category: details.category || tUi("admin.budget.general"), date: details.date, status: details.status })}
                       {details.description && <p className="mt-1 text-muted-text italic">"{details.description}"</p>}
                     </div>
                   )}
 
                   {log.action === "update" && (
                     <div className="text-muted-text bg-surface p-2.5 rounded-lg border border-border text-[11px] space-y-1">
-                      <div>Updated budget item changes:</div>
+                      <div>{tUi("admin.budget.audit.updated_changes")}</div>
                       {details.before && details.after && (
                         <div className="grid grid-cols-2 gap-2 mt-1 text-[10px]">
                           <div className="p-1.5 bg-rose-500/5 rounded border border-rose-500/20">
-                            <strong className="text-rose-600 dark:text-rose-400 block mb-0.5">Previous</strong>
+                            <strong className="text-rose-600 dark:text-rose-400 block mb-0.5">{tUi("admin.budget.audit.previous")}</strong>
                             <span className="text-muted-text">{details.before.type} · ${details.before.amount} · {details.before.status} · {details.before.date}</span>
                           </div>
                           <div className="p-1.5 bg-emerald-500/5 rounded border border-emerald-500/20">
-                            <strong className="text-emerald-600 dark:text-emerald-400 block mb-0.5">Updated</strong>
+                            <strong className="text-emerald-600 dark:text-emerald-400 block mb-0.5">{tUi("admin.budget.audit.updated_value")}</strong>
                             <span className="text-muted-text">{details.after.type} · ${details.after.amount} · {details.after.status} · {details.after.date}</span>
                           </div>
                         </div>
@@ -254,8 +254,7 @@ export function BudgetAuditLogsModal({
             size="sm"
             onClick={onClose}
           >
-            Close
-          </Button>
+            {tUi("admin.team.btn_close")}</Button>
         </div>
       </div>
     </div>

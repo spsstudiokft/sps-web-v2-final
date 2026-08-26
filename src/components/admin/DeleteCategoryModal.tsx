@@ -1,3 +1,4 @@
+import { useLanguage } from "../../contexts/LanguageContext";
 import React, { useState } from "react";
 import { FAQCategory } from "../../lib/types";
 import { Button } from "../ui/Button";
@@ -42,6 +43,7 @@ export function DeleteCategoryModal({
   onClose,
   onConfirm,
 }: DeleteCategoryModalProps) {
+  const { tUi } = useLanguage();
   const [reassignAction, setReassignAction] = useState<"general" | "reassign">("general");
   const [targetCategoryId, setTargetCategoryId] = useState<string>("");
   const [isDeleting, setIsDeleting] = useState(false);
@@ -81,9 +83,9 @@ export function DeleteCategoryModal({
             <AlertTriangle className="w-5 h-5" />
           </div>
           <div className="flex-1 min-w-0">
-            <h3 className="text-lg font-semibold text-text">Delete Category</h3>
+            <h3 className="text-lg font-semibold text-text">{tUi("admin.faq_categories.delete_category")}</h3>
             <p className="text-xs text-muted-text mt-0.5">
-              Are you sure you want to delete <strong className="text-text">"{categoryName}"</strong>?
+              {tUi("admin.pricing.delete_modal_confirm_prefix")}<strong className="text-text">"{categoryName}"</strong>?
             </p>
           </div>
           <button
@@ -108,7 +110,7 @@ export function DeleteCategoryModal({
               <div className="p-3.5 bg-amber-500/10 border border-amber-500/20 text-amber-800 dark:text-amber-300 rounded-xl text-xs space-y-1">
                 <div className="font-semibold flex items-center gap-1.5">
                   <HelpCircle className="w-4 h-4" />
-                  <span>{faqCount} FAQ {faqCount === 1 ? "question belongs" : "questions belong"} to this category</span>
+                  <span>{faqCount} {tUi("admin.faq_categories.faq_singular")}{faqCount === 1 ? "question belongs" : "questions belong"} to this category</span>
                 </div>
                 <p>
                   To prevent any data loss, existing FAQs will be safely preserved and moved.
@@ -184,8 +186,7 @@ export function DeleteCategoryModal({
         {/* Footer */}
         <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-border bg-surface/50">
           <Button type="button" variant="ghost" onClick={onClose} disabled={isDeleting} size="sm">
-            Cancel
-          </Button>
+            {tUi("admin.clients.cancel")}</Button>
           <Button
             type="button"
             variant="destructive"
@@ -195,11 +196,11 @@ export function DeleteCategoryModal({
             className="flex items-center gap-1.5"
           >
             {isDeleting ? (
-              <span>Deleting...</span>
+              <span>{tUi("admin.faqs.deleting")}</span>
             ) : (
               <>
                 <Trash2 className="w-4 h-4" />
-                <span>Delete Category</span>
+                <span>{tUi("admin.faq_categories.delete_category")}</span>
               </>
             )}
           </Button>

@@ -25,6 +25,7 @@ import { Button } from "../../ui/Button";
 import { Input } from "../../ui/Input";
 import { Label } from "../../ui/Label";
 import { useApi } from "../../../hooks/useApi";
+import { useLanguage } from "../../../contexts/LanguageContext";
 import { 
   GalleryMediaItem, 
   GalleryItemType, 
@@ -80,6 +81,7 @@ export function ImageSortableItem({
   itemIndex = 1,
   portfolioItemId
 }: Props) {
+  const { tUi, currentLanguage } = useLanguage();
   const { fetchApi } = useApi();
   const [isEditing, setIsEditing] = useState(false);
   const [isPreviewingVideo, setIsPreviewingVideo] = useState(false);
@@ -178,7 +180,7 @@ export function ImageSortableItem({
 
   const handleSave = async () => {
     if (!filenameValidation.valid) {
-      alert(`Invalid filename format: ${filenameValidation.reason || "Must follow [projectname]_[category]_[itemnumber].[ext]"}`);
+      alert(tUi("admin.portfolio.media.invalid_filename", currentLanguage, { reason: filenameValidation.reason || tUi("admin.portfolio.media.filename_pattern", currentLanguage) }));
       return;
     }
 
@@ -223,7 +225,7 @@ export function ImageSortableItem({
         });
 
         const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(data.error || "The bucket filename could not be synchronized.");
+        if (!res.ok) throw new Error(data.error || tUi("admin.portfolio.media.filename_sync_failed", currentLanguage));
         if (data.item) {
           updatedItem = {
             ...updatedItem,
@@ -232,7 +234,7 @@ export function ImageSortableItem({
         }
       } catch (err: any) {
         console.error("Could not synchronize item filename in bucket and database", err);
-        alert(err.message || "The filename could not be synchronized. No local metadata change was saved.");
+        alert(err.message || tUi("admin.portfolio.media.filename_sync_failed", currentLanguage));
         return;
       } finally {
         setIsSavingAndSyncing(false);
@@ -285,7 +287,7 @@ export function ImageSortableItem({
           {...attributes}
           {...listeners}
           className="w-7 h-7 rounded-lg bg-background/85 backdrop-blur-xs border border-border flex items-center justify-center cursor-grab active:cursor-grabbing hover:bg-background text-muted-text hover:text-text transition-colors shadow-xs"
-          title="Drag to reorder"
+          title={tUi("admin.pricing.drag_reorder")}
         >
           <FontAwesomeIcon icon={faGripVertical} className="text-xs" />
         </div>
@@ -297,7 +299,7 @@ export function ImageSortableItem({
               ? "bg-primary border-primary text-primary-foreground" 
               : "bg-background/85 backdrop-blur-xs border-border text-transparent hover:border-primary/50"
           }`}
-          title="Select item"
+          title={tUi("admin.portfolio.media.select")}
         >
           <FontAwesomeIcon icon={faCheckCircle} className={isSelected ? "text-background text-xs" : "text-muted-text/30 text-xs"} />
         </button>
@@ -308,22 +310,22 @@ export function ImageSortableItem({
         {resolvedItemType === "drone_photo" ? (
           <span className="px-2 py-0.5 rounded-md bg-emerald-600/90 backdrop-blur-xs text-white text-[10px] font-bold flex items-center gap-1 shadow-xs">
             <Plane className="w-3 h-3" />
-            <span>Drone Photo (Row 4)</span>
+            <span>{tUi("admin.portfolio.media.drone_photo", currentLanguage)}</span>
           </span>
         ) : resolvedItemType === "drone_video" ? (
           <span className="px-2 py-0.5 rounded-md bg-purple-600/90 backdrop-blur-xs text-white text-[10px] font-bold flex items-center gap-1 shadow-xs">
             <VideoIcon className="w-3 h-3" />
-            <span>Drone Video (Row 2)</span>
+            <span>{tUi("admin.portfolio.media.drone_video", currentLanguage)}</span>
           </span>
         ) : resolvedItemType === "interior_video" ? (
           <span className="px-2 py-0.5 rounded-md bg-amber-600/90 backdrop-blur-xs text-white text-[10px] font-bold flex items-center gap-1 shadow-xs">
             <Film className="w-3 h-3" />
-            <span>Interior Video (Row 3)</span>
+            <span>{tUi("admin.portfolio.media.interior_video", currentLanguage)}</span>
           </span>
         ) : (
           <span className="px-2 py-0.5 rounded-md bg-sky-600/90 backdrop-blur-xs text-white text-[10px] font-bold flex items-center gap-1 shadow-xs">
             <ImageIcon className="w-3 h-3" />
-            <span>Photo (Row 1)</span>
+            <span>{tUi("admin.portfolio.media.photo", currentLanguage)}</span>
           </span>
         )}
       </div>
@@ -345,7 +347,7 @@ export function ImageSortableItem({
           <>
             <img 
               src={coverImage} 
-              alt={image.alt || image.title || "Gallery media"} 
+              alt={image.alt || image.title || tUi("admin.portfolio.media.gallery_media_alt", currentLanguage)} 
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
               loading="lazy"
             />
@@ -362,13 +364,13 @@ export function ImageSortableItem({
             {parsedVideo?.type === "youtube" && parsedVideo.videoId ? (
               <img 
                 src={`https://img.youtube.com/vi/${parsedVideo.videoId}/hqdefault.jpg`} 
-                alt="YouTube thumbnail" 
+                alt={tUi("admin.portfolio.media.youtube_thumbnail_alt", currentLanguage)} 
                 className="w-full h-full object-cover opacity-80" 
               />
             ) : (
               <div className="text-purple-400 flex flex-col items-center">
                 <VideoIcon className="w-8 h-8 mb-1" />
-                <span className="text-[11px]">Video Source</span>
+                <span className="text-[11px]">{tUi("admin.portfolio.media.video_source", currentLanguage)}</span>
               </div>
             )}
             <div className="absolute inset-0 flex items-center justify-center bg-black/40">
@@ -380,7 +382,7 @@ export function ImageSortableItem({
         ) : (
           <div className="flex flex-col items-center justify-center text-muted-text p-4">
             <ImageIcon className="w-8 h-8 opacity-40 mb-1" />
-            <span className="text-xs">No media preview</span>
+            <span className="text-xs">{tUi("admin.portfolio.media.no_preview", currentLanguage)}</span>
           </div>
         )}
       </div>
@@ -405,7 +407,7 @@ export function ImageSortableItem({
               type="button"
               onClick={(e) => { e.stopPropagation(); handleCopyText(activeFilename); }}
               className="p-1 text-muted-text hover:text-text rounded hover:bg-background transition-colors"
-              title="Copy filename"
+              title={tUi("admin.portfolio.media.copy_filename", currentLanguage)}
             >
               {copiedFilename === activeFilename ? (
                 <CheckCircle2 className="w-3 h-3 text-emerald-500" />
@@ -421,7 +423,7 @@ export function ImageSortableItem({
                 download={activeFilename}
                 onClick={(e) => e.stopPropagation()}
                 className="p-1 text-muted-text hover:text-text rounded hover:bg-background transition-colors"
-                title="Download original file"
+                title={tUi("admin.portfolio.media.download_original", currentLanguage)}
               >
                 <DownloadIcon className="w-3 h-3" />
               </a>
@@ -434,10 +436,10 @@ export function ImageSortableItem({
           <div className="flex items-center justify-between gap-1 pt-1 border-t border-border/40 text-[10px]">
             <div className="flex items-center gap-1 min-w-0 flex-1">
               <span className="px-1 py-0.2 rounded bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-bold text-[9px] shrink-0">
-                10 MB Opt
+                {tUi("admin.portfolio.media.optimized_badge", currentLanguage)}
               </span>
-              <span className="font-mono text-[9.5px] text-muted-text truncate" title={active10mbFilename || "Auto-generated 10MB version"}>
-                {active10mbFilename || "10MB version"}
+              <span className="font-mono text-[9.5px] text-muted-text truncate" title={active10mbFilename || tUi("admin.portfolio.media.auto_optimized_version", currentLanguage)}>
+                {active10mbFilename || tUi("admin.portfolio.media.optimized_version", currentLanguage)}
               </span>
             </div>
             <div className="flex items-center gap-1 shrink-0">
@@ -454,13 +456,13 @@ export function ImageSortableItem({
                   download={active10mbFilename || "compressed.jpg"}
                   onClick={(e) => e.stopPropagation()}
                   className="p-0.5 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 rounded transition-colors"
-                  title="Download 10MB optimized version"
+                  title={tUi("admin.portfolio.media.download_optimized", currentLanguage)}
                 >
                   <DownloadIcon className="w-3 h-3" />
                 </a>
               ) : (
                 <span className="text-[9px] text-muted-text italic">
-                  Auto &lt;10MB
+                  {tUi("admin.portfolio.media.auto_under_limit", currentLanguage)}
                 </span>
               )}
             </div>
@@ -471,7 +473,7 @@ export function ImageSortableItem({
       {/* Per-Item Media Type Selector Bar */}
       <div className="px-2.5 py-1.5 bg-surface/50 border-t border-border flex items-start gap-2 text-[10px]">
         <span className="text-muted-text font-semibold uppercase tracking-wider text-[9px] shrink-0">
-          Type:
+          {tUi("admin.portfolio.media.type_short", currentLanguage)}
         </span>
         <div className="grid min-w-0 flex-1 grid-cols-2 gap-0.5 rounded-lg border border-border bg-background p-0.5">
           <button
@@ -482,10 +484,10 @@ export function ImageSortableItem({
                 ? "bg-sky-500 text-white shadow-xs"
                 : "text-muted-text hover:text-text"
             }`}
-            title="Designate as High-Resolution Photo (Row 1)"
+            title={tUi("admin.portfolio.media.designate_photo", currentLanguage)}
           >
             <ImageIcon className="w-2.5 h-2.5 shrink-0" />
-            <span className="truncate">Photo</span>
+            <span className="truncate">{tUi("portfolio.photo")}</span>
           </button>
           <button
             type="button"
@@ -495,10 +497,10 @@ export function ImageSortableItem({
                 ? "bg-purple-600 text-white shadow-xs"
                 : "text-muted-text hover:text-text"
             }`}
-            title="Designate as Drone Aerial Video (Row 2)"
+            title={tUi("admin.portfolio.media.designate_drone_video", currentLanguage)}
           >
             <VideoIcon className="w-2.5 h-2.5 shrink-0" />
-            <span className="truncate">Drone</span>
+            <span className="truncate">{tUi("admin.portfolio.media.drone_label", currentLanguage)}</span>
           </button>
           <button
             type="button"
@@ -508,10 +510,10 @@ export function ImageSortableItem({
                 ? "bg-amber-600 text-white shadow-xs"
                 : "text-muted-text hover:text-text"
             }`}
-            title="Designate as Interior Walkthrough Video (Row 3)"
+            title={tUi("admin.portfolio.media.designate_interior_video", currentLanguage)}
           >
             <Film className="w-2.5 h-2.5 shrink-0" />
-            <span className="truncate">Interior</span>
+            <span className="truncate">{tUi("admin.portfolio.media.interior_label", currentLanguage)}</span>
           </button>
           <button
             type="button"
@@ -521,10 +523,10 @@ export function ImageSortableItem({
                 ? "bg-emerald-600 text-white shadow-xs"
                 : "text-muted-text hover:text-text"
             }`}
-            title="Designate as Drone Photo (Row 4)"
+            title={tUi("admin.portfolio.media.designate_drone_photo", currentLanguage)}
           >
             <Plane className="w-2.5 h-2.5 shrink-0" />
-            <span className="truncate">Drone Photo</span>
+            <span className="truncate">{tUi("admin.portfolio.media.drone_photo_short", currentLanguage)}</span>
           </button>
         </div>
       </div>
@@ -537,16 +539,16 @@ export function ImageSortableItem({
             <div>
               <div className="flex items-center justify-between mb-1">
                 <Label className="text-[11px] font-semibold text-muted-text block">
-                  Structured Filename
+                  {tUi("admin.portfolio.media.structured_filename", currentLanguage)}
                 </Label>
                 <button
                   type="button"
                   onClick={handleAutoFormatFilename}
                   className="text-[10px] text-primary hover:underline flex items-center gap-1 font-medium"
-                  title="Auto-format according to [project]_[category]_[number].[ext]"
+                  title={tUi("admin.portfolio.media.auto_format_hint", currentLanguage)}
                 >
                   <Sparkles className="w-2.5 h-2.5" />
-                  Auto-Format
+                  {tUi("admin.portfolio.media.auto_format", currentLanguage)}
                 </button>
               </div>
               <Input 
@@ -557,80 +559,82 @@ export function ImageSortableItem({
                     ? "border-emerald-500/60 focus:ring-emerald-500" 
                     : "border-rose-500 focus:ring-rose-500"
                 }`}
-                placeholder="project_photos_001.jpg"
+                placeholder={tUi("admin.portfolio.media.filename_placeholder", currentLanguage)}
               />
               {filenameValidation.valid ? (
                 <div className="flex items-center gap-1 text-[10px] text-emerald-600 dark:text-emerald-400 mt-1">
                   <CheckCircle2 className="w-3 h-3" />
-                  <span>Pattern valid: [project]_[category]_[itemnumber]</span>
+                  <span>{tUi("admin.portfolio.media.pattern_valid", currentLanguage)}</span>
                 </div>
               ) : (
                 <div className="flex items-start gap-1 text-[10px] text-rose-500 mt-1">
                   <AlertCircle className="w-3 h-3 shrink-0 mt-0.5" />
-                  <span>{filenameValidation.reason || "Must match [project]_[category]_[itemnumber].[ext]"}</span>
+                  <span>{filenameValidation.reason || tUi("admin.portfolio.media.filename_pattern", currentLanguage)}</span>
                 </div>
               )}
             </div>
 
             {/* Media Type Selector in Edit Mode */}
             <div>
-              <Label className="text-[11px] mb-1 font-semibold text-muted-text block">Media Item Type</Label>
+              <Label className="text-[11px] mb-1 font-semibold text-muted-text block">{tUi("admin.portfolio.media.type", currentLanguage)}</Label>
               <select
                 className="w-full px-2 py-1 text-xs border border-border bg-background rounded-lg text-text focus:ring-1 focus:ring-primary outline-none"
                 value={editData.item_type || "image"}
                 onChange={(e) => setEditData({ ...editData, item_type: e.target.value as GalleryItemType })}
               >
-                <option value="image">📷 Photo / Image (Row 1)</option>
-                <option value="drone_video">🛸 Drone Aerial Video (Row 2)</option>
-                <option value="interior_video">🏠 Interior Walkthrough Video (Row 3)</option>
-                <option value="drone_photo">🚁 Drone Photo (Row 4)</option>
+                <option value="image">{tUi("admin.portfolio.media.option_photo", currentLanguage)}</option>
+                <option value="drone_video">{tUi("admin.portfolio.media.option_drone_video", currentLanguage)}</option>
+                <option value="interior_video">{tUi("admin.portfolio.media.option_interior_video", currentLanguage)}</option>
+                <option value="drone_photo">{tUi("admin.portfolio.media.option_drone_photo", currentLanguage)}</option>
               </select>
             </div>
 
             <div>
-              <Label className="text-[11px] mb-1 font-semibold text-muted-text block">Title</Label>
+              <Label className="text-[11px] mb-1 font-semibold text-muted-text block">{tUi("common.title", currentLanguage)}</Label>
               <Input 
                 value={editData.title} 
                 onChange={(e) => setEditData({ ...editData, title: e.target.value })} 
                 className="h-7 text-xs"
-                placeholder={isVideo ? "Video Title" : "Photo Title"}
+                placeholder={isVideo
+                  ? tUi("admin.portfolio.media.video_title_placeholder", currentLanguage)
+                  : tUi("admin.portfolio.media.photo_title_placeholder", currentLanguage)}
               />
             </div>
 
             <div>
-              <Label className="text-[11px] mb-1 font-semibold text-muted-text block">Caption</Label>
+              <Label className="text-[11px] mb-1 font-semibold text-muted-text block">{tUi("admin.portfolio.media.caption", currentLanguage)}</Label>
               <Input 
                 value={editData.caption} 
                 onChange={(e) => setEditData({ ...editData, caption: e.target.value })} 
                 className="h-7 text-xs"
-                placeholder="Optional description"
+                placeholder={tUi("admin.portfolio.media.optional_description", currentLanguage)}
               />
             </div>
 
             {isVideo ? (
               <>
                 <div>
-                  <Label className="text-[11px] mb-1 font-semibold text-muted-text block">Video URL</Label>
+                  <Label className="text-[11px] mb-1 font-semibold text-muted-text block">{tUi("admin.portfolio.media.video_url", currentLanguage)}</Label>
                   <Input 
                     value={editData.url} 
                     onChange={(e) => setEditData({ ...editData, url: e.target.value })} 
                     className="h-7 text-xs font-mono"
-                    placeholder="YouTube, Vimeo or MP4 URL"
+                    placeholder={tUi("admin.portfolio.media.video_url_placeholder", currentLanguage)}
                   />
                 </div>
                 <div>
-                  <Label className="text-[11px] mb-1 font-semibold text-muted-text block">Poster Image URL</Label>
+                  <Label className="text-[11px] mb-1 font-semibold text-muted-text block">{tUi("admin.portfolio.media.poster_url", currentLanguage)}</Label>
                   <div className="flex gap-1.5">
                     <Input 
                       value={editData.thumbnail_url} 
                       onChange={(e) => setEditData({ ...editData, thumbnail_url: e.target.value })} 
                       className="h-7 text-xs font-mono flex-1"
-                      placeholder="https://... cover image"
+                      placeholder={tUi("admin.portfolio.media.poster_url_placeholder", currentLanguage)}
                     />
                     {onUploadThumbnail && (
                       <label className="shrink-0 px-2 h-7 border border-border bg-surface hover:bg-surface/80 rounded-md text-[11px] font-medium cursor-pointer flex items-center gap-1 transition-colors">
                         <Upload className="w-3 h-3" />
-                        <span>{isUploadingThumb ? "..." : "Upload"}</span>
+                        <span>{isUploadingThumb ? tUi("admin.portfolio.media.uploading_short", currentLanguage) : tUi("admin.portfolio.media.upload", currentLanguage)}</span>
                         <input
                           type="file"
                           accept="image/*"
@@ -644,12 +648,12 @@ export function ImageSortableItem({
               </>
             ) : (
               <div>
-                <Label className="text-[11px] mb-1 font-semibold text-muted-text block">Alt Text</Label>
+                <Label className="text-[11px] mb-1 font-semibold text-muted-text block">{tUi("admin.portfolio.media.alt_text", currentLanguage)}</Label>
                 <Input 
                   value={editData.alt} 
                   onChange={(e) => setEditData({ ...editData, alt: e.target.value })} 
                   className="h-7 text-xs"
-                  placeholder="Accessibility alt description"
+                  placeholder={tUi("admin.portfolio.media.alt_placeholder", currentLanguage)}
                 />
               </div>
             )}
@@ -664,15 +668,15 @@ export function ImageSortableItem({
                 {isSavingAndSyncing ? (
                   <span className="flex items-center justify-center gap-1">
                     <span className="w-3 h-3 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                    <span>Syncing...</span>
+                    <span>{tUi("admin.portfolio.media.syncing", currentLanguage)}</span>
                   </span>
                 ) : (
                   <>
-                    <FontAwesomeIcon icon={faSave} className="mr-1" /> Save
+                    <FontAwesomeIcon icon={faSave} className="mr-1" /> {tUi("common.save", currentLanguage)}
                   </>
                 )}
               </Button>
-              <Button size="sm" variant="secondary" disabled={isSavingAndSyncing} onClick={() => setIsEditing(false)} className="h-7 px-2 text-xs">
+              <Button size="sm" variant="secondary" disabled={isSavingAndSyncing} onClick={() => setIsEditing(false)} className="h-7 px-2 text-xs" title={tUi("common.cancel", currentLanguage)} aria-label={tUi("common.cancel", currentLanguage)}>
                 <FontAwesomeIcon icon={faTimes} />
               </Button>
             </div>
@@ -681,10 +685,18 @@ export function ImageSortableItem({
           <div className="flex-1 flex flex-col justify-between">
             <div>
               <div className="font-semibold text-xs text-text line-clamp-1 mb-0.5">
-                {image.title || <span className="text-muted-text italic">Untitled {isVideo ? "Video" : "Photo"}</span>}
+                {image.title || <span className="text-muted-text italic">{isVideo
+                  ? tUi("admin.portfolio.media.untitled_video", currentLanguage)
+                  : tUi("admin.portfolio.media.untitled_photo", currentLanguage)}</span>}
               </div>
               <div className="text-muted-text text-[11px] line-clamp-1">
-                {image.caption || (isVideo ? (parsedVideo?.type === "youtube" ? "YouTube Embed" : parsedVideo?.type === "vimeo" ? "Vimeo Embed" : "Direct Video Stream") : "High-Resolution Image")}
+                {image.caption || (isVideo
+                  ? (parsedVideo?.type === "youtube"
+                    ? tUi("admin.portfolio.media.youtube_embed", currentLanguage)
+                    : parsedVideo?.type === "vimeo"
+                    ? tUi("admin.portfolio.media.vimeo_embed", currentLanguage)
+                    : tUi("admin.portfolio.media.direct_video", currentLanguage))
+                  : tUi("admin.portfolio.media.high_resolution_image", currentLanguage))}
               </div>
             </div>
             
@@ -695,7 +707,7 @@ export function ImageSortableItem({
                   variant="secondary" 
                   onClick={() => setIsPreviewingVideo(true)} 
                   className="h-7 px-2 text-xs text-purple-600 dark:text-purple-400 hover:bg-purple-500/10"
-                  title="Play video preview"
+                  title={tUi("admin.portfolio.media.play_preview", currentLanguage)}
                 >
                   <Play className="w-3.5 h-3.5 fill-current" />
                 </Button>
@@ -706,14 +718,13 @@ export function ImageSortableItem({
                 onClick={() => setIsEditing(true)} 
                 className="flex-1 h-7 text-xs"
               >
-                <FontAwesomeIcon icon={faEdit} className="mr-1 text-xs" /> Edit
-              </Button>
+                <FontAwesomeIcon icon={faEdit} className="mr-1 text-xs" /> {tUi("admin.customers.edit")}</Button>
               <Button 
                 size="sm" 
                 variant="danger" 
                 onClick={() => onDelete(image.id)} 
                 className="h-7 px-2.5 text-xs"
-                title="Delete media"
+                title={tUi("admin.portfolio.media.delete_media", currentLanguage)}
               >
                 <FontAwesomeIcon icon={faTrash} className="text-xs" />
               </Button>
@@ -736,13 +747,14 @@ export function ImageSortableItem({
               <div className="flex items-center gap-2">
                 <VideoIcon className="w-4 h-4 text-purple-500" />
                 <h4 className="text-sm font-bold text-text truncate max-w-md">
-                  {image.title || "Video Preview"}
+                  {image.title || tUi("admin.portfolio.media.video_preview", currentLanguage)}
                 </h4>
               </div>
               <button 
                 type="button" 
                 onClick={() => setIsPreviewingVideo(false)}
                 className="p-1.5 text-muted-text hover:text-text rounded-lg hover:bg-surface transition-colors"
+                aria-label={tUi("admin.portfolio.media.close_preview", currentLanguage)}
               >
                 <X className="w-4 h-4" />
               </button>
@@ -752,7 +764,7 @@ export function ImageSortableItem({
               {parsedVideo?.type === "youtube" && parsedVideo.videoId ? (
                 <iframe
                   src={`https://www.youtube-nocookie.com/embed/${parsedVideo.videoId}?autoplay=1&rel=0`}
-                  title="YouTube video"
+                  title={tUi("admin.portfolio.media.youtube_video", currentLanguage)}
                   className="w-full h-full"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen
@@ -760,7 +772,7 @@ export function ImageSortableItem({
               ) : parsedVideo?.type === "vimeo" && parsedVideo.videoId ? (
                 <iframe
                   src={`https://player.vimeo.com/video/${parsedVideo.videoId}?autoplay=1`}
-                  title="Vimeo video"
+                  title={tUi("admin.portfolio.media.vimeo_video", currentLanguage)}
                   className="w-full h-full"
                   allow="autoplay; fullscreen; picture-in-picture"
                   allowFullScreen

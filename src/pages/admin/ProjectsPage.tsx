@@ -73,7 +73,7 @@ export default function ProjectsPage() {
 
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      throw new Error(data.error || "Failed to save project.");
+      throw new Error(data.error || tUi("admin.projects.save_failed", currentLanguage));
     }
 
     await fetchData();
@@ -103,7 +103,7 @@ export default function ProjectsPage() {
   const filteredProjects = projects;
 
   const parsePortfolioDisplay = (titleVal?: string) => {
-    if (!titleVal) return "Untitled";
+    if (!titleVal) return tUi("admin.projects.untitled", currentLanguage);
     try {
       const p = JSON.parse(titleVal);
       if (typeof p === "object" && p !== null) {
@@ -181,7 +181,7 @@ export default function ProjectsPage() {
                   </td>
                   <td className="p-4">
                     <span className={cn("inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium", getStatusColor(project.status))}>
-                      {project.status.toUpperCase()}
+                      {tUi(`admin.projects.status_${project.status}`, currentLanguage)}
                     </span>
                   </td>
                   <td className="p-4 text-sm">
@@ -209,7 +209,7 @@ export default function ProjectsPage() {
                     )}
                   </td>
                   <td className="p-4 text-right space-x-2 whitespace-nowrap">
-                    <Button variant="secondary" size="sm" title="Milestones & project updates" onClick={() => setTimelineProject(project)}>
+                    <Button variant="secondary" size="sm" title={tUi("admin.projects.timeline_action", currentLanguage)} onClick={() => setTimelineProject(project)}>
                       <Milestone size={16} />
                     </Button>
                     <Button variant="secondary" size="sm" onClick={() => { 
