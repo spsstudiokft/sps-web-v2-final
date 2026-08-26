@@ -2,6 +2,7 @@ import React, { useEffect, useState, createContext, useContext, useCallback } fr
 import { ThemeConfig, THEME_PRESETS, AVAILABLE_FONTS, getAutoContrastColor } from "../lib/themeTypes";
 import { updateDocumentFavicon } from "../lib/favicon";
 import { useLocation } from "react-router-dom";
+import { hasConsent } from "../lib/consentStorage";
 
 type ThemeMode = "light" | "dark";
 
@@ -39,7 +40,7 @@ export function getSavedThemeMode(scope: "public" | "admin" = "public"): ThemeMo
   try {
     const saved = scope === "admin"
       ? localStorage.getItem(STORAGE_KEY_ADMIN_MODE) || localStorage.getItem(STORAGE_KEY_LEGACY)
-      : localStorage.getItem(STORAGE_KEY_PUBLIC_MODE) || localStorage.getItem(STORAGE_KEY_LEGACY) || localStorage.getItem(STORAGE_KEY_ADMIN_MODE);
+      : hasConsent("preferences") ? localStorage.getItem(STORAGE_KEY_PUBLIC_MODE) || localStorage.getItem(STORAGE_KEY_LEGACY) : null;
     if (saved === "light" || saved === "dark") {
       return saved;
     }
@@ -65,7 +66,7 @@ export function getSavedThemeMode(scope: "public" | "admin" = "public"): ThemeMo
  */
 export function saveThemeMode(mode: ThemeMode, scope: "public" | "admin" = "public"): void {
   try {
-    localStorage.setItem(scope === "admin" ? STORAGE_KEY_ADMIN_MODE : STORAGE_KEY_PUBLIC_MODE, mode);
+    if (scope === "admin" || hasConsent("preferences")) localStorage.setItem(scope === "admin" ? STORAGE_KEY_ADMIN_MODE : STORAGE_KEY_PUBLIC_MODE, mode);
   } catch (e) {
     // In-memory fallback if storage is unavailable
   }
@@ -200,6 +201,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     };
 
     window.addEventListener("storage", handleStorageChange);
+    const handleConsentChange = () => setPublicModeState(getSavedThemeMode("public"));
+    window.addEventListener("sps-consent-changed", handleConsentChange);
 
     // If no explicit local storage preference exists, listen to OS dark/light mode changes
     const mediaQuery = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
@@ -217,6 +220,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
     return () => {
       window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener("sps-consent-changed", handleConsentChange);
       if (mediaQuery?.removeEventListener) {
         mediaQuery.removeEventListener("change", handleMediaChange);
       }

@@ -1317,7 +1317,12 @@ router.get("/public/legal-documents", async (_req, res) => {
 router.get("/public/cookie-catalog", async (_req, res) => {
   try {
     const result = await db.execute({ sql: "SELECT value FROM settings WHERE key = ?", args: ["cookie_catalog_v1"] });
-    const items = result.rows.length ? JSON.parse(String(result.rows[0].value || "[]")) : [];
+    const items = result.rows.length ? JSON.parse(String(result.rows[0].value || "[]")) : [
+      { id: "consent", name: "sps_cookie_consent_v2", category: "necessary", consent_scope: "essential", storage: "localStorage", provider: "SPS Studio", duration: "12 months", purpose: "Stores the cookie preference decision.", active: true, required: true },
+      { id: "language", name: "site_lang", category: "preferences", consent_scope: "necessary", storage: "localStorage", provider: "SPS Studio", duration: "12 months", purpose: "Remembers the selected website language.", active: true, required: false },
+      { id: "theme", name: "public-theme-mode", category: "preferences", consent_scope: "all", storage: "localStorage", provider: "SPS Studio", duration: "12 months", purpose: "Remembers the public website colour mode.", active: true, required: false },
+      { id: "bootstrap", name: "sps_public_bootstrap_v1", category: "necessary", consent_scope: "essential", storage: "sessionStorage", provider: "SPS Studio", duration: "Session", purpose: "Short-lived cache used to load the public website reliably.", active: true, required: true },
+    ];
     res.json(Array.isArray(items) ? items.filter((item: any) => item?.active !== false) : []);
   } catch { res.json([]); }
 });

@@ -45,6 +45,10 @@
 ### Cookie consent and registry
 
 - Added an administrator-managed cookie and browser-storage catalog, seeded with the currently used consent, language, theme, and public-cache entries.
+- Added per-entry consent classification (essential, necessary-only, or full-consent) and made the visitor popup show each active entry's purpose, storage, provider, retention, and required/optional status.
+- Enforced the visitor decision technically: optional preference, analytics, and marketing browser-storage keys are cleared on withdrawal; public language/theme persistence is prevented without preference consent; and a shared consent-gated script loader is available for future analytics or marketing integrations.
+- Applied the same preference-consent check to the early HTML theme bootstrap so it cannot read a public theme preference before the application starts.
+- Moved the Google Analytics and Ahrefs scripts out of `index.html`; they now load only after analytics consent and are removed with their known client-side storage when that consent is withdrawn.
 
 ### Local demo administrator
 

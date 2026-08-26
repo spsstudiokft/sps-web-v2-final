@@ -9,6 +9,7 @@ import {
 } from "../lib/i18n";
 import { defaultLocales } from "../lib/translations";
 import { updateDocumentFavicon } from "../lib/favicon";
+import { hasConsent } from "../lib/consentStorage";
 
 export type LanguageContextType = {
   currentLang: string;
@@ -78,7 +79,7 @@ export function LanguageProvider({
   const [translationsReady, setTranslationsReady] = useState<boolean>(false);
   const [currentLang, setCurrentLang] = useState<string>(() => {
     try {
-      return localStorage.getItem("site_lang") || "en";
+      return hasConsent("preferences") ? localStorage.getItem("site_lang") || "en" : "en";
     } catch {
       return "en";
     }
@@ -195,7 +196,7 @@ export function LanguageProvider({
   // Sync active language selection with localStorage and HTML attribute,
   // falling back gracefully if current language is disabled or not supported
   useEffect(() => {
-    const saved = localStorage.getItem("site_lang");
+    const saved = hasConsent("preferences") ? localStorage.getItem("site_lang") : null;
     const activeEnabled = supportedLangs.filter((l) => l.enabled !== false);
     
     // Check if the saved language is currently enabled
@@ -208,7 +209,7 @@ export function LanguageProvider({
       if (currentLang !== defaultLang) setCurrentLang(defaultLang);
       document.documentElement.lang = defaultLang;
       try {
-        localStorage.setItem("site_lang", defaultLang);
+        if (hasConsent("preferences")) localStorage.setItem("site_lang", defaultLang);
       } catch {}
     } 
     // Otherwise fallback to the first enabled language
@@ -217,7 +218,7 @@ export function LanguageProvider({
       if (currentLang !== firstEnabled) setCurrentLang(firstEnabled);
       document.documentElement.lang = firstEnabled;
       try {
-        localStorage.setItem("site_lang", firstEnabled);
+        if (hasConsent("preferences")) localStorage.setItem("site_lang", firstEnabled);
       } catch {}
     }
     // As last resort, defaultLang or "en"
@@ -231,7 +232,7 @@ export function LanguageProvider({
   const setLang = useCallback((lang: string) => {
     setCurrentLang(lang);
     try {
-      localStorage.setItem("site_lang", lang);
+      if (hasConsent("preferences")) localStorage.setItem("site_lang", lang);
     } catch {}
     document.documentElement.lang = lang;
   }, []);

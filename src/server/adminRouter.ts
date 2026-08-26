@@ -894,10 +894,10 @@ adminRouter.put("/legal-documents/:type/:locale", async (req, res) => {
 
 const COOKIE_CATALOG_KEY = "cookie_catalog_v1";
 const DEFAULT_COOKIE_CATALOG = [
-  { id: "consent", name: "sps_cookie_consent_v2", category: "necessary", storage: "localStorage", provider: "SPS Studio", duration: "12 months", purpose: "Stores the cookie preference decision.", active: true, required: true },
-  { id: "language", name: "site_lang", category: "preferences", storage: "localStorage", provider: "SPS Studio", duration: "12 months", purpose: "Remembers the selected website language.", active: true, required: false },
-  { id: "theme", name: "sps_public_theme", category: "preferences", storage: "localStorage", provider: "SPS Studio", duration: "12 months", purpose: "Remembers the public website colour mode.", active: true, required: false },
-  { id: "bootstrap", name: "sps_public_bootstrap_v1", category: "necessary", storage: "sessionStorage", provider: "SPS Studio", duration: "Session", purpose: "Short-lived cache used to load the public website reliably.", active: true, required: true },
+  { id: "consent", name: "sps_cookie_consent_v2", category: "necessary", consent_scope: "essential", storage: "localStorage", provider: "SPS Studio", duration: "12 months", purpose: "Stores the cookie preference decision.", active: true, required: true },
+  { id: "language", name: "site_lang", category: "preferences", consent_scope: "necessary", storage: "localStorage", provider: "SPS Studio", duration: "12 months", purpose: "Remembers the selected website language.", active: true, required: false },
+  { id: "theme", name: "public-theme-mode", category: "preferences", consent_scope: "all", storage: "localStorage", provider: "SPS Studio", duration: "12 months", purpose: "Remembers the public website colour mode.", active: true, required: false },
+  { id: "bootstrap", name: "sps_public_bootstrap_v1", category: "necessary", consent_scope: "essential", storage: "sessionStorage", provider: "SPS Studio", duration: "Session", purpose: "Short-lived cache used to load the public website reliably.", active: true, required: true },
 ];
 
 function normalizeCookieCatalog(value: unknown) {
@@ -907,6 +907,7 @@ function normalizeCookieCatalog(value: unknown) {
     id: String(item?.id || `cookie-${index}`).replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 80) || `cookie-${index}`,
     name: String(item?.name || "").trim().slice(0, 120),
     category: categories.has(String(item?.category)) ? String(item.category) : "necessary",
+    consent_scope: ["essential", "necessary", "all"].includes(String(item?.consent_scope)) ? String(item.consent_scope) : (item?.required === true || String(item?.category) === "necessary" ? "essential" : "all"),
     storage: ["cookie", "localStorage", "sessionStorage"].includes(String(item?.storage)) ? String(item.storage) : "cookie",
     provider: String(item?.provider || "SPS Studio").trim().slice(0, 120), duration: String(item?.duration || "Session").trim().slice(0, 120),
     purpose: String(item?.purpose || "").trim().slice(0, 500), active: item?.active !== false, required: item?.required === true || String(item?.category) === "necessary",

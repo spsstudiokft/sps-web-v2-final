@@ -4,9 +4,11 @@ import { Cookie, FileText, Settings2, ShieldCheck, X } from "lucide-react";
 import { useLanguage } from "../../contexts/LanguageContext";
 import { tUi } from "../../lib/i18n";
 import { LegalDocumentModal } from "./LegalDocumentModal";
+import { applyConsentPreferences, loadConsentScript } from "../../lib/consentStorage";
 
 type CookieConsentStatus = "accepted" | "rejected" | null;
 type CookiePreferences = { necessary: true; preferences: boolean; analytics: boolean; marketing: boolean };
+type CookieCatalogItem = { id: string; name: string; category: "necessary" | "preferences" | "analytics" | "marketing"; consent_scope?: "essential" | "necessary" | "all"; storage: string; provider: string; duration: string; purpose: string; active: boolean; required: boolean };
 
 interface CookieConsentContextValue {
   status: CookieConsentStatus;
@@ -38,6 +40,20 @@ export function CookieConsentProvider({ children }: { children: React.ReactNode 
   const [isBannerOpen, setIsBannerOpen] = useState(() => readStoredConsent().status === null);
 
   useEffect(() => {
+    if (!preferences.analytics) return;
+    const analyticsWindow = window as typeof window & { dataLayer?: unknown[]; gtag?: (...args: unknown[]) => void; __spsGoogleAnalyticsConfigured?: boolean };
+    analyticsWindow.dataLayer = analyticsWindow.dataLayer || [];
+    analyticsWindow.gtag = analyticsWindow.gtag || ((...args: unknown[]) => analyticsWindow.dataLayer?.push(args));
+    if (!analyticsWindow.__spsGoogleAnalyticsConfigured) {
+      analyticsWindow.gtag("js", new Date());
+      analyticsWindow.gtag("config", "G-YFCQ9YBYXT");
+      analyticsWindow.__spsGoogleAnalyticsConfigured = true;
+    }
+    loadConsentScript("sps-google-analytics", "https://www.googletagmanager.com/gtag/js?id=G-YFCQ9YBYXT", "analytics");
+    loadConsentScript("sps-ahrefs-analytics", "https://analytics.ahrefs.com/analytics.js", "analytics", { "data-key": "/YeklFWRldYIGlIj6HUmKA" });
+  }, [preferences.analytics]);
+
+  useEffect(() => {
     const syncConsent = (event: StorageEvent) => {
       if (event.key !== STORAGE_KEY) return;
       const next = readStoredConsent(); setStatus(next.status); setPreferences(next.preferences); setIsBannerOpen(next.status === null);
@@ -48,7 +64,7 @@ export function CookieConsentProvider({ children }: { children: React.ReactNode 
 
   const saveConsent = useCallback((next: Exclude<CookieConsentStatus, null>, nextPreferences: CookiePreferences) => {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: 2, status: next, preferences: nextPreferences, updatedAt: new Date().toISOString() }));
-    window.localStorage.removeItem(LEGACY_STORAGE_KEY); setStatus(next); setPreferences(nextPreferences);
+    window.localStorage.removeItem(LEGACY_STORAGE_KEY); applyConsentPreferences(nextPreferences); setStatus(next); setPreferences(nextPreferences);
     setIsBannerOpen(false);
   }, []);
 
@@ -81,6 +97,7 @@ function CookieConsentBanner({ isOpen, onClose }: { isOpen: boolean; onClose: ()
   const { status, preferences, savePreferences, acceptCookies, rejectOptionalCookies, openPreferences } = useCookieConsent();
   const [showDetails, setShowDetails] = useState(false);
   const [cookieDocuments, setCookieDocuments] = useState<Record<string, { title: string; content: string; updated_at?: string }>>({});
+  const [cookieCatalog, setCookieCatalog] = useState<CookieCatalogItem[]>([]);
   const [isPolicyOpen, setIsPolicyOpen] = useState(false);
   const tr = (key: string) => tUi(key, currentLang, undefined, defaultLang);
   const bannerBlurStyle: React.CSSProperties = {
@@ -92,6 +109,10 @@ function CookieConsentBanner({ isOpen, onClose }: { isOpen: boolean; onClose: ()
     fetch("/api/public/legal-documents")
       .then((response) => response.ok ? response.json() : null)
       .then((data) => data?.cookies && setCookieDocuments(data.cookies))
+      .catch(() => {});
+    fetch("/api/public/cookie-catalog")
+      .then((response) => response.ok ? response.json() : [])
+      .then((data) => Array.isArray(data) && setCookieCatalog(data))
       .catch(() => {});
   }, []);
 
@@ -136,7 +157,7 @@ function CookieConsentBanner({ isOpen, onClose }: { isOpen: boolean; onClose: ()
                 </div>
               </div>
 
-              {showDetails && <div className="absolute inset-x-0 bottom-0 z-20 bg-background/95 border-t border-border p-4 sm:p-5"><p className="text-sm font-semibold text-text mb-2">Engedélyek kezelése</p><div className="grid sm:grid-cols-2 gap-2 text-sm text-muted-text">{([['necessary', 'Szükséges (mindig aktív)'], ['preferences', 'Beállítások'], ['analytics', 'Statisztika'], ['marketing', 'Marketing']] as const).map(([key, label]) => <label key={key} className="flex items-center justify-between rounded-lg bg-surface px-3 py-2"><span>{label}</span><input type="checkbox" disabled={key === 'necessary'} checked={preferences[key]} onChange={(event) => savePreferences({ ...preferences, [key]: event.target.checked })} /></label>)}</div><button type="button" onClick={() => { savePreferences(preferences); setShowDetails(false); }} className="mt-3 aero-cookie-primary px-4 py-2 rounded-xl text-sm font-semibold">Beállítások mentése</button></div>}
+              {showDetails && <div className="absolute inset-x-0 bottom-0 z-20 max-h-[78vh] overflow-y-auto bg-background/95 border-t border-border p-4 sm:p-5"><p className="text-sm font-semibold text-text mb-2">Engedélyek kezelése</p><div className="grid sm:grid-cols-2 gap-2 text-sm text-muted-text">{([['necessary', 'Szükséges (mindig aktív)'], ['preferences', 'Beállítások'], ['analytics', 'Statisztika'], ['marketing', 'Marketing']] as const).map(([key, label]) => <label key={key} className="flex items-center justify-between rounded-lg bg-surface px-3 py-2"><span>{label}</span><input type="checkbox" disabled={key === 'necessary'} checked={preferences[key]} onChange={(event) => savePreferences({ ...preferences, [key]: event.target.checked })} /></label>)}</div><div className="mt-4 space-y-2"><p className="text-sm font-semibold text-text">Használt sütik és böngészőtárhelyek</p>{cookieCatalog.length ? cookieCatalog.map((item) => <div key={item.id} className="rounded-xl border border-border bg-surface p-3 text-xs text-muted-text"><div className="flex flex-wrap items-center gap-2"><strong className="text-text">{item.name}</strong><span className="rounded-full bg-primary/10 px-2 py-0.5 text-primary">{item.storage}</span><span className="rounded-full bg-surface-hover px-2 py-0.5">{item.consent_scope === "essential" ? "Nélkülözhetetlen" : item.consent_scope === "necessary" ? "Csak szükséges" : "Teljes elfogadás"}</span></div><p className="mt-1">{item.purpose}</p><p className="mt-1 opacity-80">{item.provider} · {item.duration} · {item.required ? "szükséges" : "választható"}</p></div>) : <p className="text-xs text-muted-text">A süti-nyilvántartás hamarosan betöltődik.</p>}</div><button type="button" onClick={() => { savePreferences(preferences); setShowDetails(false); }} className="mt-3 aero-cookie-primary px-4 py-2 rounded-xl text-sm font-semibold">Beállítások mentése</button></div>}
 
               <div className="flex flex-col sm:flex-row lg:flex-col xl:flex-row gap-2.5 shrink-0">
                 <button type="button" onClick={rejectOptionalCookies} className="aero-cookie-secondary px-4 py-2.5 rounded-xl text-sm font-semibold">
