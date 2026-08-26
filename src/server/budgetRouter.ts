@@ -4,6 +4,39 @@ import { db } from "../db.js";
 
 const budgetRouter = Router();
 
+const SUPPORTED_BUDGET_CURRENCIES = new Set(["HUF", "EUR", "USD", "GBP", "CHF", "CAD", "AUD"]);
+
+function normalizeBudgetCurrency(value: unknown): string {
+  const currency = String(value || "").trim().toUpperCase();
+  return SUPPORTED_BUDGET_CURRENCIES.has(currency) ? currency : "USD";
+}
+
+function parseBudgetExchangeRates(value: unknown): Record<string, number> {
+  if (typeof value !== "string" || value.length > 2_000) return { EUR: 1 };
+  try {
+    const source = JSON.parse(value) as Record<string, unknown>;
+    const rates: Record<string, number> = { EUR: 1 };
+    for (const [currency, rate] of Object.entries(source || {})) {
+      const normalized = normalizeBudgetCurrency(currency);
+      const numericRate = Number(rate);
+      if (SUPPORTED_BUDGET_CURRENCIES.has(normalized) && Number.isFinite(numericRate) && numericRate > 0 && numericRate < 1_000_000) {
+        rates[normalized] = numericRate;
+      }
+    }
+    return rates;
+  } catch {
+    return { EUR: 1 };
+  }
+}
+
+function convertBudgetAmount(amount: number, sourceCurrency: string, targetCurrency: string, rates: Record<string, number>): number | null {
+  if (sourceCurrency === targetCurrency) return amount;
+  const sourceRate = rates[sourceCurrency];
+  const targetRate = rates[targetCurrency];
+  if (!Number.isFinite(sourceRate) || !Number.isFinite(targetRate) || sourceRate <= 0 || targetRate <= 0) return null;
+  return amount / sourceRate * targetRate;
+}
+
 // Budget entries and their aggregates are private, mutable financial data.
 // Prevent browsers and Vercel from returning a previous summary after a save.
 budgetRouter.use((_req, res, next) => {
@@ -239,8 +272,12 @@ budgetRouter.get("/summary", async (req: any, res) => {
       type,
       status,
       category,
-      currency
+      currency,
+      rates
     } = req.query;
+    const displayCurrency = normalizeBudgetCurrency(currency);
+    const exchangeRates = parseBudgetExchangeRates(rates);
+    const unconvertedCurrencies = new Set<string>();
 
     let baseSql = `
       SELECT 
@@ -285,10 +322,6 @@ budgetRouter.get("/summary", async (req: any, res) => {
       baseSql += " AND b.category = ?";
       args.push(category);
     }
-    if (currency && typeof currency === "string") {
-      baseSql += " AND UPPER(b.currency) = ?";
-      args.push(currency.trim().toUpperCase());
-    }
     if (start_date) {
       baseSql += " AND b.date >= ?";
       args.push(start_date);
@@ -318,7 +351,13 @@ budgetRouter.get("/summary", async (req: any, res) => {
     const adminMap: Record<string, { adminId: string; adminName: string; adminEmail: string; adminRole: string; adminColor: string; totalIncome: number; totalOutcome: number; net: number; entryCount: number; confirmedIncome: number; confirmedOutcome: number }> = {};
 
     rows.forEach((row: any) => {
-      const amt = Number(row.amount || 0);
+      const sourceCurrency = normalizeBudgetCurrency(row.currency);
+      const convertedAmount = convertBudgetAmount(Number(row.amount || 0), sourceCurrency, displayCurrency, exchangeRates);
+      if (convertedAmount === null) {
+        unconvertedCurrencies.add(sourceCurrency);
+        return;
+      }
+      const amt = convertedAmount;
       const isIncome = row.type === "income";
       const cat = row.category || "General";
       const stat = row.status || "planned";
@@ -443,6 +482,8 @@ budgetRouter.get("/summary", async (req: any, res) => {
       rejectedOutcome,
       profitMargin,
       totalEntries: rows.length,
+      displayCurrency,
+      unconvertedCurrencies: Array.from(unconvertedCurrencies),
       monthlyBreakdown,
       categoryBreakdown: {
         incomes: Object.values(categoryIncomesMap).sort((a, b) => b.amount - a.amount),

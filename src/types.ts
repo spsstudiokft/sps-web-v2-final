@@ -230,6 +230,8 @@ export interface BudgetSummary {
   rejectedOutcome: number;
   profitMargin: number;
   totalEntries: number;
+  displayCurrency?: string;
+  unconvertedCurrencies?: string[];
   monthlyBreakdown: {
     month: string;
     income: number;

@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { normalizeCurrency } from "../lib/currency";
 import { useAuth } from "./AuthContext";
 
-const currencies = ["HUF", "EUR", "USD", "GBP", "CHF"];
+const currencies = ["HUF", "EUR", "USD", "GBP", "CHF", "CAD", "AUD"];
 type CurrencyState = { currency: string; setCurrency: (value: string) => void; rates: Record<string, number>; updatedAt: string | null; convert: (amount: number, from?: string) => number | null; format: (amount: number, from?: string) => string };
 const CurrencyContext = createContext<CurrencyState | null>(null);
 export function AdminCurrencyProvider({ children }: { children: React.ReactNode }) {

@@ -7,13 +7,12 @@ import {
   Layers,
   Sparkles
 } from "lucide-react";
-import { BudgetAdminItem } from "../../../types";
 import { cn } from "../../../lib/utils";
 import { formatConfiguredCurrency } from "../../../lib/currency";
 import { useLanguage } from "../../../contexts/LanguageContext";
 
 interface SuperadminConsolidatedBannerProps {
-  admins: BudgetAdminItem[];
+  admins: Array<{ id: string; name: string; defaultColor?: string; totalIncome: number; totalOutcome: number; net: number }>;
   selectedAdminId: string;
   onSelectAdmin: (adminId: string) => void;
   currency?: string;

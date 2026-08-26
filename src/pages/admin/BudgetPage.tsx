@@ -23,6 +23,7 @@ import {
   BarChart2
 } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
+import { useAdminCurrency } from "../../contexts/AdminCurrencyContext";
 import { useLanguage } from "../../contexts/LanguageContext";
 import { usePageTitle } from "../../hooks/usePageTitle";
 import { 
@@ -62,6 +63,7 @@ import { AdminPagination, AdminPaginationMeta } from "../../components/admin/Adm
 
 export default function BudgetPage() {
   const { user, token } = useAuth();
+  const { currency: displayCurrency, rates: exchangeRates } = useAdminCurrency();
   const { currentLanguage, tUi } = useLanguage();
   const [searchParams, setSearchParams] = useSearchParams();
   const isEditor = normalizeAdminRole(user?.role) === "editor";
@@ -138,6 +140,7 @@ export default function BudgetPage() {
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState<boolean>(false);
   const [isAuditLogsModalOpen, setIsAuditLogsModalOpen] = useState<boolean>(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const serializedExchangeRates = useMemo(() => JSON.stringify(exchangeRates), [exchangeRates]);
 
   // ----------------------------------------------------
   // Invoices State
@@ -288,16 +291,15 @@ export default function BudgetPage() {
         ...(token ? { Authorization: `Bearer ${token}` } : {})
       };
 
-      let configuredCurrency = currentSettings?.default_currency || "USD";
       const settingsRes = await fetch(`/api/admin/budgets/settings`, { headers: authHeaders, cache: "no-store" });
       if (settingsRes.ok) {
         const settingsData = await settingsRes.json();
-        configuredCurrency = String(settingsData.default_currency || "USD").toUpperCase();
         setCurrentSettings(settingsData);
       }
 
       const summaryParams = new URLSearchParams(queryParams);
-      summaryParams.set("currency", configuredCurrency);
+      summaryParams.set("currency", displayCurrency);
+      summaryParams.set("rates", serializedExchangeRates);
 
       const entriesRes = await fetch(`/api/admin/budgets?${queryParams.toString()}`, {
         headers: authHeaders,
@@ -409,7 +411,9 @@ export default function BudgetPage() {
     startDate, 
     endDate, 
     selectedAdminId,
-    budgetPage
+    budgetPage,
+    displayCurrency,
+    serializedExchangeRates
   ]);
 
   // Invoice filter triggers
@@ -999,17 +1003,17 @@ export default function BudgetPage() {
           {/* Superadmin Consolidated View Banner (if Superadmin) */}
           {isSuperAdmin && (
             <SuperadminConsolidatedBanner
-              admins={adminsList}
+              admins={summary?.adminBreakdown?.map((admin) => ({ id: admin.adminId, name: admin.adminName, defaultColor: admin.adminColor, totalIncome: admin.totalIncome, totalOutcome: admin.totalOutcome, net: admin.net })) || adminsList}
               selectedAdminId={selectedAdminId}
               onSelectAdmin={setSelectedAdminId}
-              currency={currentSettings?.default_currency || "USD"}
+              currency={displayCurrency}
             />
           )}
 
           {/* Top Metric Stats Cards */}
           <BudgetStatsCards
             summary={summary}
-            currency={currentSettings?.default_currency || "USD"}
+            currency={displayCurrency}
             isSuperAdmin={isSuperAdmin}
             selectedAdminName={
               selectedAdminId !== "all" 
@@ -1021,7 +1025,7 @@ export default function BudgetPage() {
           {/* Charts & Trends Section */}
           <BudgetChartSection
             summary={summary}
-            currency={currentSettings?.default_currency || "USD"}
+            currency={displayCurrency}
             isSuperAdmin={isSuperAdmin}
           />
 

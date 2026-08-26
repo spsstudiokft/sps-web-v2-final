@@ -31,6 +31,8 @@
 
 - Marked all private Budget API responses as non-cacheable and made the client request fresh entries, summaries, settings, and administrator data after every save.
 - Budget entry creation and editing now wait for the refreshed list and analytics totals before completing, so new expenses appear in the table and update cashflow metrics immediately.
+- Fixed Budget totals and analytics for mixed-currency entries: all stored entry currencies are now converted to the administrator's selected display currency before aggregation, rather than being silently excluded when they differ from the budget default.
+- Extended the shared administrator exchange-rate feed to cover every currency available in Budget entry creation, including CAD and AUD.
 
 ### Theme templates
 
