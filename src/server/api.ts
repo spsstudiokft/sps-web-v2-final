@@ -1317,13 +1317,22 @@ router.get("/public/legal-documents", async (_req, res) => {
 router.get("/public/cookie-catalog", async (_req, res) => {
   try {
     const result = await db.execute({ sql: "SELECT value FROM settings WHERE key = ?", args: ["cookie_catalog_v1"] });
-    const items = result.rows.length ? JSON.parse(String(result.rows[0].value || "[]")) : [
-      { id: "consent", name: "sps_cookie_consent_v2", category: "necessary", consent_scope: "essential", storage: "localStorage", provider: "SPS Studio", duration: "12 months", purpose: "Stores the cookie preference decision.", active: true, required: true },
-      { id: "language", name: "site_lang", category: "preferences", consent_scope: "necessary", storage: "localStorage", provider: "SPS Studio", duration: "12 months", purpose: "Remembers the selected website language.", active: true, required: false },
-      { id: "theme", name: "public-theme-mode", category: "preferences", consent_scope: "all", storage: "localStorage", provider: "SPS Studio", duration: "12 months", purpose: "Remembers the public website colour mode.", active: true, required: false },
-      { id: "bootstrap", name: "sps_public_bootstrap_v1", category: "necessary", consent_scope: "essential", storage: "sessionStorage", provider: "SPS Studio", duration: "Session", purpose: "Short-lived cache used to load the public website reliably.", active: true, required: true },
+    const defaults = [
+      { id: "consent", name: "sps_cookie_consent_v2", category: "necessary", consent_scope: "essential", storage: "localStorage", provider: "SPS Studio", duration: "12 months", purpose: "Stores the cookie preference decision.", active: true, required: true, visible_public: true },
+      { id: "legacy-consent", name: "sps_cookie_consent_v1", category: "necessary", consent_scope: "essential", storage: "localStorage", provider: "SPS Studio", duration: "Until migrated", purpose: "Legacy consent value retained only to migrate prior choices.", active: true, required: true, visible_public: true },
+      { id: "language", name: "site_lang", category: "preferences", consent_scope: "all", storage: "localStorage", provider: "SPS Studio", duration: "12 months", purpose: "Remembers the selected website language.", active: true, required: false, visible_public: true },
+      { id: "theme", name: "public-theme-mode, theme", category: "preferences", consent_scope: "all", storage: "localStorage", provider: "SPS Studio", duration: "12 months / legacy", purpose: "Remembers the public website colour mode.", active: true, required: false, visible_public: true },
+      { id: "bootstrap", name: "sps-public-bootstrap-v1", category: "necessary", consent_scope: "essential", storage: "sessionStorage", provider: "SPS Studio", duration: "30 seconds", purpose: "Short-lived cache used to load the public website reliably.", active: true, required: true, visible_public: true },
+      { id: "infobar-session", name: "sps_dismissed_infobar_session", category: "necessary", consent_scope: "necessary", storage: "sessionStorage", provider: "SPS Studio", duration: "Session", purpose: "Avoids repeating an information-bar message during a visit.", active: true, required: true, visible_public: true },
+      { id: "infobar-permanent", name: "sps_dismissed_infobar_permanent", category: "preferences", consent_scope: "all", storage: "localStorage", provider: "SPS Studio", duration: "Until settings change", purpose: "Remembers dismissed non-critical information-bar messages.", active: true, required: false, visible_public: true },
+      { id: "incident-dismissal", name: "sps_incident_status_dismissed_v2", category: "necessary", consent_scope: "necessary", storage: "localStorage / sessionStorage", provider: "SPS Studio", duration: "Until incident changes", purpose: "Avoids repeating an incident-status message already dismissed by the visitor.", active: true, required: true, visible_public: true },
+      { id: "google-analytics", name: "_ga, _ga_*, _gid, _gat_*", category: "analytics", consent_scope: "all", storage: "cookie", provider: "Google Analytics", duration: "Up to 2 years", purpose: "Measures visits, pages and interactions after analytics consent.", active: true, required: false, visible_public: true },
+      { id: "ahrefs-analytics", name: "analytics.ahrefs.com/analytics.js", category: "analytics", consent_scope: "all", storage: "script", provider: "Ahrefs Web Analytics", duration: "No persistent cookie", purpose: "Aggregated website-usage analytics loaded after analytics consent.", active: true, required: false, visible_public: true },
     ];
-    res.json(Array.isArray(items) ? items.filter((item: any) => item?.active !== false) : []);
+    const stored = result.rows.length ? JSON.parse(String(result.rows[0].value || "[]")) : [];
+    const savedItems = Array.isArray(stored) ? stored : [];
+    const items = [...defaults.map((item) => ({ ...item, ...(savedItems.find((saved: any) => saved?.id === item.id) || {}) })), ...savedItems.filter((item: any) => item?.id && !defaults.some((entry) => entry.id === item.id))];
+    res.json(items.filter((item: any) => item?.active !== false && item?.visible_public !== false));
   } catch { res.json([]); }
 });
 

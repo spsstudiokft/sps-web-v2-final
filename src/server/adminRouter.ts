@@ -894,10 +894,23 @@ adminRouter.put("/legal-documents/:type/:locale", async (req, res) => {
 
 const COOKIE_CATALOG_KEY = "cookie_catalog_v1";
 const DEFAULT_COOKIE_CATALOG = [
-  { id: "consent", name: "sps_cookie_consent_v2", category: "necessary", consent_scope: "essential", storage: "localStorage", provider: "SPS Studio", duration: "12 months", purpose: "Stores the cookie preference decision.", active: true, required: true },
-  { id: "language", name: "site_lang", category: "preferences", consent_scope: "necessary", storage: "localStorage", provider: "SPS Studio", duration: "12 months", purpose: "Remembers the selected website language.", active: true, required: false },
-  { id: "theme", name: "public-theme-mode", category: "preferences", consent_scope: "all", storage: "localStorage", provider: "SPS Studio", duration: "12 months", purpose: "Remembers the public website colour mode.", active: true, required: false },
-  { id: "bootstrap", name: "sps_public_bootstrap_v1", category: "necessary", consent_scope: "essential", storage: "sessionStorage", provider: "SPS Studio", duration: "Session", purpose: "Short-lived cache used to load the public website reliably.", active: true, required: true },
+  { id: "consent", name: "sps_cookie_consent_v2", category: "necessary", consent_scope: "essential", storage: "localStorage", provider: "SPS Studio", duration: "12 months", purpose: "Stores the cookie preference decision.", active: true, required: true, visible_public: true },
+  { id: "legacy-consent", name: "sps_cookie_consent_v1", category: "necessary", consent_scope: "essential", storage: "localStorage", provider: "SPS Studio", duration: "Until migrated", purpose: "Legacy consent value retained only to migrate prior choices.", active: true, required: true, visible_public: true },
+  { id: "language", name: "site_lang", category: "preferences", consent_scope: "all", storage: "localStorage", provider: "SPS Studio", duration: "12 months", purpose: "Remembers the selected website language.", active: true, required: false, visible_public: true },
+  { id: "theme", name: "public-theme-mode", category: "preferences", consent_scope: "all", storage: "localStorage", provider: "SPS Studio", duration: "12 months", purpose: "Remembers the public website colour mode.", active: true, required: false, visible_public: true },
+  { id: "legacy-theme", name: "theme", category: "preferences", consent_scope: "all", storage: "localStorage", provider: "SPS Studio", duration: "Until replaced", purpose: "Legacy public theme preference for earlier visitors.", active: true, required: false, visible_public: true },
+  { id: "bootstrap", name: "sps-public-bootstrap-v1", category: "necessary", consent_scope: "essential", storage: "sessionStorage", provider: "SPS Studio", duration: "30 seconds", purpose: "Short-lived cache used to load the public website reliably.", active: true, required: true, visible_public: true },
+  { id: "infobar-session", name: "sps_dismissed_infobar_session", category: "necessary", consent_scope: "necessary", storage: "sessionStorage", provider: "SPS Studio", duration: "Session", purpose: "Avoids repeating an information-bar message during a visit.", active: true, required: false, visible_public: true },
+  { id: "infobar-permanent", name: "sps_dismissed_infobar_permanent", category: "preferences", consent_scope: "all", storage: "localStorage", provider: "SPS Studio", duration: "Until settings change", purpose: "Remembers dismissed non-critical information-bar messages.", active: true, required: false, visible_public: true },
+  { id: "incident-dismissal", name: "sps_incident_status_dismissed_v2", category: "necessary", consent_scope: "necessary", storage: "localStorage / sessionStorage", provider: "SPS Studio", duration: "Until incident changes", purpose: "Avoids repeating an incident-status message already dismissed by the visitor.", active: true, required: false, visible_public: true },
+  { id: "google-analytics", name: "_ga, _ga_*, _gid, _gat_*", category: "analytics", consent_scope: "all", storage: "cookie", provider: "Google Analytics", duration: "Up to 2 years", purpose: "Measures visits, pages and interactions after analytics consent.", active: true, required: false, visible_public: true },
+  { id: "ahrefs-analytics", name: "analytics.ahrefs.com/analytics.js", category: "analytics", consent_scope: "all", storage: "script", provider: "Ahrefs Web Analytics", duration: "No persistent cookie", purpose: "Aggregated website-usage analytics loaded after analytics consent.", active: true, required: false, visible_public: true },
+  { id: "auth-tokens", name: "admin_token, token, user_info", category: "necessary", consent_scope: "essential", storage: "localStorage", provider: "SPS Studio", duration: "Until logout or expiry", purpose: "Keeps authenticated administration and client sessions available.", active: true, required: true, visible_public: false },
+  { id: "auth-state", name: "sps_auth_session_ended, admin_token_expired, sps_last_login_portal", category: "necessary", consent_scope: "essential", storage: "sessionStorage / localStorage", provider: "SPS Studio", duration: "Session / until replaced", purpose: "Routes users safely after session expiry and remembers their portal.", active: true, required: true, visible_public: false },
+  { id: "property-auth", name: "property_listing_token, property_listing_user", category: "necessary", consent_scope: "essential", storage: "localStorage", provider: "SPS Studio", duration: "Until logout or expiry", purpose: "Keeps a property-listing portal session available.", active: true, required: true, visible_public: false },
+  { id: "admin-ui", name: "admin-theme-mode, admin_sidebar_collapsed, sps-admin-dashboard-preferences-v1", category: "preferences", consent_scope: "necessary", storage: "localStorage", provider: "SPS Studio", duration: "Until changed", purpose: "Remembers authenticated administrator interface choices.", active: true, required: false, visible_public: false },
+  { id: "admin-currency", name: "admin_display_currency, admin_exchange_rates_eur", category: "preferences", consent_scope: "necessary", storage: "localStorage", provider: "SPS Studio", duration: "Until changed / refreshed", purpose: "Remembers admin currency display and cached exchange rates.", active: true, required: false, visible_public: false },
+  { id: "translations", name: "sps_db_translations_v3_all", category: "necessary", consent_scope: "necessary", storage: "localStorage", provider: "SPS Studio", duration: "Until translation refresh", purpose: "Caches translated interface text for reliable and fast rendering.", active: true, required: false, visible_public: false },
 ];
 
 function normalizeCookieCatalog(value: unknown) {
@@ -908,16 +921,19 @@ function normalizeCookieCatalog(value: unknown) {
     name: String(item?.name || "").trim().slice(0, 120),
     category: categories.has(String(item?.category)) ? String(item.category) : "necessary",
     consent_scope: ["essential", "necessary", "all"].includes(String(item?.consent_scope)) ? String(item.consent_scope) : (item?.required === true || String(item?.category) === "necessary" ? "essential" : "all"),
-    storage: ["cookie", "localStorage", "sessionStorage"].includes(String(item?.storage)) ? String(item.storage) : "cookie",
+    storage: ["cookie", "localStorage", "sessionStorage", "script", "localStorage / sessionStorage", "sessionStorage / localStorage"].includes(String(item?.storage)) ? String(item.storage) : "cookie",
     provider: String(item?.provider || "SPS Studio").trim().slice(0, 120), duration: String(item?.duration || "Session").trim().slice(0, 120),
-    purpose: String(item?.purpose || "").trim().slice(0, 500), active: item?.active !== false, required: item?.required === true || String(item?.category) === "necessary",
+    purpose: String(item?.purpose || "").trim().slice(0, 500), active: item?.active !== false, required: item?.required === true || String(item?.category) === "necessary", visible_public: item?.visible_public !== false,
   })).filter((item) => item.name && item.purpose);
 }
 
 async function getCookieCatalog() {
   const result = await db.execute({ sql: "SELECT value FROM settings WHERE key = ?", args: [COOKIE_CATALOG_KEY] });
   if (!result.rows.length) return DEFAULT_COOKIE_CATALOG;
-  try { return normalizeCookieCatalog(JSON.parse(String(result.rows[0].value))); } catch { return DEFAULT_COOKIE_CATALOG; }
+  try {
+    const saved = normalizeCookieCatalog(JSON.parse(String(result.rows[0].value)));
+    return [...DEFAULT_COOKIE_CATALOG.map((item) => ({ ...item, ...(saved.find((entry) => entry.id === item.id) || {}) })), ...saved.filter((item) => !DEFAULT_COOKIE_CATALOG.some((entry) => entry.id === item.id))];
+  } catch { return DEFAULT_COOKIE_CATALOG; }
 }
 
 adminRouter.get("/cookie-catalog", async (_req, res) => {
