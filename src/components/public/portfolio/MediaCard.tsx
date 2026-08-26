@@ -174,21 +174,12 @@ export function MediaCard({ card, onClick, priority = false, deferMedia = false 
     ? (media.thumbnail_url || item.thumbnail_url || media.compressed_url || media.url || "")
     : (media.thumbnail_url || (parsedVideo?.type === "youtube" ? `https://img.youtube.com/vi/${parsedVideo.videoId}/${youtubePreviewIndex}.jpg` : ""));
   const shouldLoadMedia = priority || isInViewport;
-  const hasStoredCardPreview = Boolean(
-    media.thumbnail_url && media.thumbnail_url !== media.compressed_url,
+  const responsivePreview = getResponsiveImageAttributes(
+    previewImageUrl,
+    deferMedia ? [640] : [480, 640, 840],
+    "(max-width: 639px) 310px, (max-width: 767px) 380px, 420px",
+    82,
   );
-  const responsivePreview = hasStoredCardPreview
-    ? {
-        src: previewImageUrl,
-        srcSet: undefined,
-        sizes: "(max-width: 639px) 310px, (max-width: 767px) 380px, 420px",
-      }
-    : getResponsiveImageAttributes(
-        previewImageUrl,
-        deferMedia ? [640] : [480, 640, 840],
-        "(max-width: 639px) 310px, (max-width: 767px) 380px, 420px",
-        82,
-      );
   const handleResponsiveImageError = (event: React.SyntheticEvent<HTMLImageElement>) => {
     const image = event.currentTarget;
     if (previewImageUrl && image.dataset.originalFallback !== "true") {

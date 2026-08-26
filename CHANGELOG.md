@@ -42,6 +42,12 @@
 
 - Made the public Vision headline responsive to the entered text length, retaining the large display treatment for short copy while reducing long headlines to a balanced, readable size.
 
+### Vercel image optimization
+
+- Added Vercel Image Optimization configuration restricted to public Appwrite Storage image URLs, with responsive widths, permitted quality levels, AVIF/WebP output, and a one-day minimum cache lifetime.
+- Routed public portfolio cards, portfolio views, and property-listing cards, detail images, and gallery thumbnails through Vercel's production image endpoint while preserving Appwrite previews during local development.
+- Kept videos, download URLs, SVG files, and non-Appwrite external images outside the new Vercel image path; a client-side fallback restores the original image if optimization is unavailable.
+
 ### Cookie consent and registry
 
 - Added an administrator-managed cookie and browser-storage catalog, seeded with the currently used consent, language, theme, and public-cache entries.

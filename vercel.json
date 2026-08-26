@@ -3,6 +3,23 @@
   "framework": "vite",
   "installCommand": "npm ci --no-audit --no-fund",
   "buildCommand": "npm run build:vercel",
+  "images": {
+    "domains": [],
+    "sizes": [96, 128, 192, 320, 480, 640, 768, 840, 1024, 1440, 1920],
+    "remotePatterns": [
+      {
+        "protocol": "https",
+        "hostname": "appwrite.summerfall.synology.me",
+        "pathname": "^/v1/storage/buckets/spsmainweb/files/.*$"
+      }
+    ],
+    "minimumCacheTTL": 86400,
+    "qualities": [76, 82, 84, 88],
+    "formats": ["image/avif", "image/webp"],
+    "dangerouslyAllowSVG": false,
+    "contentSecurityPolicy": "script-src 'none'; frame-src 'none'; sandbox;",
+    "contentDispositionType": "inline"
+  },
   "functions": {
     "api/cron-calendar.ts": { "maxDuration": 60 },
     "api/public.ts": { "maxDuration": 60 },

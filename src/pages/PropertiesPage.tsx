@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type SyntheticEvent } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
   ArrowLeft, BadgeCheck, Bath, BedDouble, Building2, CalendarDays, Check,
@@ -11,6 +11,7 @@ import { PropertySiteShell } from "../components/property/PropertySiteShell";
 import { usePageTitle } from "../hooks/usePageTitle";
 import { t } from "../lib/i18n";
 import { ErrorPage, ErrorStatus } from "./ErrorPage";
+import { getResponsiveImageAttributes } from "../lib/responsiveImage";
 
 const statusLabels: Record<string, string> = { active: "Aktív", reserved: "Lefoglalt", sold: "Elkelt" };
 const orientationLabels: Record<string, string> = { north: "Észak", northeast: "Északkelet", east: "Kelet", southeast: "Délkelet", south: "Dél", southwest: "Délnyugat", west: "Nyugat", northwest: "Északnyugat" };
@@ -37,6 +38,15 @@ function imageUrl(item: PropertyListing, index = 0, thumbnail = false) {
   return thumbnail
     ? image.thumbnailUrl || image.compressedUrl || image.url
     : image.compressedUrl || image.url || image.thumbnailUrl || "";
+}
+
+function restoreOriginalImage(event: SyntheticEvent<HTMLImageElement>, source: string) {
+  const image = event.currentTarget;
+  if (!source || image.dataset.originalFallback === "true") return;
+  image.dataset.originalFallback = "true";
+  image.removeAttribute("srcset");
+  image.removeAttribute("sizes");
+  image.src = source;
 }
 
 export default function PropertiesPage() {
@@ -97,9 +107,17 @@ function PropertyCatalog({ items }: { items: PropertyListing[] }) {
 }
 
 function PropertyCard({ item }: { key?: string; item: PropertyListing }) {
+  const source = imageUrl(item, 0, true);
+  const responsiveImage = getResponsiveImageAttributes(
+    source,
+    [320, 480, 640],
+    "(max-width: 767px) calc(100vw - 2rem), (max-width: 1279px) 50vw, 33vw",
+    82,
+  );
+
   return <Link to={`/properties/${item.id}`} className="group overflow-hidden rounded-3xl border border-border bg-surface shadow-sm transition duration-300 hover:-translate-y-1 hover:border-primary/40 hover:shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
     <div className="relative aspect-[16/10] overflow-hidden bg-background">
-      {imageUrl(item, 0, true) ? <img src={imageUrl(item, 0, true)} alt={item.title} className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]" loading="lazy" decoding="async" /> : <div className="flex h-full items-center justify-center"><ImageIcon className="h-12 w-12 text-muted-text/35" /></div>}
+      {source ? <img src={responsiveImage.src} srcSet={responsiveImage.srcSet} sizes={responsiveImage.sizes} alt={item.title} className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]" loading="lazy" decoding="async" onError={(event) => restoreOriginalImage(event, source)} /> : <div className="flex h-full items-center justify-center"><ImageIcon className="h-12 w-12 text-muted-text/35" /></div>}
       <div className="absolute left-3 top-3 flex gap-2"><span className="rounded-full bg-slate-950/80 px-3 py-1.5 text-[11px] font-black uppercase tracking-wide text-white backdrop-blur">{item.listing_type === "sale" ? "Eladó" : "Kiadó"}</span><span className="rounded-full bg-white/90 px-3 py-1.5 text-[11px] font-black text-slate-900 backdrop-blur">{statusLabels[item.listing_status] || item.listing_status}</span></div>
       <FeatureBadges item={item} compact />
     </div>
@@ -118,6 +136,13 @@ function PropertyDetail({ item }: { item: PropertyListing }) {
   ].filter(([, value]) => value !== null && value !== undefined && value !== "");
   const subject = encodeURIComponent(`Érdeklődés: ${item.title}`);
   const body = encodeURIComponent(`Üdvözlöm!\n\nÉrdeklődni szeretnék az alábbi ingatlannal kapcsolatban:\n${item.title}\n${window.location.href}\n`);
+  const activeImageSource = imageUrl(item, activeImage);
+  const responsiveActiveImage = getResponsiveImageAttributes(
+    activeImageSource,
+    [480, 768, 1024, 1440, 1920],
+    "(max-width: 1023px) 100vw, 65vw",
+    88,
+  );
 
   return <>
     <Link to="/properties" className="mb-6 inline-flex items-center gap-2 text-sm font-bold text-muted-text hover:text-primary"><ArrowLeft className="h-4 w-4" />Vissza az ingatlanokhoz</Link>
@@ -125,12 +150,16 @@ function PropertyDetail({ item }: { item: PropertyListing }) {
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1.65fr)_minmax(320px,.75fr)]">
         <div className="min-w-0">
           <div className="relative overflow-hidden rounded-3xl border border-border bg-surface aspect-[16/10]">
-            {images.length ? <img src={imageUrl(item, activeImage)} alt={`${item.title} – ${activeImage + 1}. kép`} className="h-full w-full object-cover" decoding="async" /> : <div className="flex h-full items-center justify-center"><ImageIcon className="h-16 w-16 text-muted-text/30" /></div>}
+            {images.length ? <img src={responsiveActiveImage.src} srcSet={responsiveActiveImage.srcSet} sizes={responsiveActiveImage.sizes} alt={`${item.title} – ${activeImage + 1}. kép`} className="h-full w-full object-cover" decoding="async" onError={(event) => restoreOriginalImage(event, activeImageSource)} /> : <div className="flex h-full items-center justify-center"><ImageIcon className="h-16 w-16 text-muted-text/30" /></div>}
             <div className="absolute left-4 top-4 flex gap-2"><span className="rounded-full bg-slate-950/80 px-3 py-1.5 text-xs font-black uppercase text-white">{item.listing_type === "sale" ? "Eladó" : "Kiadó"}</span><span className="rounded-full bg-white/90 px-3 py-1.5 text-xs font-black text-slate-900">{statusLabels[item.listing_status] || item.listing_status}</span></div>
             <FeatureBadges item={item} />
             {images.length > 1 && <><button onClick={() => setActiveImage(value => (value - 1 + images.length) % images.length)} aria-label="Előző kép" className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-slate-950/65 p-3 text-white backdrop-blur hover:bg-slate-950"><ChevronLeft className="h-5 w-5" /></button><button onClick={() => setActiveImage(value => (value + 1) % images.length)} aria-label="Következő kép" className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-slate-950/65 p-3 text-white backdrop-blur hover:bg-slate-950"><ChevronRight className="h-5 w-5" /></button></>}
           </div>
-          {images.length > 1 && <div className="mt-3 flex gap-3 overflow-x-auto pb-2">{images.map((_, index) => <button key={index} onClick={() => setActiveImage(index)} className={`h-20 w-28 shrink-0 overflow-hidden rounded-xl border-2 ${activeImage === index ? "border-primary" : "border-transparent opacity-70 hover:opacity-100"}`}><img src={imageUrl(item, index, true)} alt="" className="h-full w-full object-cover" loading="lazy" /></button>)}</div>}
+          {images.length > 1 && <div className="mt-3 flex gap-3 overflow-x-auto pb-2">{images.map((_, index) => {
+            const thumbnailSource = imageUrl(item, index, true);
+            const responsiveThumbnail = getResponsiveImageAttributes(thumbnailSource, [96, 128, 192], "112px", 76);
+            return <button key={index} onClick={() => setActiveImage(index)} className={`h-20 w-28 shrink-0 overflow-hidden rounded-xl border-2 ${activeImage === index ? "border-primary" : "border-transparent opacity-70 hover:opacity-100"}`}><img src={responsiveThumbnail.src} srcSet={responsiveThumbnail.srcSet} sizes={responsiveThumbnail.sizes} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" onError={(event) => restoreOriginalImage(event, thumbnailSource)} /></button>;
+          })}</div>}
         </div>
         <aside className="h-fit rounded-3xl border border-border bg-surface p-6 shadow-sm lg:sticky lg:top-32">
           <p className="flex items-center gap-2 text-sm font-semibold text-muted-text"><MapPin className="h-4 w-4 text-primary" />{item.location}</p><h1 className="mt-3 text-3xl font-black tracking-tight sm:text-4xl">{item.title}</h1><div className="mt-5 text-3xl font-black text-primary">{price(item)}</div>
