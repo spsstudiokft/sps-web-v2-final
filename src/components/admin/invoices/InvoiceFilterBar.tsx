@@ -108,19 +108,22 @@ export function InvoiceFilterBar({
           {onClientEmailChange && (
             <div className="flex items-center gap-1.5">
               <User className="w-3.5 h-3.5 text-muted-text" />
-              <select
-                aria-label="Filter invoices by client account"
+              <input
+                type="search"
+                list="invoice-client-account-options"
+                aria-label="Search invoices by client account"
                 value={clientEmailFilter}
                 onChange={(e) => onClientEmailChange(e.target.value)}
-                className="max-w-[240px] bg-background border border-border rounded-md px-2.5 py-1 text-xs text-text focus:outline-none focus:ring-1 focus:ring-primary"
-              >
-                <option value="">All client accounts</option>
+                placeholder="Ügyfélfiók keresése…"
+                className="w-[220px] max-w-full bg-background border border-border rounded-md px-2.5 py-1 text-xs text-text placeholder:text-muted-text focus:outline-none focus:ring-1 focus:ring-primary"
+              />
+              <datalist id="invoice-client-account-options">
                 {clients.map((client) => (
                   <option key={client.id || client.email} value={client.email}>
                     {client.name || client.email} — {client.email}
                   </option>
                 ))}
-              </select>
+              </datalist>
             </div>
           )}
 

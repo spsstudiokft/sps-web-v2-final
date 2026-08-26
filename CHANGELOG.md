@@ -23,6 +23,10 @@
 - Added account endpoints that correctly update the active admin credential for both standard admin accounts and dual client-plus-admin accounts.
 - Fixed the admin account endpoints being registered before the admin router instance was initialized, which caused server error responses instead of JSON.
 
+### Invoicing
+
+- Made the invoice client-account filter searchable by client email, with account names available as autocomplete hints.
+
 ### Local demo administrator
 
 - Added an idempotent local-only demo superadmin account when the application uses a file-based development database.
