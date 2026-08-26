@@ -43,6 +43,8 @@ import {
   EmailTemplateData
 } from "./services/emailService.js";
 
+const adminRouter = Router();
+
 const isStrongAdminPassword = (password: string) => password.length >= 8 && /[A-Z]/.test(password) && /[a-z]/.test(password) && /\d/.test(password) && /[^A-Za-z0-9]/.test(password);
 const adminPasswordColumn = (user: any) => String(user.role || "").toLowerCase() === "client" && Boolean(user.admin_role) ? "admin_password_hash" : "password_hash";
 
@@ -139,8 +141,6 @@ const upload = multer({
     fieldSize: 50 * 1024 * 1024,
   },
 });
-
-const adminRouter = Router();
 
 function validateMultipartReference(fileKey: unknown, uploadId: unknown) {
   const key = String(fileKey || "");

@@ -21,6 +21,7 @@
 
 - Added a dedicated Admin → Saját fiók page with editable display name, account email visibility, and secure current-password-verified password changes.
 - Added account endpoints that correctly update the active admin credential for both standard admin accounts and dual client-plus-admin accounts.
+- Fixed the admin account endpoints being registered before the admin router instance was initialized, which caused server error responses instead of JSON.
 
 ### Local demo administrator
 
