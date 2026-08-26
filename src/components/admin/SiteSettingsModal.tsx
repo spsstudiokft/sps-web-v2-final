@@ -366,6 +366,20 @@ export function SiteSettingsModal({
                   </select>
                 </div>
 
+                <div className="rounded-xl border border-border bg-background p-4">
+                  <Label htmlFor="image-optimization-mode">{tUi("admin.settings.image_optimization_mode", currentLanguage)}</Label>
+                  <select
+                    id="image-optimization-mode"
+                    className="mt-1.5 block w-full px-4 py-2.5 border border-border bg-surface text-text rounded-xl focus:ring-2 focus:ring-primary focus:border-primary outline-none sm:text-sm transition-all"
+                    value={settings.image_optimization_mode === "appwrite" ? "appwrite" : "vercel"}
+                    onChange={(e) => handleChange("image_optimization_mode", e.target.value)}
+                  >
+                    <option value="vercel">{tUi("admin.settings.image_optimization_vercel", currentLanguage)}</option>
+                    <option value="appwrite">{tUi("admin.settings.image_optimization_appwrite", currentLanguage)}</option>
+                  </select>
+                  <p className="mt-2 text-xs leading-5 text-muted-text">{tUi("admin.settings.image_optimization_hint", currentLanguage)}</p>
+                </div>
+
                 {settings.media_provider === "appwrite" && (
                   <div className="mt-3 p-4 bg-background rounded-xl border border-border space-y-4">
                     <div className="flex items-center justify-between">

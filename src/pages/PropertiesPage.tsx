@@ -93,26 +93,27 @@ function PropertiesContent({ settings, items, item, loading, error, errorStatus,
   usePageTitle(item?.title || "Ingatlanok", studioName);
 
   return <main className="mx-auto min-h-[78vh] max-w-7xl px-4 pb-20 pt-28 sm:px-6 md:pt-36 lg:px-8">
-      {loading ? <LoadingState /> : error ? <ErrorPage status={errorStatus || 500} embedded /> : detail && item ? <PropertyDetail item={item} /> : <PropertyCatalog items={items} />}
+      {loading ? <LoadingState /> : error ? <ErrorPage status={errorStatus || 500} embedded /> : detail && item ? <PropertyDetail item={item} settings={settings} /> : <PropertyCatalog items={items} settings={settings} />}
     </main>;
 }
 
-function PropertyCatalog({ items }: { items: PropertyListing[] }) {
+function PropertyCatalog({ items, settings }: { items: PropertyListing[]; settings: SiteSettings }) {
   return <>
     <section className="mb-10 overflow-hidden rounded-3xl border border-border bg-surface px-5 py-10 sm:px-8 md:px-12 md:py-14">
       <div className="max-w-3xl"><div className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/10 px-3 py-1.5 text-xs font-bold uppercase tracking-[0.16em] text-primary"><Building2 className="h-4 w-4" />Ingatlanok</div><h1 className="text-4xl font-black tracking-tight sm:text-5xl md:text-6xl">Találja meg következő otthonát.</h1><p className="mt-5 max-w-2xl text-base leading-7 text-muted-text sm:text-lg">Eladó és kiadó ingatlanok részletes adatokkal, optimalizált képgalériával és közvetlen hirdetői kapcsolatfelvétellel.</p></div>
     </section>
-    {items.length === 0 ? <div className="rounded-3xl border border-dashed border-border bg-surface px-6 py-20 text-center"><Home className="mx-auto h-12 w-12 text-muted-text/50" /><h2 className="mt-4 text-xl font-bold">Jelenleg nincs aktív hirdetés</h2><p className="mt-2 text-sm text-muted-text">Kérjük, látogasson vissza később.</p></div> : <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">{items.map(item => <PropertyCard key={item.id} item={item} />)}</div>}
+    {items.length === 0 ? <div className="rounded-3xl border border-dashed border-border bg-surface px-6 py-20 text-center"><Home className="mx-auto h-12 w-12 text-muted-text/50" /><h2 className="mt-4 text-xl font-bold">Jelenleg nincs aktív hirdetés</h2><p className="mt-2 text-sm text-muted-text">Kérjük, látogasson vissza később.</p></div> : <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">{items.map(item => <PropertyCard key={item.id} item={item} useVercelImageOptimization={settings.image_optimization_mode !== "appwrite"} />)}</div>}
   </>;
 }
 
-function PropertyCard({ item }: { key?: string; item: PropertyListing }) {
+function PropertyCard({ item, useVercelImageOptimization }: { key?: string; item: PropertyListing; useVercelImageOptimization: boolean }) {
   const source = imageUrl(item, 0, true);
   const responsiveImage = getResponsiveImageAttributes(
     source,
     [320, 480, 640],
     "(max-width: 767px) calc(100vw - 2rem), (max-width: 1279px) 50vw, 33vw",
     82,
+    useVercelImageOptimization,
   );
 
   return <Link to={`/properties/${item.id}`} className="group overflow-hidden rounded-3xl border border-border bg-surface shadow-sm transition duration-300 hover:-translate-y-1 hover:border-primary/40 hover:shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
@@ -125,7 +126,7 @@ function PropertyCard({ item }: { key?: string; item: PropertyListing }) {
   </Link>;
 }
 
-function PropertyDetail({ item }: { item: PropertyListing }) {
+function PropertyDetail({ item, settings }: { item: PropertyListing; settings: SiteSettings }) {
   const [activeImage, setActiveImage] = useState(0);
   const images = item.image_urls || [];
   const facts = useMemo(() => [
@@ -142,6 +143,7 @@ function PropertyDetail({ item }: { item: PropertyListing }) {
     [480, 768, 1024, 1440, 1920],
     "(max-width: 1023px) 100vw, 65vw",
     88,
+    settings.image_optimization_mode !== "appwrite",
   );
 
   return <>
@@ -157,7 +159,7 @@ function PropertyDetail({ item }: { item: PropertyListing }) {
           </div>
           {images.length > 1 && <div className="mt-3 flex gap-3 overflow-x-auto pb-2">{images.map((_, index) => {
             const thumbnailSource = imageUrl(item, index, true);
-            const responsiveThumbnail = getResponsiveImageAttributes(thumbnailSource, [96, 128, 192], "112px", 76);
+            const responsiveThumbnail = getResponsiveImageAttributes(thumbnailSource, [96, 128, 192], "112px", 76, settings.image_optimization_mode !== "appwrite");
             return <button key={index} onClick={() => setActiveImage(index)} className={`h-20 w-28 shrink-0 overflow-hidden rounded-xl border-2 ${activeImage === index ? "border-primary" : "border-transparent opacity-70 hover:opacity-100"}`}><img src={responsiveThumbnail.src} srcSet={responsiveThumbnail.srcSet} sizes={responsiveThumbnail.sizes} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" onError={(event) => restoreOriginalImage(event, thumbnailSource)} /></button>;
           })}</div>}
         </div>

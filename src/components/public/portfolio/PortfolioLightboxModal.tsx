@@ -36,6 +36,7 @@ interface PortfolioLightboxModalProps {
   item: PortfolioItem | null;
   initialIndex?: number;
   onClose: () => void;
+  useVercelImageOptimization?: boolean;
 }
 
 function formatVideoTime(value: number) {
@@ -151,7 +152,7 @@ function CustomVideoPlayer({ src, poster, title }: { src: string; poster?: strin
   );
 }
 
-export function PortfolioLightboxModal({ item, initialIndex = 0, onClose }: PortfolioLightboxModalProps) {
+export function PortfolioLightboxModal({ item, initialIndex = 0, onClose, useVercelImageOptimization = true }: PortfolioLightboxModalProps) {
   const { currentLang, defaultLang, tUi } = useLanguage();
   const [currentIndex, setCurrentIndex] = useState(initialIndex || 0);
   const [fullImageLoaded, setFullImageLoaded] = useState(false);
@@ -246,6 +247,7 @@ export function PortfolioLightboxModal({ item, initialIndex = 0, onClose }: Port
     [480, 768, 1024, 1440, 1920],
     "(max-width: 640px) calc(100vw - 32px), (max-width: 1024px) calc(100vw - 80px), 960px",
     88,
+    useVercelImageOptimization,
   );
 
   const title = t(item.title, currentLang, defaultLang) || item.title;
@@ -500,7 +502,7 @@ export function PortfolioLightboxModal({ item, initialIndex = 0, onClose }: Port
               const isVid = media.type === "video" || isVideoMedia(media);
               const vidInfo = isVid ? parseVideoUrl(media.url) : null;
               const thumb = media.compressed_url || media.thumbnail_url || (vidInfo?.thumbnailUrl) || (isVid ? "" : media.url);
-              const responsiveThumb = getResponsiveImageAttributes(thumb, [96, 128, 192], "64px", 76);
+              const responsiveThumb = getResponsiveImageAttributes(thumb, [96, 128, 192], "64px", 76, useVercelImageOptimization);
 
               return (
                 <button

@@ -47,6 +47,7 @@
 - Added Vercel Image Optimization configuration restricted to public Appwrite Storage image URLs, with responsive widths, permitted quality levels, AVIF/WebP output, and a one-day minimum cache lifetime.
 - Routed public portfolio cards, portfolio views, and property-listing cards, detail images, and gallery thumbnails through Vercel's production image endpoint while preserving Appwrite previews during local development.
 - Kept videos, download URLs, SVG files, and non-Appwrite external images outside the new Vercel image path; a client-side fallback restores the original image if optimization is unavailable.
+- Added an administrator-controlled public image-delivery mode: Vercel optimization remains the default, while Appwrite preview mode restores the prior direct image path across public portfolios and property listings.
 
 ### Cookie consent and registry
 

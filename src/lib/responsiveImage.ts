@@ -24,7 +24,7 @@ function buildVercelImageUrl(source: string, width: number, quality: number): st
   return `${VERCEL_IMAGE_ENDPOINT}?${params.toString()}`;
 }
 
-function buildTransformedImageUrl(source: string, width: number, quality: number): string {
+function buildTransformedImageUrl(source: string, width: number, quality: number, useVercelImageOptimization: boolean): string {
   if (!source || source.startsWith("data:") || source.startsWith("blob:")) return source;
 
   try {
@@ -37,7 +37,7 @@ function buildTransformedImageUrl(source: string, width: number, quality: number
       // Vercel serves the production build and can cache and negotiate AVIF/WebP
       // responses. Keep the Appwrite preview route in local development, where
       // Vercel's internal endpoint is intentionally unavailable.
-      if (import.meta.env.PROD) {
+      if (import.meta.env.PROD && useVercelImageOptimization) {
         return buildVercelImageUrl(parsed.toString(), safeWidth, safeQuality);
       }
 
@@ -71,6 +71,7 @@ export function getResponsiveImageAttributes(
   widths: number[],
   sizes: string,
   quality = 82,
+  useVercelImageOptimization = true,
 ): ResponsiveImageAttributes {
   const normalizedWidths = Array.from(new Set(widths))
     .map(safeImageWidth)
@@ -80,7 +81,7 @@ export function getResponsiveImageAttributes(
 
   const candidates = normalizedWidths.map((width) => ({
     width,
-    url: buildTransformedImageUrl(source, width, quality),
+    url: buildTransformedImageUrl(source, width, quality, useVercelImageOptimization),
   }));
   const supportsTransforms = candidates.some((candidate) => candidate.url !== source);
 

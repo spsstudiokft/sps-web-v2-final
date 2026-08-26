@@ -10,6 +10,7 @@ interface InfiniteMarqueeRowProps {
   onItemClick: (item: PortfolioItem, mediaIndex: number) => void;
   isReducedMotion?: boolean;
   isStaticScroll?: boolean;
+  useVercelImageOptimization?: boolean;
 }
 
 export function InfiniteMarqueeRow({
@@ -20,6 +21,7 @@ export function InfiniteMarqueeRow({
   onItemClick,
   isReducedMotion = false,
   isStaticScroll = false,
+  useVercelImageOptimization = true,
 }: InfiniteMarqueeRowProps) {
   const [isRowHovered, setIsRowHovered] = useState(false);
   const viewportRef = useRef<HTMLDivElement>(null); const [isVisible, setIsVisible] = useState(false);
@@ -73,6 +75,7 @@ export function InfiniteMarqueeRow({
                 onClick={onItemClick}
                 priority={false}
                 deferMedia={isStaticScroll}
+                useVercelImageOptimization={useVercelImageOptimization}
               />
             </div>
           ))}
@@ -115,6 +118,7 @@ export function InfiniteMarqueeRow({
               card={card}
               onClick={onItemClick}
               priority={idx < 4}
+              useVercelImageOptimization={useVercelImageOptimization}
             />
           ))}
         </div>
@@ -127,6 +131,7 @@ export function InfiniteMarqueeRow({
               card={card}
               onClick={onItemClick}
               priority={false}
+              useVercelImageOptimization={useVercelImageOptimization}
             />
           ))}
         </div>

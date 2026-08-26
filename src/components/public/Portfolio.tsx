@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from "react";
-import { PortfolioItem } from "../../lib/types";
+import { PortfolioItem, SiteSettings } from "../../lib/types";
 import { InfiniteMarqueeRow } from "./portfolio/InfiniteMarqueeRow";
 import { ShowcaseMediaCardItem } from "./portfolio/MediaCard";
 import { PortfolioLightboxModal } from "./portfolio/PortfolioLightboxModal";
@@ -30,6 +30,7 @@ import {
 interface PortfolioProps {
   items: PortfolioItem[];
   isPerformanceLite?: boolean;
+  settings?: SiteSettings;
 }
 
 const MAX_SHOWCASE_CARDS_PER_ROW = 8;
@@ -53,7 +54,7 @@ function shuffleShowcaseCards(cards: ShowcaseMediaCardItem[]): ShowcaseMediaCard
   return shuffled;
 }
 
-export function Portfolio({ items, isPerformanceLite = false }: PortfolioProps) {
+export function Portfolio({ items, isPerformanceLite = false, settings = {} }: PortfolioProps) {
   const { currentLang, defaultLang } = useLanguage();
   const [activeModalItem, setActiveModalItem] = useState<PortfolioItem | null>(null);
   const [activeModalMediaIndex, setActiveModalMediaIndex] = useState<number>(0);
@@ -73,6 +74,7 @@ export function Portfolio({ items, isPerformanceLite = false }: PortfolioProps) 
   // The showcase always starts as a running conveyor. It only pauses through
   // the explicit control button, so its initial behaviour is deterministic.
   const isReducedMotion = isPerformanceLite;
+  const useVercelImageOptimization = settings.image_optimization_mode !== "appwrite";
 
   // Extract individual gallery item previews across all portfolio projects into their designated rows
   const { imageCards, droneVideoCards, interiorVideoCards, dronePhotoCards } = useMemo(() => {
@@ -311,6 +313,7 @@ export function Portfolio({ items, isPerformanceLite = false }: PortfolioProps) 
               onItemClick={handleCardClick}
               isReducedMotion={isReducedMotion}
               isStaticScroll={isMobileViewport}
+              useVercelImageOptimization={useVercelImageOptimization}
             />
           </div>
         )}
@@ -335,6 +338,7 @@ export function Portfolio({ items, isPerformanceLite = false }: PortfolioProps) 
               onItemClick={handleCardClick}
               isReducedMotion={isReducedMotion}
               isStaticScroll={isMobileViewport}
+              useVercelImageOptimization={useVercelImageOptimization}
             />
           </div>
         )}
@@ -359,6 +363,7 @@ export function Portfolio({ items, isPerformanceLite = false }: PortfolioProps) 
               onItemClick={handleCardClick}
               isReducedMotion={isReducedMotion}
               isStaticScroll={isMobileViewport}
+              useVercelImageOptimization={useVercelImageOptimization}
             />
           </div>
         )}
@@ -383,6 +388,7 @@ export function Portfolio({ items, isPerformanceLite = false }: PortfolioProps) 
               onItemClick={handleCardClick}
               isReducedMotion={isReducedMotion}
               isStaticScroll={isMobileViewport}
+              useVercelImageOptimization={useVercelImageOptimization}
             />
           </div>
         )}
@@ -392,6 +398,7 @@ export function Portfolio({ items, isPerformanceLite = false }: PortfolioProps) 
       <PortfolioLightboxModal
         item={activeModalItem}
         initialIndex={activeModalMediaIndex}
+        useVercelImageOptimization={useVercelImageOptimization}
         onClose={() => setActiveModalItem(null)}
       />
     </section>

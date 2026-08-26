@@ -37,9 +37,10 @@ interface MediaCardProps {
   onClick: (item: PortfolioItem, mediaIndex: number) => void;
   priority?: boolean;
   deferMedia?: boolean;
+  useVercelImageOptimization?: boolean;
 }
 
-export function MediaCard({ card, onClick, priority = false, deferMedia = false }: MediaCardProps) {
+export function MediaCard({ card, onClick, priority = false, deferMedia = false, useVercelImageOptimization = true }: MediaCardProps) {
   const instanceId = useId();
   const { currentLang, defaultLang } = useLanguage();
   
@@ -179,6 +180,7 @@ export function MediaCard({ card, onClick, priority = false, deferMedia = false 
     deferMedia ? [640] : [480, 640, 840],
     "(max-width: 639px) 310px, (max-width: 767px) 380px, 420px",
     82,
+    useVercelImageOptimization,
   );
   const handleResponsiveImageError = (event: React.SyntheticEvent<HTMLImageElement>) => {
     const image = event.currentTarget;

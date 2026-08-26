@@ -5,3 +5,34 @@ de:{"admin.settings.modal.cloudflare_r2_object_storage_recommended_for_10_gb":"C
 es:{"admin.settings.modal.cloudflare_r2_object_storage_recommended_for_10_gb":"Almacenamiento de objetos Cloudflare R2 (recomendado para más de 10 GB)","admin.settings.modal.appwrite_storage":"Almacenamiento en la nube Appwrite","admin.settings.modal.local_high_capacity_disk_storage":"Almacenamiento local de gran capacidad","admin.settings.modal.appwrite_storage_configuration":"Configuración de almacenamiento Appwrite","admin.settings.modal.testing_connection":"Probando conexión...","admin.settings.modal.test_connection_bucket":"Probar conexión y bucket","admin.settings.modal.api_endpoint":"Punto de conexión de la API","admin.settings.modal.https_cloud_appwrite_io_v1":"Ejemplo: https://cloud.appwrite.io/v1","admin.settings.modal.project_id":"ID del proyecto","admin.settings.modal.your_project_id":"Introduce el ID del proyecto","admin.settings.modal.storage_bucket_id":"ID del bucket","admin.settings.modal.default":"Bucket predeterminado","admin.settings.modal.api_secret_key":"Clave secreta de la API","admin.settings.modal.bucket":"Bucket de almacenamiento:","admin.settings.modal.id":"Identificador:","admin.settings.modal.configured_max_file_size":"Tamaño máximo configurado:"},
 fr:{"admin.settings.modal.cloudflare_r2_object_storage_recommended_for_10_gb":"Stockage d’objets Cloudflare R2 (recommandé au-delà de 10 Go)","admin.settings.modal.appwrite_storage":"Stockage cloud Appwrite","admin.settings.modal.local_high_capacity_disk_storage":"Stockage local haute capacité","admin.settings.modal.appwrite_storage_configuration":"Configuration du stockage Appwrite","admin.settings.modal.testing_connection":"Test de la connexion...","admin.settings.modal.test_connection_bucket":"Tester la connexion et le bucket","admin.settings.modal.api_endpoint":"Point de terminaison de l’API","admin.settings.modal.https_cloud_appwrite_io_v1":"Exemple : https://cloud.appwrite.io/v1","admin.settings.modal.project_id":"ID du projet","admin.settings.modal.your_project_id":"Saisissez l’ID du projet","admin.settings.modal.storage_bucket_id":"ID du bucket de stockage","admin.settings.modal.default":"Bucket par défaut","admin.settings.modal.api_secret_key":"Clé secrète de l’API","admin.settings.modal.bucket":"Bucket de stockage :","admin.settings.modal.id":"Identifiant :","admin.settings.modal.configured_max_file_size":"Taille maximale configurée :"}
 };
+
+Object.assign(adminSiteSettingsStorageTranslations.en, {
+  "admin.settings.image_optimization_mode": "Public image delivery",
+  "admin.settings.image_optimization_vercel": "Vercel optimization (recommended)",
+  "admin.settings.image_optimization_appwrite": "Appwrite preview only",
+  "admin.settings.image_optimization_hint": "Controls public portfolio and property images. Videos, downloads, and external images are unaffected.",
+});
+Object.assign(adminSiteSettingsStorageTranslations.hu, {
+  "admin.settings.image_optimization_mode": "Publikus képkiszolgálás",
+  "admin.settings.image_optimization_vercel": "Vercel optimalizálás (ajánlott)",
+  "admin.settings.image_optimization_appwrite": "Csak Appwrite előnézet",
+  "admin.settings.image_optimization_hint": "A publikus portfólió- és ingatlanképeket szabályozza. A videók, letöltések és külső képek változatlanok.",
+});
+Object.assign(adminSiteSettingsStorageTranslations.de, {
+  "admin.settings.image_optimization_mode": "Öffentliche Bildauslieferung",
+  "admin.settings.image_optimization_vercel": "Vercel-Optimierung (empfohlen)",
+  "admin.settings.image_optimization_appwrite": "Nur Appwrite-Vorschau",
+  "admin.settings.image_optimization_hint": "Steuert öffentliche Portfolio- und Immobilienbilder. Videos, Downloads und externe Bilder bleiben unverändert.",
+});
+Object.assign(adminSiteSettingsStorageTranslations.es, {
+  "admin.settings.image_optimization_mode": "Entrega de imágenes públicas",
+  "admin.settings.image_optimization_vercel": "Optimización de Vercel (recomendada)",
+  "admin.settings.image_optimization_appwrite": "Solo vista previa de Appwrite",
+  "admin.settings.image_optimization_hint": "Controla las imágenes públicas de cartera e inmuebles. Los vídeos, las descargas y las imágenes externas no cambian.",
+});
+Object.assign(adminSiteSettingsStorageTranslations.fr, {
+  "admin.settings.image_optimization_mode": "Diffusion des images publiques",
+  "admin.settings.image_optimization_vercel": "Optimisation Vercel (recommandée)",
+  "admin.settings.image_optimization_appwrite": "Aperçu Appwrite uniquement",
+  "admin.settings.image_optimization_hint": "Contrôle les images publiques du portfolio et des biens. Les vidéos, téléchargements et images externes ne changent pas.",
+});

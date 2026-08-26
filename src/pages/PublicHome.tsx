@@ -327,7 +327,7 @@ function PublicHomeContent({ settings, portfolio, services, bootstrap, loading }
         <Vision settings={settings} />
         <About settings={settings} />
         {visibleServices.length > 0 && <Services settings={settings} initialServices={visibleServices} />}
-        {visiblePortfolio.length > 0 && <Portfolio items={visiblePortfolio} isPerformanceLite={litePerformanceMode} />}
+        {visiblePortfolio.length > 0 && <Portfolio items={visiblePortfolio} settings={settings} isPerformanceLite={litePerformanceMode} />}
         {hasVisualIdeas && <VisualIdeas settings={settings} isPerformanceLite={litePerformanceMode} />}
         {hasPricing && <Pricing initialPlans={visiblePlans} initialExtras={visibleExtras} initialFeeRules={bootstrap?.feeRules || []} loadFullData={loadFullPricing} isPerformanceLite={litePerformanceMode} />}
         <Contact settings={settings} initialPlans={bootstrap?.pricing} initialExtras={bootstrap?.extraServices} initialFeeRules={bootstrap?.feeRules} />

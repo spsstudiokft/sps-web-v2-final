@@ -67,6 +67,7 @@ function PortfolioGalleryContent({ settings, item, notFound }: { settings: SiteS
   const title = item ? (t(item.title, currentLang, defaultLang) || item.title) : tUi("portfolio.page.not_found_title");
   const description = item ? (t(item.description, currentLang, defaultLang) || item.description || "") : "";
   const category = item?.category_name ? t(item.category_name, currentLang, defaultLang) : "";
+  const useVercelImageOptimization = settings.image_optimization_mode !== "appwrite";
 
   const downloadWatermarkedImage = async (index: number) => {
     if (!item?.slug || protectedDownloadIndex !== null) return;
@@ -167,7 +168,7 @@ function PortfolioGalleryContent({ settings, item, notFound }: { settings: SiteS
                 const isVideo = isVideoMedia(media);
                 const parsedVideo = isVideo ? parseVideoUrl(media.url) : null;
                 const preview = media.thumbnail_url || media.compressed_url || parsedVideo?.thumbnailUrl || (!isVideo ? media.url : "");
-                const responsive = getResponsiveImageAttributes(preview, [480, 768, 1024], "(max-width: 639px) 100vw, (max-width: 1023px) 50vw, 33vw", 84);
+                const responsive = getResponsiveImageAttributes(preview, [480, 768, 1024], "(max-width: 639px) 100vw, (max-width: 1023px) 50vw, 33vw", 84, useVercelImageOptimization);
                 return (
                   <button
                     key={media.id || index}
@@ -212,7 +213,7 @@ function PortfolioGalleryContent({ settings, item, notFound }: { settings: SiteS
       </main>
       <Footer settings={settings} />
       {item && lightboxIndex !== null && (
-        <PortfolioLightboxModal item={item} initialIndex={lightboxIndex} onClose={() => setLightboxIndex(null)} />
+        <PortfolioLightboxModal item={item} initialIndex={lightboxIndex} onClose={() => setLightboxIndex(null)} useVercelImageOptimization={useVercelImageOptimization} />
       )}
     </div>
   );

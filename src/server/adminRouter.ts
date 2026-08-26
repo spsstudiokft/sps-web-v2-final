@@ -849,6 +849,9 @@ adminRouter.post("/settings", async (req, res) => {
         if (key === 'visual_ideas_enabled') {
           finalValue = value === '0' || value === 'false' ? '0' : '1';
         }
+        if (key === 'image_optimization_mode') {
+          finalValue = value === 'appwrite' ? 'appwrite' : 'vercel';
+        }
         if (['coming_soon_enabled', 'coming_soon_show_socials', 'coming_soon_show_footer'].includes(key)) {
           finalValue = value === '0' || value === 'false' ? '0' : '1';
         }
