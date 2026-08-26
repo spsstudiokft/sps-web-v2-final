@@ -27,6 +27,11 @@
 
 - Made the invoice client-account filter searchable by client email, with account names available as autocomplete hints.
 
+### Theme templates
+
+- Reframed the theme editor around curated style templates and tucked the granular color, typography, and UI controls behind an explicit advanced-editor action.
+- Added Aero Glass, Electric Glow, and Warm Estate templates alongside the existing SPS visual presets.
+
 ### Local demo administrator
 
 - Added an idempotent local-only demo superadmin account when the application uses a file-based development database.

@@ -472,6 +472,21 @@ export const THEME_PRESETS: ThemeConfig[] = [
       shadows: "none",
       spacing: "compact"
     }
+    },
+    {
+    id: "preset-aero-glass", name: "Aero Glass", description: "The current airy SPS look: frosted blue surfaces, transparent layers and a precise cyan accent.", target: "both", isPreset: true,
+    colors: { light: { background: "#f4f9ff", surface: "#ffffff", surfaceHover: "#eaf4ff", text: "#10233d", mutedText: "#5f7189", inverseText: "#ffffff", border: "#cfe1f5", primary: "#1677c8", primaryForeground: "#ffffff", accent: "#14b8d4", accentForeground: "#06243a" }, dark: { background: "#08131f", surface: "#102236", surfaceHover: "#18334f", text: "#eaf6ff", mutedText: "#9bb3c9", inverseText: "#08131f", border: "#294561", primary: "#38bdf8", primaryForeground: "#06243a", accent: "#67e8f9", accentForeground: "#06243a" } },
+    typography: { headingFont: "Outfit", bodyFont: "Plus Jakarta Sans", fontSizeScale: "normal", headingWeight: "bold", letterSpacing: "tight" }, uiStyle: { borderRadius: "xl", shadows: "subtle", spacing: "normal" }
+  },
+  {
+    id: "preset-electric-glow", name: "Electric Glow", description: "Dark cinematic canvas with vivid violet and cyan glow for bolder, immersive presentation.", target: "both", isPreset: true,
+    colors: { light: { background: "#f8f7ff", surface: "#ffffff", surfaceHover: "#f0edff", text: "#18132d", mutedText: "#625c78", inverseText: "#ffffff", border: "#ddd7f7", primary: "#6d28d9", primaryForeground: "#ffffff", accent: "#0891b2", accentForeground: "#ffffff" }, dark: { background: "#0d0920", surface: "#171036", surfaceHover: "#24184e", text: "#f5f3ff", mutedText: "#b9afdc", inverseText: "#0d0920", border: "#332462", primary: "#a78bfa", primaryForeground: "#170b35", accent: "#22d3ee", accentForeground: "#082f49" } },
+    typography: { headingFont: "Space Grotesk", bodyFont: "Plus Jakarta Sans", fontSizeScale: "comfortable", headingWeight: "bold", letterSpacing: "normal" }, uiStyle: { borderRadius: "xl", shadows: "glow", spacing: "relaxed" }
+  },
+  {
+    id: "preset-warm-estate", name: "Warm Estate", description: "Quiet stone, ivory and bronze tones for refined residential and luxury listing stories.", target: "public", isPreset: true,
+    colors: { light: { background: "#fbfaf7", surface: "#f5f1ea", surfaceHover: "#ede6da", text: "#282019", mutedText: "#75695e", inverseText: "#ffffff", border: "#e3d8c8", primary: "#8a5429", primaryForeground: "#ffffff", accent: "#b7791f", accentForeground: "#ffffff" }, dark: { background: "#1b1613", surface: "#292019", surfaceHover: "#392b22", text: "#fbf7f2", mutedText: "#c1afa0", inverseText: "#1b1613", border: "#49362a", primary: "#e0a66e", primaryForeground: "#2b170c", accent: "#f0bd73", accentForeground: "#2b170c" } },
+    typography: { headingFont: "Playfair Display", bodyFont: "Plus Jakarta Sans", fontSizeScale: "comfortable", headingWeight: "semibold", letterSpacing: "wide" }, uiStyle: { borderRadius: "lg", shadows: "medium", spacing: "relaxed" }
   }
 ];
 

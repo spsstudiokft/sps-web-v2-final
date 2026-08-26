@@ -43,6 +43,7 @@ export function ThemeEditor({
   const { tUi, currentLanguage } = useLanguage();
   const [activeModeTab, setActiveModeTab] = useState<"light" | "dark">("dark");
   const [activeSection, setActiveSection] = useState<"colors" | "typography" | "ui">("colors");
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   // Helper to update a color field in light or dark mode
   const handleColorChange = (mode: "light" | "dark", key: keyof ThemeColorMode, val: string) => {
@@ -164,7 +165,7 @@ export function ThemeEditor({
             <Sparkles className="w-4 h-4 text-primary" />
             <span>{tUi("themeEditor.preset_templates", currentLanguage) || "Preset Style Templates"}</span>
           </div>
-          <span className="text-[11px] text-muted-text">{tUi("themeEditor.preset_templates_hint", currentLanguage) || "Click to load starting palette"}</span>
+          <span className="text-[11px] text-muted-text">Válassz egy kész vizuális rendszert, majd csak szükség esetén finomhangolj.</span>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
@@ -210,10 +211,13 @@ export function ThemeEditor({
             );
           })}
         </div>
+        <button type="button" onClick={() => setShowAdvanced((value) => !value)} className="text-xs font-semibold text-primary hover:opacity-80">
+          {showAdvanced ? "Részletes szerkesztő elrejtése" : "Részletes szerkesztő megnyitása"}
+        </button>
       </div>
 
       {/* Editor Navigation Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-3">
+      {showAdvanced && <><div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-3">
         <div className="flex items-center gap-1.5 p-1 bg-surface rounded-xl border border-border">
           <button
             type="button"
@@ -617,6 +621,7 @@ export function ThemeEditor({
           </div>
         </div>
       )}
+      </>}
     </div>
   );
 }
