@@ -110,10 +110,22 @@ export function Pricing({
     };
   }, [initialPlans, initialExtras, initialFeeRules, loadFullData]);
 
-  // Filter plans based on active tab
+  const getPlanCategory = (plan: PricingPlan): "tier" | "bundle" | null => {
+    const type = String(plan.type || "").trim().toLowerCase();
+    if (["tier", "plan", "individual"].includes(type)) return "tier";
+    if (["bundle", "package", "pack"].includes(type)) return "bundle";
+    return null;
+  };
+
+  // Filter plans based on active tab. Normalize legacy category values so old
+  // catalog rows still appear under the intended public selector.
   const filteredPlans = useMemo(() => {
     if (activeFilter === "all") return plans;
-    return plans.filter((p) => p.type === activeFilter);
+    return plans.filter((plan) => getPlanCategory(plan) === activeFilter);
+  }, [plans, activeFilter]);
+
+  useEffect(() => {
+    if (activeFilter !== "all" && !plans.some((plan) => getPlanCategory(plan) === activeFilter)) setActiveFilter("all");
   }, [plans, activeFilter]);
 
   const [expandedBundles, setExpandedBundles] = useState<Record<string, boolean>>({});
@@ -251,8 +263,8 @@ export function Pricing({
   };
 
   // Counts for tabs
-  const tierCount = useMemo(() => plans.filter((p) => p.type === "tier").length, [plans]);
-  const bundleCount = useMemo(() => plans.filter((p) => p.type === "bundle").length, [plans]);
+  const tierCount = useMemo(() => plans.filter((plan) => getPlanCategory(plan) === "tier").length, [plans]);
+  const bundleCount = useMemo(() => plans.filter((plan) => getPlanCategory(plan) === "bundle").length, [plans]);
 
   // If no enabled plans or extras exist, return null
   if (!loading && plans.length === 0 && extraServices.length === 0) {
@@ -390,7 +402,7 @@ export function Pricing({
           viewport={{ once: true }}
           className="grid grid-cols-1 gap-5 sm:gap-8 md:grid-cols-2 lg:grid-cols-3"
         >
-          <AnimatePresence mode="popLayout">
+          <AnimatePresence mode="wait" initial={false}>
             {filteredPlans.map((plan) => {
               const features = parseJsonArray(plan.features);
               const isBundle = plan.type === "bundle";
@@ -423,7 +435,10 @@ export function Pricing({
                   data-pricing-card="true"
                   key={plan.id}
                   layout={!isPerformanceLite}
-                  variants={itemVariants}
+                  initial={isPerformanceLite ? false : { opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={isPerformanceLite ? undefined : { opacity: 0, y: -10 }}
+                  transition={{ duration: 0.22, ease: "easeOut" }}
                   className={`aero-pricing-shine relative flex min-w-0 flex-col justify-between rounded-2xl p-5 sm:rounded-3xl sm:p-7 md:p-8 transition-all duration-300 ${
                     isFeatured
                       ? "bg-background border-2 border-primary shadow-xl ring-1 ring-primary/20 md:-translate-y-2"

@@ -50,6 +50,11 @@
 - Applied the same preference-consent check to the early HTML theme bootstrap so it cannot read a public theme preference before the application starts.
 - Moved the Google Analytics and Ahrefs scripts out of `index.html`; they now load only after analytics consent and are removed with their known client-side storage when that consent is withdrawn.
 - Moved detailed cookie preferences out of the compact banner into a dedicated modal, with draft selections applied only when the visitor saves them.
+- Matched the cookie-preferences modal to the banner with the same blue-washed glass treatment in light and dark themes.
+
+### Public pricing category selector
+
+- Normalized legacy plan category values for the Plans/Bundles selector, reset an unavailable filter safely, and gave newly selected category cards their own enter/exit animation so they render reliably after switching.
 
 ### Local demo administrator
 
