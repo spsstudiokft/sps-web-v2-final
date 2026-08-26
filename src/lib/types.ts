@@ -436,6 +436,7 @@ export interface CRMRecord {
   portal_access_disabled_at?: string | null;
   portal_access_disabled_reason?: string | null;
   portal_access_disabled_by?: string | null;
+  portal_invite_expires_at?: string | null;
   created_at: string;
   updated_at: string;
 }

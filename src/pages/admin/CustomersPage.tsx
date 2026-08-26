@@ -701,6 +701,7 @@ export default function CustomersPage() {
                 const isSendingThis = sendingInviteId === customer.id;
                 const isTogglingThis = togglingPortalId === customer.id;
                 const hasValidEmail = Boolean(customer.email && customer.email.trim());
+                const hasActiveInvite = Boolean(customer.portal_invite_expires_at && new Date(customer.portal_invite_expires_at).getTime() > Date.now());
 
                 return (
                   <tr 
@@ -749,6 +750,7 @@ export default function CustomersPage() {
                             </span>
                           )
                         )}
+                        {!hasPortal && hasActiveInvite && <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/25" title={`A meghívó eddig érvényes: ${new Date(customer.portal_invite_expires_at!).toLocaleString("hu-HU")}`}><Clock size={11} /><span>Meghívó kiküldve</span></span>}
                       </div>
                       <div className="text-sm text-muted-text mt-1 space-y-0.5">
                         {customer.email && (
@@ -831,11 +833,13 @@ export default function CustomersPage() {
                           variant="secondary" 
                           size="sm" 
                           onClick={() => handleSendPortalInvite(customer)}
-                          disabled={!hasValidEmail || isSendingThis}
+                          disabled={!hasValidEmail || isSendingThis || hasActiveInvite}
                           className="text-primary hover:bg-primary/10 hover:border-primary/30 gap-1.5 px-2.5"
                           title={
                             !hasValidEmail 
                               ? (tUi("admin.customers.no_email_warning", currentLanguage) || "Customer has no email address registered")
+                              : hasActiveInvite
+                              ? `A meghívó még érvényes: ${new Date(customer.portal_invite_expires_at!).toLocaleString("hu-HU")}`
                               : (tUi("admin.customers.send_invite_tooltip", currentLanguage) || "Send personalized single-use activation magic link to customer's email")
                           }
                         >

@@ -4793,6 +4793,7 @@ adminRouter.get("/crm/:type", async (req, res) => {
              COALESCE(u.portal_access_disabled_at, c.portal_access_disabled_at) AS portal_access_disabled_at,
              COALESCE(u.portal_access_disabled_reason, c.portal_access_disabled_reason) AS portal_access_disabled_reason,
              COALESCE(u.portal_access_disabled_by, c.portal_access_disabled_by) AS portal_access_disabled_by,
+             (SELECT ml.expires_at FROM magic_links ml WHERE LOWER(TRIM(ml.email)) = LOWER(TRIM(c.email)) AND ml.type = 'signup' AND ml.used_at IS NULL AND ml.expires_at > CURRENT_TIMESTAMP ORDER BY ml.created_at DESC LIMIT 1) AS portal_invite_expires_at,
              (SELECT COUNT(*) FROM client_properties cp WHERE cp.client_id = c.id OR (u.id IS NOT NULL AND cp.client_id = u.id)) as properties_count,
              (SELECT COUNT(*) FROM client_links cl WHERE cl.client_id = c.id OR (u.id IS NOT NULL AND cl.client_id = u.id)) as links_count
       FROM crm_records c
@@ -4830,6 +4831,7 @@ adminRouter.get("/crm/:type", async (req, res) => {
                COALESCE(u.portal_access_disabled_at, c.portal_access_disabled_at) AS portal_access_disabled_at,
                COALESCE(u.portal_access_disabled_reason, c.portal_access_disabled_reason) AS portal_access_disabled_reason,
                COALESCE(u.portal_access_disabled_by, c.portal_access_disabled_by) AS portal_access_disabled_by,
+               (SELECT ml.expires_at FROM magic_links ml WHERE LOWER(TRIM(ml.email)) = LOWER(TRIM(c.email)) AND ml.type = 'signup' AND ml.used_at IS NULL AND ml.expires_at > CURRENT_TIMESTAMP ORDER BY ml.created_at DESC LIMIT 1) AS portal_invite_expires_at,
                CASE WHEN c.property_address IS NOT NULL AND TRIM(c.property_address) != '' THEN 1 ELSE 0 END as properties_count,
                CASE WHEN c.advertisement_link IS NOT NULL AND TRIM(c.advertisement_link) != '' THEN 1 ELSE 0 END as links_count
         FROM crm_records c
@@ -5992,6 +5994,9 @@ adminRouter.post("/crm/customers/:id/send-portal-invite", async (req, res) => {
       return res.status(400).json({ error: "Customer does not have a valid email address" });
     }
 
+    const activeInvite = await db.execute({ sql: "SELECT expires_at FROM magic_links WHERE LOWER(TRIM(email)) = ? AND type = 'signup' AND used_at IS NULL AND expires_at > CURRENT_TIMESTAMP ORDER BY created_at DESC LIMIT 1", args: [email.toLowerCase()] });
+    if (activeInvite.rows.length) return res.status(409).json({ error: "A portalmeghívó már kiküldésre került, és még érvényes.", expiresAt: activeInvite.rows[0].expires_at });
+
     const appOrigin = getAppUrl(req);
     const result = await sendPortalInvitationEmail(
       {
@@ -6074,6 +6079,13 @@ adminRouter.post("/crm/customers/bulk-portal-invite", async (req, res) => {
           success: false,
           error: "No email address registered for this customer."
         });
+        continue;
+      }
+
+      const activeInvite = await db.execute({ sql: "SELECT expires_at FROM magic_links WHERE LOWER(TRIM(email)) = ? AND type = 'signup' AND used_at IS NULL AND expires_at > CURRENT_TIMESTAMP ORDER BY created_at DESC LIMIT 1", args: [email.toLowerCase()] });
+      if (activeInvite.rows.length) {
+        skippedCount++;
+        results.push({ id, name, email, success: false, error: "A portalmeghívó már aktív." });
         continue;
       }
 

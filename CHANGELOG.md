@@ -32,6 +32,11 @@
 - Reframed the theme editor around curated style templates and tucked the granular color, typography, and UI controls behind an explicit advanced-editor action.
 - Added Aero Glass, Electric Glow, and Warm Estate templates alongside the existing SPS visual presets.
 
+### Portal invitations
+
+- Added active portal-invitation status and expiry visibility to customer rows.
+- Prevented single and bulk portal invitation dispatch while a customer's latest unused invitation remains valid; a new invite is allowed after use or expiry.
+
 ### Local demo administrator
 
 - Added an idempotent local-only demo superadmin account when the application uses a file-based development database.
