@@ -56,6 +56,7 @@
 - Added Vercel Web Analytics and Speed Insights to public pages behind analytics consent, including removal of their injected scripts and client queues if that consent is withdrawn; both services are listed in the public cookie catalog as analytics scripts with no persistent cookie.
 - Kept the deployment dependency workflow npm-only by synchronizing `package-lock.json` for the Vercel packages and removing the conflicting pnpm lockfile that made Vercel select pnpm.
 - Added the official `botid` npm dependency and npm lockfile entry so the next Vercel build can enable the project-specific BotID setup.
+- Connected Vercel BotID Basic protection to public contact, registration, passwordless login, password login, and password-reset requests, with the documented Vercel proxy rewrites and server-side verification.
 
 ### Public pricing category selector
 

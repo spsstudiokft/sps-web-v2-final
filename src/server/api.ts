@@ -2,6 +2,7 @@ import { Router } from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
+import { checkBotId } from "botid/server";
 import { db, getDb, isLocalDemoDatabase, LOCAL_DEMO_ADMIN } from "../db.js";
 import { 
   processRegistrationReferral, 
@@ -23,6 +24,20 @@ export { requireAuth, requireAdmin, requireClient } from "./authMiddleware.js";
 
 const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET || "supersecretjwtstring";
+
+async function requireHuman(req: any, res: any, next: any) {
+  try {
+    const verification = await checkBotId({ advancedOptions: { checkLevel: "basic", headers: req.headers } });
+    if (verification.isBot) return res.status(403).json({ error: "This request could not pass the security check." });
+    return next();
+  } catch (error) {
+    console.error("[BotID] Verification failed", error);
+    if (process.env.VERCEL === "1" && process.env.NODE_ENV === "production") {
+      return res.status(503).json({ error: "The security check is temporarily unavailable. Please try again shortly." });
+    }
+    return next();
+  }
+}
 
 const PUBLIC_BOOTSTRAP_TTL_MS = 30_000;
 let publicBootstrapCache: { expiresAt: number; payload: any } | null = null;
@@ -294,7 +309,7 @@ router.post("/setup", async (req, res) => {
   }
 });
 
-router.post("/auth/login", async (req, res) => {
+router.post("/auth/login", requireHuman, async (req, res) => {
   try {
     const { email, password } = req.body;
     const accountContext = req.body?.account_context === "admin" ? "admin" : req.body?.account_context === "client" ? "client" : null;
@@ -386,7 +401,7 @@ router.post("/property-auth/login", async (req, res) => {
 });
 
 // Request Magic Link for Passwordless Sign-Up or Login
-router.post("/auth/magic-link", async (req, res) => {
+router.post("/auth/magic-link", requireHuman, async (req, res) => {
   try {
     const { email, type = "signup", property_address, advertisement_link, properties, referral_code, ref } = req.body;
 
@@ -744,7 +759,7 @@ router.post("/auth/verify-magic-link", async (req, res) => {
   }
 });
 
-router.post("/auth/register", async (req, res) => {
+router.post("/auth/register", requireHuman, async (req, res) => {
   try {
     const { email, password, property_address, advertisement_link, properties, referral_code, ref } = req.body;
     if (!email || typeof email !== "string" || !email.includes("@")) {
@@ -898,7 +913,7 @@ router.post("/auth/register", async (req, res) => {
 });
 
 // Request Password Reset
-router.post("/auth/forgot-password", async (req, res) => {
+router.post("/auth/forgot-password", requireHuman, async (req, res) => {
   try {
     const { email } = req.body;
     if (!email || typeof email !== "string") {
@@ -1846,7 +1861,7 @@ router.get("/public/info-bar", async (req, res) => {
   }
 });
 
-router.post("/public/contact", async (req, res) => {
+router.post("/public/contact", requireHuman, async (req, res) => {
   try {
     const { name, email, phone, message, subject, property_address, property_city, availability_start, availability_end, plan_id, plan_name } = req.body;
 
