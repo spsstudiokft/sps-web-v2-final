@@ -36,11 +36,15 @@ function preloadHeroImage(url: string) {
 
 export function Hero({ settings }: { settings: SiteSettings }) {
   const { currentLang, defaultLang } = useLanguage();
-  const media = parseSectionMedia(settings.section_media).home || {};
+  // Parsing section media creates fresh arrays. Keep the result stable across
+  // slideshow state updates so React does not tear down the outgoing layer or
+  // restart its timer halfway through a cross-fade.
+  const media = useMemo(() => parseSectionMedia(settings.section_media).home || {}, [settings.section_media]);
+  const heroGalleryKey = Array.isArray(media.heroGallery) ? media.heroGallery.join("\u0001") : "";
   const slides = useMemo(() => {
     const gallery = Array.isArray(media.heroGallery) ? media.heroGallery.filter((url) => typeof url === "string" && url.trim()) : [];
     return gallery.length ? gallery : [media.backgroundUrl || "/images/sps-cinematic-hero.png"];
-  }, [media.backgroundUrl, media.heroGallery]);
+  }, [media.backgroundUrl, heroGalleryKey]);
   const [activeSlide, setActiveSlide] = useState(0);
   const [leavingSlide, setLeavingSlide] = useState<number | null>(null);
   const [reducedMotion, setReducedMotion] = useState(false);
