@@ -114,15 +114,10 @@ export function FAQ({
   return (
     <section 
       id="faq" 
+      data-gsap-reveal
       className="aero-faq aero-image-section scroll-mt-20 py-24 md:py-32 px-6"
     >
-      <motion.div
-        initial={{ y: 20 }}
-        whileInView={{ y: 0 }}
-        viewport={{ once: true, margin: "-50px" }}
-        transition={{ duration: 0.6, ease: "easeOut" }}
-        className="max-w-3xl mx-auto"
-      >
+      <div className="max-w-3xl mx-auto">
         <div className="text-center mb-10">
           <h2 className="text-4xl font-bold tracking-tight text-text mb-4">
             {t(settings?.faq_headline, currentLang, defaultLang) || tUi("Frequently Asked Questions", currentLang)}
@@ -240,7 +235,7 @@ export function FAQ({
             })}
           </AnimatePresence>
         </div>
-      </motion.div>
+      </div>
     </section>
   );
 }

@@ -3,7 +3,6 @@ import { SiteSettings, Service } from "../../lib/types";
 import { useLanguage } from "../../contexts/LanguageContext";
 import { t, tUi } from "../../lib/i18n";
 import { ServiceIcon } from "../common/ServiceIcon";
-import { motion } from "motion/react";
 import { ArrowRight } from "lucide-react";
 
 export function Services({ 
@@ -35,21 +34,6 @@ export function Services({
     };
   }, [initialServices]);
 
-  const container = {
-    hidden: { opacity: 0 },
-    show: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.08,
-      },
-    },
-  };
-
-  const itemVariant = {
-    hidden: { opacity: 0, y: 20 },
-    show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } },
-  };
-
   const resolveText = (val: string | null | undefined, fallbackKey = ""): string => {
     if (!val) return fallbackKey ? tUi(fallbackKey, currentLang) : "";
     const translated = t(val, currentLang, defaultLang);
@@ -59,14 +43,8 @@ export function Services({
   if (services.length === 0) return null;
 
   return (
-    <section id="services" className="aero-section aero-services aero-image-section scroll-mt-20 py-24 md:py-32 px-6">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, margin: "-50px" }}
-        transition={{ duration: 0.6, ease: "easeOut" }}
-        className="aero-section-heading text-center mb-16 max-w-4xl mx-auto"
-      >
+    <section id="services" data-gsap-reveal className="aero-section aero-services aero-image-section scroll-mt-20 py-24 md:py-32 px-6">
+      <div className="aero-section-heading text-center mb-16 max-w-4xl mx-auto">
         <h2 className="text-4xl font-bold tracking-tight text-text mb-4">
           {t(settings?.services_headline, currentLang, defaultLang) || tUi("Our Services", currentLang)}
         </h2>
@@ -77,15 +55,9 @@ export function Services({
               currentLang
             )}
         </p>
-      </motion.div>
+      </div>
 
-      <motion.div
-        variants={container}
-        initial="hidden"
-        whileInView="show"
-        viewport={{ once: true, margin: "-50px" }}
-        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto"
-      >
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
         {services.map((service, index) => {
           const serviceTitle = resolveText(service.title, service.title);
           const serviceDesc = resolveText(service.description, service.description || "");
@@ -117,30 +89,28 @@ export function Services({
           if (service.link_url) {
             const isInternalAnchor = service.link_url.startsWith("#");
             return (
-              <motion.a
+              <a
                 key={service.id || index}
-                variants={itemVariant}
                 href={service.link_url}
                 target={isInternalAnchor ? undefined : "_blank"}
                 rel={isInternalAnchor ? undefined : "noopener noreferrer"}
                 className="aero-card group block p-8 rounded-3xl transition-all duration-300 cursor-pointer"
               >
                 {CardContent}
-              </motion.a>
+              </a>
             );
           }
 
           return (
-            <motion.div
+            <div
               key={service.id || index}
-              variants={itemVariant}
               className="aero-card group p-8 rounded-3xl transition-all duration-300"
             >
               {CardContent}
-            </motion.div>
+            </div>
           );
         })}
-      </motion.div>
+      </div>
     </section>
   );
 }

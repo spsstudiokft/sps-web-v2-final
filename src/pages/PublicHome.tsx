@@ -24,6 +24,7 @@ import { parseSectionMedia } from "../lib/sectionMedia";
 import { getNormalizedGallery } from "../lib/mediaUtils";
 import { parseVisualIdeas } from "../lib/visualIdeas";
 import { MotionConfig } from "motion/react";
+import { PublicScrollAnimations } from "../components/public/PublicScrollAnimations";
 
 type PublicBootstrapData = {
   settings: SiteSettings;
@@ -308,6 +309,7 @@ function PublicHomeContent({ settings, portfolio, services, bootstrap, loading }
         data-ambient={activeSectionKey}
         data-performance={litePerformanceMode ? "lite" : "full"}
       >
+      <PublicScrollAnimations disabled={litePerformanceMode} contentReady={!loading} />
       <div className="aero-ambient-blur" aria-hidden="true">
         <span className="aero-blur-spot aero-blur-left-top" />
         <span className="aero-blur-spot aero-blur-left-bottom" />

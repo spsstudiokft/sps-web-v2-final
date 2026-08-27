@@ -1,7 +1,6 @@
 import { SiteSettings } from "../../lib/types";
 import { useLanguage } from "../../contexts/LanguageContext";
 import { t, tUi } from "../../lib/i18n";
-import { motion } from "motion/react";
 import { parseSectionMedia } from "../../lib/sectionMedia";
 
 export function About({ settings }: { settings: SiteSettings }) {
@@ -9,12 +8,9 @@ export function About({ settings }: { settings: SiteSettings }) {
   const aboutImage = parseSectionMedia(settings.section_media).about?.contentImageUrl
     || "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&q=80&w=1000";
   return (
-    <motion.section 
+    <section
       id="about" 
-      initial={{ opacity: 0, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-50px" }}
-      transition={{ duration: 0.6, ease: "easeOut" }}
+      data-gsap-reveal
       className="aero-section aero-about scroll-mt-20 py-24 md:py-32"
     >
       <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-2 gap-16 items-center">
@@ -32,6 +28,6 @@ export function About({ settings }: { settings: SiteSettings }) {
           />
         </div>
       </div>
-    </motion.section>
+    </section>
   );
 }

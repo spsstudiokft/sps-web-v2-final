@@ -21,12 +21,6 @@ import {
   ChevronUp,
   Info
 } from "lucide-react";
-import { 
-  staggerContainer, 
-  fadeInUp, 
-  buttonMotionProps, 
-  VIEWPORT_CONFIG 
-} from "../../lib/animations";
 import { calculateFeeRuleCost, parseJsonArray } from "../../lib/utils";
 
 // Format currency display nicely
@@ -271,21 +265,6 @@ export function Pricing({
     return null;
   }
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    show: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1,
-      },
-    },
-  };
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: 25 },
-    show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } },
-  };
-
   const handlePlanCtaClick = (e: React.MouseEvent, plan: PricingPlan) => {
     const url = plan.cta_url || "#contact";
     
@@ -328,12 +307,9 @@ export function Pricing({
   const distanceFeeRule = feeRules.find((r) => r.fee_type === "distance" || r.fee_type === "distance_tiered");
 
   return (
-    <motion.section
+    <section
       id="pricing"
-      initial={isPerformanceLite ? false : { opacity: 0, y: 15 }}
-      whileInView={isPerformanceLite ? undefined : { opacity: 1, y: 0 }}
-      viewport={VIEWPORT_CONFIG}
-      transition={{ duration: 0.5, ease: "easeOut" }}
+      data-gsap-reveal
       className="scroll-mt-20 py-16 sm:py-24 md:py-32 bg-surface/30 border-t border-b border-border relative overflow-hidden"
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
@@ -394,12 +370,8 @@ export function Pricing({
         </div>
 
         {/* Pricing Cards Grid */}
-        <motion.div
+        <div
           data-pricing-grid="true"
-          variants={containerVariants}
-          initial={isPerformanceLite ? "show" : "hidden"}
-          whileInView="show"
-          viewport={{ once: true }}
           className="grid grid-cols-1 gap-5 sm:gap-8 md:grid-cols-2 lg:grid-cols-3"
         >
           <AnimatePresence mode="wait" initial={false}>
@@ -643,7 +615,7 @@ export function Pricing({
               );
             })}
           </AnimatePresence>
-        </motion.div>
+        </div>
 
         {/* Extra Services / Add-ons Section */}
         {extraServices.length > 0 && (
@@ -853,6 +825,6 @@ export function Pricing({
           </a>
         </div>
       </div>
-    </motion.section>
+    </section>
   );
 }

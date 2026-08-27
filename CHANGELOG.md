@@ -16,6 +16,14 @@
 - Replaced CSS background-image slides with fully covering, preloaded image elements, eliminating uncovered background gaps while the two hero images cross-fade.
 - Stabilized the parsed hero-gallery references across slideshow state updates so the active and outgoing layers are not remounted or have their cross-fade timer cancelled mid-transition.
 - Switched the hero-gallery opacity handoff to a GSAP timeline: the current and preloaded-next images now animate from 1→0 and 0→1 at the same timeline position, with cleanup when the component is reset or unmounted.
+
+### Public scroll-animation performance
+
+- Replaced the continuous CSS view-timeline section reveal with a single GSAP ScrollTrigger reveal per opted-in public section; each reveal animates only opacity and transform once, then stops observing work for that section.
+- Migrated the simple About, Vision, Featured Work, Visual Ideas, and testimonial section entrances from individual Motion viewport observers to the shared GSAP controller.
+- Added the shared GSAP reveal to Services, Portfolio, Pricing, Contact, and FAQ, removing redundant root-level Motion viewport observers while preserving their interactive child animations.
+- Removed the per-card Motion viewport/stagger observers from Services, Portfolio headers and galleries, and the Pricing-card grid; GSAP now owns the once-only section entrance while CSS continues to handle lightweight hover feedback.
+- Kept interactive Motion animations for modals, accordions, form feedback, and filter changes, where they are event-driven rather than continuously scroll-driven.
 - Preserved existing single hero background settings as a compatible first gallery image until additional images are added.
 - Optimized gallery rendering so only the current and preloaded-next slides stay mounted (with one short-lived outgoing layer during a cross-fade); animation pauses in background tabs and honors reduced-motion preferences.
 

@@ -13,7 +13,7 @@ export function Testimonials({ items }: { items: Testimonial[] }) {
   if (!items.length) return null;
 
   return (
-    <section id="testimonials" className="py-20 md:py-28 px-5 sm:px-6" aria-labelledby="testimonials-title">
+    <section id="testimonials" data-gsap-reveal className="py-20 md:py-28 px-5 sm:px-6" aria-labelledby="testimonials-title">
       <div className="max-w-6xl mx-auto">
         <div className="text-center max-w-2xl mx-auto mb-10 md:mb-14">
           <span className="inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/10 px-3 py-1 text-xs font-semibold tracking-wide text-primary">VISSZAJELZÉSEK</span>

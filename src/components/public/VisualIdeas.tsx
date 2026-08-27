@@ -21,6 +21,7 @@ export function VisualIdeas({ settings, isPerformanceLite = false }: { settings:
   return (
     <section
       id="visual-ideas"
+      data-gsap-reveal
       data-nav-section="false"
       data-performance-lite={isPerformanceLite ? "true" : "false"}
       className="aero-section aero-visual-ideas scroll-mt-20 px-6 py-16 md:py-28"

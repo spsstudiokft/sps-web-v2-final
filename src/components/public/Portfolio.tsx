@@ -5,13 +5,6 @@ import { ShowcaseMediaCardItem } from "./portfolio/MediaCard";
 import { PortfolioLightboxModal } from "./portfolio/PortfolioLightboxModal";
 import { useLanguage } from "../../contexts/LanguageContext";
 import { tUi } from "../../lib/i18n";
-import { motion } from "motion/react";
-import { 
-  staggerContainer, 
-  fadeInUp, 
-  fadeIn, 
-  VIEWPORT_CONFIG 
-} from "../../lib/animations";
 import { 
   Sparkles, 
   Play, 
@@ -215,6 +208,7 @@ export function Portfolio({ items, isPerformanceLite = false, settings = {} }: P
   return (
     <section 
       id="portfolio" 
+      data-gsap-reveal
       className="aero-portfolio aero-image-section scroll-mt-20 py-24 md:py-32 px-6 relative overflow-hidden"
     >
       {/* Background Ambience Glow */}
@@ -222,44 +216,29 @@ export function Portfolio({ items, isPerformanceLite = false, settings = {} }: P
 
       {/* Header Container */}
       <div className="max-w-7xl mx-auto mb-12 relative z-10">
-        <motion.div 
-          variants={staggerContainer(0.1, 0.05)}
-          initial="hidden"
-          whileInView="show"
-          viewport={VIEWPORT_CONFIG}
-          className="aero-section-heading flex flex-col lg:flex-row lg:items-end justify-between gap-8 pb-8 border-b border-border"
-        >
+        <div className="aero-section-heading flex flex-col lg:flex-row lg:items-end justify-between gap-8 pb-8 border-b border-border">
           <div className="space-y-4 max-w-2xl">
-            <motion.div 
-              variants={fadeInUp}
-              className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-bold uppercase tracking-wider"
-            >
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-bold uppercase tracking-wider">
               <Sparkles className="w-3.5 h-3.5" />
               <span>{tUi("Interactive Showcase", currentLang, undefined, defaultLang)}</span>
-            </motion.div>
+            </div>
 
-            <motion.h2 
-              variants={fadeInUp}
-              className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-text"
-            >
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-text">
               {tUi("Portfolio", currentLang, undefined, defaultLang) || "Our Portfolio"}
-            </motion.h2>
+            </h2>
 
-            <motion.p 
-              variants={fadeInUp}
-              className="text-base sm:text-lg text-muted-text leading-relaxed font-normal"
-            >
+            <p className="text-base sm:text-lg text-muted-text leading-relaxed font-normal">
               {tUi(
                 "Explore our visual galleries featuring high-resolution architectural photography, 4K walkthrough motion reels, and cinematic aerial drone captures.",
                 currentLang,
                 undefined,
                 defaultLang
               )}
-            </motion.p>
+            </p>
           </div>
 
           {/* Controls: Play/Pause & Motion Toggle */}
-          <motion.div variants={fadeInUp} className="flex items-center gap-3 shrink-0 flex-wrap">
+          <div className="flex items-center gap-3 shrink-0 flex-wrap">
             {!isReducedMotion && !isMobileViewport && (
               <button
                 type="button"
@@ -281,18 +260,12 @@ export function Portfolio({ items, isPerformanceLite = false, settings = {} }: P
               </button>
             )}
 
-          </motion.div>
-        </motion.div>
+          </div>
+        </div>
       </div>
 
       {/* 3 Showcase Rows Filled with Distinct Gallery Item Previews */}
-      <motion.div 
-        variants={fadeIn}
-        initial="hidden"
-        whileInView="show"
-        viewport={VIEWPORT_CONFIG}
-        className="space-y-4 sm:space-y-6 overflow-hidden relative z-10"
-      >
+      <div className="space-y-4 sm:space-y-6 overflow-hidden relative z-10">
         {/* Row 1: Photography Previews (scrolls left) */}
         {imageCards.length > 0 && (
           <div className="relative">
@@ -392,7 +365,7 @@ export function Portfolio({ items, isPerformanceLite = false, settings = {} }: P
             />
           </div>
         )}
-      </motion.div>
+      </div>
 
       {/* Lightbox Modal for Photos & Videos */}
       <PortfolioLightboxModal

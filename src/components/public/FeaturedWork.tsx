@@ -2,7 +2,6 @@ import { PortfolioItem } from "../../lib/types";
 import { cn, getParsedImages, getFirstImageUrl } from "../../lib/utils";
 import { useLanguage } from "../../contexts/LanguageContext";
 import { t } from "../../lib/i18n";
-import { motion } from "motion/react";
 
 export function FeaturedWork({ featured }: { featured: PortfolioItem[] }) {
   const { currentLang, defaultLang } = useLanguage();
@@ -10,12 +9,9 @@ export function FeaturedWork({ featured }: { featured: PortfolioItem[] }) {
   if (featured.length === 0) return null;
 
   return (
-    <motion.section 
+    <section
       id="featured" 
-      initial={{ opacity: 0, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-50px" }}
-      transition={{ duration: 0.6, ease: "easeOut" }}
+      data-gsap-reveal
       className="scroll-mt-20 px-6 max-w-7xl mx-auto mb-32"
     >
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -38,6 +34,6 @@ export function FeaturedWork({ featured }: { featured: PortfolioItem[] }) {
           );
         })}
       </div>
-    </motion.section>
+    </section>
   );
 }
