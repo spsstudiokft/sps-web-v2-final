@@ -20,12 +20,61 @@ import {
   sendMagicLinkEmail,
   getEmailSenderConfig 
 } from "./services/emailService.js";
+import { requireAuth, requireAdmin, requireClient } from "./authMiddleware.js";
+import {
+  createAndSendEmailChallenge,
+  hasEnabledEmailFactor,
+  recordSecurityEvent,
+  setEmailFactorEnabled,
+  verifyEmailChallenge,
+  type AccountContext,
+} from "./services/mfaService.js";
 export { requireAuth, requireAdmin, requireClient } from "./authMiddleware.js";
 
 const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET || "supersecretjwtstring";
 
+function resolveLoginIdentity(user: any, accountContext: AccountContext) {
+  const primaryRole = String(user.role || "admin").toLowerCase().replace(/[_-]/g, "");
+  const secondaryAdminRole = String(user.admin_role || "").toLowerCase().replace(/[_-]/g, "");
+  const primaryIsAdmin = ["superadmin", "admin", "editor", "viewer"].includes(primaryRole);
+  const useSecondaryAdmin = accountContext === "admin" && !primaryIsAdmin && ["superadmin", "admin", "editor", "viewer"].includes(secondaryAdminRole);
+  return {
+    primaryRole,
+    primaryIsAdmin,
+    useSecondaryAdmin,
+    effectiveRole: useSecondaryAdmin ? secondaryAdminRole : primaryRole,
+    selectedHash: useSecondaryAdmin ? user.admin_password_hash : user.password_hash,
+    effectiveActive: useSecondaryAdmin ? user.admin_is_active : user.is_active,
+  };
+}
+
+function issueSession(user: any, role: string, accountContext: AccountContext, amr: string[]) {
+  const publicUser = { id: user.id, email: user.email, role, name: user.name || "" };
+  const token = jwt.sign({ ...publicUser, account_context: accountContext, amr, auth_time: Math.floor(Date.now() / 1000) }, JWT_SECRET, { expiresIn: "1d" });
+  return { token, user: publicUser };
+}
+
+function maskEmailAddress(email: string) {
+  const [local, domain] = email.split("@");
+  return domain ? `${local.slice(0, 1) || "*"}***@${domain}` : "***";
+}
+
+function assertChallengeOwner(req: any, preauthToken: string, accountContext: AccountContext, purpose: "enrollment" | "disable") {
+  try {
+    const payload: any = jwt.verify(preauthToken, JWT_SECRET);
+    if (payload?.purpose !== `2fa_${purpose}` || String(payload?.userId || "") !== String(req.user?.id || "") || payload?.accountContext !== accountContext) {
+      throw new Error("mismatch");
+    }
+  } catch {
+    throw Object.assign(new Error("The verification does not belong to this authenticated account or has expired."), { status: 403 });
+  }
+}
+
 async function requireHuman(req: any, res: any, next: any) {
+  // BotID is a Vercel-provided protection. Local and standalone test servers
+  // do not receive its signed request metadata and must not call the verifier.
+  if (process.env.VERCEL !== "1") return next();
   try {
     const verification = await checkBotId({ advancedOptions: { checkLevel: "basic", headers: req.headers } });
     if (verification.isBot) return res.status(403).json({ error: "This request could not pass the security check." });
@@ -312,7 +361,8 @@ router.post("/setup", async (req, res) => {
 router.post("/auth/login", requireHuman, async (req, res) => {
   try {
     const { email, password } = req.body;
-    const accountContext = req.body?.account_context === "admin" ? "admin" : req.body?.account_context === "client" ? "client" : null;
+    const accountContext: AccountContext | null = req.body?.account_context === "admin" ? "admin" : req.body?.account_context === "client" ? "client" : null;
+    if (!accountContext) return res.status(400).json({ error: "A valid account context is required." });
     const cleanEmail = typeof email === "string" ? email.trim().toLowerCase() : "";
     const result = await db.execute({
       sql: "SELECT * FROM users WHERE LOWER(TRIM(email)) = ?",
@@ -322,12 +372,7 @@ router.post("/auth/login", requireHuman, async (req, res) => {
     if (result.rows.length === 0) return res.status(401).json({ error: "Invalid credentials" });
 
     const user: any = result.rows[0];
-    const primaryRole = String(user.role || "admin").toLowerCase().replace(/[_-]/g, "");
-    const secondaryAdminRole = String(user.admin_role || "").toLowerCase().replace(/[_-]/g, "");
-    const primaryIsAdmin = ["superadmin", "admin", "editor", "viewer"].includes(primaryRole);
-    const useSecondaryAdmin = accountContext === "admin" && !primaryIsAdmin && ["superadmin", "admin", "editor", "viewer"].includes(secondaryAdminRole);
-    const effectiveRole = useSecondaryAdmin ? secondaryAdminRole : primaryRole;
-    const selectedHash = useSecondaryAdmin ? user.admin_password_hash : user.password_hash;
+    const { primaryRole, primaryIsAdmin, useSecondaryAdmin, effectiveRole, selectedHash, effectiveActive } = resolveLoginIdentity(user, accountContext);
 
     if (accountContext === "admin" && !primaryIsAdmin && !useSecondaryAdmin) {
       return res.status(401).json({ error: "No admin account exists for this email address." });
@@ -340,7 +385,6 @@ router.post("/auth/login", requireHuman, async (req, res) => {
 
     if (!match) return res.status(401).json({ error: "Invalid credentials" });
 
-    const effectiveActive = useSecondaryAdmin ? user.admin_is_active : user.is_active;
     if (effectiveActive === 0) return res.status(403).json({ error: "Account is disabled. Please contact the studio administrator." });
 
     // If client role, check if associated customer record is inactive
@@ -354,15 +398,141 @@ router.post("/auth/login", requireHuman, async (req, res) => {
       }
     }
 
-    await db.execute({
-      sql: "UPDATE users SET last_login_at = CURRENT_TIMESTAMP, last_activity_at = CURRENT_TIMESTAMP WHERE id = ?",
-      args: [user.id],
-    });
-    const token = jwt.sign({ id: user.id, email: user.email, role: effectiveRole, name: user.name || "" }, JWT_SECRET, { expiresIn: "1d" });
-    res.json({ token, user: { id: user.id, email: user.email, role: effectiveRole, name: user.name || "" } });
+    if (await hasEnabledEmailFactor(String(user.id), accountContext)) {
+      const challenge = await createAndSendEmailChallenge({ userId: String(user.id), email: String(user.email), name: String(user.name || ""), accountContext, req });
+      return res.status(202).json({
+        requires_2fa: true,
+        method: "email_otp",
+        masked_email: maskEmailAddress(cleanEmail),
+        challenge_id: challenge.challengeId,
+        preauth_token: challenge.preauthToken,
+        expires_in: challenge.expiresIn,
+        resend_after: challenge.resendAfter,
+      });
+    }
+
+    await db.execute({ sql: "UPDATE users SET last_login_at = CURRENT_TIMESTAMP, last_activity_at = CURRENT_TIMESTAMP WHERE id = ?", args: [user.id] });
+    res.json(issueSession(user, effectiveRole, accountContext, ["pwd"]));
   } catch (error: any) {
     console.error("[Login Error]", error);
     res.status(500).json({ error: "Login failed" });
+  }
+});
+
+router.post("/auth/2fa/verify", async (req, res) => {
+  try {
+    const challengeId = String(req.body?.challenge_id || "");
+    const preauthToken = String(req.body?.preauth_token || "");
+    const code = String(req.body?.code || "").replace(/\s/g, "");
+    if (!challengeId || !preauthToken || !/^\d{8}$/.test(code)) return res.status(400).json({ error: "Enter the 8-digit verification code." });
+    const verified = await verifyEmailChallenge({ challengeId, preauthToken, code, req, expectedPurpose: "login" });
+    const result = await db.execute({ sql: "SELECT * FROM users WHERE id = ? LIMIT 1", args: [verified.userId] });
+    const user: any = result.rows[0];
+    if (!user) return res.status(401).json({ error: "The account no longer exists." });
+    const identity = resolveLoginIdentity(user, verified.accountContext);
+    if (verified.accountContext === "admin" && !identity.primaryIsAdmin && !identity.useSecondaryAdmin) return res.status(403).json({ error: "Admin access is no longer available for this account." });
+    if (verified.accountContext === "client" && identity.primaryRole !== "client") return res.status(403).json({ error: "Client access is no longer available for this account." });
+    if (identity.effectiveActive === 0) return res.status(403).json({ error: "Account is disabled." });
+    if (verified.accountContext === "client") {
+      const crmCheck = await db.execute({ sql: "SELECT status FROM crm_records WHERE LOWER(TRIM(email)) = LOWER(TRIM(?)) AND type = 'customer' LIMIT 1", args: [user.email] });
+      if (crmCheck.rows[0]?.status === "inactive") return res.status(403).json({ error: "Portal access is disabled because the customer account is marked inactive." });
+    }
+    await db.execute({ sql: "UPDATE users SET last_login_at = CURRENT_TIMESTAMP, last_activity_at = CURRENT_TIMESTAMP WHERE id = ?", args: [user.id] });
+    return res.json(issueSession(user, identity.effectiveRole, verified.accountContext, ["pwd", "email_otp"]));
+  } catch (error: any) {
+    return res.status(Number(error?.status || 500)).json({ error: error?.message || "Verification failed." });
+  }
+});
+
+router.post("/auth/2fa/email/resend", async (req, res) => {
+  try {
+    const preauth: any = jwt.verify(String(req.body?.preauth_token || ""), JWT_SECRET);
+    if (preauth?.purpose !== "2fa_login" || !preauth?.userId || !preauth?.accountContext) return res.status(401).json({ error: "Invalid verification session." });
+    const result = await db.execute({ sql: "SELECT id, email, name FROM users WHERE id = ? LIMIT 1", args: [preauth.userId] });
+    const user: any = result.rows[0];
+    if (!user) return res.status(401).json({ error: "The account no longer exists." });
+    const challenge = await createAndSendEmailChallenge({ userId: String(user.id), email: String(user.email), name: String(user.name || ""), accountContext: preauth.accountContext, req, previousChallengeId: String(preauth.challengeId || "") });
+    return res.json({ challenge_id: challenge.challengeId, preauth_token: challenge.preauthToken, expires_in: challenge.expiresIn, resend_after: challenge.resendAfter });
+  } catch (error: any) {
+    if (error?.name === "JsonWebTokenError" || error?.name === "TokenExpiredError") return res.status(401).json({ error: "The verification session is invalid or expired." });
+    if (error?.retryAfter) res.setHeader("Retry-After", String(error.retryAfter));
+    return res.status(Number(error?.status || 500)).json({ error: error?.message || "The verification email could not be sent." });
+  }
+});
+
+router.get("/auth/2fa/status", requireAuth, async (req: any, res) => {
+  const accountContext: AccountContext = req.user?.account_context === "client" || req.user?.role === "client" ? "client" : "admin";
+  res.json({ account_context: accountContext, email_otp_enabled: await hasEnabledEmailFactor(String(req.user.id), accountContext), totp_enabled: false });
+});
+
+router.post("/auth/2fa/email/enrollment/start", requireAuth, async (req: any, res) => {
+  try {
+    const accountContext: AccountContext = req.user?.account_context === "client" || req.user?.role === "client" ? "client" : "admin";
+    if (await hasEnabledEmailFactor(String(req.user.id), accountContext)) return res.status(409).json({ error: "Email verification is already enabled." });
+    const result = await db.execute({ sql: "SELECT id, email, name FROM users WHERE id = ? LIMIT 1", args: [req.user.id] });
+    const user: any = result.rows[0];
+    if (!user) return res.status(404).json({ error: "Account not found." });
+    const challenge = await createAndSendEmailChallenge({ userId: String(user.id), email: String(user.email), name: String(user.name || ""), accountContext, purpose: "enrollment", req });
+    res.json({ challenge_id: challenge.challengeId, preauth_token: challenge.preauthToken, masked_email: maskEmailAddress(String(user.email)), expires_in: challenge.expiresIn });
+  } catch (error: any) {
+    res.status(Number(error?.status || 500)).json({ error: error?.message || "The verification email could not be sent." });
+  }
+});
+
+router.post("/auth/2fa/email/enrollment/confirm", requireAuth, async (req: any, res) => {
+  try {
+    const challengeId = String(req.body?.challenge_id || "");
+    const preauthToken = String(req.body?.preauth_token || "");
+    const code = String(req.body?.code || "").replace(/\s/g, "");
+    if (!/^\d{8}$/.test(code)) return res.status(400).json({ error: "Enter the 8-digit verification code." });
+    const accountContext: AccountContext = req.user?.account_context === "client" || req.user?.role === "client" ? "client" : "admin";
+    assertChallengeOwner(req, preauthToken, accountContext, "enrollment");
+    const verified = await verifyEmailChallenge({ challengeId, preauthToken, code, req, expectedPurpose: "enrollment" });
+    if (verified.userId !== String(req.user.id) || verified.accountContext !== accountContext) return res.status(403).json({ error: "The verification does not belong to this account." });
+    await setEmailFactorEnabled(String(req.user.id), accountContext, true);
+    await recordSecurityEvent({ userId: String(req.user.id), accountContext, eventType: "email_otp_factor_enabled", req });
+    res.json({ success: true, email_otp_enabled: true });
+  } catch (error: any) {
+    res.status(Number(error?.status || 500)).json({ error: error?.message || "Email verification could not be enabled." });
+  }
+});
+
+router.post("/auth/2fa/email/disable/start", requireAuth, async (req: any, res) => {
+  try {
+    const accountContext: AccountContext = req.user?.account_context === "client" || req.user?.role === "client" ? "client" : "admin";
+    if (!await hasEnabledEmailFactor(String(req.user.id), accountContext)) return res.status(409).json({ error: "Email verification is not enabled." });
+    const password = typeof req.body?.password === "string" ? req.body.password : "";
+    if (!password) return res.status(400).json({ error: "Your current password is required." });
+    const result = await db.execute({ sql: "SELECT * FROM users WHERE id = ? LIMIT 1", args: [req.user.id] });
+    const user: any = result.rows[0];
+    if (!user) return res.status(404).json({ error: "Account not found." });
+    const identity = resolveLoginIdentity(user, accountContext);
+    if (!await bcrypt.compare(password, String(identity.selectedHash || ""))) {
+      await recordSecurityEvent({ userId: String(req.user.id), accountContext, eventType: "email_otp_disable_password_failed", success: false, req });
+      return res.status(401).json({ error: "The current password is incorrect." });
+    }
+    const challenge = await createAndSendEmailChallenge({ userId: String(user.id), email: String(user.email), name: String(user.name || ""), accountContext, purpose: "disable", req });
+    res.json({ challenge_id: challenge.challengeId, preauth_token: challenge.preauthToken, masked_email: maskEmailAddress(String(user.email)), expires_in: challenge.expiresIn });
+  } catch (error: any) {
+    res.status(Number(error?.status || 500)).json({ error: error?.message || "The disable verification could not be started." });
+  }
+});
+
+router.post("/auth/2fa/email/disable/confirm", requireAuth, async (req: any, res) => {
+  try {
+    const challengeId = String(req.body?.challenge_id || "");
+    const preauthToken = String(req.body?.preauth_token || "");
+    const code = String(req.body?.code || "").replace(/\s/g, "");
+    if (!/^\d{8}$/.test(code)) return res.status(400).json({ error: "Enter the 8-digit verification code." });
+    const accountContext: AccountContext = req.user?.account_context === "client" || req.user?.role === "client" ? "client" : "admin";
+    assertChallengeOwner(req, preauthToken, accountContext, "disable");
+    const verified = await verifyEmailChallenge({ challengeId, preauthToken, code, req, expectedPurpose: "disable" });
+    if (verified.userId !== String(req.user.id) || verified.accountContext !== accountContext) return res.status(403).json({ error: "The verification does not belong to this account." });
+    await setEmailFactorEnabled(String(req.user.id), accountContext, false);
+    await recordSecurityEvent({ userId: String(req.user.id), accountContext, eventType: "email_otp_factor_disabled", req });
+    res.json({ success: true, email_otp_enabled: false });
+  } catch (error: any) {
+    res.status(Number(error?.status || 500)).json({ error: error?.message || "Email verification could not be disabled." });
   }
 });
 

@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useState } from "react";
-import { CheckCircle2, KeyRound, Loader2, LockKeyhole, ShieldCheck, UserRound } from "lucide-react";
+import { CheckCircle2, KeyRound, Loader2, LockKeyhole, UserRound } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/Card";
 import { Input } from "../../components/ui/Input";
 import { Label } from "../../components/ui/Label";
@@ -7,6 +7,7 @@ import { useApi } from "../../hooks/useApi";
 import { useAuth } from "../../contexts/AuthContext";
 import { useLanguage } from "../../contexts/LanguageContext";
 import { usePageTitle } from "../../hooks/usePageTitle";
+import { TwoFactorSettingsCard } from "../../components/auth/TwoFactorSettingsCard";
 
 interface SettingsProfile {
   id: string;
@@ -156,14 +157,7 @@ export default function ClientSettingsPage() {
         </CardContent>
       </Card>
 
-      <Card className="border-dashed border-border bg-surface/30">
-        <CardHeader>
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex items-start gap-3"><div className="rounded-xl bg-primary/10 p-2.5 text-primary"><ShieldCheck className="h-5 w-5" /></div><div><CardTitle>{tUi("client.settings.tfa_title")}</CardTitle><CardDescription>{tUi("client.settings.tfa_desc")}</CardDescription></div></div>
-            <span className="rounded-full border border-border bg-background px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-muted-text">{tUi("client.settings.coming_soon")}</span>
-          </div>
-        </CardHeader>
-      </Card>
+      <TwoFactorSettingsCard />
     </div>
   );
 }

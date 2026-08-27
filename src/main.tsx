@@ -4,15 +4,17 @@ import App from './App.tsx';
 import './index.css';
 import { initBotId } from 'botid/client/core';
 
-initBotId({
-  protect: [
-    { path: '/api/public/contact', method: 'POST', advancedOptions: { checkLevel: 'basic' } },
-    { path: '/api/auth/register', method: 'POST', advancedOptions: { checkLevel: 'basic' } },
-    { path: '/api/auth/magic-link', method: 'POST', advancedOptions: { checkLevel: 'basic' } },
-    { path: '/api/auth/login', method: 'POST', advancedOptions: { checkLevel: 'basic' } },
-    { path: '/api/auth/forgot-password', method: 'POST', advancedOptions: { checkLevel: 'basic' } },
-  ],
-});
+if (!['localhost', '127.0.0.1', '::1'].includes(window.location.hostname)) {
+  initBotId({
+    protect: [
+      { path: '/api/public/contact', method: 'POST', advancedOptions: { checkLevel: 'basic' } },
+      { path: '/api/auth/register', method: 'POST', advancedOptions: { checkLevel: 'basic' } },
+      { path: '/api/auth/magic-link', method: 'POST', advancedOptions: { checkLevel: 'basic' } },
+      { path: '/api/auth/login', method: 'POST', advancedOptions: { checkLevel: 'basic' } },
+      { path: '/api/auth/forgot-password', method: 'POST', advancedOptions: { checkLevel: 'basic' } },
+    ],
+  });
+}
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

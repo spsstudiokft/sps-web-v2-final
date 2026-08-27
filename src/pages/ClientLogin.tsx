@@ -7,6 +7,8 @@ import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
 import { Label } from "../components/ui/Label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "../components/ui/Card";
+import { EmailTwoFactorChallenge, type EmailChallengeState } from "../components/auth/EmailTwoFactorChallenge";
+import { getLoginRequiredMessage } from "../lib/authLoginValidationTranslations";
 import { 
   Sparkles, 
   KeyRound, 
@@ -19,7 +21,7 @@ import {
 } from "lucide-react";
 
 export default function ClientLogin() {
-  const { tUi } = useLanguage();
+  const { currentLang, tUi } = useLanguage();
   usePageTitle(tUi("auth.client_login.title") || "Client Portal | SPS Studio");
 
   const [authMethod, setAuthMethod] = useState<"magic_link" | "password">("magic_link");
@@ -29,6 +31,7 @@ export default function ClientLogin() {
   const [loading, setLoading] = useState(false);
   const [magicLinkSent, setMagicLinkSent] = useState(false);
   const [cooldown, setCooldown] = useState(0);
+  const [emailChallenge, setEmailChallenge] = useState<EmailChallengeState | null>(null);
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -124,6 +127,10 @@ export default function ClientLogin() {
   // Handle Password Login Submission
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!email.trim() || !password) {
+      setError(getLoginRequiredMessage(currentLang));
+      return;
+    }
     setLoading(true);
     setError("");
 
@@ -136,6 +143,10 @@ export default function ClientLogin() {
 
       if (res.ok) {
         const data = await res.json();
+        if (data.requires_2fa) {
+          setEmailChallenge({ challengeId: data.challenge_id, preauthToken: data.preauth_token, maskedEmail: data.masked_email, resendAfter: data.resend_after || 60 });
+          return;
+        }
         login(data.token, data.user, "client");
         const role = data.user?.role || "client";
         if (role === "admin" || role === "editor" || role === "viewer") {
@@ -153,6 +164,12 @@ export default function ClientLogin() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const completePasswordLogin = (data: any) => {
+    login(data.token, data.user, "client");
+    const from = (location.state as any)?.from?.pathname || "/client";
+    navigate(from, { replace: true });
   };
 
   return (
@@ -213,7 +230,11 @@ export default function ClientLogin() {
           </CardDescription>
         </CardHeader>
 
-        {magicLinkSent ? (
+        {emailChallenge ? (
+          <CardContent>
+            <EmailTwoFactorChallenge challenge={emailChallenge} onVerified={completePasswordLogin} onCancel={() => { setEmailChallenge(null); setError(""); }} />
+          </CardContent>
+        ) : magicLinkSent ? (
           <CardContent className="space-y-5">
             <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-800 dark:text-emerald-200 text-sm space-y-2.5">
               <div className="flex items-center gap-2 font-semibold">
@@ -332,7 +353,7 @@ export default function ClientLogin() {
             </CardFooter>
           </form>
         ) : (
-          <form onSubmit={handlePasswordSubmit}>
+          <form onSubmit={handlePasswordSubmit} noValidate>
             <CardContent className="space-y-4">
               {error && (
                 <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 text-xs font-medium flex items-center gap-2">

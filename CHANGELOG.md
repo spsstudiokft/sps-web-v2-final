@@ -1,5 +1,22 @@
 # Modification Log
 
+## 2026-08-27
+
+### Two-factor authentication foundation
+
+- Added portal-scoped authentication-factor, challenge, recovery-code, and security-event database foundations for separate client and admin identities.
+- Added short-lived pre-authentication sessions, hashed eight-digit email challenges, five-minute expiry, single-use verification, attempt limits, resend cooldown, and hourly account limits.
+- Added email verification and resend endpoints that issue the normal session JWT only after the second step succeeds and record the authentication method in the token.
+- Integrated a reusable email-code verification screen into both admin and client password-login flows without automatically enabling 2FA for existing accounts.
+- Added optional email-2FA controls to client and admin account settings; enabling requires email-code ownership verification, while disabling requires the current portal-specific password followed by an email code.
+- Separated login, enrollment, and disable challenges cryptographically and in the database so a settings challenge cannot be exchanged for a login session.
+- Added authentication security-event records for challenge delivery, failed and successful code checks, factor changes, and failed disable-password checks.
+- Restored the declared BotID dependency in the local workspace, verified a complete production client/server build, and confirmed that the configured Resend account accepts non-simulated transactional delivery for the 2FA rollout.
+- Confirmed successful inbox delivery of the live Resend test message, completing the sender-configuration and domain-delivery verification step.
+- Added explicit five-locale validation feedback to admin and client password-login forms when the email address or password is missing, replacing the previously silent-looking native required-field block.
+- Prevented Vercel BotID client/server verification from running on localhost test servers, where its generated script route resolves to SPA HTML, and added visible admin-login progress plus a 15-second timeout error.
+- Added `docs/TWO_FACTOR_AUTH_TODO.md` with completed, partial, pending, verification, and rollout work for email confirmation, TOTP/QR enrollment, recovery, and session lifecycle.
+
 ## 2026-08-26
 
 ### Ingatlanhirdetési és welcome e-mail sablonok

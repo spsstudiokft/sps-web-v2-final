@@ -157,6 +157,63 @@ export const db = {
 export const setupDatabase = async () => {
   const client = getDb();
 
+  // Authentication factors are scoped to the portal context because one
+  // users row may represent both a client account and a secondary admin
+  // account with separate credentials.
+  await client.execute(`CREATE TABLE IF NOT EXISTS auth_factors (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    account_context TEXT NOT NULL CHECK(account_context IN ('admin', 'client')),
+    factor_type TEXT NOT NULL CHECK(factor_type IN ('email_otp', 'totp')),
+    is_enabled INTEGER NOT NULL DEFAULT 0,
+    is_primary INTEGER NOT NULL DEFAULT 0,
+    secret_encrypted TEXT,
+    verified_at DATETIME,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(user_id, account_context, factor_type)
+  )`);
+  await client.execute(`CREATE TABLE IF NOT EXISTS auth_challenges (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    account_context TEXT NOT NULL CHECK(account_context IN ('admin', 'client')),
+    challenge_type TEXT NOT NULL CHECK(challenge_type IN ('email_otp', 'totp')),
+    challenge_purpose TEXT NOT NULL DEFAULT 'login',
+    code_hash TEXT,
+    expires_at DATETIME NOT NULL,
+    attempt_count INTEGER NOT NULL DEFAULT 0,
+    max_attempts INTEGER NOT NULL DEFAULT 5,
+    sent_at DATETIME,
+    consumed_at DATETIME,
+    ip_address TEXT DEFAULT '',
+    user_agent TEXT DEFAULT '',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )`);
+  try { await client.execute("ALTER TABLE auth_challenges ADD COLUMN challenge_purpose TEXT NOT NULL DEFAULT 'login'"); } catch {}
+  await client.execute(`CREATE TABLE IF NOT EXISTS auth_recovery_codes (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    account_context TEXT NOT NULL CHECK(account_context IN ('admin', 'client')),
+    code_hash TEXT NOT NULL,
+    used_at DATETIME,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )`);
+  await client.execute(`CREATE TABLE IF NOT EXISTS auth_security_events (
+    id TEXT PRIMARY KEY,
+    user_id TEXT,
+    account_context TEXT,
+    event_type TEXT NOT NULL,
+    success INTEGER NOT NULL DEFAULT 1,
+    ip_address TEXT DEFAULT '',
+    user_agent TEXT DEFAULT '',
+    metadata TEXT DEFAULT '{}',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )`);
+  await client.execute("CREATE INDEX IF NOT EXISTS idx_auth_factors_user_context ON auth_factors(user_id, account_context)");
+  await client.execute("CREATE INDEX IF NOT EXISTS idx_auth_challenges_user_context ON auth_challenges(user_id, account_context, created_at)");
+  await client.execute("CREATE INDEX IF NOT EXISTS idx_auth_challenges_expiry ON auth_challenges(expires_at, consumed_at)");
+  await client.execute("CREATE INDEX IF NOT EXISTS idx_auth_security_events_user ON auth_security_events(user_id, created_at)");
+
   // Shared internal calendar. Calendar-created projects intentionally have no
   // client until they are promoted into the normal client delivery workflow.
   await client.execute(`CREATE TABLE IF NOT EXISTS calendar_events (

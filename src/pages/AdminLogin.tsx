@@ -10,6 +10,8 @@ import { Label } from "../components/ui/Label";
 import { Button } from "../components/ui/Button";
 import { usePageTitle } from "../hooks/usePageTitle";
 import { AuthSkeleton } from "../components/admin/AdminSkeleton";
+import { EmailTwoFactorChallenge, type EmailChallengeState } from "../components/auth/EmailTwoFactorChallenge";
+import { getLoginRequiredMessage } from "../lib/authLoginValidationTranslations";
 
 export default function AdminLogin() {
   const { currentLang, tUi } = useLanguage();
@@ -26,6 +28,8 @@ export default function AdminLogin() {
   const { login, token, user } = useAuth();
   const [checkingSetup, setCheckingSetup] = useState(true);
   const [demoAccounts, setDemoAccounts] = useState<Array<{ label: string; email: string; password: string; role: string }>>([]);
+  const [emailChallenge, setEmailChallenge] = useState<EmailChallengeState | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (token) {
@@ -69,14 +73,25 @@ export default function AdminLogin() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!email.trim() || !password) {
+      setError(getLoginRequiredMessage(currentLang));
+      return;
+    }
+    setError("");
+    setSubmitting(true);
     try {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password, account_context: "admin" }),
+        signal: AbortSignal.timeout(15000),
       });
       if (res.ok) {
         const data = await res.json();
+        if (data.requires_2fa) {
+          setEmailChallenge({ challengeId: data.challenge_id, preauthToken: data.preauth_token, maskedEmail: data.masked_email, resendAfter: data.resend_after || 60 });
+          return;
+        }
         login(data.token, data.user, "admin");
         const role = data.user?.role || "admin";
         if (role === "admin" || role === "editor" || role === "viewer") {
@@ -91,9 +106,17 @@ export default function AdminLogin() {
         const data = await res.json();
         setError(data.error || tUi("auth.admin_login.login_failed"));
       }
-    } catch {
-      setError(tUi("auth.admin_login.login_failed"));
+    } catch (reason: any) {
+      setError(reason?.name === "TimeoutError" ? "A bejelentkezési kérés időtúllépés miatt megszakadt. Próbáld újra." : tUi("auth.admin_login.login_failed"));
+    } finally {
+      setSubmitting(false);
     }
+  };
+
+  const completeLogin = (data: any) => {
+    login(data.token, data.user, "admin");
+    const from = (location.state as any)?.from?.pathname || "/admin";
+    navigate(from, { replace: true });
   };
 
   if (checkingSetup) return <AuthSkeleton />;
@@ -112,7 +135,9 @@ export default function AdminLogin() {
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <Card>
           <CardContent className="pt-6">
-            <form className="space-y-6" onSubmit={handleSubmit}>
+            {emailChallenge ? (
+              <EmailTwoFactorChallenge challenge={emailChallenge} onVerified={completeLogin} onCancel={() => { setEmailChallenge(null); setError(""); }} />
+            ) : <form className="space-y-6" onSubmit={handleSubmit} noValidate>
               {error && <div className="text-red-600 dark:text-red-400 text-sm font-medium">{error}</div>}
               <div>
                 <Label>{tUi("auth.admin_login.email")}</Label>
@@ -144,13 +169,13 @@ export default function AdminLogin() {
               </div>
 
               <div>
-                <Button type="submit" className="w-full">
-                  {tUi("auth.admin_login.sign_in")}
+                <Button type="submit" className="w-full" disabled={submitting}>
+                  {submitting ? "Bejelentkezés…" : tUi("auth.admin_login.sign_in")}
                 </Button>
               </div>
-            </form>
+            </form>}
 
-            {demoAccounts.map((account) => (
+            {!emailChallenge && demoAccounts.map((account) => (
               <div key={account.email} className="mt-6 rounded-xl border border-primary/25 bg-primary/5 p-4 text-sm">
                 <div className="font-semibold text-text">{tUi("auth.admin_login.demo_title")}</div>
                 <p className="mt-1 text-xs text-muted-text">{tUi("auth.admin_login.demo_description")}</p>
