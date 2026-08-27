@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { gsap } from "gsap";
 import { SiteSettings } from "../../lib/types";
 import { useLanguage } from "../../contexts/LanguageContext";
 import { t, tUi } from "../../lib/i18n";
@@ -6,7 +7,7 @@ import { motion } from "motion/react";
 import { ArrowDown, ArrowUpRight, Camera, Clapperboard, Play, ScanLine } from "lucide-react";
 import { parseSectionMedia } from "../../lib/sectionMedia";
 
-const HERO_CROSSFADE_MS = 800;
+const HERO_CROSSFADE_SECONDS = 0.8;
 const heroImagePreloadCache = new Map<string, Promise<boolean>>();
 
 function preloadHeroImage(url: string) {
@@ -48,11 +49,14 @@ export function Hero({ settings }: { settings: SiteSettings }) {
   const [activeSlide, setActiveSlide] = useState(0);
   const [leavingSlide, setLeavingSlide] = useState<number | null>(null);
   const [reducedMotion, setReducedMotion] = useState(false);
-  const leavingTimer = useRef<number | null>(null);
   const activeSlideRef = useRef(0);
   const transitionInProgress = useRef(false);
+  const slideRefs = useRef<Record<number, HTMLDivElement | null>>({});
+  const crossfadeTimeline = useRef<gsap.core.Timeline | null>(null);
   const intervalMs = Math.min(3000, Math.max(2000, Number(media.heroSlideIntervalMs || 2500)));
   useEffect(() => {
+    crossfadeTimeline.current?.kill();
+    crossfadeTimeline.current = null;
     activeSlideRef.current = 0;
     transitionInProgress.current = false;
     setActiveSlide(0);
@@ -81,18 +85,50 @@ export function Hero({ settings }: { settings: SiteSettings }) {
       const next = (current + 1) % slides.length;
       transitionInProgress.current = true;
       void preloadHeroImage(slides[next]).then((isReady) => {
-        if (!isReady || disposed || document.visibilityState !== "visible") return;
-        // Both state changes run in the same async callback, so React paints
-        // the incoming and outgoing slides together rather than exposing the
-        // media background between two separate renders.
+        if (!isReady || disposed || document.visibilityState !== "visible") {
+          transitionInProgress.current = false;
+          return;
+        }
+        const outgoingElement = slideRefs.current[current];
+        const incomingElement = slideRefs.current[next];
+        if (!outgoingElement || !incomingElement) {
+          transitionInProgress.current = false;
+          return;
+        }
+
+        crossfadeTimeline.current?.kill();
+        // Both layers are present before GSAP starts. The new slide begins at
+        // zero opacity underneath the current one; their two opacity tweens
+        // begin on the same timeline position, so the image stack never
+        // exposes the hero's dark backing layer.
+        gsap.set(outgoingElement, { opacity: 1, zIndex: 3 });
+        gsap.set(incomingElement, { opacity: 0, zIndex: 2 });
         activeSlideRef.current = next;
-        if (leavingTimer.current) window.clearTimeout(leavingTimer.current);
         setLeavingSlide(current);
         setActiveSlide(next);
-        leavingTimer.current = window.setTimeout(() => setLeavingSlide(null), HERO_CROSSFADE_MS);
-      }).finally(() => { transitionInProgress.current = false; });
+        requestAnimationFrame(() => {
+          if (disposed) return;
+          crossfadeTimeline.current = gsap.timeline({
+            onComplete: () => {
+              gsap.set(outgoingElement, { opacity: 0, zIndex: 0 });
+              gsap.set(incomingElement, { opacity: 1, zIndex: 2 });
+              setLeavingSlide((leaving) => leaving === current ? null : leaving);
+              transitionInProgress.current = false;
+            },
+          });
+          crossfadeTimeline.current
+            .to(outgoingElement, { opacity: 0, duration: HERO_CROSSFADE_SECONDS, ease: "sine.inOut", overwrite: true }, 0)
+            .to(incomingElement, { opacity: 1, duration: HERO_CROSSFADE_SECONDS, ease: "sine.inOut", overwrite: true }, 0);
+        });
+      });
     }, intervalMs);
-    return () => { disposed = true; window.clearInterval(timer); if (leavingTimer.current) window.clearTimeout(leavingTimer.current); };
+    return () => {
+      disposed = true;
+      window.clearInterval(timer);
+      crossfadeTimeline.current?.kill();
+      crossfadeTimeline.current = null;
+      transitionInProgress.current = false;
+    };
   }, [intervalMs, reducedMotion, slides]);
   const nextSlide = reducedMotion || slides.length < 2 ? null : (activeSlide + 1) % slides.length;
   const renderedSlides = Array.from(new Set([activeSlide, nextSlide, leavingSlide].filter((index): index is number => index !== null)));
@@ -110,7 +146,7 @@ export function Hero({ settings }: { settings: SiteSettings }) {
         {renderedSlides.map((index) => {
           const url = slides[index];
           return (
-            <div key={`${index}-${url}`} className={`aero-hero-slide ${index === activeSlide ? "is-active" : ""} ${index === leavingSlide ? "is-leaving" : ""}`}>
+            <div ref={(element) => { slideRefs.current[index] = element; }} key={`${index}-${url}`} className={`aero-hero-slide ${index === activeSlide ? "is-active" : ""} ${index === leavingSlide ? "is-leaving" : ""}`}>
               <img
                 src={url}
                 alt=""

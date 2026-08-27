@@ -509,7 +509,7 @@ html:not(.dark) .aero-site {
   transform: scale(1.04);
   transform-origin: center;
 }
-.aero-hero-slide { position: absolute; inset: 0; z-index: 0; overflow: hidden; opacity: 0; will-change: opacity; contain: paint; transition: opacity 800ms ease-in-out; }
+.aero-hero-slide { position: absolute; inset: 0; z-index: 0; overflow: hidden; opacity: 0; will-change: opacity; contain: paint; }
 .aero-hero-slide > img { display: block; width: 100%; height: 100%; max-width: none; object-fit: cover; transform: scale(1.12); filter: blur(var(--hero-image-blur, 0px)); transition: filter 180ms ease; }
 .aero-hero-slide.is-active { z-index: 2; opacity: 1; }
 .aero-hero-slide.is-leaving { z-index: 3; opacity: 0; }
