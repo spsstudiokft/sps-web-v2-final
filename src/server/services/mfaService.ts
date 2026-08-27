@@ -113,7 +113,9 @@ async function verifyStoredTotp(userId: string, accountContext: AccountContext, 
   const factor: any = result.rows[0];
   if (!factor?.secret_encrypted || (requireEnabled && Number(factor.is_enabled) !== 1)) return false;
   const checked = await verifyTotp({ secret: decryptSecret(String(factor.secret_encrypted)), token, digits: 6, period: 30, epochTolerance: 30, afterTimeStep: factor.last_totp_step == null ? undefined : Number(factor.last_totp_step) });
-  if (!checked.valid) return false;
+  // `otplib` exposes a shared TOTP/HOTP result type. Only TOTP verifications
+  // include a timeStep, which is required for our replay protection.
+  if (!checked.valid || !("timeStep" in checked)) return false;
   const updated = await db.execute({ sql: "UPDATE auth_factors SET last_totp_step = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND (last_totp_step IS NULL OR last_totp_step < ?)", args: [checked.timeStep, factor.id, checked.timeStep] });
   return Number(updated.rowsAffected || 0) === 1;
 }

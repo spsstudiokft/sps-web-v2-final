@@ -10,6 +10,10 @@
 
 - Added an idempotent testimonial-table guard for public and admin endpoints, so independently started serverless functions create the new optional table before reading or updating it.
 
+### MFA verification compatibility
+
+- Narrowed the shared OTP verification result to a TOTP result before storing its replay-protection time step, restoring TypeScript build compatibility without weakening authenticator-code validation.
+
 ### Hero gallery
 
 - Added an editable hero image gallery to the existing Section Media settings, using the same direct-storage upload pipeline, accepted image formats, and optimized variants as other section media.
