@@ -5,7 +5,7 @@ import fs from "fs";
 import path from "path";
 import os from "node:os";
 import bcrypt from "bcryptjs";
-import { db } from "../db.js";
+import { db, ensureTestimonialsTable } from "../db.js";
 import { uploadMedia, deleteMedia } from "./storage/index.js";
 import { diagnoseAppwriteStorage, createAppwriteUploadSession, getAppwriteConfig, getAppwritePublicUrl } from "./storage/appwrite.js";
 import { initiateR2MultipartUpload, signR2MultipartPart, completeR2MultipartUpload, abortR2MultipartUpload } from "./storage/r2.js";
@@ -3184,6 +3184,16 @@ adminRouter.delete("/faqs/:id", async (req, res) => {
 });
 
 // ==================== TESTIMONIALS CRUD ====================
+adminRouter.use("/testimonials", async (_req, res, next) => {
+  try {
+    await ensureTestimonialsTable();
+    next();
+  } catch (error) {
+    console.error("Failed to initialize testimonials table", error);
+    res.status(500).json({ error: "Failed to initialize testimonials" });
+  }
+});
+
 adminRouter.get("/testimonials", async (_req, res) => {
   try {
     const result = await db.execute("SELECT * FROM testimonials ORDER BY sort_order ASC, created_at ASC");

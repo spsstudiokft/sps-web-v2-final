@@ -3,7 +3,7 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import { checkBotId } from "botid/server";
-import { db, getDb, isLocalDemoDatabase, LOCAL_DEMO_ADMIN } from "../db.js";
+import { db, ensureTestimonialsTable, getDb, isLocalDemoDatabase, LOCAL_DEMO_ADMIN } from "../db.js";
 import { 
   processRegistrationReferral, 
   ensureUserReferralCode 
@@ -210,6 +210,7 @@ async function loadPublicBootstrap() {
     // the complete homepage bootstrap fail before its table is migrated.
     let testimonials: any[] = [];
     try {
+      await ensureTestimonialsTable();
       const testimonialResult = await getDb().execute(
         "SELECT * FROM testimonials WHERE is_published = 1 ORDER BY sort_order ASC, created_at ASC LIMIT 12",
       );
@@ -1988,6 +1989,7 @@ router.get("/public/faqs", async (req, res) => {
 
 router.get("/public/testimonials", async (_req, res) => {
   try {
+    await ensureTestimonialsTable();
     const result = await db.execute("SELECT * FROM testimonials WHERE is_published = 1 ORDER BY sort_order ASC, created_at ASC");
     res.json(result.rows);
   } catch (error) {

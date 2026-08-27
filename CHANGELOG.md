@@ -6,6 +6,10 @@
 
 - Isolated the optional testimonial query from the core homepage bootstrap, so an older database without the new testimonials table can no longer prevent settings, portfolio, services, pricing, and FAQ content from loading.
 
+### Testimonial schema migration
+
+- Added an idempotent testimonial-table guard for public and admin endpoints, so independently started serverless functions create the new optional table before reading or updating it.
+
 ### Hero gallery
 
 - Added an editable hero image gallery to the existing Section Media settings, using the same direct-storage upload pipeline, accepted image formats, and optimized variants as other section media.

@@ -144,6 +144,35 @@ export const getDb = () => {
   return dbInstance;
 };
 
+let testimonialsTablePromise: Promise<void> | null = null;
+
+/**
+ * Testimonials were introduced after the original production schema. Serverless
+ * functions can start independently, so each testimonials endpoint ensures the
+ * small optional table exists before it tries to read or modify it.
+ */
+export async function ensureTestimonialsTable(): Promise<void> {
+  if (!testimonialsTablePromise) {
+    testimonialsTablePromise = getDb().execute(`
+      CREATE TABLE IF NOT EXISTS testimonials (
+        id TEXT PRIMARY KEY,
+        quote TEXT NOT NULL,
+        author_name TEXT NOT NULL,
+        author_role TEXT,
+        is_published INTEGER DEFAULT 1,
+        sort_order INTEGER DEFAULT 0,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `).then(() => undefined).catch((error) => {
+      testimonialsTablePromise = null;
+      throw error;
+    });
+  }
+
+  await testimonialsTablePromise;
+}
+
 // Wrapper for execute
 export const db = {
   execute: async (stmt: any) => {
@@ -2148,18 +2177,7 @@ export const setupDatabase = async () => {
   }
 
   // Public testimonials / recommendations shown before the FAQ section.
-  await client.execute(`
-    CREATE TABLE IF NOT EXISTS testimonials (
-      id TEXT PRIMARY KEY,
-      quote TEXT NOT NULL,
-      author_name TEXT NOT NULL,
-      author_role TEXT,
-      is_published INTEGER DEFAULT 1,
-      sort_order INTEGER DEFAULT 0,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
+  await ensureTestimonialsTable();
 
   // Themes table for storing custom and preset themes
   await client.execute(`
