@@ -350,6 +350,17 @@ export type FAQItem = {
   updated_at?: string;
 };
 
+export type Testimonial = {
+  id: string;
+  quote: string;
+  author_name: string;
+  author_role?: string | null;
+  is_published: number;
+  sort_order: number;
+  created_at?: string;
+  updated_at?: string;
+};
+
 export type ContactSubmission = {
   id: string;
   name: string;

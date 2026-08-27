@@ -8,7 +8,7 @@ export function requireAdminOrListingUpload(req: any, res: any, next: any) {
 
   return requireAuth(req, res, async () => {
     const role = String(req.user?.role || "");
-    if (["admin", "superadmin", "editor", "viewer"].includes(role)) {
+    if (["admin", "superadmin", "editor", "video_editor", "real_estate_agent", "advertiser", "viewer"].includes(role)) {
       return requireAdmin(req, res, next);
     }
     if (!(["client", "property_client"].includes(role))) {

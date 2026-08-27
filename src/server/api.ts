@@ -44,13 +44,14 @@ const JWT_SECRET = process.env.JWT_SECRET || "supersecretjwtstring";
 function resolveLoginIdentity(user: any, accountContext: AccountContext) {
   const primaryRole = String(user.role || "admin").toLowerCase().replace(/[_-]/g, "");
   const secondaryAdminRole = String(user.admin_role || "").toLowerCase().replace(/[_-]/g, "");
-  const primaryIsAdmin = ["superadmin", "admin", "editor", "viewer"].includes(primaryRole);
-  const useSecondaryAdmin = accountContext === "admin" && !primaryIsAdmin && ["superadmin", "admin", "editor", "viewer"].includes(secondaryAdminRole);
+  const canonicalRole: Record<string, string> = { videoeditor: "video_editor", realestateagent: "real_estate_agent" };
+  const primaryIsAdmin = ["superadmin", "admin", "editor", "videoeditor", "realestateagent", "advertiser", "viewer"].includes(primaryRole);
+  const useSecondaryAdmin = accountContext === "admin" && !primaryIsAdmin && ["superadmin", "admin", "editor", "videoeditor", "realestateagent", "advertiser", "viewer"].includes(secondaryAdminRole);
   return {
     primaryRole,
     primaryIsAdmin,
     useSecondaryAdmin,
-    effectiveRole: useSecondaryAdmin ? secondaryAdminRole : primaryRole,
+    effectiveRole: canonicalRole[useSecondaryAdmin ? secondaryAdminRole : primaryRole] || (useSecondaryAdmin ? secondaryAdminRole : primaryRole),
     selectedHash: useSecondaryAdmin ? user.admin_password_hash : user.password_hash,
     effectiveActive: useSecondaryAdmin ? user.admin_is_active : user.is_active,
   };
@@ -202,6 +203,7 @@ async function loadPublicBootstrap() {
       "SELECT * FROM pricing_fee_rules WHERE is_enabled = 1 AND (show_on_pricing_page IS NULL OR show_on_pricing_page = 1) ORDER BY sort_order ASC, created_at ASC LIMIT 3",
       `SELECT f.*, fc.name as category_name, fc.slug as category_slug, fc.sort_order as category_sort_order FROM faqs f LEFT JOIN faq_categories fc ON f.category_id = fc.id WHERE f.is_published = 1 AND (fc.is_published = 1 OR fc.is_published IS NULL OR f.category_id IS NULL) ORDER BY COALESCE(fc.sort_order, 999) ASC, f.sort_order ASC, f.created_at ASC LIMIT 4`,
       "SELECT * FROM faq_categories WHERE is_published = 1 ORDER BY sort_order ASC LIMIT 4",
+      "SELECT * FROM testimonials WHERE is_published = 1 ORDER BY sort_order ASC, created_at ASC LIMIT 12",
     ], "read");
 
     const settings = (results[0]?.rows || []).reduce((acc: any, row: any) => {
@@ -217,6 +219,7 @@ async function loadPublicBootstrap() {
       feeRules: results[5]?.rows || [],
       faqs: results[6]?.rows || [],
       faqCategories: results[7]?.rows || [],
+      testimonials: results[8]?.rows || [],
       generatedAt: new Date().toISOString(),
     };
     publicBootstrapCache = { expiresAt: Date.now() + PUBLIC_BOOTSTRAP_TTL_MS, payload };
@@ -1364,7 +1367,8 @@ router.post("/invitations/accept", async (req, res) => {
     const cleanName = (name && typeof name === "string" && name.trim()) ? name.trim() : (invitation.name || cleanEmail.split("@")[0]);
     const cleanPhone = (phone && typeof phone === "string") ? phone.trim() : "";
     const rawRole = String(invitation.role || "editor").toLowerCase().replace(/[_-]/g, "");
-    const role = ["admin", "editor", "viewer"].includes(rawRole) ? rawRole : "editor";
+    const roleAliases: Record<string, string> = { admin: "admin", editor: "editor", videoeditor: "video_editor", realestateagent: "real_estate_agent", advertiser: "advertiser", viewer: "viewer" };
+    const role = roleAliases[rawRole] || "editor";
     const workspace = invitation.workspace || "Main Studio";
     const teamId = invitation.team_id || null;
 
@@ -1966,6 +1970,16 @@ router.get("/public/faqs", async (req, res) => {
     res.json(result.rows);
   } catch (error) {
     console.error("FAQs fetch error:", error);
+    res.json([]);
+  }
+});
+
+router.get("/public/testimonials", async (_req, res) => {
+  try {
+    const result = await db.execute("SELECT * FROM testimonials WHERE is_published = 1 ORDER BY sort_order ASC, created_at ASC");
+    res.json(result.rows);
+  } catch (error) {
+    console.error("Testimonials fetch error:", error);
     res.json([]);
   }
 });

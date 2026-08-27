@@ -779,7 +779,7 @@ adminRouter.put("/role-menu-permissions", async (req: any, res) => {
   const source = req.body?.permissions;
   if (!source || typeof source !== "object") return res.status(400).json({ error: "Invalid role menu permissions" });
   const clean: Record<string, string[]> = {};
-  for (const name of ["admin", "editor", "viewer"]) clean[name] = Array.isArray(source[name]) ? Array.from(new Set(source[name].filter((id: unknown) => typeof id === "string" && ROLE_MENU_IDS.has(id)))) : [];
+  for (const name of ["admin", "editor", "video_editor", "real_estate_agent", "advertiser", "viewer"]) clean[name] = Array.isArray(source[name]) ? Array.from(new Set(source[name].filter((id: unknown) => typeof id === "string" && ROLE_MENU_IDS.has(id)))) : [];
   try { await db.execute({ sql: "INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)", args: [ROLE_MENU_PERMISSION_KEY, JSON.stringify(clean)] }); res.json({ success: true, value: clean }); }
   catch { res.status(500).json({ error: "Failed to save role menu permissions" }); }
 });
@@ -3183,6 +3183,55 @@ adminRouter.delete("/faqs/:id", async (req, res) => {
   }
 });
 
+// ==================== TESTIMONIALS CRUD ====================
+adminRouter.get("/testimonials", async (_req, res) => {
+  try {
+    const result = await db.execute("SELECT * FROM testimonials ORDER BY sort_order ASC, created_at ASC");
+    res.json(result.rows);
+  } catch (error) {
+    console.error("Failed to fetch testimonials", error);
+    res.status(500).json({ error: "Failed to fetch testimonials" });
+  }
+});
+
+adminRouter.post("/testimonials", async (req, res) => {
+  try {
+    const quote = String(req.body?.quote || "").trim();
+    const authorName = String(req.body?.author_name || "").trim();
+    if (!quote || !authorName) return res.status(400).json({ error: "Quote and author name are required" });
+    const max = await db.execute("SELECT MAX(sort_order) AS max_order FROM testimonials");
+    const id = crypto.randomUUID();
+    await db.execute({ sql: "INSERT INTO testimonials (id, quote, author_name, author_role, is_published, sort_order) VALUES (?, ?, ?, ?, ?, ?)", args: [id, quote, authorName, String(req.body?.author_role || "").trim() || null, req.body?.is_published === false ? 0 : 1, Number(req.body?.sort_order ?? Number(max.rows[0]?.max_order || 0) + 1)] });
+    res.status(201).json({ success: true, id });
+  } catch (error: any) {
+    console.error("Failed to create testimonial", error);
+    res.status(500).json({ error: error.message || "Failed to create testimonial" });
+  }
+});
+
+adminRouter.put("/testimonials/:id", async (req, res) => {
+  try {
+    const quote = String(req.body?.quote || "").trim();
+    const authorName = String(req.body?.author_name || "").trim();
+    if (!quote || !authorName) return res.status(400).json({ error: "Quote and author name are required" });
+    await db.execute({ sql: "UPDATE testimonials SET quote = ?, author_name = ?, author_role = ?, is_published = ?, sort_order = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", args: [quote, authorName, String(req.body?.author_role || "").trim() || null, req.body?.is_published === false ? 0 : 1, Number(req.body?.sort_order || 0), req.params.id] });
+    res.json({ success: true });
+  } catch (error: any) {
+    console.error("Failed to update testimonial", error);
+    res.status(500).json({ error: error.message || "Failed to update testimonial" });
+  }
+});
+
+adminRouter.delete("/testimonials/:id", async (req, res) => {
+  try {
+    await db.execute({ sql: "DELETE FROM testimonials WHERE id = ?", args: [req.params.id] });
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Failed to delete testimonial", error);
+    res.status(500).json({ error: "Failed to delete testimonial" });
+  }
+});
+
 // Contact submissions
 adminRouter.get("/contacts", async (req, res: any) => {
   try {
@@ -4120,7 +4169,7 @@ async function sendProjectTimelineEmail(projectId: string, input: { title: strin
   });
 }
 
-const calendarAdminRoleSql = `LOWER(REPLACE(REPLACE(TRIM(COALESCE(admin_role, role, '')), '_', ''), '-', '')) IN ('admin','editor','viewer','superadmin')
+const calendarAdminRoleSql = `LOWER(REPLACE(REPLACE(TRIM(COALESCE(admin_role, role, '')), '_', ''), '-', '')) IN ('admin','editor','videoeditor','realestateagent','advertiser','viewer','superadmin')
   AND CASE WHEN admin_role IS NOT NULL THEN COALESCE(admin_is_active, 1) ELSE COALESCE(is_active, 1) END = 1`;
 
 async function resolveCalendarAssignees(value: unknown) {
@@ -7437,6 +7486,9 @@ adminRouter.get("/team", async (req: any, res) => {
           WHEN 'superadmin' THEN 'superadmin'
           WHEN 'admin' THEN 'admin'
           WHEN 'editor' THEN 'editor'
+          WHEN 'videoeditor' THEN 'video_editor'
+          WHEN 'realestateagent' THEN 'real_estate_agent'
+          WHEN 'advertiser' THEN 'advertiser'
           WHEN 'viewer' THEN 'viewer'
           ELSE LOWER(TRIM(COALESCE(u.role, 'viewer')))
         END AS role,
@@ -7452,14 +7504,17 @@ adminRouter.get("/team", async (req: any, res) => {
       FROM users u
       LEFT JOIN teams t ON t.id = COALESCE(u.admin_team_id, u.team_id)
       WHERE LOWER(REPLACE(REPLACE(TRIM(COALESCE(u.admin_role, u.role, '')), '_', ''), '-', ''))
-        IN ('superadmin', 'admin', 'editor', 'viewer')
+        IN ('superadmin', 'admin', 'editor', 'videoeditor', 'realestateagent', 'advertiser', 'viewer')
       ORDER BY 
         CASE LOWER(REPLACE(REPLACE(TRIM(COALESCE(u.admin_role, u.role, '')), '_', ''), '-', ''))
           WHEN 'superadmin' THEN 1
           WHEN 'admin' THEN 2 
           WHEN 'editor' THEN 3 
-          WHEN 'viewer' THEN 4 
-          ELSE 5 
+          WHEN 'videoeditor' THEN 4
+          WHEN 'realestateagent' THEN 5
+          WHEN 'advertiser' THEN 6
+          WHEN 'viewer' THEN 7
+          ELSE 8
         END,
         u.name ASC, 
         u.email ASC
@@ -7515,7 +7570,8 @@ adminRouter.post("/team", async (req: any, res) => {
     const password = String(req.body.password || "");
     const verificationCode = String(req.body.verification_code || "").trim();
     const name = String(req.body.name || "").trim();
-    const role = ["admin", "editor", "viewer"].includes(req.body.role) ? req.body.role : "editor";
+    const validRoles = ["admin", "editor", "video_editor", "real_estate_agent", "advertiser", "viewer"];
+    const role = validRoles.includes(String(req.body.role)) ? req.body.role : "editor";
     let teamId = req.body.team_id ? String(req.body.team_id) : null;
     let workspace = String(req.body.workspace || "Main Studio").trim();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ error: "A valid email address is required." });
@@ -7591,8 +7647,8 @@ adminRouter.put("/team/:id", async (req: any, res) => {
       }
     }
 
-    const validRoles = ["superadmin", "admin", "editor", "viewer"];
-    const targetRole = validRoles.includes(requestedRole) ? requestedRole : existingRole;
+    const roleAliases: Record<string, string> = { superadmin: "superadmin", admin: "admin", editor: "editor", videoeditor: "video_editor", realestateagent: "real_estate_agent", advertiser: "advertiser", viewer: "viewer" };
+    const targetRole = roleAliases[requestedRole] || roleAliases[existingRole] || "editor";
     const targetActive = is_active !== undefined ? (is_active ? 1 : 0) : existingUser.is_active;
 
     let targetTeamId = team_id !== undefined ? (team_id || null) : (isSecondaryAdmin ? existingUser.admin_team_id : existingUser.team_id);
@@ -7777,8 +7833,8 @@ adminRouter.post("/invitations", async (req: any, res) => {
     }
     const cleanMessage = (custom_message && typeof custom_message === "string") ? custom_message.trim() : "";
 
-    const validRoles = ["admin", "editor", "viewer"];
-    const targetRole = validRoles.includes(role) ? role : "editor";
+    const validRoles = ["admin", "editor", "video_editor", "real_estate_agent", "advertiser", "viewer"];
+    const targetRole = validRoles.includes(String(role)) ? role : "editor";
 
     if (req.user?.role === "viewer") {
       return res.status(403).json({ error: "View-only accounts cannot invite team members." });
@@ -7792,7 +7848,7 @@ adminRouter.post("/invitations", async (req: any, res) => {
 
     const existingAccount: any = existingUserRes.rows[0];
     const existingPrimaryRole = String(existingAccount?.role || "").toLowerCase().replace(/[_-]/g, "");
-    const hasActivePrimaryAdmin = ["superadmin", "admin", "editor", "viewer"].includes(existingPrimaryRole) && existingAccount?.is_active !== 0;
+    const hasActivePrimaryAdmin = ["superadmin", "admin", "editor", "videoeditor", "realestateagent", "advertiser", "viewer"].includes(existingPrimaryRole) && existingAccount?.is_active !== 0;
     const hasActiveSecondaryAdmin = Boolean(existingAccount?.admin_role) && existingAccount?.admin_is_active !== 0;
     if (existingAccount && (hasActivePrimaryAdmin || hasActiveSecondaryAdmin)) {
       return res.status(409).json({ error: "This email already belongs to an active team member. Edit the existing member to change their role or team." });

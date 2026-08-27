@@ -42,7 +42,7 @@ export default function AdminLogin() {
           role = 'admin';
         }
       }
-      if (role === "admin" || role === "editor" || role === "viewer") {
+      if (["admin", "editor", "video_editor", "real_estate_agent", "advertiser", "viewer", "superadmin"].includes(role)) {
         const from = (location.state as any)?.from?.pathname || "/admin";
         navigate(from, { replace: true });
       } else if (role === "client") {
@@ -94,7 +94,7 @@ export default function AdminLogin() {
         }
         login(data.token, data.user, "admin");
         const role = data.user?.role || "admin";
-        if (role === "admin" || role === "editor" || role === "viewer") {
+        if (["admin", "editor", "video_editor", "real_estate_agent", "advertiser", "viewer", "superadmin"].includes(role)) {
           const from = (location.state as any)?.from?.pathname || "/admin";
           navigate(from, { replace: true });
         } else if (role === "client") {

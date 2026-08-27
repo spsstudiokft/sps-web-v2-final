@@ -505,24 +505,21 @@ html:not(.dark) .aero-site {
   inset: -36px;
   z-index: 0;
   pointer-events: none;
-  background-image:
-    linear-gradient(90deg, rgba(2, 10, 24, 0.9) 0%, rgba(2, 14, 31, 0.72) 40%, rgba(2, 16, 35, 0.17) 72%),
-    linear-gradient(0deg, rgba(1, 10, 24, 0.82) 0%, transparent 42%),
-    var(--hero-image-url, url('/images/sps-cinematic-hero.png'));
-  background-position: center, center, var(--hero-image-position, right center);
-  background-size: cover, cover, 112% auto;
-  background-repeat: no-repeat;
-  filter: blur(var(--hero-image-blur, 0px));
+  background: #031326;
   transform: scale(1.04);
   transform-origin: center;
-  transition: filter 180ms ease;
 }
+.aero-hero-slide { position: absolute; inset: 0; background-size: 112% auto; background-repeat: no-repeat; filter: blur(var(--hero-image-blur, 0px)); opacity: 0; will-change: opacity; contain: paint; transition: opacity 760ms ease-in-out, filter 180ms ease; }
+.aero-hero-slide.is-active { opacity: 1; }
+.aero-hero-media::after { content: ""; position: absolute; inset: 0; z-index: 1; background: linear-gradient(90deg, rgba(2, 10, 24, 0.9) 0%, rgba(2, 14, 31, 0.72) 40%, rgba(2, 16, 35, 0.17) 72%), linear-gradient(0deg, rgba(1, 10, 24, 0.82) 0%, transparent 42%); pointer-events: none; }
 
 .dark .aero-hero-media {
-  background-image:
-    linear-gradient(90deg, rgba(1, 8, 20, .94) 0%, rgba(2, 12, 28, .76) 42%, rgba(2, 15, 34, .2) 74%),
-    linear-gradient(0deg, rgba(1, 8, 20, .88) 0%, transparent 44%),
-    var(--hero-image-url, url('/images/sps-cinematic-hero.png'));
+  background: #010b19;
+}
+.dark .aero-hero-media::after { background: linear-gradient(90deg, rgba(1, 8, 20, .94) 0%, rgba(2, 12, 28, .76) 42%, rgba(2, 15, 34, .2) 74%), linear-gradient(0deg, rgba(1, 8, 20, .88) 0%, transparent 44%); }
+
+@media (prefers-reduced-motion: reduce) {
+  .aero-hero-slide { transition: none; }
 }
 
 @media (min-width: 901px) {
@@ -627,7 +624,7 @@ html:not(.dark) .aero-site {
 
 @media (max-width: 900px) {
   .aero-hero { min-height: 940px; background: #031326; }
-  .aero-hero-media { background-position: center center, center center, var(--hero-image-position, center center); background-size: cover, cover, cover; }
+  .aero-hero-slide { background-position: center center !important; background-size: cover; }
   .aero-hero-layout { grid-template-columns: 1fr; gap: 2rem; padding-bottom: 1.5rem; }
   .aero-showreel-card { max-width: 32rem; }
 }
@@ -1967,6 +1964,11 @@ html:not(.dark) .aero-site :focus-visible {
   border-color: var(--client-glass-border);
   box-shadow: inset 0 1px 0 var(--client-glass-inner), 0 14px 38px var(--client-glass-shadow);
   backdrop-filter: blur(24px) saturate(132%);
+}
+.aero-client-sidebar {
+  background: var(--client-glass-bg);
+  backdrop-filter: blur(22px) saturate(145%);
+  -webkit-backdrop-filter: blur(22px) saturate(145%);
 }
 .aero-client-shell .aero-ui-card,
 .aero-client-shell main div.bg-surface.rounded-xl,

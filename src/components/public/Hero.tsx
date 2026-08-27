@@ -1,11 +1,47 @@
+import { useEffect, useMemo, useRef, useState } from "react";
 import { SiteSettings } from "../../lib/types";
 import { useLanguage } from "../../contexts/LanguageContext";
 import { t, tUi } from "../../lib/i18n";
 import { motion } from "motion/react";
 import { ArrowDown, ArrowUpRight, Camera, Clapperboard, Play, ScanLine } from "lucide-react";
+import { parseSectionMedia } from "../../lib/sectionMedia";
 
 export function Hero({ settings }: { settings: SiteSettings }) {
   const { currentLang, defaultLang } = useLanguage();
+  const media = parseSectionMedia(settings.section_media).home || {};
+  const slides = useMemo(() => {
+    const gallery = Array.isArray(media.heroGallery) ? media.heroGallery.filter((url) => typeof url === "string" && url.trim()) : [];
+    return gallery.length ? gallery : [media.backgroundUrl || "/images/sps-cinematic-hero.png"];
+  }, [media.backgroundUrl, media.heroGallery]);
+  const [activeSlide, setActiveSlide] = useState(0);
+  const [leavingSlide, setLeavingSlide] = useState<number | null>(null);
+  const [reducedMotion, setReducedMotion] = useState(false);
+  const leavingTimer = useRef<number | null>(null);
+  const intervalMs = Math.min(3000, Math.max(2000, Number(media.heroSlideIntervalMs || 2500)));
+  useEffect(() => { setActiveSlide(0); setLeavingSlide(null); }, [slides.join("|")]);
+  useEffect(() => {
+    const query = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const sync = () => setReducedMotion(query.matches);
+    sync();
+    query.addEventListener?.("change", sync);
+    return () => query.removeEventListener?.("change", sync);
+  }, []);
+  useEffect(() => { if (reducedMotion) setLeavingSlide(null); }, [reducedMotion]);
+  useEffect(() => {
+    if (slides.length < 2 || reducedMotion) return;
+    const timer = window.setInterval(() => {
+      if (document.visibilityState !== "visible") return;
+      setActiveSlide((current) => {
+        if (leavingTimer.current) window.clearTimeout(leavingTimer.current);
+        setLeavingSlide(current);
+        leavingTimer.current = window.setTimeout(() => setLeavingSlide(null), 820);
+        return (current + 1) % slides.length;
+      });
+    }, intervalMs);
+    return () => { window.clearInterval(timer); if (leavingTimer.current) window.clearTimeout(leavingTimer.current); };
+  }, [intervalMs, reducedMotion, slides.length]);
+  const nextSlide = reducedMotion || slides.length < 2 ? null : (activeSlide + 1) % slides.length;
+  const renderedSlides = Array.from(new Set([activeSlide, nextSlide, leavingSlide].filter((index): index is number => index !== null)));
   const showProductionCard = settings.hero_production_card_enabled !== "0" && settings.hero_production_card_enabled !== "false";
   return (
     <motion.section 
@@ -16,7 +52,9 @@ export function Hero({ settings }: { settings: SiteSettings }) {
       transition={{ duration: 0.6, ease: "easeOut" }}
       className="aero-hero min-h-[100svh] pt-32 pb-8 md:pt-40 md:pb-10 px-4 sm:px-6 flex items-end relative"
     >
-      <div className="aero-hero-media" aria-hidden="true" />
+      <div className="aero-hero-media" aria-hidden="true">
+        {renderedSlides.map((index) => { const url = slides[index]; return <div key={`${index}-${url}`} className={`aero-hero-slide ${index === activeSlide ? "is-active" : ""}`} style={{ backgroundImage: `url("${url.replace(/"/g, "\\\"")}")`, backgroundPosition: media.backgroundPosition || "right center" }} />; })}
+      </div>
       <div className="relative z-10 w-full max-w-[1480px] mx-auto">
         <div className="aero-hero-layout">
           <div className="aero-hero-copy">

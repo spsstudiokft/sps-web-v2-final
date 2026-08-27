@@ -35,15 +35,20 @@ import {
   FileText,
   Shield,
   Edit2,
-  Calendar
+  Calendar,
+  Scissors,
+  House,
+  Megaphone
   ,Lock
 } from "lucide-react";
+
+type AssignableTeamRole = "admin" | "editor" | "video_editor" | "real_estate_agent" | "advertiser" | "viewer";
 
 interface Invitation {
   id: string;
   email: string;
   name?: string;
-  role: "admin" | "editor" | "viewer";
+  role: AssignableTeamRole;
   workspace?: string;
   custom_message?: string;
   token: string;
@@ -64,7 +69,7 @@ interface TeamMember {
   email: string;
   name?: string;
   phone?: string;
-  role: "superadmin" | "admin" | "editor" | "viewer";
+  role: "superadmin" | AssignableTeamRole;
   workspace?: string;
   team_id?: string | null;
   team_name?: string | null;
@@ -123,7 +128,7 @@ export default function TeamManagementPage() {
   // New Invite Form State
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteName, setInviteName] = useState("");
-  const [inviteRole, setInviteRole] = useState<"admin" | "editor" | "viewer">("editor");
+  const [inviteRole, setInviteRole] = useState<AssignableTeamRole>("editor");
   const [inviteWorkspace, setInviteWorkspace] = useState("Main Studio");
   const [inviteTeamId, setInviteTeamId] = useState("team-main-studio");
   const [inviteCustomMessage, setInviteCustomMessage] = useState("");
@@ -140,7 +145,7 @@ export default function TeamManagementPage() {
   // Edit Member Form State
   const [editName, setEditName] = useState("");
   const [editPhone, setEditPhone] = useState("");
-  const [editRole, setEditRole] = useState<"superadmin" | "admin" | "editor" | "viewer">("editor");
+  const [editRole, setEditRole] = useState<"superadmin" | AssignableTeamRole>("editor");
   const [editWorkspace, setEditWorkspace] = useState("Main Studio");
   const [editTeamId, setEditTeamId] = useState("");
   const [editIsActive, setEditIsActive] = useState(true);
@@ -152,7 +157,7 @@ export default function TeamManagementPage() {
   const [processingId, setProcessingId] = useState<string | null>(null);
 
   // Template simulator preview state
-  const [previewRole, setPreviewRole] = useState<"admin" | "editor" | "viewer">("editor");
+  const [previewRole, setPreviewRole] = useState<AssignableTeamRole>("editor");
   const [previewCustomMsg, setPreviewCustomMsg] = useState(true);
   const [invitationTemplate, setInvitationTemplate] = useState<EmailTemplate | null>(null);
   const [templatePreview, setTemplatePreview] = useState({ subject: "", html: "" });
@@ -169,11 +174,7 @@ export default function TeamManagementPage() {
         const response = await fetch("/api/admin/email/templates/admin_invitation", { headers: authHeaders });
         const template = await response.json();
         if (!response.ok) throw new Error(template.error || "Failed to load invitation template");
-        const roleDescription = previewRole === "admin"
-          ? "Full access to studio portfolio, deliverables, team management, pricing packages, and system settings."
-          : previewRole === "viewer"
-            ? "Read-only view access across studio dashboards, visual media, schedules, and analytics."
-            : "Access to manage photo galleries, project milestones, services, FAQs, and client submissions.";
+        const roleDescription = tUi(`admin.team.role_description_${previewRole}`);
         const sampleData = { ...template.sample_data, role: previewRole, role_description: roleDescription, custom_message: previewCustomMsg ? template.sample_data?.custom_message : "" };
         const previewResponse = await fetch("/api/admin/email/templates/preview", { method: "POST", headers: { "Content-Type": "application/json", ...authHeaders }, body: JSON.stringify({ templateKey: "admin_invitation", subject: template.subject, bodyHtml: template.body_html, bodyText: template.body_text, sampleData }) });
         const preview = await previewResponse.json();
@@ -544,6 +545,15 @@ export default function TeamManagementPage() {
           {tUi("admin.team.role_viewer")}</span>
       );
     }
+    if (r === "videoeditor") {
+      return <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-violet-500/10 text-violet-700 dark:text-violet-300 border border-violet-500/20"><Scissors className="w-3 h-3" />{tUi("admin.team.role_video_editor")}</span>;
+    }
+    if (r === "realestateagent") {
+      return <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20"><House className="w-3 h-3" />{tUi("admin.team.role_real_estate_agent")}</span>;
+    }
+    if (r === "advertiser") {
+      return <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-orange-500/10 text-orange-700 dark:text-orange-300 border border-orange-500/20"><Megaphone className="w-3 h-3" />{tUi("admin.team.role_advertiser")}</span>;
+    }
     return (
       <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-sky-500/10 text-sky-700 dark:text-sky-300 border border-sky-500/20">
         <Sparkles className="w-3 h-3" />
@@ -820,6 +830,9 @@ export default function TeamManagementPage() {
                 <option value="all">{tUi("admin.team.filter_all_roles")}</option>
                 <option value="admin">{tUi("admin.team.role_admin")}</option>
                 <option value="editor">{tUi("admin.team.role_editor")}</option>
+                <option value="video_editor">{tUi("admin.team.role_video_editor")}</option>
+                <option value="real_estate_agent">{tUi("admin.team.role_real_estate_agent")}</option>
+                <option value="advertiser">{tUi("admin.team.role_advertiser")}</option>
                 <option value="viewer">{tUi("admin.team.role_viewer")}</option>
               </select>
 
@@ -1041,6 +1054,9 @@ export default function TeamManagementPage() {
                 <option value="superadmin">{tUi("admin.team.page.superadmins")}</option>
                 <option value="admin">{tUi("admin.team.page.administrators")}</option>
                 <option value="editor">{tUi("admin.team.page.editors")}</option>
+                <option value="video_editor">{tUi("admin.team.role_video_editor")}</option>
+                <option value="real_estate_agent">{tUi("admin.team.role_real_estate_agent")}</option>
+                <option value="advertiser">{tUi("admin.team.role_advertiser")}</option>
                 <option value="viewer">{tUi("admin.team.page.viewers")}</option>
               </select>
 
@@ -1194,8 +1210,8 @@ export default function TeamManagementPage() {
             <CardContent className="space-y-4">
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold">{tUi("admin.team.page.simulated_role")}</Label>
-                <div className="grid grid-cols-3 gap-2">
-                  {(["admin", "editor", "viewer"] as const).map((r) => (
+                <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
+                  {(["admin", "editor", "video_editor", "real_estate_agent", "advertiser", "viewer"] as const).map((r) => (
                     <button
                       key={r}
                       type="button"
@@ -1206,7 +1222,7 @@ export default function TeamManagementPage() {
                           : "bg-muted text-muted-foreground border-border hover:bg-muted/80"
                       }`}
                     >
-                      {r}
+                      {tUi(`admin.team.role_${r}`)}
                     </button>
                   ))}
                 </div>
@@ -1302,11 +1318,7 @@ export default function TeamManagementPage() {
                   </div>
                   <div className="pt-1 text-[11px] text-slate-600 dark:text-zinc-400 leading-relaxed">
                     <strong>{tUi("admin.team.page.permissions")}</strong>{" "}
-                    {previewRole === "admin"
-                      ? "Full access to studio portfolio, deliverables, team management, pricing packages, and system settings."
-                      : previewRole === "viewer"
-                      ? "Read-only view access across studio dashboards, visual media, schedules, and analytics."
-                      : "Access to manage photo galleries, project milestones, services, FAQs, and client submissions."}
+                    {tUi(`admin.team.role_description_${previewRole}`)}
                   </div>
                 </div>
 
@@ -1405,7 +1417,7 @@ export default function TeamManagementPage() {
                 {/* Role Selector */}
                 <div className="space-y-1.5">
                   <Label className="text-xs font-semibold">{tUi("admin.team.page.assigned_role")}</Label>
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                     <button
                       type="button"
                       onClick={() => setInviteRole("admin")}
@@ -1420,6 +1432,21 @@ export default function TeamManagementPage() {
                         {tUi("admin.team.page.admin")}</div>
                       <div className="text-[10px] text-muted-foreground mt-1 leading-tight">
                         {tUi("admin.team.page.full_studio_settings_team_control")}</div>
+                    </button>
+
+                    <button type="button" onClick={() => setInviteRole("video_editor")} className={`p-3 rounded-xl border text-left transition-all ${inviteRole === "video_editor" ? "border-violet-500 bg-violet-500/10 text-violet-900 dark:text-violet-200 ring-2 ring-violet-500/20" : "border-border hover:bg-muted"}`}>
+                      <div className="font-bold text-xs flex items-center gap-1.5"><Scissors className="w-3.5 h-3.5 text-violet-600" />{tUi("admin.team.role_video_editor")}</div>
+                      <div className="text-[10px] text-muted-foreground mt-1 leading-tight">{tUi("admin.team.role_description_video_editor")}</div>
+                    </button>
+
+                    <button type="button" onClick={() => setInviteRole("real_estate_agent")} className={`p-3 rounded-xl border text-left transition-all ${inviteRole === "real_estate_agent" ? "border-emerald-500 bg-emerald-500/10 text-emerald-900 dark:text-emerald-200 ring-2 ring-emerald-500/20" : "border-border hover:bg-muted"}`}>
+                      <div className="font-bold text-xs flex items-center gap-1.5"><House className="w-3.5 h-3.5 text-emerald-600" />{tUi("admin.team.role_real_estate_agent")}</div>
+                      <div className="text-[10px] text-muted-foreground mt-1 leading-tight">{tUi("admin.team.role_description_real_estate_agent")}</div>
+                    </button>
+
+                    <button type="button" onClick={() => setInviteRole("advertiser")} className={`p-3 rounded-xl border text-left transition-all ${inviteRole === "advertiser" ? "border-orange-500 bg-orange-500/10 text-orange-900 dark:text-orange-200 ring-2 ring-orange-500/20" : "border-border hover:bg-muted"}`}>
+                      <div className="font-bold text-xs flex items-center gap-1.5"><Megaphone className="w-3.5 h-3.5 text-orange-600" />{tUi("admin.team.role_advertiser")}</div>
+                      <div className="text-[10px] text-muted-foreground mt-1 leading-tight">{tUi("admin.team.role_description_advertiser")}</div>
                     </button>
 
                     <button
@@ -1592,6 +1619,9 @@ export default function TeamManagementPage() {
                     {selectedMember.role === "superadmin" && <option value="superadmin">{tUi("admin.team.page.superadmin_system_owner")}</option>}
                     <option value="admin">{tUi("admin.team.page.administrator_full_access")}</option>
                     <option value="editor">{tUi("admin.team.page.editor_content_project_manager")}</option>
+                    <option value="video_editor">{tUi("admin.team.role_video_editor")}</option>
+                    <option value="real_estate_agent">{tUi("admin.team.role_real_estate_agent")}</option>
+                    <option value="advertiser">{tUi("admin.team.role_advertiser")}</option>
                     <option value="viewer">{tUi("admin.team.page.viewer_read_only_view")}</option>
                   </select>
                 </div>

@@ -20,6 +20,9 @@ import {
   Phone, 
   Building2, 
   Sparkles,
+  Scissors,
+  House,
+  Megaphone,
   ArrowRight,
   Clock,
   Info
@@ -215,6 +218,9 @@ export default function AcceptInvitePage() {
         </span>
       );
     }
+    if (r === "videoeditor") return <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-violet-500/10 text-violet-700 dark:text-violet-300 border border-violet-500/20"><Scissors className="w-3.5 h-3.5" />{tUi("admin.team.role_video_editor", undefined, "Video editor")}</span>;
+    if (r === "realestateagent") return <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20"><House className="w-3.5 h-3.5" />{tUi("admin.team.role_real_estate_agent", undefined, "Real-estate agent")}</span>;
+    if (r === "advertiser") return <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-orange-500/10 text-orange-700 dark:text-orange-300 border border-orange-500/20"><Megaphone className="w-3.5 h-3.5" />{tUi("admin.team.role_advertiser", undefined, "Advertiser")}</span>;
     return (
       <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-sky-500/10 text-sky-700 dark:text-sky-300 border border-sky-500/20">
         <Sparkles className="w-3.5 h-3.5" />
@@ -231,6 +237,9 @@ export default function AcceptInvitePage() {
     if (r === "viewer") {
       return tUi("auth.invite.role_desc_viewer", undefined, "Read-only access to view studio dashboards, media galleries, project timelines, and operational metrics.");
     }
+    if (r === "videoeditor") return tUi("auth.invite.role_desc_video_editor", undefined, "Access to portfolio media, projects, schedules, and deliveries.");
+    if (r === "realestateagent") return tUi("auth.invite.role_desc_real_estate_agent", undefined, "Access to property listings, client records, projects, and related requests.");
+    if (r === "advertiser") return tUi("auth.invite.role_desc_advertiser", undefined, "Access to campaign, marketing, and public-content management.");
     return tUi("auth.invite.role_desc_editor", undefined, "Permission to create and manage photo galleries, milestones, studio services, FAQs, and client submissions.");
   };
 

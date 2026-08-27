@@ -1,5 +1,7 @@
 export type SectionMediaItem = {
   backgroundUrl?: string;
+  heroGallery?: string[];
+  heroSlideIntervalMs?: number;
   backgroundPosition?: string;
   overlayOpacity?: number;
   imageBlur?: number;

@@ -1,7 +1,7 @@
 import { db } from "../db.js";
 
 const SETTINGS_KEY = "admin_role_menu_permissions";
-const CONFIGURABLE_ROLES = new Set(["admin", "editor", "viewer"]);
+const CONFIGURABLE_ROLES = new Set(["admin", "editor", "videoeditor", "realestateagent", "advertiser", "viewer"]);
 const MENU_IDS = new Set([
   "dashboard", "payment_requests", "budget", "invoices", "portfolio", "properties", "projects", "calendar", "services", "visual_ideas", "pricing", "announcements", "social_links", "faqs", "team", "referrals", "leads", "customers", "clients", "submissions", "marketing_emails", "themes", "settings",
 ]);
@@ -9,6 +9,9 @@ const MENU_IDS = new Set([
 const DEFAULT_PERMISSIONS: Record<string, string[]> = {
   admin: [...MENU_IDS],
   editor: ["dashboard", "payment_requests", "portfolio", "properties", "projects", "calendar", "services", "visual_ideas", "pricing", "announcements", "social_links", "faqs", "leads", "customers", "clients", "submissions", "marketing_emails"],
+  video_editor: ["dashboard", "portfolio", "projects", "calendar", "submissions"],
+  real_estate_agent: ["dashboard", "properties", "projects", "calendar", "leads", "customers", "clients", "submissions"],
+  advertiser: ["dashboard", "portfolio", "properties", "projects", "services", "visual_ideas", "pricing", "announcements", "social_links", "faqs", "leads", "submissions", "marketing_emails"],
   viewer: ["dashboard", "portfolio", "properties", "projects", "calendar", "services", "visual_ideas", "pricing", "announcements", "social_links", "faqs", "submissions"],
 };
 
@@ -27,6 +30,7 @@ async function permissionForAdminEndpoint(req: any): Promise<Permission> {
   if (/^\/(services|visual-ideas)(?:\/|$)/.test(path)) return path.startsWith("/visual-ideas") ? "visual_ideas" : "services";
   if (/^\/(pricing|extra-services|fee-rules)(?:\/|$)/.test(path)) return "pricing";
   if (/^\/(faq-categories|faqs)(?:\/|$)/.test(path)) return "faqs";
+  if (/^\/testimonials(?:\/|$)/.test(path)) return "faqs";
   if (/^\/contacts(?:\/|$)/.test(path)) return "submissions";
   if (/^\/clients(?:\/|$)/.test(path)) return "clients";
   if (/^\/projects(?:\/|$)/.test(path)) return "projects";
@@ -49,13 +53,15 @@ async function permissionForAdminEndpoint(req: any): Promise<Permission> {
 }
 
 async function rolePermissions(role: string): Promise<string[]> {
+  const roleKey: Record<string, string> = { videoeditor: "video_editor", realestateagent: "real_estate_agent" };
+  const storedRole = roleKey[role] || role;
   const result = await db.execute({ sql: "SELECT value FROM settings WHERE key = ? LIMIT 1", args: [SETTINGS_KEY] });
   const value = result.rows[0]?.value;
-  if (!value) return DEFAULT_PERMISSIONS[role] || [];
+  if (!value) return DEFAULT_PERMISSIONS[storedRole] || [];
   try {
     const parsed = JSON.parse(String(value));
-    const permissions = parsed?.[role];
-    return Array.isArray(permissions) ? permissions.filter((id: unknown) => typeof id === "string" && MENU_IDS.has(id) && !(role === "editor" && (id === "budget" || id === "invoices"))) : DEFAULT_PERMISSIONS[role] || [];
+    const permissions = parsed?.[storedRole];
+    return Array.isArray(permissions) ? permissions.filter((id: unknown) => typeof id === "string" && MENU_IDS.has(id) && !(storedRole === "editor" && (id === "budget" || id === "invoices"))) : DEFAULT_PERMISSIONS[storedRole] || [];
   } catch {
     return [];
   }

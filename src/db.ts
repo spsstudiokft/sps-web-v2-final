@@ -2147,6 +2147,20 @@ export const setupDatabase = async () => {
     console.error("Failed to seed default FAQs:", e);
   }
 
+  // Public testimonials / recommendations shown before the FAQ section.
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS testimonials (
+      id TEXT PRIMARY KEY,
+      quote TEXT NOT NULL,
+      author_name TEXT NOT NULL,
+      author_role TEXT,
+      is_published INTEGER DEFAULT 1,
+      sort_order INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
   // Themes table for storing custom and preset themes
   await client.execute(`
     CREATE TABLE IF NOT EXISTS themes (

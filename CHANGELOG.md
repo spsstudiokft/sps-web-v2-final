@@ -2,6 +2,30 @@
 
 ## 2026-08-27
 
+### Hero gallery
+
+- Added an editable hero image gallery to the existing Section Media settings, using the same direct-storage upload pipeline, accepted image formats, optimized variants, and 15 MB per-image limit as other section media.
+- Added 2, 2.5, and 3 second cross-fade controls; the hero retains its existing blur, readability overlay, and side/bottom fade while each gallery image is active.
+- Preserved existing single hero background settings as a compatible first gallery image until additional images are added.
+- Optimized gallery rendering so only the current and preloaded-next slides stay mounted (with one short-lived outgoing layer during a cross-fade); animation pauses in background tabs and honors reduced-motion preferences.
+
+### Client portal navigation
+
+- Reworked the client portal into an admin-style, structured left sidebar with an account section and clear navigation for projects, invoices, referrals, property listings, and settings.
+- Added a touch-friendly mobile header and off-canvas menu, with large controls, backdrop dismissal, active-page states, and automatic closing after navigation.
+
+### Public testimonials
+
+- Added a public “Rólunk mondták” testimonial section directly before the FAQ; it appears automatically once at least one published testimonial exists.
+- Added an admin testimonial manager with create, edit, publish/draft, ordering, and deletion controls, available under the FAQ menu.
+- Added protected admin and public API endpoints plus the persistent testimonials table and homepage bootstrap delivery.
+
+### Team roles
+
+- Added Video Editor, Real-estate Agent, and Advertiser roles to team-member creation, invitations, invitation acceptance, filters, badges, and editing.
+- Added server-side role validation, login recognition, and menu authorization for the new roles, with configurable default access profiles in admin settings.
+- Added localized role labels and invitation descriptions in English, Hungarian, German, Spanish, and French.
+
 ### Two-factor authentication foundation
 
 - Added portal-scoped authentication-factor, challenge, recovery-code, and security-event database foundations for separate client and admin identities.

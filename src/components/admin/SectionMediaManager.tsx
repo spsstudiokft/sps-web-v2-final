@@ -1,4 +1,4 @@
-import { Image as ImageIcon, RotateCcw } from "lucide-react";
+import { Image as ImageIcon, RotateCcw, Trash2 } from "lucide-react";
 import { SiteSettings } from "../../lib/types";
 import { ImageUploadCard } from "./BrandingManager";
 import { Input } from "../ui/Input";
@@ -50,6 +50,20 @@ export function SectionMediaManager({
     onChange("section_media", JSON.stringify(next));
   };
 
+  const updateHeroGallery = (index: number, url: string) => {
+    const current = Array.isArray(media.home?.heroGallery) && media.home.heroGallery.length ? media.home.heroGallery : (media.home?.backgroundUrl ? [media.home.backgroundUrl] : []);
+    const next = [...current];
+    next[index] = url;
+    const gallery = next.filter(Boolean);
+    updateSection("home", { heroGallery: gallery, backgroundUrl: gallery[0] || "" });
+  };
+
+  const removeHeroGalleryImage = (index: number) => {
+    const current = Array.isArray(media.home?.heroGallery) && media.home.heroGallery.length ? media.home.heroGallery : (media.home?.backgroundUrl ? [media.home.backgroundUrl] : []);
+    const gallery = current.filter((_, itemIndex) => itemIndex !== index);
+    updateSection("home", { heroGallery: gallery, backgroundUrl: gallery[0] || "" });
+  };
+
   return (
     <div className="space-y-5">
       <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4">
@@ -68,7 +82,7 @@ export function SectionMediaManager({
         const label = tr(labelKey, id);
         return (
           <div key={id} className="p-5 rounded-2xl bg-surface border border-border space-y-4">
-            <ImageUploadCard
+            {!isHero && <ImageUploadCard
               id={`section-background-${id}`}
               title={`${label} — ${tr("admin.section_media.background", "background")}`}
               description={tr("admin.section_media.background_description", "Full-width section background. JPG, PNG, WebP or AVIF can be used.")}
@@ -84,7 +98,19 @@ export function SectionMediaManager({
               currentLang={currentLang}
               useMediaPipeline
               fallbackPreviewUrl={DEFAULT_SECTION_BACKGROUNDS[id]}
-            />
+            />}
+
+            {isHero && (() => {
+              const gallery = Array.isArray(item.heroGallery) && item.heroGallery.length ? item.heroGallery : (item.backgroundUrl ? [item.backgroundUrl] : []);
+              return <div className="space-y-4 rounded-xl border border-primary/20 bg-primary/5 p-4">
+                <div><Label className="text-sm font-semibold text-text">Hero galéria</Label><p className="mt-1 text-xs leading-relaxed text-muted-text">A képek 2–3 másodpercenként finoman váltanak. A feltöltés ugyanazokat a formátum- és méretkorlátokat használja, mint a többi szekciókép.</p></div>
+                <div className="grid gap-4 lg:grid-cols-2">
+                  {gallery.map((url, index) => <div key={`${url}-${index}`} className="relative"><ImageUploadCard id={`hero-gallery-${index}`} title={`Hero kép ${index + 1}`} description="JPG, PNG, WebP vagy AVIF. Ajánlott: 1920 × 1080 px vagy nagyobb." value={url} recommendedSize="1920 × 1080 px vagy nagyobb" acceptedFormats=".jpg,.jpeg,.png,.webp,.avif" maxSizeBytes={15 * 1024 * 1024} previewBg="dark" isOptional onUpload={(nextUrl) => updateHeroGallery(index, nextUrl)} onClear={() => removeHeroGalleryImage(index)} tUi={(key) => tUi(key, currentLang, key)} currentLang={currentLang} useMediaPipeline fallbackPreviewUrl={index === 0 ? DEFAULT_SECTION_BACKGROUNDS.home : undefined} /><button type="button" onClick={() => removeHeroGalleryImage(index)} className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-red-600 hover:text-red-700"><Trash2 className="h-3.5 w-3.5" />Eltávolítás a galériából</button></div>)}
+                  {gallery.length < 6 && <ImageUploadCard id={`hero-gallery-${gallery.length}`} title="Új hero kép" description="Adjon hozzá további képet a váltakozó hero-galériához." value="" recommendedSize="1920 × 1080 px vagy nagyobb" acceptedFormats=".jpg,.jpeg,.png,.webp,.avif" maxSizeBytes={15 * 1024 * 1024} previewBg="dark" isOptional onUpload={(url) => updateHeroGallery(gallery.length, url)} onClear={() => {}} tUi={(key) => tUi(key, currentLang, key)} currentLang={currentLang} useMediaPipeline />}
+                </div>
+                <div><Label htmlFor="hero-gallery-interval">Váltás ideje</Label><select id="hero-gallery-interval" value={item.heroSlideIntervalMs || 2500} onChange={(event) => updateSection("home", { heroSlideIntervalMs: Number(event.target.value) })} className="mt-1.5 h-10 w-full rounded-xl border border-border bg-background px-3 text-sm text-text"><option value={2000}>2 másodperc</option><option value={2500}>2,5 másodperc</option><option value={3000}>3 másodperc</option></select></div>
+              </div>;
+            })()}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
@@ -193,7 +219,7 @@ export function SectionMediaManager({
             {(item.backgroundUrl || item.contentImageUrl) && (
               <button
                 type="button"
-                onClick={() => updateSection(id, { backgroundUrl: "", contentImageUrl: "", backgroundPosition: "center", overlayOpacity: 0.45, imageBlur: 0 })}
+                onClick={() => updateSection(id, { backgroundUrl: "", heroGallery: [], heroSlideIntervalMs: 2500, contentImageUrl: "", backgroundPosition: "center", overlayOpacity: 0.45, imageBlur: 0 })}
                 className="inline-flex items-center gap-2 text-xs font-semibold text-muted-text hover:text-text"
               >
                 <RotateCcw className="w-3.5 h-3.5" /> {tr("admin.section_media.reset", "Restore default media")}

@@ -59,7 +59,8 @@ export const requireAuth = (req: any, res: any, next: any) => {
 
 export const requireAdmin = (req: any, res: any, next: any) => {
   requireAuth(req, res, async () => {
-    const allowedRoles = ["admin", "editor", "viewer", "superadmin"];
+    const allowedRoles = ["admin", "editor", "video_editor", "real_estate_agent", "advertiser", "viewer", "superadmin"];
+    const allowedRoleKeys = new Set(["admin", "editor", "videoeditor", "realestateagent", "advertiser", "viewer", "superadmin"]);
     if (!allowedRoles.includes(req.user.role)) {
       return res.status(403).json({ error: "Forbidden: Admin access required" });
     }
@@ -72,11 +73,11 @@ export const requireAdmin = (req: any, res: any, next: any) => {
       const primaryRole = String(row?.role || "").toLowerCase().replace(/[_-]/g, "");
       const secondaryRole = String(row?.admin_role || "").toLowerCase().replace(/[_-]/g, "");
       const tokenRole = String(req.user.role || "").toLowerCase().replace(/[_-]/g, "");
-      const usesSecondaryAdmin = !allowedRoles.includes(primaryRole) && secondaryRole === tokenRole;
+      const usesSecondaryAdmin = !allowedRoleKeys.has(primaryRole) && secondaryRole === tokenRole;
       if (!row || (usesSecondaryAdmin ? row.admin_is_active === 0 : row.is_active === 0)) {
         return res.status(403).json({ error: "Forbidden: Account is disabled" });
       }
-      if (!allowedRoles.includes(primaryRole) && !allowedRoles.includes(secondaryRole)) {
+      if (!allowedRoleKeys.has(primaryRole) && !allowedRoleKeys.has(secondaryRole)) {
         return res.status(403).json({ error: "Forbidden: Admin access required" });
       }
     } catch {}

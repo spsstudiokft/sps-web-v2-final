@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { SiteSettings, PortfolioItem, Service, PricingPlan, ExtraService, PricingFeeRule, FAQItem, FAQCategory } from "../lib/types";
+import { SiteSettings, PortfolioItem, Service, PricingPlan, ExtraService, PricingFeeRule, FAQItem, FAQCategory, Testimonial } from "../lib/types";
 import { Header } from "../components/public/Header";
 import { Hero } from "../components/public/Hero";
 import { Vision } from "../components/public/Vision";
@@ -10,6 +10,7 @@ import { Pricing } from "../components/public/Pricing";
 import { VisualIdeas } from "../components/public/VisualIdeas";
 import { Contact } from "../components/public/Contact";
 import { FAQ } from "../components/public/FAQ";
+import { Testimonials } from "../components/public/Testimonials";
 import { Footer } from "../components/public/Footer";
 import { PublicSkeleton } from "../components/public/PublicSkeleton";
 import { FloatingNav } from "../components/public/FloatingNav";
@@ -33,6 +34,7 @@ type PublicBootstrapData = {
   feeRules: PricingFeeRule[];
   faqs: FAQItem[];
   faqCategories: FAQCategory[];
+  testimonials: Testimonial[];
   generatedAt?: string;
 };
 
@@ -331,6 +333,7 @@ function PublicHomeContent({ settings, portfolio, services, bootstrap, loading }
         {hasVisualIdeas && <VisualIdeas settings={settings} isPerformanceLite={litePerformanceMode} />}
         {hasPricing && <Pricing initialPlans={visiblePlans} initialExtras={visibleExtras} initialFeeRules={bootstrap?.feeRules || []} loadFullData={loadFullPricing} isPerformanceLite={litePerformanceMode} />}
         <Contact settings={settings} initialPlans={bootstrap?.pricing} initialExtras={bootstrap?.extraServices} initialFeeRules={bootstrap?.feeRules} />
+        <Testimonials items={(bootstrap?.testimonials || []).filter((item) => item.is_published !== 0)} />
         {hasFaq && <FAQ settings={settings} initialFaqs={visibleFaqs} initialCategories={bootstrap?.faqCategories || []} loadFullData={loadFullFaqs} />}
         <Footer settings={settings} />
 

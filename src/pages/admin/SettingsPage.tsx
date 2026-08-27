@@ -576,7 +576,7 @@ export default function SettingsPage() {
       </Card>
 
       {normalizeAdminRole(user?.role) === "superadmin" && <Card className={`${activeSettingsGroup === "governance" ? "" : "!hidden"} border-border overflow-hidden`}>
-        <CardHeader className="border-b border-border bg-surface/60"><CardTitle className="text-lg">Szerepkörök és adminpanel-jogosultságok</CardTitle><CardDescription className="mt-1">Válassza ki, hogy az Admin, Editor és Viewer szerepkör mely adminpanel-menüket és oldalakat érheti el.</CardDescription></CardHeader>
+        <CardHeader className="border-b border-border bg-surface/60"><CardTitle className="text-lg">Szerepkörök és adminpanel-jogosultságok</CardTitle><CardDescription className="mt-1">Válassza ki, hogy az egyes szerepkörök mely adminpanel-menüket és oldalakat érhetik el.</CardDescription></CardHeader>
         <CardContent className="p-5 sm:p-6"><RoleMenuPermissionsManager /></CardContent>
       </Card>}
 

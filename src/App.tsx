@@ -39,6 +39,7 @@ const SocialLinksPage = lazy(() => import("./pages/admin/SocialLinksPage"));
 const InfoBarPage = lazy(() => import("./pages/admin/InfoBarPage"));
 const FaqsPage = lazy(() => import("./pages/admin/FaqsPage"));
 const FaqCategoriesPage = lazy(() => import("./pages/admin/FaqCategoriesPage"));
+const TestimonialsPage = lazy(() => import("./pages/admin/TestimonialsPage"));
 const TeamManagementPage = lazy(() => import("./pages/admin/TeamManagementPage"));
 const ReferralsPage = lazy(() => import("./pages/admin/ReferralsPage"));
 const BudgetPage = lazy(() => import("./pages/admin/BudgetPage"));
@@ -107,7 +108,7 @@ const ProtectedRoute = ({ children }: { children: ReactNode }) => {
     }
   }
 
-  if (role !== 'admin' && role !== 'editor' && role !== 'viewer' && role !== 'superadmin') {
+  if (!['admin', 'editor', 'video_editor', 'real_estate_agent', 'advertiser', 'viewer', 'superadmin'].includes(String(role))) {
     return <ErrorPage status={403} />;
   }
   return children;
@@ -212,6 +213,7 @@ export default function App() {
                 <Route path="social-links" element={<SocialLinksPage />} />
                 <Route path="faqs" element={<FaqsPage />} />
                 <Route path="faqs/categories" element={<FaqCategoriesPage />} />
+                <Route path="testimonials" element={<TestimonialsPage />} />
                 <Route path="contacts" element={<ContactsPage />} />
                 <Route path="clients" element={<ClientsPage />} />
                 <Route path="leads" element={<LeadsPage />} />
