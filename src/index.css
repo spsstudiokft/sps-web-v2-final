@@ -512,7 +512,7 @@ html:not(.dark) .aero-site {
 .aero-hero-slide { position: absolute; inset: 0; z-index: 0; background-size: 112% auto; background-repeat: no-repeat; filter: blur(var(--hero-image-blur, 0px)); opacity: 0; will-change: opacity; contain: paint; transition: opacity 800ms ease-in-out, filter 180ms ease; }
 .aero-hero-slide.is-active { z-index: 2; opacity: 1; }
 .aero-hero-slide.is-leaving { z-index: 3; opacity: 0; }
-.aero-hero-media::after { content: ""; position: absolute; inset: 0; z-index: 1; background: linear-gradient(90deg, rgba(2, 10, 24, 0.9) 0%, rgba(2, 14, 31, 0.72) 40%, rgba(2, 16, 35, 0.17) 72%), linear-gradient(0deg, rgba(1, 10, 24, 0.82) 0%, transparent 42%); pointer-events: none; }
+.aero-hero-media::after { content: ""; position: absolute; inset: 0; z-index: 4; background: linear-gradient(90deg, rgba(2, 10, 24, 0.9) 0%, rgba(2, 14, 31, 0.72) 40%, rgba(2, 16, 35, 0.17) 72%), linear-gradient(0deg, rgba(1, 10, 24, 0.82) 0%, transparent 42%); pointer-events: none; }
 
 .dark .aero-hero-media {
   background: #010b19;

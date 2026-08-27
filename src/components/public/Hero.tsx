@@ -78,14 +78,14 @@ export function Hero({ settings }: { settings: SiteSettings }) {
       transitionInProgress.current = true;
       void preloadHeroImage(slides[next]).then((isReady) => {
         if (!isReady || disposed || document.visibilityState !== "visible") return;
-        setActiveSlide((latest) => {
-          const incoming = (latest + 1) % slides.length;
-          activeSlideRef.current = incoming;
-          if (leavingTimer.current) window.clearTimeout(leavingTimer.current);
-          setLeavingSlide(latest);
-          leavingTimer.current = window.setTimeout(() => setLeavingSlide(null), HERO_CROSSFADE_MS);
-          return incoming;
-        });
+        // Both state changes run in the same async callback, so React paints
+        // the incoming and outgoing slides together rather than exposing the
+        // media background between two separate renders.
+        activeSlideRef.current = next;
+        if (leavingTimer.current) window.clearTimeout(leavingTimer.current);
+        setLeavingSlide(current);
+        setActiveSlide(next);
+        leavingTimer.current = window.setTimeout(() => setLeavingSlide(null), HERO_CROSSFADE_MS);
       }).finally(() => { transitionInProgress.current = false; });
     }, intervalMs);
     return () => { disposed = true; window.clearInterval(timer); if (leavingTimer.current) window.clearTimeout(leavingTimer.current); };
