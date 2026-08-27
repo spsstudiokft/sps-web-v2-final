@@ -203,8 +203,20 @@ async function loadPublicBootstrap() {
       "SELECT * FROM pricing_fee_rules WHERE is_enabled = 1 AND (show_on_pricing_page IS NULL OR show_on_pricing_page = 1) ORDER BY sort_order ASC, created_at ASC LIMIT 3",
       `SELECT f.*, fc.name as category_name, fc.slug as category_slug, fc.sort_order as category_sort_order FROM faqs f LEFT JOIN faq_categories fc ON f.category_id = fc.id WHERE f.is_published = 1 AND (fc.is_published = 1 OR fc.is_published IS NULL OR f.category_id IS NULL) ORDER BY COALESCE(fc.sort_order, 999) ASC, f.sort_order ASC, f.created_at ASC LIMIT 4`,
       "SELECT * FROM faq_categories WHERE is_published = 1 ORDER BY sort_order ASC LIMIT 4",
-      "SELECT * FROM testimonials WHERE is_published = 1 ORDER BY sort_order ASC, created_at ASC LIMIT 12",
     ], "read");
+
+    // Testimonials were added after the original public schema. Keep this
+    // optional section isolated so an older deployment database cannot make
+    // the complete homepage bootstrap fail before its table is migrated.
+    let testimonials: any[] = [];
+    try {
+      const testimonialResult = await getDb().execute(
+        "SELECT * FROM testimonials WHERE is_published = 1 ORDER BY sort_order ASC, created_at ASC LIMIT 12",
+      );
+      testimonials = testimonialResult.rows || [];
+    } catch (error) {
+      console.warn("Public testimonials are unavailable; continuing without them:", error);
+    }
 
     const settings = (results[0]?.rows || []).reduce((acc: any, row: any) => {
       acc[row.key] = row.value;
@@ -219,7 +231,7 @@ async function loadPublicBootstrap() {
       feeRules: results[5]?.rows || [],
       faqs: results[6]?.rows || [],
       faqCategories: results[7]?.rows || [],
-      testimonials: results[8]?.rows || [],
+      testimonials,
       generatedAt: new Date().toISOString(),
     };
     publicBootstrapCache = { expiresAt: Date.now() + PUBLIC_BOOTSTRAP_TTL_MS, payload };

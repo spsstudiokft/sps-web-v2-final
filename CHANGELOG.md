@@ -2,6 +2,10 @@
 
 ## 2026-08-27
 
+### Public data loading resilience
+
+- Isolated the optional testimonial query from the core homepage bootstrap, so an older database without the new testimonials table can no longer prevent settings, portfolio, services, pricing, and FAQ content from loading.
+
 ### Hero gallery
 
 - Added an editable hero image gallery to the existing Section Media settings, using the same direct-storage upload pipeline, accepted image formats, optimized variants, and 15 MB per-image limit as other section media.
