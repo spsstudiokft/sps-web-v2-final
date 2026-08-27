@@ -256,6 +256,65 @@ export const DEFAULT_EMAIL_TEMPLATES: Record<string, {
     }
   },
 
+  auth_2fa_code: {
+    template_key: "auth_2fa_code",
+    name: "Kétlépcsős ellenőrzőkód",
+    category: "auth",
+    description: "Egyszer használatos emailkód belépés, 2FA-bekapcsolás vagy kikapcsolás megerősítéséhez.",
+    subject: "Bejelentkezés megerősítése · {{studio_name}}",
+    body_html: `
+<p style="color: #1e293b; font-size: 15px; line-height: 1.6; margin: 0 0 16px 0;">
+  Kedves <strong>{{user.name}}</strong>!
+</p>
+<p style="color: #1e293b; font-size: 15px; line-height: 1.6; margin: 0 0 20px 0;">
+  A(z) <strong>{{studio_name}}</strong> {{account_context_label}} felületén a következő műveletet kezdeményezték: <strong>{{verification_purpose_label}}</strong>.
+</p>
+
+<div style="background-color: #eff6ff; border: 1px solid #bfdbfe; border-radius: 12px; padding: 24px 16px; margin: 28px 0; text-align: center;">
+  <p style="margin: 0 0 10px 0; color: #1e40af; font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;">
+    Egyszer használatos ellenőrzőkód
+  </p>
+  <div style="color: #0f172a; font-family: 'Courier New', Courier, monospace; font-size: 34px; line-height: 1.2; font-weight: 800; letter-spacing: 0.22em; white-space: nowrap;">
+    {{verification_code}}
+  </div>
+</div>
+
+<div style="background-color: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 14px 16px; margin: 24px 0;">
+  <p style="margin: 0 0 5px 0; color: #92400e; font-size: 13px; font-weight: 700;">
+    Biztonsági tájékoztató
+  </p>
+  <p style="margin: 0; color: #92400e; font-size: 12px; line-height: 1.6;">
+    A kód <strong>{{expiry_minutes}} percig</strong> érvényes, egyszer használható, és munkatársaink soha nem kérik el telefonon vagy üzenetben. Ha nem te kezdeményezted a műveletet, ne add meg senkinek.
+  </p>
+</div>
+
+<p style="color: #64748b; font-size: 12px; line-height: 1.5; margin: 18px 0 0 0;">
+  A kérést ekkor rögzítettük: {{request_time}}.
+</p>
+    `.trim(),
+    body_text: `Kedves {{user.name}}!\n\nA(z) {{studio_name}} {{account_context_label}} felületén ezt a műveletet kezdeményezték: {{verification_purpose_label}}.\n\nEgyszer használatos ellenőrzőkód: {{verification_code}}\n\nA kód {{expiry_minutes}} percig érvényes. Ha nem te kezdeményezted a műveletet, ne add meg senkinek.\n\nKérés időpontja: {{request_time}}.`.trim(),
+    available_tokens: [
+      { token: "{{user.name}}", label: "Felhasználó neve", description: "A címzett megjelenített neve", example: "Kovács Anna" },
+      { token: "{{verification_code}}", label: "Ellenőrzőkód", description: "Nyolcjegyű egyszer használatos kód", example: "48273105" },
+      { token: "{{verification_purpose_label}}", label: "Művelet", description: "Belépés, bekapcsolás vagy kikapcsolás", example: "bejelentkezés megerősítése" },
+      { token: "{{account_context_label}}", label: "Fióktípus", description: "Admin- vagy kliensportál", example: "adminisztrációs" },
+      { token: "{{expiry_minutes}}", label: "Lejárat percben", description: "A kód érvényességi ideje", example: "5" },
+      { token: "{{request_time}}", label: "Kérés időpontja", description: "A kód létrehozásának helyi időpontja", example: "2026. 08. 27. 10:15" },
+      { token: "{{studio_name}}", label: "Stúdiónév", description: "A beállított stúdiónév", example: "SPS Studio" }
+    ],
+    sample_data: {
+      "user.name": "Kovács Anna",
+      "recipient_name": "Kovács Anna",
+      "verification_code": "48273105",
+      "verification_purpose_label": "bejelentkezés megerősítése",
+      "account_context_label": "adminisztrációs",
+      "expiry_minutes": "5",
+      "request_time": "2026. 08. 27. 10:15",
+      "studio_name": "SPS Studio",
+      "header_subtitle": "Biztonságos fiókhozzáférés"
+    }
+  },
+
   magic_link_login: {
     template_key: "magic_link_login",
     name: "Magic Link Sign-in",

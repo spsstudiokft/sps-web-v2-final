@@ -32,29 +32,32 @@ Status legend: `[x]` complete, `[-]` implemented but not fully rolled out, `[ ]`
 - [x] Add verified enrollment flow before users can enable email confirmation.
 - [x] Add current-password-plus-email-factor protected disable flow.
 - [x] Add the optional email-2FA settings card to both client and admin account settings.
-- [ ] Replace the temporary email body with editable five-locale email templates.
+- [-] Replace the temporary email body with a branded, centrally editable SPS email template (complete); five-locale email content variants remain pending.
 - [ ] Add five-locale UI translations; the current new UI copy is Hungarian.
 - [-] Add security-event writes for send, failed/successful verification, password failure, and factor changes; recovery and TOTP events remain pending.
 - [ ] Add an administrator policy switch and gradual enforcement dates.
 
 ## Milestone 3 — authenticator app / TOTP
 
-- [ ] Add the open-source RFC 6238 TOTP dependency.
-- [ ] Generate a unique TOTP secret per user and account context.
-- [ ] Encrypt TOTP secrets with `MFA_ENCRYPTION_KEY` before database storage.
-- [ ] Generate the `otpauth://` URI without sending the secret to any third party.
-- [ ] Render the QR code locally in the browser.
-- [ ] Require a valid first TOTP code before activating the factor.
-- [ ] Support six-digit, 30-second TOTP verification with a maximum ±1 time window.
-- [ ] Prevent replay of a TOTP value within the accepted time step.
-- [ ] Allow users to select TOTP as their primary factor.
+- [x] Add the open-source RFC 6238 TOTP dependency.
+- [x] Generate a unique TOTP secret per user and account context.
+- [x] Encrypt TOTP secrets with `MFA_ENCRYPTION_KEY` before database storage.
+- [x] Generate the `otpauth://` URI without sending the secret to any third party.
+- [x] Render the QR code locally in the browser.
+- [x] Require a valid first TOTP code before activating the factor.
+- [x] Support six-digit, 30-second TOTP verification with a maximum ±1 time window.
+- [x] Prevent replay of a TOTP value within the accepted time step.
+- [x] Make TOTP the primary login factor when it is enrolled, while retaining optional email OTP.
+- [x] Add persistent per-portal login modes: email only, authenticator only, or combined authenticator-then-email verification.
+- [x] Continue a combined login from the verified TOTP/recovery step into a separate email challenge and include both methods in the final session `amr` claim.
 - [ ] Require TOTP for superadmin accounts after a controlled enrollment window.
 
 ## Milestone 4 — recovery and lifecycle
 
-- [ ] Generate ten one-time recovery codes after TOTP enrollment.
-- [ ] Display recovery codes once and store only their hashes.
-- [ ] Support recovery-code login after the password step.
+- [x] Generate ten one-time recovery codes after TOTP enrollment.
+- [x] Display recovery codes once and store only their hashes.
+- [x] Allow the show-once recovery-code set to be downloaded as a local UTF-8 text file immediately after enrollment.
+- [x] Support recovery-code login after the password step.
 - [ ] Regenerate recovery codes only after password and active-factor verification.
 - [ ] Notify the account email after factor enable, disable, replacement, or recovery.
 - [ ] Add a support-admin reset procedure that never reveals secrets.
@@ -75,6 +78,7 @@ Status legend: `[x]` complete, `[-]` implemented but not fully rolled out, `[ ]`
 - [x] Verify live Resend delivery: API accepted a non-simulated message with a provider message ID and inbox receipt was confirmed.
 - [ ] Add isolated integration tests for expiry, replay, resend, attempt limit, dual accounts, and inactive accounts.
 - [ ] Browser-test real email delivery for a client account.
-- [ ] Browser-test real email delivery for primary and secondary admin accounts.
+- [-] Browser-test real email delivery for primary and secondary admin accounts: dev-account flow confirmed by the user; secondary-admin coverage remains pending.
 - [ ] Verify local, Vercel Preview, and Vercel Production environment variables separately.
 - [ ] Perform a controlled pilot before making any factor mandatory.
+- [x] Run an isolated TOTP integration check covering encrypted storage, enrollment, ten recovery codes, replay rejection, and single-use recovery consumption; temporary records were removed.

@@ -168,6 +168,7 @@ export const setupDatabase = async () => {
     is_enabled INTEGER NOT NULL DEFAULT 0,
     is_primary INTEGER NOT NULL DEFAULT 0,
     secret_encrypted TEXT,
+    last_totp_step INTEGER,
     verified_at DATETIME,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -190,6 +191,7 @@ export const setupDatabase = async () => {
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   )`);
   try { await client.execute("ALTER TABLE auth_challenges ADD COLUMN challenge_purpose TEXT NOT NULL DEFAULT 'login'"); } catch {}
+  try { await client.execute("ALTER TABLE auth_factors ADD COLUMN last_totp_step INTEGER"); } catch {}
   await client.execute(`CREATE TABLE IF NOT EXISTS auth_recovery_codes (
     id TEXT PRIMARY KEY,
     user_id TEXT NOT NULL,
@@ -208,6 +210,13 @@ export const setupDatabase = async () => {
     user_agent TEXT DEFAULT '',
     metadata TEXT DEFAULT '{}',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )`);
+  await client.execute(`CREATE TABLE IF NOT EXISTS auth_mfa_preferences (
+    user_id TEXT NOT NULL,
+    account_context TEXT NOT NULL CHECK(account_context IN ('admin', 'client')),
+    login_mode TEXT NOT NULL CHECK(login_mode IN ('email_only', 'totp_only', 'combined')),
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY(user_id, account_context)
   )`);
   await client.execute("CREATE INDEX IF NOT EXISTS idx_auth_factors_user_context ON auth_factors(user_id, account_context)");
   await client.execute("CREATE INDEX IF NOT EXISTS idx_auth_challenges_user_context ON auth_challenges(user_id, account_context, created_at)");

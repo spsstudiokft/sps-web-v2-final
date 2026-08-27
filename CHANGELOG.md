@@ -15,7 +15,17 @@
 - Confirmed successful inbox delivery of the live Resend test message, completing the sender-configuration and domain-delivery verification step.
 - Added explicit five-locale validation feedback to admin and client password-login forms when the email address or password is missing, replacing the previously silent-looking native required-field block.
 - Prevented Vercel BotID client/server verification from running on localhost test servers, where its generated script route resolves to SPA HTML, and added visible admin-login progress plus a 15-second timeout error.
+- Replaced the temporary plain 2FA email with a centrally editable `auth_2fa_code` authentication template using the standard SPS branded header, configured logo, responsive card layout, security notice, footer, text fallback, preview data, and documented template tokens.
 - Added `docs/TWO_FACTOR_AUTH_TODO.md` with completed, partial, pending, verification, and rollout work for email confirmation, TOTP/QR enrollment, recovery, and session lifecycle.
+- Added optional RFC 6238 authenticator-app verification for both admin and client account contexts, using six-digit 30-second codes with a maximum one-step clock window and database-backed replay prevention.
+- Added password-protected QR enrollment rendered entirely in the browser, a manual setup key, first-code activation, and AES-256-GCM encryption of authenticator secrets with a dedicated `MFA_ENCRYPTION_KEY` in production.
+- Added ten show-once, downloadable recovery codes after enrollment; only keyed hashes are stored, codes are consumed atomically, and recovery-code login is available after the password step.
+- Made an enrolled authenticator the primary login factor while preserving independently optional email OTP, and added password-plus-authenticator protected TOTP removal with recovery-code cleanup.
+- Verified production client and server bundles plus an isolated integration flow for encrypted-at-rest secrets, activation, replay rejection, recovery-code generation, and single-use recovery consumption.
+- Split 2FA login policy into three persistent portal-specific modes: email only, authenticator only, and combined password → authenticator/recovery → email verification; factor removal safely falls back to the remaining available method.
+- Updated the shared login challenge UI to continue a combined sign-in across both verification screens and record every completed method in the final session authentication-method claim.
+- Enabled a browser-compatible local `.txt` download for the ten show-once recovery codes immediately after authenticator enrollment.
+- Added an isolated mode-persistence check covering all three policies and safe fallback when one combined-mode factor is removed.
 
 ## 2026-08-26
 

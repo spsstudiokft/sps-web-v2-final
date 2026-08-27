@@ -144,7 +144,7 @@ export default function ClientLogin() {
       if (res.ok) {
         const data = await res.json();
         if (data.requires_2fa) {
-          setEmailChallenge({ challengeId: data.challenge_id, preauthToken: data.preauth_token, maskedEmail: data.masked_email, resendAfter: data.resend_after || 60 });
+          setEmailChallenge({ challengeId: data.challenge_id, preauthToken: data.preauth_token, maskedEmail: data.masked_email || "", resendAfter: data.resend_after || 0, method: data.method, recoveryAvailable: data.recovery_available });
           return;
         }
         login(data.token, data.user, "client");

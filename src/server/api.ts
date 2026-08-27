@@ -23,10 +23,17 @@ import {
 import { requireAuth, requireAdmin, requireClient } from "./authMiddleware.js";
 import {
   createAndSendEmailChallenge,
+  confirmTotpEnrollment,
+  createTotpLoginChallenge,
+  disableTotpFactor,
+  getFactorStatus,
   hasEnabledEmailFactor,
   recordSecurityEvent,
   setEmailFactorEnabled,
+  setMfaLoginMode,
   verifyEmailChallenge,
+  verifyTotpLoginChallenge,
+  startTotpEnrollment,
   type AccountContext,
 } from "./services/mfaService.js";
 export { requireAuth, requireAdmin, requireClient } from "./authMiddleware.js";
@@ -398,7 +405,12 @@ router.post("/auth/login", requireHuman, async (req, res) => {
       }
     }
 
-    if (await hasEnabledEmailFactor(String(user.id), accountContext)) {
+    const factorStatus = await getFactorStatus(String(user.id), accountContext);
+    if (factorStatus.login_mode === "totp_only" || factorStatus.login_mode === "combined") {
+      const challenge = await createTotpLoginChallenge({ userId: String(user.id), accountContext, req });
+      return res.status(202).json({ requires_2fa: true, method: "totp", challenge_id: challenge.challengeId, preauth_token: challenge.preauthToken, expires_in: challenge.expiresIn, recovery_available: factorStatus.recovery_codes_remaining > 0 });
+    }
+    if (factorStatus.login_mode === "email_only") {
       const challenge = await createAndSendEmailChallenge({ userId: String(user.id), email: String(user.email), name: String(user.name || ""), accountContext, req });
       return res.status(202).json({
         requires_2fa: true,
@@ -424,8 +436,14 @@ router.post("/auth/2fa/verify", async (req, res) => {
     const challengeId = String(req.body?.challenge_id || "");
     const preauthToken = String(req.body?.preauth_token || "");
     const code = String(req.body?.code || "").replace(/\s/g, "");
-    if (!challengeId || !preauthToken || !/^\d{8}$/.test(code)) return res.status(400).json({ error: "Enter the 8-digit verification code." });
-    const verified = await verifyEmailChallenge({ challengeId, preauthToken, code, req, expectedPurpose: "login" });
+    const recoveryCode = String(req.body?.recovery_code || "").trim();
+    const method = req.body?.method === "totp" ? "totp" : "email_otp";
+    if (!challengeId || !preauthToken) return res.status(400).json({ error: "The verification session is incomplete." });
+    if (method === "email_otp" && !/^\d{8}$/.test(code)) return res.status(400).json({ error: "Enter the 8-digit verification code." });
+    if (method === "totp" && !recoveryCode && !/^\d{6}$/.test(code)) return res.status(400).json({ error: "Enter the 6-digit authenticator code." });
+    const verified = method === "totp"
+      ? await verifyTotpLoginChallenge({ challengeId, preauthToken, code: recoveryCode ? undefined : code, recoveryCode: recoveryCode || undefined, req })
+      : await verifyEmailChallenge({ challengeId, preauthToken, code, req, expectedPurpose: "login" });
     const result = await db.execute({ sql: "SELECT * FROM users WHERE id = ? LIMIT 1", args: [verified.userId] });
     const user: any = result.rows[0];
     if (!user) return res.status(401).json({ error: "The account no longer exists." });
@@ -437,8 +455,14 @@ router.post("/auth/2fa/verify", async (req, res) => {
       const crmCheck = await db.execute({ sql: "SELECT status FROM crm_records WHERE LOWER(TRIM(email)) = LOWER(TRIM(?)) AND type = 'customer' LIMIT 1", args: [user.email] });
       if (crmCheck.rows[0]?.status === "inactive") return res.status(403).json({ error: "Portal access is disabled because the customer account is marked inactive." });
     }
+    const factorStatus = await getFactorStatus(verified.userId, verified.accountContext);
+    if (method === "totp" && factorStatus.login_mode === "combined") {
+      const emailChallenge = await createAndSendEmailChallenge({ userId: String(user.id), email: String(user.email), name: String(user.name || ""), accountContext: verified.accountContext, req, previousAmr: [(verified as any).method] });
+      return res.status(202).json({ requires_2fa: true, method: "email_otp", masked_email: maskEmailAddress(String(user.email)), challenge_id: emailChallenge.challengeId, preauth_token: emailChallenge.preauthToken, expires_in: emailChallenge.expiresIn, resend_after: emailChallenge.resendAfter });
+    }
     await db.execute({ sql: "UPDATE users SET last_login_at = CURRENT_TIMESTAMP, last_activity_at = CURRENT_TIMESTAMP WHERE id = ?", args: [user.id] });
-    return res.json(issueSession(user, identity.effectiveRole, verified.accountContext, ["pwd", "email_otp"]));
+    const completedAmr = method === "totp" ? [(verified as any).method] : [...((verified as any).previousAmr || []), "email_otp"];
+    return res.json(issueSession(user, identity.effectiveRole, verified.accountContext, ["pwd", ...completedAmr]));
   } catch (error: any) {
     return res.status(Number(error?.status || 500)).json({ error: error?.message || "Verification failed." });
   }
@@ -451,7 +475,7 @@ router.post("/auth/2fa/email/resend", async (req, res) => {
     const result = await db.execute({ sql: "SELECT id, email, name FROM users WHERE id = ? LIMIT 1", args: [preauth.userId] });
     const user: any = result.rows[0];
     if (!user) return res.status(401).json({ error: "The account no longer exists." });
-    const challenge = await createAndSendEmailChallenge({ userId: String(user.id), email: String(user.email), name: String(user.name || ""), accountContext: preauth.accountContext, req, previousChallengeId: String(preauth.challengeId || "") });
+    const challenge = await createAndSendEmailChallenge({ userId: String(user.id), email: String(user.email), name: String(user.name || ""), accountContext: preauth.accountContext, req, previousChallengeId: String(preauth.challengeId || ""), previousAmr: Array.isArray(preauth.previousAmr) ? preauth.previousAmr : [] });
     return res.json({ challenge_id: challenge.challengeId, preauth_token: challenge.preauthToken, expires_in: challenge.expiresIn, resend_after: challenge.resendAfter });
   } catch (error: any) {
     if (error?.name === "JsonWebTokenError" || error?.name === "TokenExpiredError") return res.status(401).json({ error: "The verification session is invalid or expired." });
@@ -462,7 +486,57 @@ router.post("/auth/2fa/email/resend", async (req, res) => {
 
 router.get("/auth/2fa/status", requireAuth, async (req: any, res) => {
   const accountContext: AccountContext = req.user?.account_context === "client" || req.user?.role === "client" ? "client" : "admin";
-  res.json({ account_context: accountContext, email_otp_enabled: await hasEnabledEmailFactor(String(req.user.id), accountContext), totp_enabled: false });
+  res.json({ account_context: accountContext, ...await getFactorStatus(String(req.user.id), accountContext) });
+});
+
+router.put("/auth/2fa/login-mode", requireAuth, async (req: any, res) => {
+  try {
+    const accountContext: AccountContext = req.user?.account_context === "client" || req.user?.role === "client" ? "client" : "admin";
+    const loginMode = String(req.body?.login_mode || "");
+    if (!(["email_only", "totp_only", "combined"] as string[]).includes(loginMode)) return res.status(400).json({ error: "Invalid two-factor login mode." });
+    await setMfaLoginMode(String(req.user.id), accountContext, loginMode as any);
+    await recordSecurityEvent({ userId: String(req.user.id), accountContext, eventType: "mfa_login_mode_changed", req, metadata: { loginMode } });
+    res.json({ success: true, login_mode: loginMode });
+  } catch (error: any) { res.status(Number(error?.status || 500)).json({ error: error?.message || "The login mode could not be updated." }); }
+});
+
+router.post("/auth/2fa/totp/enrollment/start", requireAuth, async (req: any, res) => {
+  try {
+    const accountContext: AccountContext = req.user?.account_context === "client" || req.user?.role === "client" ? "client" : "admin";
+    const password = String(req.body?.password || "");
+    const result = await db.execute({ sql: "SELECT * FROM users WHERE id = ? LIMIT 1", args: [req.user.id] });
+    const user: any = result.rows[0];
+    if (!user || !password || !await bcrypt.compare(password, String(resolveLoginIdentity(user, accountContext).selectedHash || ""))) {
+      await recordSecurityEvent({ userId: String(req.user.id), accountContext, eventType: "totp_enrollment_password_failed", success: false, req });
+      return res.status(401).json({ error: "The current password is incorrect." });
+    }
+    const setup = await startTotpEnrollment({ userId: String(req.user.id), accountContext, email: String(user.email), req });
+    res.json({ secret: setup.secret, otpauth_uri: setup.otpauthUri, enrollment_token: setup.enrollmentToken });
+  } catch (error: any) { res.status(Number(error?.status || 500)).json({ error: error?.message || "Authenticator setup could not be started." }); }
+});
+
+router.post("/auth/2fa/totp/enrollment/confirm", requireAuth, async (req: any, res) => {
+  try {
+    const accountContext: AccountContext = req.user?.account_context === "client" || req.user?.role === "client" ? "client" : "admin";
+    const code = String(req.body?.code || "").replace(/\s/g, "");
+    if (!/^\d{6}$/.test(code)) return res.status(400).json({ error: "Enter the 6-digit authenticator code." });
+    const recoveryCodes = await confirmTotpEnrollment({ userId: String(req.user.id), accountContext, code, enrollmentToken: String(req.body?.enrollment_token || ""), req });
+    res.json({ success: true, totp_enabled: true, recovery_codes: recoveryCodes });
+  } catch (error: any) { res.status(Number(error?.status || 500)).json({ error: error?.message || "Authenticator verification could not be enabled." }); }
+});
+
+router.post("/auth/2fa/totp/disable", requireAuth, async (req: any, res) => {
+  try {
+    const accountContext: AccountContext = req.user?.account_context === "client" || req.user?.role === "client" ? "client" : "admin";
+    const result = await db.execute({ sql: "SELECT * FROM users WHERE id = ? LIMIT 1", args: [req.user.id] });
+    const user: any = result.rows[0];
+    if (!user || !await bcrypt.compare(String(req.body?.password || ""), String(resolveLoginIdentity(user, accountContext).selectedHash || ""))) return res.status(401).json({ error: "The current password is incorrect." });
+    const challenge = await createTotpLoginChallenge({ userId: String(req.user.id), accountContext, req });
+    await verifyTotpLoginChallenge({ challengeId: challenge.challengeId, preauthToken: challenge.preauthToken, code: String(req.body?.code || ""), recoveryCode: req.body?.recovery_code ? String(req.body.recovery_code) : undefined, req });
+    await disableTotpFactor(String(req.user.id), accountContext);
+    await recordSecurityEvent({ userId: String(req.user.id), accountContext, eventType: "totp_factor_disabled", req });
+    res.json({ success: true, totp_enabled: false });
+  } catch (error: any) { res.status(Number(error?.status || 500)).json({ error: error?.message || "Authenticator verification could not be disabled." }); }
 });
 
 router.post("/auth/2fa/email/enrollment/start", requireAuth, async (req: any, res) => {
