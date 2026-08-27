@@ -6,6 +6,34 @@ import { motion } from "motion/react";
 import { ArrowDown, ArrowUpRight, Camera, Clapperboard, Play, ScanLine } from "lucide-react";
 import { parseSectionMedia } from "../../lib/sectionMedia";
 
+const HERO_CROSSFADE_MS = 800;
+const heroImagePreloadCache = new Map<string, Promise<boolean>>();
+
+function preloadHeroImage(url: string) {
+  const cached = heroImagePreloadCache.get(url);
+  if (cached) return cached;
+
+  const preload = new Promise<boolean>((resolve) => {
+    const image = new Image();
+    image.onload = async () => {
+      try {
+        await image.decode?.();
+      } catch {
+        // The browser can still paint an image when decode() is unavailable
+        // or declines to decode ahead of time.
+      }
+      resolve(true);
+    };
+    image.onerror = () => {
+      heroImagePreloadCache.delete(url);
+      resolve(false);
+    };
+    image.src = url;
+  });
+  heroImagePreloadCache.set(url, preload);
+  return preload;
+}
+
 export function Hero({ settings }: { settings: SiteSettings }) {
   const { currentLang, defaultLang } = useLanguage();
   const media = parseSectionMedia(settings.section_media).home || {};
@@ -17,8 +45,16 @@ export function Hero({ settings }: { settings: SiteSettings }) {
   const [leavingSlide, setLeavingSlide] = useState<number | null>(null);
   const [reducedMotion, setReducedMotion] = useState(false);
   const leavingTimer = useRef<number | null>(null);
+  const activeSlideRef = useRef(0);
+  const transitionInProgress = useRef(false);
   const intervalMs = Math.min(3000, Math.max(2000, Number(media.heroSlideIntervalMs || 2500)));
-  useEffect(() => { setActiveSlide(0); setLeavingSlide(null); }, [slides.join("|")]);
+  useEffect(() => {
+    activeSlideRef.current = 0;
+    transitionInProgress.current = false;
+    setActiveSlide(0);
+    setLeavingSlide(null);
+  }, [slides.join("|")]);
+  useEffect(() => { activeSlideRef.current = activeSlide; }, [activeSlide]);
   useEffect(() => {
     const query = window.matchMedia("(prefers-reduced-motion: reduce)");
     const sync = () => setReducedMotion(query.matches);
@@ -28,18 +64,32 @@ export function Hero({ settings }: { settings: SiteSettings }) {
   }, []);
   useEffect(() => { if (reducedMotion) setLeavingSlide(null); }, [reducedMotion]);
   useEffect(() => {
+    const nextIndex = slides.length > 1 ? (activeSlide + 1) % slides.length : null;
+    void preloadHeroImage(slides[activeSlide]);
+    if (nextIndex !== null) void preloadHeroImage(slides[nextIndex]);
+  }, [activeSlide, slides]);
+  useEffect(() => {
     if (slides.length < 2 || reducedMotion) return;
+    let disposed = false;
     const timer = window.setInterval(() => {
-      if (document.visibilityState !== "visible") return;
-      setActiveSlide((current) => {
-        if (leavingTimer.current) window.clearTimeout(leavingTimer.current);
-        setLeavingSlide(current);
-        leavingTimer.current = window.setTimeout(() => setLeavingSlide(null), 820);
-        return (current + 1) % slides.length;
-      });
+      if (document.visibilityState !== "visible" || transitionInProgress.current) return;
+      const current = activeSlideRef.current;
+      const next = (current + 1) % slides.length;
+      transitionInProgress.current = true;
+      void preloadHeroImage(slides[next]).then((isReady) => {
+        if (!isReady || disposed || document.visibilityState !== "visible") return;
+        setActiveSlide((latest) => {
+          const incoming = (latest + 1) % slides.length;
+          activeSlideRef.current = incoming;
+          if (leavingTimer.current) window.clearTimeout(leavingTimer.current);
+          setLeavingSlide(latest);
+          leavingTimer.current = window.setTimeout(() => setLeavingSlide(null), HERO_CROSSFADE_MS);
+          return incoming;
+        });
+      }).finally(() => { transitionInProgress.current = false; });
     }, intervalMs);
-    return () => { window.clearInterval(timer); if (leavingTimer.current) window.clearTimeout(leavingTimer.current); };
-  }, [intervalMs, reducedMotion, slides.length]);
+    return () => { disposed = true; window.clearInterval(timer); if (leavingTimer.current) window.clearTimeout(leavingTimer.current); };
+  }, [intervalMs, reducedMotion, slides]);
   const nextSlide = reducedMotion || slides.length < 2 ? null : (activeSlide + 1) % slides.length;
   const renderedSlides = Array.from(new Set([activeSlide, nextSlide, leavingSlide].filter((index): index is number => index !== null)));
   const showProductionCard = settings.hero_production_card_enabled !== "0" && settings.hero_production_card_enabled !== "false";
@@ -53,7 +103,7 @@ export function Hero({ settings }: { settings: SiteSettings }) {
       className="aero-hero min-h-[100svh] pt-32 pb-8 md:pt-40 md:pb-10 px-4 sm:px-6 flex items-end relative"
     >
       <div className="aero-hero-media" aria-hidden="true">
-        {renderedSlides.map((index) => { const url = slides[index]; return <div key={`${index}-${url}`} className={`aero-hero-slide ${index === activeSlide ? "is-active" : ""}`} style={{ backgroundImage: `url("${url.replace(/"/g, "\\\"")}")`, backgroundPosition: media.backgroundPosition || "right center" }} />; })}
+        {renderedSlides.map((index) => { const url = slides[index]; return <div key={`${index}-${url}`} className={`aero-hero-slide ${index === activeSlide ? "is-active" : ""} ${index === leavingSlide ? "is-leaving" : ""}`} style={{ backgroundImage: `url("${url.replace(/"/g, "\\\"")}")`, backgroundPosition: media.backgroundPosition || "right center" }} />; })}
       </div>
       <div className="relative z-10 w-full max-w-[1480px] mx-auto">
         <div className="aero-hero-layout">

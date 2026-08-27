@@ -11,6 +11,7 @@
 - Added an editable hero image gallery to the existing Section Media settings, using the same direct-storage upload pipeline, accepted image formats, and optimized variants as other section media.
 - Hero images now accept source files up to 1 GB, matching the portfolio image limit, while the upload flow automatically generates and uses a browser-facing variant below 10 MB.
 - Added 2, 2.5, and 3 second cross-fade controls; the hero retains its existing blur, readability overlay, and side/bottom fade while each gallery image is active.
+- Preload and decode the incoming hero image before transition, then layer the outgoing image above it for the full 800 ms cross-fade, preventing a black frame between gallery images.
 - Preserved existing single hero background settings as a compatible first gallery image until additional images are added.
 - Optimized gallery rendering so only the current and preloaded-next slides stay mounted (with one short-lived outgoing layer during a cross-fade); animation pauses in background tabs and honors reduced-motion preferences.
 
