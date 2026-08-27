@@ -509,7 +509,8 @@ html:not(.dark) .aero-site {
   transform: scale(1.04);
   transform-origin: center;
 }
-.aero-hero-slide { position: absolute; inset: 0; z-index: 0; background-size: 112% auto; background-repeat: no-repeat; filter: blur(var(--hero-image-blur, 0px)); opacity: 0; will-change: opacity; contain: paint; transition: opacity 800ms ease-in-out, filter 180ms ease; }
+.aero-hero-slide { position: absolute; inset: 0; z-index: 0; overflow: hidden; opacity: 0; will-change: opacity; contain: paint; transition: opacity 800ms ease-in-out; }
+.aero-hero-slide > img { display: block; width: 100%; height: 100%; max-width: none; object-fit: cover; transform: scale(1.12); filter: blur(var(--hero-image-blur, 0px)); transition: filter 180ms ease; }
 .aero-hero-slide.is-active { z-index: 2; opacity: 1; }
 .aero-hero-slide.is-leaving { z-index: 3; opacity: 0; }
 .aero-hero-media::after { content: ""; position: absolute; inset: 0; z-index: 4; background: linear-gradient(90deg, rgba(2, 10, 24, 0.9) 0%, rgba(2, 14, 31, 0.72) 40%, rgba(2, 16, 35, 0.17) 72%), linear-gradient(0deg, rgba(1, 10, 24, 0.82) 0%, transparent 42%); pointer-events: none; }
@@ -625,7 +626,7 @@ html:not(.dark) .aero-site {
 
 @media (max-width: 900px) {
   .aero-hero { min-height: 940px; background: #031326; }
-  .aero-hero-slide { background-position: center center !important; background-size: cover; }
+  .aero-hero-slide > img { object-position: center center !important; }
   .aero-hero-layout { grid-template-columns: 1fr; gap: 2rem; padding-bottom: 1.5rem; }
   .aero-showreel-card { max-width: 32rem; }
 }

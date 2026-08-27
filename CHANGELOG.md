@@ -13,6 +13,7 @@
 - Added 2, 2.5, and 3 second cross-fade controls; the hero retains its existing blur, readability overlay, and side/bottom fade while each gallery image is active.
 - Preload and decode the incoming hero image before transition, then layer the outgoing image above it for the full 800 ms cross-fade, preventing a black frame between gallery images.
 - Kept the hero readability and side/bottom fade layer above both cross-fading images, including the outgoing layer, so the established dark left-side treatment remains visible throughout the transition.
+- Replaced CSS background-image slides with fully covering, preloaded image elements, eliminating uncovered background gaps while the two hero images cross-fade.
 - Preserved existing single hero background settings as a compatible first gallery image until additional images are added.
 - Optimized gallery rendering so only the current and preloaded-next slides stay mounted (with one short-lived outgoing layer during a cross-fade); animation pauses in background tabs and honors reduced-motion preferences.
 
