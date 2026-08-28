@@ -202,6 +202,54 @@ export const DEFAULT_EMAIL_TEMPLATES: Record<string, {
       { token: "{{recipient_name}}", label: "Címzett neve", description: "A partner vagy tulajdonos neve", example: "Kata" }, { token: "{{message}}", label: "Személyes üzenet", description: "Opcionális rövid személyes kiegészítés", example: "Hamarosan keressük az első egyeztetés időpontjával." }, { token: "{{action_url}}", label: "Link", description: "A portál, feltöltő vagy kapcsolatfelvételi oldal URL-je", example: "https://example.com/kapcsolat" }, { token: "{{action_text}}", label: "Gomb szövege", description: "A gomb felirata", example: "Kapcsolatfelvétel" }, { token: "{{studio_name}}", label: "Márkanév", description: "A beállított iroda- vagy stúdiónév", example: "SPS Studio" }
     ], sample_data: { recipient_name: "Kata", message: "Hamarosan keressük az első egyeztetés időpontjával.", action_url: "https://example.com/kapcsolat", action_text: "Kapcsolatfelvétel", studio_name: "SPS Studio" }
   },
+  account_registration_success: {
+    template_key: "account_registration_success",
+    name: "Sikeres fiókregisztráció",
+    category: "onboarding",
+    description: "Automatikus visszaigazolás, amely a fiók sikeres létrehozása után érkezik meg.",
+    subject: "Sikeres regisztráció · {{studio_name}}",
+    body_html: `<p style="color:#1e293b;font-size:15px;line-height:1.65;margin:0 0 16px;">Kedves <strong>{{user.name}}</strong>!</p><p style="color:#1e293b;font-size:15px;line-height:1.65;margin:0 0 20px;">Sikeresen létrehoztuk a fiókodat a(z) <strong>{{studio_name}}</strong> rendszerében.</p><table style="width:100%;border-collapse:collapse;margin:24px 0;font-size:13px;color:#1e293b;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;"><tbody><tr style="border-bottom:1px solid #e2e8f0;"><td style="padding:10px 14px;font-weight:600;color:#64748b;width:42%;">Fiók email-címe</td><td style="padding:10px 14px;font-family:monospace;">{{user.email}}</td></tr><tr style="border-bottom:1px solid #e2e8f0;"><td style="padding:10px 14px;font-weight:600;color:#64748b;">Regisztráció módja</td><td style="padding:10px 14px;">{{registration_method}}</td></tr><tr><td style="padding:10px 14px;font-weight:600;color:#64748b;">Időpont</td><td style="padding:10px 14px;">{{registered_date}}</td></tr></tbody></table><div style="text-align:center;margin:30px 0;"><a href="{{action_url}}" style="display:inline-block;background:#0f172a;color:#fff;text-decoration:none;padding:14px 30px;border-radius:9px;font-weight:700;">{{action_text}}</a></div><p style="color:#64748b;font-size:13px;line-height:1.55;margin:20px 0 0;">Ha nem te hoztad létre ezt a fiókot, kérjük, haladéktalanul válaszolj erre az e-mailre.</p>`,
+    body_text: `Kedves {{user.name}}!\n\nSikeresen létrehoztuk a fiókodat a(z) {{studio_name}} rendszerében.\n\nEmail: {{user.email}}\nRegisztráció módja: {{registration_method}}\nIdőpont: {{registered_date}}\n\n{{action_text}}: {{action_url}}\n\nHa nem te hoztad létre ezt a fiókot, kérjük, haladéktalanul válaszolj erre az e-mailre.`,
+    available_tokens: [
+      { token: "{{user.name}}", label: "Felhasználó neve", description: "Megszólítás", example: "Kata" },
+      { token: "{{user.email}}", label: "Fiók email-címe", description: "A regisztrált email-cím", example: "kata@example.com" },
+      { token: "{{registration_method}}", label: "Regisztráció módja", description: "A fióklétrehozás módja", example: "Email és jelszó" },
+      { token: "{{registered_date}}", label: "Regisztráció időpontja", description: "A sikeres létrehozás dátuma", example: "2026. augusztus 28." },
+      { token: "{{action_url}}", label: "Portál linkje", description: "A megfelelő portál URL-je", example: "https://example.com/client" },
+      { token: "{{action_text}}", label: "Gomb szövege", description: "A fő művelet felirata", example: "Portál megnyitása" },
+      { token: "{{studio_name}}", label: "Márkanév", description: "A beállított stúdiónév", example: "SPS Studio" }
+    ],
+    sample_data: { "user.name": "Kata", recipient_name: "Kata", "user.email": "kata@example.com", registration_method: "Email és jelszó", registered_date: "2026. augusztus 28.", action_url: "https://example.com/client", action_text: "Portál megnyitása", studio_name: "SPS Studio" }
+  },
+
+  two_factor_status_changed: {
+    template_key: "two_factor_status_changed",
+    name: "Kétfaktoros hitelesítés állapotváltozása",
+    category: "auth",
+    description: "Biztonsági értesítés a kétfaktoros hitelesítés sikeres be- vagy kikapcsolásáról.",
+    subject: "Kétfaktoros hitelesítés {{two_factor_status}} · {{studio_name}}",
+    body_html: `<p style="color:#1e293b;font-size:15px;line-height:1.65;margin:0 0 16px;">Kedves <strong>{{user.name}}</strong>!</p><p style="color:#1e293b;font-size:15px;line-height:1.65;margin:0 0 20px;">A(z) <strong>{{studio_name}}</strong> {{account_context_label}} fiókodban a kétfaktoros hitelesítés állapota megváltozott.</p><div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:16px 18px;margin:22px 0;color:#1e3a8a;font-size:14px;line-height:1.65;"><strong>Állapot:</strong> {{two_factor_status}}<br/><strong>Módszer:</strong> {{two_factor_method}}<br/><strong>Időpont:</strong> {{event_date}}</div><p style="color:#64748b;font-size:13px;line-height:1.55;margin:20px 0;">Ha nem te kezdeményezted ezt a módosítást, azonnal változtasd meg a jelszavadat és vedd fel velünk a kapcsolatot.</p><div style="text-align:center;margin:30px 0;"><a href="{{action_url}}" style="display:inline-block;background:#0f172a;color:#fff;text-decoration:none;padding:14px 30px;border-radius:9px;font-weight:700;">{{action_text}}</a></div>`,
+    body_text: `Kedves {{user.name}}!\n\nA {{studio_name}} {{account_context_label}} fiókodban a kétfaktoros hitelesítés állapota megváltozott.\n\nÁllapot: {{two_factor_status}}\nMódszer: {{two_factor_method}}\nIdőpont: {{event_date}}\n\n{{action_text}}: {{action_url}}\n\nHa nem te kezdeményezted ezt a módosítást, azonnal változtasd meg a jelszavadat és vedd fel velünk a kapcsolatot.`,
+    available_tokens: [
+      { token: "{{user.name}}", label: "Felhasználó neve", description: "Megszólítás", example: "Kata" }, { token: "{{user.email}}", label: "Felhasználó email-címe", description: "Az érintett fiók email-címe", example: "kata@example.com" }, { token: "{{account_context_label}}", label: "Fiók típusa", description: "Ügyfél- vagy adminfiók", example: "ügyfélportál" }, { token: "{{two_factor_status}}", label: "Új állapot", description: "Be- vagy kikapcsolva", example: "bekapcsolva" }, { token: "{{two_factor_method}}", label: "Hitelesítési módszer", description: "Authenticator alkalmazás vagy emailes kód", example: "Authenticator alkalmazás" }, { token: "{{event_date}}", label: "Módosítás időpontja", description: "A sikeres módosítás dátuma", example: "2026. augusztus 28. 14:30" }, { token: "{{action_url}}", label: "Biztonsági beállítások linkje", description: "A fiókbeállítások URL-je", example: "https://example.com/client/settings" }, { token: "{{action_text}}", label: "Gomb szövege", description: "A fő művelet felirata", example: "Biztonsági beállítások" }, { token: "{{studio_name}}", label: "Márkanév", description: "A beállított stúdiónév", example: "SPS Studio" }
+    ],
+    sample_data: { "user.name": "Kata", recipient_name: "Kata", "user.email": "kata@example.com", account_context_label: "ügyfélportál", two_factor_status: "bekapcsolva", two_factor_method: "Authenticator alkalmazás", event_date: "2026. augusztus 28. 14:30", action_url: "https://example.com/client/settings", action_text: "Biztonsági beállítások", studio_name: "SPS Studio" }
+  },
+
+  password_reset_success: {
+    template_key: "password_reset_success",
+    name: "Sikeres jelszó-visszaállítás",
+    category: "auth",
+    description: "Biztonsági értesítés, amely akkor érkezik, amikor a jelszó-visszaállítási linkkel új jelszót állítottak be.",
+    subject: "A jelszavad sikeresen megváltozott · {{studio_name}}",
+    body_html: `<p style="color:#1e293b;font-size:15px;line-height:1.65;margin:0 0 16px;">Kedves <strong>{{user.name}}</strong>!</p><p style="color:#1e293b;font-size:15px;line-height:1.65;margin:0 0 20px;">Sikeresen beállítottak egy új jelszót a(z) <strong>{{studio_name}}</strong> fiókodhoz.</p><div style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:10px;padding:16px 18px;margin:22px 0;color:#065f46;font-size:14px;line-height:1.65;"><strong>Fiók:</strong> {{user.email}}<br/><strong>Jelszó megváltoztatva:</strong> {{password_changed_at}}</div><p style="color:#64748b;font-size:13px;line-height:1.55;margin:20px 0;">Ha nem te állítottál be új jelszót, azonnal vedd fel velünk a kapcsolatot.</p><div style="text-align:center;margin:30px 0;"><a href="{{action_url}}" style="display:inline-block;background:#0f172a;color:#fff;text-decoration:none;padding:14px 30px;border-radius:9px;font-weight:700;">{{action_text}}</a></div>`,
+    body_text: `Kedves {{user.name}}!\n\nSikeresen beállítottak egy új jelszót a(z) {{studio_name}} fiókodhoz.\n\nFiók: {{user.email}}\nJelszó megváltoztatva: {{password_changed_at}}\n\n{{action_text}}: {{action_url}}\n\nHa nem te állítottál be új jelszót, azonnal vedd fel velünk a kapcsolatot.`,
+    available_tokens: [
+      { token: "{{user.name}}", label: "Felhasználó neve", description: "Megszólítás", example: "Kata" }, { token: "{{user.email}}", label: "Felhasználó email-címe", description: "Az érintett fiók email-címe", example: "kata@example.com" }, { token: "{{password_changed_at}}", label: "Jelszóváltoztatás időpontja", description: "A sikeres visszaállítás dátuma", example: "2026. augusztus 28. 14:30" }, { token: "{{action_url}}", label: "Bejelentkezési oldal", description: "A belépési oldal URL-je", example: "https://example.com/client/login" }, { token: "{{action_text}}", label: "Gomb szövege", description: "A fő művelet felirata", example: "Bejelentkezés" }, { token: "{{studio_name}}", label: "Márkanév", description: "A beállított stúdiónév", example: "SPS Studio" }
+    ],
+    sample_data: { "user.name": "Kata", recipient_name: "Kata", "user.email": "kata@example.com", password_changed_at: "2026. augusztus 28. 14:30", action_url: "https://example.com/client/login", action_text: "Bejelentkezés", studio_name: "SPS Studio" }
+  },
+
   password_reset: {
     template_key: "password_reset",
     name: "Password Reset / Recovery",

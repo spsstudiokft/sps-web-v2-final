@@ -10,6 +10,11 @@
 
 - Restored the shared button component's `outline` variant and explicit children support, resolving its TypeScript errors across client registration and other existing button uses.
 
+### Account security email notifications
+
+- Added editable transactional templates and live delivery for successful account registration, two-factor authentication enable/disable events, and completed password resets with a new password.
+- Applied the account-registration confirmation to both completed magic-link and password registrations while respecting the existing client welcome-email setting.
+
 ## 2026-08-27
 
 ### Public data loading resilience

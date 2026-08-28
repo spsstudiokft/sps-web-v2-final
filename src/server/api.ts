@@ -68,6 +68,60 @@ function maskEmailAddress(email: string) {
   return domain ? `${local.slice(0, 1) || "*"}***@${domain}` : "***";
 }
 
+function formatSecurityEventDate() {
+  return new Intl.DateTimeFormat("hu-HU", {
+    dateStyle: "long",
+    timeStyle: "short",
+    timeZone: "Europe/Budapest",
+  }).format(new Date());
+}
+
+async function sendAccountEventEmail(input: {
+  templateId: "account_registration_success" | "two_factor_status_changed" | "password_reset_success";
+  userId?: string;
+  email?: string;
+  name?: string;
+  req: any;
+  actionPath: string;
+  actionText: string;
+  data?: Record<string, any>;
+}): Promise<boolean> {
+  try {
+    let email = input.email || "";
+    let name = input.name || "";
+    if ((!email || !name) && input.userId) {
+      const userResult = await db.execute({ sql: "SELECT email, name FROM users WHERE id = ? LIMIT 1", args: [input.userId] });
+      const user: any = userResult.rows[0];
+      email ||= String(user?.email || "");
+      name ||= String(user?.name || "");
+    }
+    if (!email) return false;
+    const recipientName = name || email.split("@")[0];
+    const delivery = await sendTransactionalEmail({
+      to: email,
+      templateId: input.templateId,
+      templateData: {
+        recipient_name: recipientName,
+        recipientName,
+        "user.name": recipientName,
+        "user.email": email,
+        userEmail: email,
+        action_url: `${getAppUrl(input.req)}${input.actionPath}`,
+        actionUrl: `${getAppUrl(input.req)}${input.actionPath}`,
+        action_text: input.actionText,
+        actionText: input.actionText,
+        ...input.data,
+      },
+    });
+    if (!delivery.success) console.error(`Failed to send ${input.templateId} email:`, delivery.error);
+    return delivery.success;
+  } catch (error) {
+    // A notification failure must never roll back a completed account-security operation.
+    console.error(`Failed to prepare ${input.templateId} email:`, error);
+    return false;
+  }
+}
+
 function assertChallengeOwner(req: any, preauthToken: string, accountContext: AccountContext, purpose: "enrollment" | "disable") {
   try {
     const payload: any = jwt.verify(preauthToken, JWT_SECRET);
@@ -537,6 +591,11 @@ router.post("/auth/2fa/totp/enrollment/confirm", requireAuth, async (req: any, r
     const code = String(req.body?.code || "").replace(/\s/g, "");
     if (!/^\d{6}$/.test(code)) return res.status(400).json({ error: "Enter the 6-digit authenticator code." });
     const recoveryCodes = await confirmTotpEnrollment({ userId: String(req.user.id), accountContext, code, enrollmentToken: String(req.body?.enrollment_token || ""), req });
+    await sendAccountEventEmail({
+      templateId: "two_factor_status_changed", userId: String(req.user.id), req,
+      actionPath: accountContext === "client" ? "/client/settings" : "/admin/settings",
+      actionText: "Biztonsági beállítások", data: { account_context_label: accountContext === "client" ? "ügyfélportál" : "admin", two_factor_status: "bekapcsolva", two_factor_method: "Authenticator alkalmazás", event_date: formatSecurityEventDate() },
+    });
     res.json({ success: true, totp_enabled: true, recovery_codes: recoveryCodes });
   } catch (error: any) { res.status(Number(error?.status || 500)).json({ error: error?.message || "Authenticator verification could not be enabled." }); }
 });
@@ -551,6 +610,11 @@ router.post("/auth/2fa/totp/disable", requireAuth, async (req: any, res) => {
     await verifyTotpLoginChallenge({ challengeId: challenge.challengeId, preauthToken: challenge.preauthToken, code: String(req.body?.code || ""), recoveryCode: req.body?.recovery_code ? String(req.body.recovery_code) : undefined, req });
     await disableTotpFactor(String(req.user.id), accountContext);
     await recordSecurityEvent({ userId: String(req.user.id), accountContext, eventType: "totp_factor_disabled", req });
+    await sendAccountEventEmail({
+      templateId: "two_factor_status_changed", userId: String(req.user.id), email: String(user.email), name: String(user.name || ""), req,
+      actionPath: accountContext === "client" ? "/client/settings" : "/admin/settings",
+      actionText: "Biztonsági beállítások", data: { account_context_label: accountContext === "client" ? "ügyfélportál" : "admin", two_factor_status: "kikapcsolva", two_factor_method: "Authenticator alkalmazás", event_date: formatSecurityEventDate() },
+    });
     res.json({ success: true, totp_enabled: false });
   } catch (error: any) { res.status(Number(error?.status || 500)).json({ error: error?.message || "Authenticator verification could not be disabled." }); }
 });
@@ -581,6 +645,11 @@ router.post("/auth/2fa/email/enrollment/confirm", requireAuth, async (req: any, 
     if (verified.userId !== String(req.user.id) || verified.accountContext !== accountContext) return res.status(403).json({ error: "The verification does not belong to this account." });
     await setEmailFactorEnabled(String(req.user.id), accountContext, true);
     await recordSecurityEvent({ userId: String(req.user.id), accountContext, eventType: "email_otp_factor_enabled", req });
+    await sendAccountEventEmail({
+      templateId: "two_factor_status_changed", userId: String(req.user.id), req,
+      actionPath: accountContext === "client" ? "/client/settings" : "/admin/settings",
+      actionText: "Biztonsági beállítások", data: { account_context_label: accountContext === "client" ? "ügyfélportál" : "admin", two_factor_status: "bekapcsolva", two_factor_method: "Emailes ellenőrzőkód", event_date: formatSecurityEventDate() },
+    });
     res.json({ success: true, email_otp_enabled: true });
   } catch (error: any) {
     res.status(Number(error?.status || 500)).json({ error: error?.message || "Email verification could not be enabled." });
@@ -620,6 +689,11 @@ router.post("/auth/2fa/email/disable/confirm", requireAuth, async (req: any, res
     if (verified.userId !== String(req.user.id) || verified.accountContext !== accountContext) return res.status(403).json({ error: "The verification does not belong to this account." });
     await setEmailFactorEnabled(String(req.user.id), accountContext, false);
     await recordSecurityEvent({ userId: String(req.user.id), accountContext, eventType: "email_otp_factor_disabled", req });
+    await sendAccountEventEmail({
+      templateId: "two_factor_status_changed", userId: String(req.user.id), req,
+      actionPath: accountContext === "client" ? "/client/settings" : "/admin/settings",
+      actionText: "Biztonsági beállítások", data: { account_context_label: accountContext === "client" ? "ügyfélportál" : "admin", two_factor_status: "kikapcsolva", two_factor_method: "Emailes ellenőrzőkód", event_date: formatSecurityEventDate() },
+    });
     res.json({ success: true, email_otp_enabled: false });
   } catch (error: any) {
     res.status(Number(error?.status || 500)).json({ error: error?.message || "Email verification could not be disabled." });
@@ -974,20 +1048,11 @@ router.post("/auth/verify-magic-link", async (req, res) => {
     });
 
     if (clientWasCreated && magicLink.type === "signup" && await clientWelcomeEmailsEnabled()) {
-      const appOrigin = getAppUrl(req);
-      const welcomeEmail = await sendTransactionalEmail({
-        to: userEmail,
-        templateId: "client_portal_welcome",
-        templateData: {
-          recipient_name: userRow.name || userEmail.split("@")[0],
-          "user.name": userRow.name || userEmail.split("@")[0],
-          "user.email": userEmail,
-          action_url: `${appOrigin}/client`,
-          action_text: "Ügyfélportál megnyitása",
-          property_address: primaryPropAddr
-        }
+      await sendAccountEventEmail({
+        templateId: "account_registration_success", userId: String(userRow.id), email: userEmail, name: String(userRow.name || ""), req,
+        actionPath: "/client", actionText: "Ügyfélportál megnyitása",
+        data: { registration_method: "Magic link", registered_date: formatSecurityEventDate() },
       });
-      if (!welcomeEmail.success) console.error("Failed to send magic-link client welcome email:", welcomeEmail.error);
     }
 
     // 6. Generate authenticated JWT Session
@@ -1141,20 +1206,12 @@ router.post("/auth/register", requireHuman, async (req, res) => {
     // Await delivery before returning. Vercel may freeze a serverless invocation
     // as soon as the HTTP response is sent, so fire-and-forget email work is not
     // reliable here even though account creation itself must remain successful.
-    const appOrigin = getAppUrl(req);
-    const welcomeEmail = await (await clientWelcomeEmailsEnabled() ? sendTransactionalEmail({
-      to: cleanEmail,
-      templateId: "client_password_registration",
-      templateData: {
-        recipientName: cleanEmail.split("@")[0], userEmail: cleanEmail,
-        actionUrl: `${appOrigin}/client`, actionText: "Open Client Portal", account_role: "Active Client",
-        registration_method: "Email and password",
-        registered_date: new Intl.DateTimeFormat("en", { dateStyle: "long", timeZone: "Europe/Budapest" }).format(new Date()),
-      }
-    }) : Promise.resolve(null));
-    if (welcomeEmail && !welcomeEmail.success) {
-      console.error("Failed to send password-registration welcome email:", welcomeEmail.error);
-    }
+    const welcomeEmailEnabled = await clientWelcomeEmailsEnabled();
+    const welcomeEmailSent = welcomeEmailEnabled && await sendAccountEventEmail({
+      templateId: "account_registration_success", userId: id, email: cleanEmail, req,
+      actionPath: "/client", actionText: "Ügyfélportál megnyitása",
+      data: { registration_method: "Email és jelszó", registered_date: formatSecurityEventDate() },
+    });
 
     await db.execute({
       sql: "UPDATE users SET last_login_at = CURRENT_TIMESTAMP, last_activity_at = CURRENT_TIMESTAMP WHERE id = ?",
@@ -1164,7 +1221,7 @@ router.post("/auth/register", requireHuman, async (req, res) => {
     res.json({
       token,
       user: { id, email: cleanEmail, role: 'client' },
-      welcomeEmail: welcomeEmail ? { status: welcomeEmail.status, sent: welcomeEmail.status === "sent" } : { status: "disabled", sent: false }
+      welcomeEmail: { status: welcomeEmailEnabled ? (welcomeEmailSent ? "sent" : "failed") : "disabled", sent: welcomeEmailSent }
     });
   } catch (error: any) {
     console.error("[Register Error]", error);
@@ -1232,6 +1289,12 @@ router.post("/auth/reset-password", async (req, res) => {
     await db.execute({
       sql: "UPDATE password_resets SET used_at = CURRENT_TIMESTAMP WHERE id = ?",
       args: [resetRow.id]
+    });
+
+    await sendAccountEventEmail({
+      templateId: "password_reset_success", userId: String(resetRow.user_id), req,
+      actionPath: "/client/login", actionText: "Bejelentkezés",
+      data: { password_changed_at: formatSecurityEventDate() },
     });
 
     res.json({ success: true, message: "Your password has been successfully reset. You can now log in." });
