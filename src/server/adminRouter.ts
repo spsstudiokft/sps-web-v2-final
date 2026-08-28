@@ -6221,7 +6221,7 @@ adminRouter.post("/crm/customers/:id/send-portal-invite", async (req, res) => {
     if (activeInvite.rows.length) return res.status(409).json({ error: "A portalmeghívó már kiküldésre került, és még érvényes.", expiresAt: activeInvite.rows[0].expires_at });
 
     const inviteType = req.body?.invite_type === "coupon" ? "coupon" : "standard";
-    const couponCode = inviteType === "coupon" ? (await issuePortalInviteCoupon(email, String(req.user?.id || ""))).code : "";
+    const couponCode = inviteType === "coupon" ? (await issuePortalInviteCoupon(email, String((req as any).user?.id || ""))).code : "";
 
     const appOrigin = getAppUrl(req);
     const result = await sendPortalInvitationEmail(

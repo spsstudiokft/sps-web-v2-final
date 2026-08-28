@@ -11,6 +11,7 @@
 
 - A kuponkódos portálmeghívó most automatikusan egyedi, egyszer használható VIP-üdvözlő kupont hoz létre; sikeres regisztráció után a jutalom a VIP-jutalmak közé kerül.
 - Költségvetési tételnél az összeg opcionális: üresen hagyva 0 értékű, ingyenes vagy természetbeni tételként menthető.
+- Javítva az adminos automatikus VIP-kupon kiadásának Express/TypeScript típusa.
 
 ### Opcionális projektügyfél
 
