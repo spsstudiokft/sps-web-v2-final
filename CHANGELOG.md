@@ -19,6 +19,10 @@
 - A még nem aktivált, 48 órás ügyfélportál-meghívókhoz a rendszer kb. 36 óra után egyszeri emlékeztető emailt küld; a levél csak érvényes és fel nem használt linkhez megy ki.
 - Az emlékeztető külön, szerkeszthető email-sablont kapott, és a meglévő Vercel cron futtatja.
 
+### Meghívó küldési visszajelzés
+
+- A portálmeghívó modal csak sikeres küldés után záródik be; hiba vagy aktív korábbi meghívó esetén a szerver válasza közvetlenül a modalban jelenik meg.
+
 ### Opcionális projektügyfél
 
 - Projektek ügyfél hozzárendelése nélkül is létrehozhatók önálló belső munkatérként; ügyfél nélküli projekthez ingatlan csak később, az ügyfél kiválasztása után kapcsolható.

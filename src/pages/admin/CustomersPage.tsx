@@ -158,6 +158,7 @@ export default function CustomersPage() {
   const [feedback, setFeedback] = useState<InviteFeedback | null>(null);
   const [inviteCustomer, setInviteCustomer] = useState<CRMRecord | null>(null);
   const [inviteType, setInviteType] = useState<"standard" | "coupon">("standard");
+  const [inviteError, setInviteError] = useState<string | null>(null);
 
   // Audit Logs & Portal Toggle States
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
@@ -392,17 +393,17 @@ export default function CustomersPage() {
     }
     setInviteCustomer(customer);
     setInviteType("standard");
+    setInviteError(null);
   };
 
-  const handleSendPortalInvite = async (customer: CRMRecord, type: "standard" | "coupon" = "standard", couponCode = "") => {
-    if (type === "coupon" && !couponCode.trim()) return;
+  const handleSendPortalInvite = async (customer: CRMRecord, type: "standard" | "coupon" = "standard"): Promise<boolean> => {
 
     setSendingInviteId(customer.id);
     try {
       const res = await fetchApi(`/api/admin/crm/customers/${customer.id}/send-portal-invite`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ invite_type: type, coupon_code: type === "coupon" ? couponCode.trim().toUpperCase() : undefined })
+        body: JSON.stringify({ invite_type: type })
       });
       const data = await res.json();
       if (res.ok && data.success) {
@@ -415,13 +416,17 @@ export default function CustomersPage() {
           expiresAt: data.expiresAt
         });
         fetchCustomers();
+        return true;
       } else {
+        const message = data.error || "An error occurred while generating the portal invitation link.";
         setFeedback({
           type: "error",
           title: tUi("admin.customers.invite_failed", currentLanguage) || "Failed to Send Invitation",
-          message: data.error || "An error occurred while generating the portal invitation link.",
+          message,
           recipient: customer.email
         });
+        setInviteError(message);
+        return false;
       }
     } catch (e: any) {
       console.error("Failed to send invite:", e);
@@ -431,6 +436,8 @@ export default function CustomersPage() {
         message: e?.message || "Failed to contact email dispatch service.",
         recipient: customer.email
       });
+      setInviteError(e?.message || "Failed to contact email dispatch service.");
+      return false;
     } finally {
       setSendingInviteId(null);
     }
@@ -599,9 +606,11 @@ export default function CustomersPage() {
                 </div>
               )}
 
+              {inviteError && <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-xs leading-relaxed text-rose-700 dark:text-rose-300">{inviteError}</div>}
+
               <div className="flex justify-end gap-2 pt-1">
                 <Button type="button" variant="secondary" onClick={() => setInviteCustomer(null)}>Mégse</Button>
-                <Button type="button" disabled={sendingInviteId === inviteCustomer.id} onClick={async () => { await handleSendPortalInvite(inviteCustomer, inviteType); setInviteCustomer(null); }} className="gap-1.5">
+                <Button type="button" disabled={sendingInviteId === inviteCustomer.id} onClick={async () => { setInviteError(null); const sent = await handleSendPortalInvite(inviteCustomer, inviteType); if (sent) setInviteCustomer(null); }} className="gap-1.5">
                   {sendingInviteId === inviteCustomer.id ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
                   Meghívó küldése
                 </Button>
