@@ -14,6 +14,11 @@
 - Javítva az adminos automatikus VIP-kupon kiadásának Express/TypeScript típusa.
 - Javítva a portálmeghívó státuszikonjának hiányzó importja és a számlamodul buildet blokkoló gombváltozata.
 
+### Portálmeghívó lejárati emlékeztető
+
+- A még nem aktivált, 48 órás ügyfélportál-meghívókhoz a rendszer kb. 36 óra után egyszeri emlékeztető emailt küld; a levél csak érvényes és fel nem használt linkhez megy ki.
+- Az emlékeztető külön, szerkeszthető email-sablont kapott, és a meglévő Vercel cron futtatja.
+
 ### Opcionális projektügyfél
 
 - Projektek ügyfél hozzárendelése nélkül is létrehozhatók önálló belső munkatérként; ügyfél nélküli projekthez ingatlan csak később, az ügyfél kiválasztása után kapcsolható.

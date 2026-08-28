@@ -587,6 +587,24 @@ export const DEFAULT_EMAIL_TEMPLATES: Record<string, {
     sample_data: { "user.name": "Alexander Sterling", "user.email": "alexander@sterlingestates.com", "coupon_code": "WELCOME-2026", "invitation_link": "https://spsstudio.com/auth/magic-link?token=sample_portal_invite_token", "action_url": "https://spsstudio.com/auth/magic-link?token=sample_portal_invite_token", "action_text": "Activate Client Portal Account", "expiry_hours": "48", "studio_name": "SPS Studio" }
   },
 
+  portal_invitation_reminder: {
+    template_key: "portal_invitation_reminder",
+    name: "Client Portal Invitation Expiry Reminder",
+    category: "onboarding",
+    description: "Automatically sent about 36 hours after a still-unused client portal invitation, shortly before its 48-hour activation link expires.",
+    subject: "Reminder: only a few hours left to activate your portal · {{studio_name}}",
+    body_html: `<p style="color:#1e293b;font-size:15px;line-height:1.6;">Hello <strong>{{user.name}}</strong>,</p><p style="color:#1e293b;font-size:15px;line-height:1.6;">Your secure <strong>{{studio_name}}</strong> Client Portal invitation is still waiting for you, but it will expire in approximately <strong>{{remaining_hours}} hours</strong>.</p><p style="text-align:center;margin:30px 0;"><a href="{{invitation_link}}" style="background:#0f172a;color:#fff;text-decoration:none;padding:14px 30px;border-radius:8px;font-weight:700;display:inline-block;">{{action_text}}</a></p><p style="color:#64748b;font-size:12px;line-height:1.5;word-break:break-all;">If the button does not work, copy this link: <a href="{{invitation_link}}" style="color:#3b82f6">{{invitation_link}}</a></p>`,
+    body_text: `Hello {{user.name}},\n\nYour {{studio_name}} Client Portal invitation expires in approximately {{remaining_hours}} hours. Activate it here:\n{{invitation_link}}`.trim(),
+    available_tokens: [
+      { token: "{{user.name}}", label: "Customer Name", description: "Customer greeting", example: "Alexander Sterling" },
+      { token: "{{invitation_link}}", label: "Invitation Link", description: "Original single-use activation link", example: "https://spsstudio.com/auth/magic-link?token=example" },
+      { token: "{{remaining_hours}}", label: "Remaining Hours", description: "Approximate time before expiry", example: "24" },
+      { token: "{{action_text}}", label: "Button Label", description: "Activation button label", example: "Activate Client Portal" },
+      { token: "{{studio_name}}", label: "Studio Name", description: "Studio brand name", example: "SPS Studio" }
+    ],
+    sample_data: { "user.name": "Alexander Sterling", "invitation_link": "https://spsstudio.com/auth/magic-link?token=sample", "remaining_hours": "24", "action_text": "Activate Client Portal", "studio_name": "SPS Studio" }
+  },
+
   admin_invitation: {
     template_key: "admin_invitation",
     name: "Admin & Team Member Invitation",

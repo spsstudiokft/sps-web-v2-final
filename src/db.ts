@@ -2751,6 +2751,7 @@ export const setupDatabase = async () => {
       advertisement_link TEXT DEFAULT '',
       properties_json TEXT DEFAULT '[]',
       ip_address TEXT DEFAULT '',
+      portal_invite_reminder_sent_at DATETIME DEFAULT NULL,
       expires_at DATETIME NOT NULL,
       used_at DATETIME,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -2790,6 +2791,9 @@ export const setupDatabase = async () => {
 
   try {
     await client.execute("ALTER TABLE magic_links ADD COLUMN properties_json TEXT DEFAULT '[]'");
+  } catch (e) {}
+  try {
+    await client.execute("ALTER TABLE magic_links ADD COLUMN portal_invite_reminder_sent_at DATETIME DEFAULT NULL");
   } catch (e) {}
 
   // Add index on magic_links token and email if possible
