@@ -556,6 +556,37 @@ export const DEFAULT_EMAIL_TEMPLATES: Record<string, {
     }
   },
 
+  portal_coupon_invitation: {
+    template_key: "portal_coupon_invitation",
+    name: "Client Portal Invitation with Coupon Code",
+    category: "onboarding",
+    description: "Client portal activation invitation that includes an administrator-provided coupon or invitation code. The code is also securely attached to the registration link.",
+    subject: "Your client portal invitation and code · {{studio_name}}",
+    body_html: `
+<p style="color: #1e293b; font-size: 15px; line-height: 1.6; margin: 0 0 16px 0;">Dear <strong>{{user.name}}</strong>,</p>
+<p style="color: #1e293b; font-size: 15px; line-height: 1.6; margin: 0 0 20px 0;">You are invited to activate your dedicated <strong>{{studio_name}}</strong> Client Portal.</p>
+<div style="background-color: #eff6ff; border: 1px solid #93c5fd; border-radius: 8px; padding: 18px; margin: 20px 0; text-align: center;">
+  <div style="color: #1e3a8a; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;">Your coupon / invitation code</div>
+  <div style="margin-top: 8px; color: #0f172a; font-family: monospace; font-size: 22px; font-weight: 800; letter-spacing: .08em;">{{coupon_code}}</div>
+</div>
+<p style="color: #475569; font-size: 14px; line-height: 1.6; margin: 0 0 20px 0;">The code will be carried over automatically when you use the secure activation link below. You can also enter it manually during registration if needed.</p>
+<div style="text-align: center; margin: 32px 0;"><a href="{{invitation_link}}" style="background-color: #0f172a; color: #ffffff; text-decoration: none; padding: 15px 36px; border-radius: 8px; font-weight: 700; font-size: 15px; display: inline-block;">{{action_text}}</a></div>
+<p style="color: #92400e; font-size: 13px; line-height: 1.5;">This single-use activation link is valid for <strong>{{expiry_hours}} hours</strong>.</p>
+<p style="color: #64748b; font-size: 12px; line-height: 1.5; margin: 20px 0 0; word-break: break-all;">If the button does not work, copy this link into your browser:<br/><a href="{{invitation_link}}" style="color: #3b82f6;">{{invitation_link}}</a></p>`.trim(),
+    body_text: `Dear {{user.name}},\n\nYou are invited to activate your {{studio_name}} Client Portal.\n\nYour coupon / invitation code: {{coupon_code}}\n\nActivate your account here:\n{{invitation_link}}\n\nThis secure link is valid for {{expiry_hours}} hours.`.trim(),
+    available_tokens: [
+      { token: "{{user.name}}", label: "Customer Name", description: "Customer full name or greeting", example: "Alexander Sterling" },
+      { token: "{{user.email}}", label: "Customer Email", description: "Customer registered email address", example: "alexander@sterlingestates.com" },
+      { token: "{{coupon_code}}", label: "Coupon Code", description: "Coupon or invitation code assigned by the administrator", example: "WELCOME-2026" },
+      { token: "{{invitation_link}}", label: "Invitation Link", description: "Secure single-use portal activation link", example: "https://spsstudio.com/auth/magic-link?token=sample_invite_token" },
+      { token: "{{action_url}}", label: "Action URL", description: "Alias for invitation URL", example: "https://spsstudio.com/auth/magic-link?token=sample_invite_token" },
+      { token: "{{action_text}}", label: "Button Label", description: "Call-to-action button text", example: "Activate Client Portal Account" },
+      { token: "{{expiry_hours}}", label: "Expiration Hours", description: "Validity duration of the invitation link", example: "48" },
+      { token: "{{studio_name}}", label: "Studio Name", description: "Studio brand name", example: "SPS Studio" }
+    ],
+    sample_data: { "user.name": "Alexander Sterling", "user.email": "alexander@sterlingestates.com", "coupon_code": "WELCOME-2026", "invitation_link": "https://spsstudio.com/auth/magic-link?token=sample_portal_invite_token", "action_url": "https://spsstudio.com/auth/magic-link?token=sample_portal_invite_token", "action_text": "Activate Client Portal Account", "expiry_hours": "48", "studio_name": "SPS Studio" }
+  },
+
   admin_invitation: {
     template_key: "admin_invitation",
     name: "Admin & Team Member Invitation",
@@ -3265,6 +3296,7 @@ export async function sendPortalInvitationEmail(
   appOrigin: string,
   options?: {
     expiresInHours?: number;
+    couponCode?: string;
   }
 ): Promise<{
   success: boolean;
@@ -3293,8 +3325,8 @@ export async function sendPortalInvitationEmail(
 
   const linkId = crypto.randomUUID();
   await db.execute({
-    sql: `INSERT INTO magic_links (id, email, user_id, token, type, property_address, advertisement_link, expires_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    sql: `INSERT INTO magic_links (id, email, user_id, token, type, property_address, advertisement_link, referral_code, expires_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     args: [
       linkId,
       customer.email.trim().toLowerCase(),
@@ -3303,6 +3335,7 @@ export async function sendPortalInvitationEmail(
       "signup",
       customer.property_address || "",
       customer.advertisement_link || "",
+      options?.couponCode?.trim().toUpperCase() || "",
       expiresAt
     ]
   });
@@ -3311,7 +3344,7 @@ export async function sendPortalInvitationEmail(
 
   const emailRes = await sendTransactionalEmail({
     to: customer.email.trim(),
-    templateId: "portal_invitation",
+    templateId: options?.couponCode ? "portal_coupon_invitation" : "portal_invitation",
     templateData: {
       recipientName: customer.name || customer.email.split("@")[0],
       "user.name": customer.name || customer.email.split("@")[0],
@@ -3325,7 +3358,8 @@ export async function sendPortalInvitationEmail(
       advertisement_link: customer.advertisement_link || "",
       expiresInHours: ttlHours,
       expiry_hours: ttlHours,
-      expiresInMinutes: ttlHours * 60
+      expiresInMinutes: ttlHours * 60,
+      coupon_code: options?.couponCode?.trim().toUpperCase() || ""
     }
   });
 

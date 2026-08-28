@@ -589,10 +589,8 @@ budgetRouter.post("/", async (req: any, res) => {
       return res.status(400).json({ error: "Invalid type: must be 'income' or 'outcome'" });
     }
 
-    const numAmount = Number(amount);
-    if (isNaN(numAmount) || numAmount <= 0) {
-      return res.status(400).json({ error: "Amount must be a positive number" });
-    }
+    const numAmount = amount === undefined || amount === null || amount === "" ? 0 : Number(amount);
+    if (isNaN(numAmount) || numAmount < 0) return res.status(400).json({ error: "Amount cannot be negative" });
 
     if (!date || typeof date !== "string") {
       return res.status(400).json({ error: "Date is required (YYYY-MM-DD)" });
@@ -742,9 +740,7 @@ budgetRouter.put("/:id", async (req: any, res, next) => {
 
     const targetType = (type === "income" || type === "outcome") ? type : existing.type;
     const targetAmount = amount !== undefined ? Number(amount) : Number(existing.amount);
-    if (isNaN(targetAmount) || targetAmount <= 0) {
-      return res.status(400).json({ error: "Amount must be a positive number" });
-    }
+    if (isNaN(targetAmount) || targetAmount < 0) return res.status(400).json({ error: "Amount cannot be negative" });
 
     const validStatuses = ["planned", "confirmed", "pending", "rejected"];
     const targetStatus = (status && validStatuses.includes(status)) ? status : existing.status;

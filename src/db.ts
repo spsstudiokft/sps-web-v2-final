@@ -4157,6 +4157,25 @@ export const setupDatabase = async () => {
       )
     `);
 
+    // One-time welcome vouchers issued with an administrator portal invitation.
+    await client.execute(`
+      CREATE TABLE IF NOT EXISTS portal_invite_coupons (
+        id TEXT PRIMARY KEY,
+        email TEXT NOT NULL,
+        code TEXT UNIQUE NOT NULL,
+        reward_type TEXT NOT NULL,
+        reward_value REAL NOT NULL DEFAULT 0,
+        currency TEXT DEFAULT 'USD',
+        description TEXT DEFAULT '',
+        status TEXT NOT NULL DEFAULT 'issued',
+        issued_by_id TEXT DEFAULT NULL,
+        expires_at DATETIME DEFAULT NULL,
+        redeemed_by_user_id TEXT DEFAULT NULL,
+        redeemed_at DATETIME DEFAULT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
     // 6. Default Referral Tiers Seeding
     const tierCheck = await client.execute("SELECT COUNT(*) as count FROM referral_tiers");
     if (Number(tierCheck.rows[0]?.count || 0) === 0) {

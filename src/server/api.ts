@@ -6,7 +6,8 @@ import { checkBotId } from "botid/server";
 import { db, ensureChangelogTables, ensureTestimonialsTable, getDb, isLocalDemoDatabase, LOCAL_DEMO_ADMIN } from "../db.js";
 import { 
   processRegistrationReferral, 
-  ensureUserReferralCode 
+  ensureUserReferralCode,
+  redeemPortalInviteCoupon
 } from "./services/referralService.js";
 import { translationService } from "./services/translationService.js";
 import { getAllLegalDocuments } from "./services/legalDocumentService.js";
@@ -1028,7 +1029,7 @@ router.post("/auth/verify-magic-link", async (req, res) => {
     if (magicLink.referral_code && (magicLink.referral_code as string).trim()) {
       try {
         const appOrigin = getAppUrl(req);
-        await processRegistrationReferral({
+        const referralWasProcessed = await processRegistrationReferral({
           refereeUserId: userRow.id,
           refereeEmail: userEmail,
           refereeName: userRow.name || userEmail.split("@")[0],
@@ -1036,6 +1037,7 @@ router.post("/auth/verify-magic-link", async (req, res) => {
           ipAddress: (magicLink.ip_address as string) || "",
           appOrigin
         });
+        if (!referralWasProcessed) await redeemPortalInviteCoupon((magicLink.referral_code as string).trim(), userEmail, userRow.id);
       } catch (refProcessErr) {
         console.warn("Failed to process registration referral from magic link:", refProcessErr);
       }
@@ -1163,13 +1165,14 @@ router.post("/auth/register", requireHuman, async (req, res) => {
     if (cleanReferralCode) {
       const clientIp = (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() || req.socket.remoteAddress || "";
       const appOrigin = getAppUrl(req);
-      await processRegistrationReferral({
+      const referralWasProcessed = await processRegistrationReferral({
         refereeUserId: id,
         refereeEmail: cleanEmail,
         referralCode: cleanReferralCode,
         ipAddress: clientIp,
         appOrigin
       });
+      if (!referralWasProcessed) await redeemPortalInviteCoupon(cleanReferralCode, cleanEmail, id);
     }
 
     // Insert properties into client_properties

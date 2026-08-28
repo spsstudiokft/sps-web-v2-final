@@ -155,6 +155,8 @@ export default function CustomersPage() {
   const [sendingInviteId, setSendingInviteId] = useState<string | null>(null);
   const [isBulkSending, setIsBulkSending] = useState(false);
   const [feedback, setFeedback] = useState<InviteFeedback | null>(null);
+  const [inviteCustomer, setInviteCustomer] = useState<CRMRecord | null>(null);
+  const [inviteType, setInviteType] = useState<"standard" | "coupon">("standard");
 
   // Audit Logs & Portal Toggle States
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
@@ -382,16 +384,24 @@ export default function CustomersPage() {
   };
 
   // Send single portal invite
-  const handleSendPortalInvite = async (customer: CRMRecord) => {
+  const openPortalInvite = (customer: CRMRecord) => {
     if (!customer.email || !customer.email.trim()) {
       alert(tUi("admin.customers.no_email_warning", currentLanguage) || "Customer has no email address registered.");
       return;
     }
+    setInviteCustomer(customer);
+    setInviteType("standard");
+  };
+
+  const handleSendPortalInvite = async (customer: CRMRecord, type: "standard" | "coupon" = "standard", couponCode = "") => {
+    if (type === "coupon" && !couponCode.trim()) return;
 
     setSendingInviteId(customer.id);
     try {
       const res = await fetchApi(`/api/admin/crm/customers/${customer.id}/send-portal-invite`, {
-        method: "POST"
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ invite_type: type, coupon_code: type === "coupon" ? couponCode.trim().toUpperCase() : undefined })
       });
       const data = await res.json();
       if (res.ok && data.success) {
@@ -561,6 +571,42 @@ export default function CustomersPage() {
           >
             <X size={16} />
           </button>
+        </div>
+      )}
+
+      {inviteCustomer && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-background/75 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="portal-invite-title">
+          <Card className="w-full max-w-md border-border shadow-2xl">
+            <CardContent className="space-y-5 p-5 sm:p-6">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h3 id="portal-invite-title" className="text-lg font-bold text-text">Ügyfélportál meghívó</h3>
+                  <p className="mt-1 text-xs leading-relaxed text-muted-text">Válaszd ki a küldendő email típusát: {inviteCustomer.email}</p>
+                </div>
+                <button type="button" onClick={() => setInviteCustomer(null)} className="rounded-md p-1.5 text-muted-text transition-colors hover:bg-muted/40 hover:text-text" aria-label="Bezárás"><X size={18} /></button>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 rounded-xl bg-muted/30 p-1">
+                <button type="button" onClick={() => setInviteType("standard")} className={cn("rounded-lg px-3 py-2 text-xs font-semibold transition-colors", inviteType === "standard" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-text hover:bg-background/80 hover:text-text")}>Normál meghívó</button>
+                <button type="button" onClick={() => setInviteType("coupon")} className={cn("rounded-lg px-3 py-2 text-xs font-semibold transition-colors", inviteType === "coupon" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-text hover:bg-background/80 hover:text-text")}>Kuponkódos meghívó</button>
+              </div>
+
+              {inviteType === "coupon" && (
+                <div className="space-y-2 rounded-xl border border-amber-400/35 bg-amber-500/10 p-3">
+                  <p className="text-xs font-semibold text-text">Automatikus VIP-kupon</p>
+                  <p className="text-[11px] leading-relaxed text-muted-text">A rendszer egyedi, egyszer használható VIP-kuponkódot hoz létre a meghívottnak. A regisztráció után a kupon jutalma a VIP felületen is megjelenik.</p>
+                </div>
+              )}
+
+              <div className="flex justify-end gap-2 pt-1">
+                <Button type="button" variant="secondary" onClick={() => setInviteCustomer(null)}>Mégse</Button>
+                <Button type="button" disabled={sendingInviteId === inviteCustomer.id} onClick={async () => { await handleSendPortalInvite(inviteCustomer, inviteType); setInviteCustomer(null); }} className="gap-1.5">
+                  {sendingInviteId === inviteCustomer.id ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+                  Meghívó küldése
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       )}
 
@@ -832,7 +878,7 @@ export default function CustomersPage() {
                         <Button 
                           variant="secondary" 
                           size="sm" 
-                          onClick={() => handleSendPortalInvite(customer)}
+                          onClick={() => openPortalInvite(customer)}
                           disabled={!hasValidEmail || isSendingThis || hasActiveInvite}
                           className="text-primary hover:bg-primary/10 hover:border-primary/30 gap-1.5 px-2.5"
                           title={
@@ -1033,7 +1079,7 @@ export default function CustomersPage() {
                     </p>
                     <Button
                       size="sm"
-                      onClick={() => handleSendPortalInvite(viewingCustomer)}
+                      onClick={() => openPortalInvite(viewingCustomer)}
                       disabled={!viewingCustomer.email || sendingInviteId === viewingCustomer.id}
                       className="gap-1.5 shadow-xs"
                     >

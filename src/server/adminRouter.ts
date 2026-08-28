@@ -42,6 +42,7 @@ import {
   sanitizeEmailHtml,
   EmailTemplateData
 } from "./services/emailService.js";
+import { issuePortalInviteCoupon } from "./services/referralService.js";
 
 const adminRouter = Router();
 
@@ -6219,6 +6220,9 @@ adminRouter.post("/crm/customers/:id/send-portal-invite", async (req, res) => {
     const activeInvite = await db.execute({ sql: "SELECT MAX(expires_at) AS expires_at FROM magic_links WHERE LOWER(TRIM(email)) = ? AND type = 'signup' AND used_at IS NULL AND expires_at > CURRENT_TIMESTAMP HAVING COUNT(*) > 0", args: [email.toLowerCase()] });
     if (activeInvite.rows.length) return res.status(409).json({ error: "A portalmeghívó már kiküldésre került, és még érvényes.", expiresAt: activeInvite.rows[0].expires_at });
 
+    const inviteType = req.body?.invite_type === "coupon" ? "coupon" : "standard";
+    const couponCode = inviteType === "coupon" ? (await issuePortalInviteCoupon(email, String(req.user?.id || ""))).code : "";
+
     const appOrigin = getAppUrl(req);
     const result = await sendPortalInvitationEmail(
       {
@@ -6229,7 +6233,7 @@ adminRouter.post("/crm/customers/:id/send-portal-invite", async (req, res) => {
         advertisement_link: customer.advertisement_link as string | undefined
       },
       appOrigin,
-      { expiresInHours: 48 }
+      { expiresInHours: 48, couponCode: inviteType === "coupon" ? couponCode : undefined }
     );
 
     res.json({

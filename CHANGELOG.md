@@ -2,6 +2,16 @@
 
 ## 2026-08-28
 
+### Ügyfélportál meghívók kuponkóddal
+
+- Az admin ügyfélmeghívója most normál vagy kuponkódos módban küldhető; a kuponkód a biztonságos regisztrációs hivatkozáshoz is kapcsolódik.
+- Új, teljesen szerkeszthető „Client Portal Invitation with Coupon Code” email-sablon került a sablonkezelőbe, saját `{{coupon_code}}` tokennel.
+
+### Automatikus VIP-kupon és 0 értékű pénzügyi tételek
+
+- A kuponkódos portálmeghívó most automatikusan egyedi, egyszer használható VIP-üdvözlő kupont hoz létre; sikeres regisztráció után a jutalom a VIP-jutalmak közé kerül.
+- Költségvetési tételnél az összeg opcionális: üresen hagyva 0 értékű, ingyenes vagy természetbeni tételként menthető.
+
 ### Opcionális projektügyfél
 
 - Projektek ügyfél hozzárendelése nélkül is létrehozhatók önálló belső munkatérként; ügyfél nélküli projekthez ingatlan csak később, az ügyfél kiválasztása után kapcsolható.

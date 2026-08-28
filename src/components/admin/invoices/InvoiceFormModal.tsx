@@ -733,6 +733,7 @@ export function InvoiceFormModal({
                 </div>
               </div>
             </div>
+            {totalAmount === 0 && <p className="text-[11px] text-emerald-700 dark:text-emerald-300">0 összeg: ingyenes vagy természetbeni szolgáltatásként kerül rögzítésre; fizetési kötelezettséget nem hoz létre.</p>}
           </div>
 
           {/* Section 4: Payment Instructions & Terms */}

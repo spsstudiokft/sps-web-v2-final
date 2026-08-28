@@ -59,6 +59,26 @@ export function generateVoucherCode(prefix: string = "REW"): string {
   return `${prefix}-${crypto.randomBytes(4).toString("hex").toUpperCase()}`;
 }
 
+export async function issuePortalInviteCoupon(email: string, issuedById?: string): Promise<{ code: string; expiresAt: string }> {
+  const settings = await getReferralProgramSettings();
+  if (!settings.is_active) throw new Error("A VIP meghívóprogram jelenleg szünetel.");
+  const code = generateVoucherCode("WELCOME");
+  const expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
+  await db.execute({ sql: `INSERT INTO portal_invite_coupons (id, email, code, reward_type, reward_value, currency, description, issued_by_id, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, args: [crypto.randomUUID(), email.trim().toLowerCase(), code, settings.referee_welcome_type, Number(settings.referee_welcome_value || 0), settings.currency || "USD", settings.referee_welcome_description || "VIP welcome reward", issuedById || null, expiresAt] });
+  return { code, expiresAt };
+}
+
+export async function redeemPortalInviteCoupon(code: string, email: string, userId: string): Promise<boolean> {
+  const settings = await getReferralProgramSettings();
+  if (!settings.is_active) return false;
+  const found = await db.execute({ sql: `SELECT * FROM portal_invite_coupons WHERE UPPER(code) = ? AND LOWER(email) = ? AND status = 'issued' AND (expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP)`, args: [code.trim().toUpperCase(), email.trim().toLowerCase()] });
+  if (!found.rows.length) return false;
+  const coupon: any = found.rows[0];
+  await db.execute({ sql: "UPDATE portal_invite_coupons SET status = 'redeemed', redeemed_by_user_id = ?, redeemed_at = CURRENT_TIMESTAMP WHERE id = ? AND status = 'issued'", args: [userId, coupon.id] });
+  await db.execute({ sql: `INSERT INTO referral_rewards (id, user_id, recipient_role, reward_type, reward_value, currency, title, description, voucher_code, status, expires_at) VALUES (?, ?, 'invitee', ?, ?, ?, 'VIP welcome invitation reward', ?, ?, 'available', ?)`, args: [crypto.randomUUID(), userId, coupon.reward_type, coupon.reward_value, coupon.currency, coupon.description, coupon.code, coupon.expires_at] });
+  return true;
+}
+
 // Ensure user has a referral code and tier assigned
 export async function ensureUserReferralCode(userId: string, email?: string): Promise<string> {
   const userRes = await db.execute({
