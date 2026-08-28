@@ -23,6 +23,7 @@
 
 - Az admin által ügyfélfiókhoz manuálisan kiadott VIP-kupon most automatikusan emailben is megérkezik a kóddal, kedvezménnyel, leírással és lejárati dátummal.
 - A „VIP Coupon Assigned by Admin” külön, szerkeszthető email-sablonként elérhető.
+- A VIP-kupon email a meglévő értesítési sablonkategóriában jelenik meg, így megfelel a sablonrendszer típusainak.
 
 ### Meghívó küldési visszajelzés
 

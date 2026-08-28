@@ -608,7 +608,7 @@ export const DEFAULT_EMAIL_TEMPLATES: Record<string, {
   vip_manual_coupon_assigned: {
     template_key: "vip_manual_coupon_assigned",
     name: "VIP Coupon Assigned by Admin",
-    category: "vip",
+    category: "notifications",
     description: "Sent automatically when an administrator manually assigns a VIP coupon or reward to a client account.",
     subject: "A VIP benefit was added to your account · {{studio_name}}",
     body_html: `<p style="color:#1e293b;font-size:15px;line-height:1.6;">Hello <strong>{{user.name}}</strong>,</p><p style="color:#1e293b;font-size:15px;line-height:1.6;">We have added a VIP benefit to your SPS Studio client account.</p><div style="background:#eff6ff;border:1px solid #93c5fd;border-radius:10px;padding:18px;margin:22px 0;"><div style="font-size:12px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#1e3a8a;">{{reward_title}}</div><div style="margin-top:8px;font-size:21px;font-weight:800;color:#0f172a;">{{reward_value_label}}</div><div style="margin-top:12px;font-family:monospace;font-weight:800;letter-spacing:.07em;color:#0369a1;">{{voucher_code}}</div></div><p style="color:#475569;font-size:14px;line-height:1.6;">{{reward_description}}</p><p style="color:#92400e;font-size:13px;line-height:1.5;">Valid until: <strong>{{expires_at}}</strong>.</p><p style="text-align:center;margin:28px 0;"><a href="{{action_url}}" style="display:inline-block;background:#0f172a;color:#fff;text-decoration:none;padding:14px 28px;border-radius:8px;font-weight:700;">{{action_text}}</a></p>`,
