@@ -6217,7 +6217,7 @@ adminRouter.post("/crm/customers/:id/send-portal-invite", async (req, res) => {
       return res.status(400).json({ error: "Customer does not have a valid email address" });
     }
 
-    const activeInvite = await db.execute({ sql: "SELECT MAX(expires_at) AS expires_at FROM magic_links WHERE LOWER(TRIM(email)) = ? AND type = 'signup' AND used_at IS NULL AND expires_at > CURRENT_TIMESTAMP HAVING COUNT(*) > 0", args: [email.toLowerCase()] });
+    const activeInvite = await db.execute({ sql: "SELECT expires_at FROM magic_links WHERE LOWER(TRIM(email)) = ? AND type = 'signup' AND used_at IS NULL AND expires_at > CURRENT_TIMESTAMP ORDER BY expires_at DESC LIMIT 1", args: [email.toLowerCase()] });
     if (activeInvite.rows.length) return res.status(409).json({ error: "A portalmeghívó már kiküldésre került, és még érvényes.", expiresAt: activeInvite.rows[0].expires_at });
 
     const inviteType = req.body?.invite_type === "coupon" ? "coupon" : "standard";
@@ -6308,7 +6308,7 @@ adminRouter.post("/crm/customers/bulk-portal-invite", async (req, res) => {
         continue;
       }
 
-      const activeInvite = await db.execute({ sql: "SELECT MAX(expires_at) AS expires_at FROM magic_links WHERE LOWER(TRIM(email)) = ? AND type = 'signup' AND used_at IS NULL AND expires_at > CURRENT_TIMESTAMP HAVING COUNT(*) > 0", args: [email.toLowerCase()] });
+      const activeInvite = await db.execute({ sql: "SELECT expires_at FROM magic_links WHERE LOWER(TRIM(email)) = ? AND type = 'signup' AND used_at IS NULL AND expires_at > CURRENT_TIMESTAMP ORDER BY expires_at DESC LIMIT 1", args: [email.toLowerCase()] });
       if (activeInvite.rows.length) {
         skippedCount++;
         results.push({ id, name, email, success: false, error: "A portalmeghívó már aktív." });

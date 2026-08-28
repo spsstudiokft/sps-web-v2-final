@@ -343,7 +343,8 @@ const issueManualRewardHandler = async (req: any, res: any) => {
       rewardValue: Number(reward_value),
       title: title || "Special VIP Reward",
       description,
-      currency
+      currency,
+      expiresInDays: Number(req.body.expires_in_days || 0)
     });
 
     res.status(201).json({ success: true, reward });

@@ -1,5 +1,6 @@
 import crypto from "crypto";
 import { db } from "../../db.js";
+import { getAppUrl } from "../appUrl.js";
 import { 
   ReferralTier, 
   ClientReferral, 
@@ -987,17 +988,19 @@ export async function grantManualReward(options: {
   title: string;
   description?: string;
   currency?: string;
+  expiresInDays?: number;
 }): Promise<ReferralReward> {
-  const { userId, rewardType, rewardValue, title, description, currency } = options;
+  const { userId, rewardType, rewardValue, title, description, currency, expiresInDays } = options;
   const voucherCode = generateVoucherCode("BONUS");
   const id = crypto.randomUUID();
+  const expiresAt = Number(expiresInDays) > 0 ? new Date(Date.now() + Number(expiresInDays) * 86400000).toISOString() : null;
 
   await db.execute({
     sql: `INSERT INTO referral_rewards (
       id, user_id, referral_id, reward_tier_id, recipient_role,
       reward_type, reward_value, currency, title, description,
-      voucher_code, status, created_at
-    ) VALUES (?, ?, NULL, NULL, 'admin_grant', ?, ?, ?, ?, ?, ?, 'available', CURRENT_TIMESTAMP)`,
+      voucher_code, status, expires_at, created_at
+    ) VALUES (?, ?, NULL, NULL, 'admin_grant', ?, ?, ?, ?, ?, ?, 'available', ?, CURRENT_TIMESTAMP)`,
     args: [
       id,
       userId,
@@ -1006,7 +1009,8 @@ export async function grantManualReward(options: {
       currency || "USD",
       title || "Special VIP Reward Voucher",
       description || "Granted directly by studio management",
-      voucherCode
+      voucherCode,
+      expiresAt
     ]
   });
 
@@ -1017,8 +1021,13 @@ export async function grantManualReward(options: {
     });
   }
 
-  const res = await db.execute({ sql: "SELECT * FROM referral_rewards WHERE id = ?", args: [id] });
-  return res.rows[0] as any;
+  const res = await db.execute({ sql: "SELECT r.*, u.email, u.name FROM referral_rewards r JOIN users u ON u.id = r.user_id WHERE r.id = ?", args: [id] });
+  const reward: any = res.rows[0];
+  const rewardValueLabel = rewardType === "discount_percent" ? `${Number(rewardValue)}% discount` : `${formatCurrency(Number(rewardValue), currency || "USD")} credit`;
+  try {
+    await sendTransactionalEmail({ to: String(reward.email), templateId: "vip_manual_coupon_assigned", templateData: { "user.name": reward.name || String(reward.email).split("@")[0], "user.email": reward.email, reward_title: title || "Special VIP Reward", reward_value_label: rewardValueLabel, voucher_code: voucherCode, reward_description: description || "Granted directly by studio management", expires_at: expiresAt ? new Intl.DateTimeFormat("hu-HU", { dateStyle: "long" }).format(new Date(expiresAt)) : "No expiry date", action_url: `${getAppUrl()}/client/referrals`, action_text: "View VIP Benefits" } });
+  } catch (emailError) { console.error("Failed to send manual VIP coupon email:", emailError); }
+  return reward as any;
 }
 
 // Redeem reward voucher

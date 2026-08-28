@@ -605,6 +605,28 @@ export const DEFAULT_EMAIL_TEMPLATES: Record<string, {
     sample_data: { "user.name": "Alexander Sterling", "invitation_link": "https://spsstudio.com/auth/magic-link?token=sample", "remaining_hours": "24", "action_text": "Activate Client Portal", "studio_name": "SPS Studio" }
   },
 
+  vip_manual_coupon_assigned: {
+    template_key: "vip_manual_coupon_assigned",
+    name: "VIP Coupon Assigned by Admin",
+    category: "vip",
+    description: "Sent automatically when an administrator manually assigns a VIP coupon or reward to a client account.",
+    subject: "A VIP benefit was added to your account · {{studio_name}}",
+    body_html: `<p style="color:#1e293b;font-size:15px;line-height:1.6;">Hello <strong>{{user.name}}</strong>,</p><p style="color:#1e293b;font-size:15px;line-height:1.6;">We have added a VIP benefit to your SPS Studio client account.</p><div style="background:#eff6ff;border:1px solid #93c5fd;border-radius:10px;padding:18px;margin:22px 0;"><div style="font-size:12px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#1e3a8a;">{{reward_title}}</div><div style="margin-top:8px;font-size:21px;font-weight:800;color:#0f172a;">{{reward_value_label}}</div><div style="margin-top:12px;font-family:monospace;font-weight:800;letter-spacing:.07em;color:#0369a1;">{{voucher_code}}</div></div><p style="color:#475569;font-size:14px;line-height:1.6;">{{reward_description}}</p><p style="color:#92400e;font-size:13px;line-height:1.5;">Valid until: <strong>{{expires_at}}</strong>.</p><p style="text-align:center;margin:28px 0;"><a href="{{action_url}}" style="display:inline-block;background:#0f172a;color:#fff;text-decoration:none;padding:14px 28px;border-radius:8px;font-weight:700;">{{action_text}}</a></p>`,
+    body_text: `Hello {{user.name}},\n\nA VIP benefit was added to your SPS Studio account.\n\n{{reward_title}}: {{reward_value_label}}\nCoupon code: {{voucher_code}}\n{{reward_description}}\nValid until: {{expires_at}}\n\nView your VIP benefits: {{action_url}}`.trim(),
+    available_tokens: [
+      { token: "{{user.name}}", label: "Customer Name", description: "Customer greeting", example: "Alexander Sterling" },
+      { token: "{{reward_title}}", label: "Reward Title", description: "Admin-provided coupon title", example: "Welcome benefit" },
+      { token: "{{reward_value_label}}", label: "Reward Value", description: "Formatted discount or credit", example: "15% discount" },
+      { token: "{{voucher_code}}", label: "Coupon Code", description: "Unique redeemable voucher", example: "BONUS-A1B2C3D4" },
+      { token: "{{reward_description}}", label: "Reward Description", description: "Admin-provided conditions", example: "Valid for your next booking." },
+      { token: "{{expires_at}}", label: "Expiry Date", description: "Voucher expiry", example: "2026. 09. 30." },
+      { token: "{{action_url}}", label: "VIP Portal URL", description: "Link to VIP benefits", example: "https://spsstudio.com/client/referrals" },
+      { token: "{{action_text}}", label: "Button Label", description: "CTA label", example: "View VIP Benefits" },
+      { token: "{{studio_name}}", label: "Studio Name", description: "Studio brand name", example: "SPS Studio" }
+    ],
+    sample_data: { "user.name": "Alexander Sterling", "reward_title": "Welcome benefit", "reward_value_label": "15% discount", "voucher_code": "BONUS-A1B2C3D4", "reward_description": "Valid for your next booking.", "expires_at": "2026. 09. 30.", "action_url": "https://spsstudio.com/client/referrals", "action_text": "View VIP Benefits", "studio_name": "SPS Studio" }
+  },
+
   admin_invitation: {
     template_key: "admin_invitation",
     name: "Admin & Team Member Invitation",

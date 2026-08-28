@@ -19,9 +19,15 @@
 - A még nem aktivált, 48 órás ügyfélportál-meghívókhoz a rendszer kb. 36 óra után egyszeri emlékeztető emailt küld; a levél csak érvényes és fel nem használt linkhez megy ki.
 - Az emlékeztető külön, szerkeszthető email-sablont kapott, és a meglévő Vercel cron futtatja.
 
+### Kézzel kiadott VIP-kupon email
+
+- Az admin által ügyfélfiókhoz manuálisan kiadott VIP-kupon most automatikusan emailben is megérkezik a kóddal, kedvezménnyel, leírással és lejárati dátummal.
+- A „VIP Coupon Assigned by Admin” külön, szerkeszthető email-sablonként elérhető.
+
 ### Meghívó küldési visszajelzés
 
 - A portálmeghívó modal csak sikeres küldés után záródik be; hiba vagy aktív korábbi meghívó esetén a szerver válasza közvetlenül a modalban jelenik meg.
+- Javítva a Turso/LibSQL-kompatibilis aktív meghívó ellenőrzés a normál és tömeges küldésnél.
 
 ### Opcionális projektügyfél
 
