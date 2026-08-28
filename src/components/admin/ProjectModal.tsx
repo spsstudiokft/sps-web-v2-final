@@ -319,7 +319,7 @@ export function ProjectModal({
 
             <div className="space-y-1.5">
               <Label htmlFor="project-client-select" className="text-sm font-semibold text-text">
-                Linked Client
+                Linked Client <span className="text-muted-text font-normal">(optional)</span>
               </Label>
               <div className="relative">
                 <select
@@ -334,7 +334,7 @@ export function ProjectModal({
                     }))
                   }
                 >
-                  <option value="">-- Select Client --</option>
+                  <option value="">-- No client assigned --</option>
                   {clients.map((client) => (
                     <option key={client.id} value={client.id}>
                       {client.email}
@@ -350,6 +350,7 @@ export function ProjectModal({
                 {clientProperties.map((property) => <option key={property.id} value={property.id}>{property.property_name || property.address}{property.property_name ? ` · ${property.address}` : ""}</option>)}
               </select>
               {!isEditing && <button type="button" disabled={!formData.client_id} onClick={() => { setCreateProperty(value => !value); setFormData(prev => ({ ...prev, property_id: null })); }} className="mt-2 text-xs font-semibold text-primary hover:underline disabled:opacity-50">{createProperty ? "Meglévő Property kiválasztása" : "Új Property létrehozása ebből a projektből"}</button>}
+              {!formData.client_id && <p className="mt-2 text-[11px] leading-relaxed text-muted-text">Ügyfél nélkül a projekt önálló belső munkatérként jön létre; ingatlan később, ügyfél hozzárendelése után kapcsolható hozzá.</p>}
             </div>
           </div>
           {createProperty && <div className="grid grid-cols-1 gap-3 rounded-xl border border-primary/20 bg-primary/5 p-4 sm:grid-cols-2"><div className="sm:col-span-2 text-sm font-semibold text-text">Új Property adatai</div><Input placeholder="Ingatlan neve" value={newProperty.property_name} onChange={e => setNewProperty(value => ({ ...value, property_name: e.target.value }))} /><Input required placeholder="Cím *" value={newProperty.address} onChange={e => setNewProperty(value => ({ ...value, address: e.target.value }))} /><Input placeholder="Város" value={newProperty.city} onChange={e => setNewProperty(value => ({ ...value, city: e.target.value }))} /><Input placeholder="Irányítószám" value={newProperty.postal_code} onChange={e => setNewProperty(value => ({ ...value, postal_code: e.target.value }))} /><p className="sm:col-span-2 text-xs text-muted-text">Azonos aktív cím esetén a rendszer a mentés előtt figyelmeztet.</p></div>}

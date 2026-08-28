@@ -6,6 +6,8 @@ export type SectionMediaItem = {
   overlayOpacity?: number;
   imageBlur?: number;
   contentImageUrl?: string;
+  contentVideoUrl?: string;
+  contentVideoAspect?: "portrait" | "landscape";
 };
 
 export type SectionMediaConfig = Record<string, SectionMediaItem>;

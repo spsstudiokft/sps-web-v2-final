@@ -154,6 +154,9 @@ export type Project = {
   status: string;
   client_id: string | null;
   client_email?: string | null;
+  property_id?: string | null;
+  property_name?: string | null;
+  property_address?: string | null;
   keywords?: string | null;
   created_at: string;
   updated_at: string;

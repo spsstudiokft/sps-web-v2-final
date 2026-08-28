@@ -46,6 +46,7 @@ export interface ImageUploadCardProps {
   currentLang: string;
   useMediaPipeline?: boolean;
   fallbackPreviewUrl?: string;
+  mediaKind?: "image" | "video";
 }
 
 export function ImageUploadCard({
@@ -66,6 +67,7 @@ export function ImageUploadCard({
   currentLang,
   useMediaPipeline = false,
   fallbackPreviewUrl,
+  mediaKind = "image",
 }: ImageUploadCardProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -105,7 +107,9 @@ export function ImageUploadCard({
     // Validate format
     const validExtensions = acceptedFormats.split(",").map(ext => ext.trim().toLowerCase());
     const fileExt = "." + file.name.split(".").pop()?.toLowerCase();
-    const isMimeValid = file.type.startsWith("image/") || fileExt === ".ico";
+    const isMimeValid = mediaKind === "video"
+      ? file.type.startsWith("video/")
+      : file.type.startsWith("image/") || fileExt === ".ico";
 
     if (!isMimeValid && !validExtensions.includes(fileExt)) {
       setErrorMessage(`Invalid format. Allowed: ${acceptedFormats}`);
@@ -121,7 +125,7 @@ export function ImageUploadCard({
           useStructuredName: true,
           projectName: "website",
           categoryName: id.replace(/^section-background-/, "section-"),
-          itemType: "image",
+          itemType: mediaKind,
           itemNumber: 1,
         });
         const displayUrl = uploaded.compressedUrl || uploaded.url;
@@ -246,6 +250,15 @@ export function ImageUploadCard({
                       onError={() => setErrorMessage("Failed to load image preview from URL")}
                     />
                   </div>
+                ) : mediaKind === "video" ? (
+                  <video
+                    src={previewUrl}
+                    muted
+                    controls
+                    playsInline
+                    className="max-h-44 max-w-full rounded-md object-contain shadow-xs"
+                    onError={() => setErrorMessage("Failed to load video preview from URL")}
+                  />
                 ) : (
                   <img 
                     src={previewUrl}

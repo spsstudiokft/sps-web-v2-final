@@ -2,10 +2,22 @@
 
 ## 2026-08-28
 
+### Opcionális projektügyfél
+
+- Projektek ügyfél hozzárendelése nélkül is létrehozhatók önálló belső munkatérként; ügyfél nélküli projekthez ingatlan csak később, az ügyfél kiválasztása után kapcsolható.
+
+### Rólunk szekció opcionális videója
+
+- A Rólunk szekció képkerete most opcionális MP4, WebM vagy MOV videót is megjelenít lekerekített sarkokkal és megtartott hover animációval.
+- Az admin felületen 9:16 álló vagy 16:9 fekvő képarány választható a feltöltött videóhoz.
+- A Rólunk videó hanggal, kizárólag a látogató indítására játszható le; nincs automatikus lejátszás.
+- A videó saját, minimalista indítás/szüneteltetés vezérlőt kapott; a lejátszás hangereje rögzítetten 50%.
+
 ### Magyar publikus számla és világos márkajelzés
 
 - A publikus számlaoldal teljes ügyféloldali felületét magyar számlanyelvre állítottuk át, beleértve a fizetési állapotot, tételsort, összegeket, nyugtákat és fizetés-visszajelzést.
 - A számlafejléc most a branding beállítások világos módhoz tartozó fejléc-logóját használja, így a nyomtatható felületen is a megfelelő SPS logó jelenik meg.
+- A publikus számlaoldal az aktív webhelynyelven (EN/HU/DE/ES/FR) jelenik meg, saját nyelvválasztóval és `lang` URL paraméteres megnyitási lehetőséggel; a fejléc a világos logó mellett a stúdió nevét is mutatja.
 
 ### VIP program szüneteltetése
 

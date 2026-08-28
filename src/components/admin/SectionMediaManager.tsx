@@ -202,29 +202,57 @@ export function SectionMediaManager({
             </div>
 
             {id === "about" && (
-              <ImageUploadCard
-                id="about-content-image"
-                title={tr("admin.section_media.about_content_title", "About section main image")}
-                description={tr("admin.section_media.about_content_description", "Featured image displayed next to the text.")}
-                value={item.contentImageUrl}
-                recommendedSize={tr("admin.section_media.about_content_size", "1200 × 1200 px")}
-                acceptedFormats=".jpg,.jpeg,.png,.webp,.avif"
-                maxSizeBytes={15 * 1024 * 1024}
-                previewBg="checker"
-                isOptional
-                onUpload={(url) => updateSection(id, { contentImageUrl: url })}
-                onClear={() => updateSection(id, { contentImageUrl: "" })}
-                tUi={(key) => tUi(key, currentLang, key)}
-                currentLang={currentLang}
-                useMediaPipeline
-                fallbackPreviewUrl={DEFAULT_ABOUT_CONTENT_IMAGE}
-              />
+              <div className="grid gap-4 xl:grid-cols-2">
+                <ImageUploadCard
+                  id="about-content-image"
+                  title={tr("admin.section_media.about_content_title", "About section main image")}
+                  description={tr("admin.section_media.about_content_description", "Featured image displayed next to the text.")}
+                  value={item.contentImageUrl}
+                  recommendedSize={tr("admin.section_media.about_content_size", "1200 × 1200 px")}
+                  acceptedFormats=".jpg,.jpeg,.png,.webp,.avif"
+                  maxSizeBytes={15 * 1024 * 1024}
+                  previewBg="checker"
+                  isOptional
+                  onUpload={(url) => updateSection(id, { contentImageUrl: url })}
+                  onClear={() => updateSection(id, { contentImageUrl: "" })}
+                  tUi={(key) => tUi(key, currentLang, key)}
+                  currentLang={currentLang}
+                  useMediaPipeline
+                  fallbackPreviewUrl={DEFAULT_ABOUT_CONTENT_IMAGE}
+                />
+                <div className="space-y-3">
+                  <ImageUploadCard
+                    id="about-content-video"
+                    title="Rólunk szekció videója"
+                    description="Opcionális videó a kép helyett. Álló 9:16-hoz vagy fekvő 16:9-hez igazítható; a lekerekített keret és hover animáció megmarad."
+                    value={item.contentVideoUrl}
+                    recommendedSize="9:16 álló vagy 16:9 fekvő"
+                    acceptedFormats=".mp4,.webm,.mov"
+                    maxSizeBytes={1024 * 1024 * 1024}
+                    previewBg="dark"
+                    isOptional
+                    mediaKind="video"
+                    onUpload={(url) => updateSection(id, { contentVideoUrl: url })}
+                    onClear={() => updateSection(id, { contentVideoUrl: "" })}
+                    tUi={(key) => tUi(key, currentLang, key)}
+                    currentLang={currentLang}
+                    useMediaPipeline
+                  />
+                  {item.contentVideoUrl && <div>
+                    <Label htmlFor="about-content-video-aspect">Videó képaránya</Label>
+                    <select id="about-content-video-aspect" value={item.contentVideoAspect || "portrait"} onChange={(event) => updateSection(id, { contentVideoAspect: event.target.value as "portrait" | "landscape" })} className="mt-1.5 h-10 w-full rounded-xl border border-border bg-background px-3 text-sm text-text">
+                      <option value="portrait">9:16 – álló</option>
+                      <option value="landscape">16:9 – fekvő</option>
+                    </select>
+                  </div>}
+                </div>
+              </div>
             )}
 
-            {(item.backgroundUrl || item.contentImageUrl) && (
+            {(item.backgroundUrl || item.contentImageUrl || item.contentVideoUrl) && (
               <button
                 type="button"
-                onClick={() => updateSection(id, { backgroundUrl: "", heroGallery: [], heroSlideIntervalMs: 2500, contentImageUrl: "", backgroundPosition: "center", overlayOpacity: 0.45, imageBlur: 0 })}
+                onClick={() => updateSection(id, { backgroundUrl: "", heroGallery: [], heroSlideIntervalMs: 2500, contentImageUrl: "", contentVideoUrl: "", contentVideoAspect: "portrait", backgroundPosition: "center", overlayOpacity: 0.45, imageBlur: 0 })}
                 className="inline-flex items-center gap-2 text-xs font-semibold text-muted-text hover:text-text"
               >
                 <RotateCcw className="w-3.5 h-3.5" /> {tr("admin.section_media.reset", "Restore default media")}

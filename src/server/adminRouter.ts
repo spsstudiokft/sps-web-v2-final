@@ -4479,29 +4479,31 @@ adminRouter.post("/projects", async (req, res) => {
     }
     
     const id = crypto.randomUUID();
-    if (!client_id) return res.status(400).json({ error: "A client is required for every project" });
+    const normalizedClientId = typeof client_id === "string" && client_id.trim() ? client_id.trim() : null;
     let resolvedPropertyId = property_id || null;
     if (!resolvedPropertyId && new_property?.address) {
+      if (!normalizedClientId) return res.status(400).json({ error: "A new property can only be created after assigning a client to the project" });
       const address = String(new_property.address).trim();
       const existing = await db.execute({ sql: "SELECT id FROM properties WHERE lower(trim(address)) = lower(?) AND archived_at IS NULL LIMIT 1", args: [address] });
       if (existing.rows.length) return res.status(409).json({ error: "Már létezik aktív Property ezen a címen. Válaszd ki a meglévő ingatlant." });
       resolvedPropertyId = crypto.randomUUID();
       const propertyName = String(new_property.property_name || address).trim();
       await db.batch([
-        { sql: "INSERT INTO properties (id, property_name, address, city, postal_code, primary_client_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)", args: [resolvedPropertyId, propertyName, address, String(new_property.city || "").trim(), String(new_property.postal_code || "").trim(), client_id] },
-        { sql: "INSERT INTO property_clients (property_id, client_id, relation_type) VALUES (?, ?, 'owner')", args: [resolvedPropertyId, client_id] },
-        { sql: "INSERT INTO client_properties (id, client_id, property_name, address, sort_order, created_at, updated_at) VALUES (?, ?, ?, ?, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)", args: [resolvedPropertyId, client_id, propertyName, address] },
+        { sql: "INSERT INTO properties (id, property_name, address, city, postal_code, primary_client_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)", args: [resolvedPropertyId, propertyName, address, String(new_property.city || "").trim(), String(new_property.postal_code || "").trim(), normalizedClientId] },
+        { sql: "INSERT INTO property_clients (property_id, client_id, relation_type) VALUES (?, ?, 'owner')", args: [resolvedPropertyId, normalizedClientId] },
+        { sql: "INSERT INTO client_properties (id, client_id, property_name, address, sort_order, created_at, updated_at) VALUES (?, ?, ?, ?, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)", args: [resolvedPropertyId, normalizedClientId, propertyName, address] },
         { sql: "INSERT INTO property_activity (id, property_id, activity_type, title, details) VALUES (?, ?, 'created_from_project', 'Property created from project', ?)", args: [crypto.randomUUID(), resolvedPropertyId, JSON.stringify({ project_name: name })] }
       ], "write");
     }
     if (resolvedPropertyId) {
-      const property = await db.execute({ sql: "SELECT id FROM client_properties WHERE id = ? AND client_id = ?", args: [resolvedPropertyId, client_id] });
+      if (!normalizedClientId) return res.status(400).json({ error: "A linked property requires a client assignment" });
+      const property = await db.execute({ sql: "SELECT id FROM client_properties WHERE id = ? AND client_id = ?", args: [resolvedPropertyId, normalizedClientId] });
       if (!property.rows.length) return res.status(400).json({ error: "The selected property does not belong to the selected client" });
     }
     await db.execute({
       sql: `INSERT INTO projects (id, name, description, status, client_id, property_id, keywords, created_at, updated_at) 
             VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
-      args: [id, name.trim(), description || "", status || "active", client_id, resolvedPropertyId, keywords || ""]
+      args: [id, name.trim(), description || "", status || "active", normalizedClientId, resolvedPropertyId, keywords || ""]
     });
     
     if (Array.isArray(portfolio_ids) && portfolio_ids.length > 0) {
@@ -4527,14 +4529,15 @@ adminRouter.put("/projects/:id", async (req, res) => {
       return res.status(400).json({ error: "Project name is required" });
     }
     
-    if (!client_id) return res.status(400).json({ error: "A client is required for every project" });
-    if (property_id) {
-      const property = await db.execute({ sql: "SELECT id FROM client_properties WHERE id = ? AND client_id = ?", args: [property_id, client_id] });
+    const normalizedClientId = typeof client_id === "string" && client_id.trim() ? client_id.trim() : null;
+    const resolvedPropertyId = normalizedClientId ? (property_id || null) : null;
+    if (resolvedPropertyId) {
+      const property = await db.execute({ sql: "SELECT id FROM client_properties WHERE id = ? AND client_id = ?", args: [resolvedPropertyId, normalizedClientId] });
       if (!property.rows.length) return res.status(400).json({ error: "The selected property does not belong to the selected client" });
     }
     await db.execute({
       sql: `UPDATE projects SET name = ?, description = ?, status = ?, client_id = ?, property_id = ?, keywords = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
-      args: [name.trim(), description || "", status || "active", client_id, property_id || null, keywords || "", req.params.id]
+      args: [name.trim(), description || "", status || "active", normalizedClientId, resolvedPropertyId, keywords || "", req.params.id]
     });
     
     // Clear old links
@@ -4782,7 +4785,7 @@ adminRouter.delete("/projects/:id", async (req, res) => {
 adminRouter.get("/business-relations/audit", async (_req, res) => {
   try {
     const checks = await Promise.all([
-      db.execute({ sql: "SELECT id, name FROM projects WHERE client_id IS NULL OR TRIM(client_id) = ''", args: [] }),
+      db.execute({ sql: "SELECT id, name FROM projects WHERE (client_id IS NULL OR TRIM(client_id) = '') AND property_id IS NOT NULL", args: [] }),
       db.execute({ sql: `SELECT p.id, p.name FROM projects p LEFT JOIN client_properties cp ON cp.id = p.property_id WHERE p.property_id IS NOT NULL AND (cp.id IS NULL OR cp.client_id <> p.client_id)`, args: [] }),
       db.execute({ sql: "SELECT i.id, i.invoice_number FROM invoices i LEFT JOIN projects p ON p.id = i.project_id WHERE i.project_id IS NOT NULL AND p.id IS NULL", args: [] }),
       db.execute({ sql: `SELECT i.id, i.invoice_number FROM invoices i JOIN projects p ON p.id = i.project_id WHERE i.project_id IS NOT NULL AND (i.client_id IS NULL OR i.client_id <> p.client_id)`, args: [] }),
@@ -4799,7 +4802,7 @@ adminRouter.get("/business-relations/audit", async (_req, res) => {
       db.execute({ sql: "SELECT ppi.project_id, ppi.portfolio_item_id FROM project_portfolio_items ppi LEFT JOIN portfolio_items pi ON pi.id = ppi.portfolio_item_id WHERE pi.id IS NULL", args: [] }),
     ]);
     const issues = [
-      ["project_without_client", "Assign a client before editing the project.", checks[0].rows],
+      ["project_property_without_client", "Assign a client before linking a property to the project.", checks[0].rows],
       ["project_property_client_mismatch", "Reassign the property or project client.", checks[1].rows],
       ["invoice_missing_project", "Remove or replace the invalid project reference.", checks[2].rows],
       ["invoice_project_client_mismatch", "Align the invoice client with its project.", checks[3].rows],
