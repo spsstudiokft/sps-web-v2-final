@@ -2,6 +2,16 @@
 
 ## 2026-08-28
 
+### Magyar publikus számla és világos márkajelzés
+
+- A publikus számlaoldal teljes ügyféloldali felületét magyar számlanyelvre állítottuk át, beleértve a fizetési állapotot, tételsort, összegeket, nyugtákat és fizetés-visszajelzést.
+- A számlafejléc most a branding beállítások világos módhoz tartozó fejléc-logóját használja, így a nyomtatható felületen is a megfelelő SPS logó jelenik meg.
+
+### VIP program szüneteltetése
+
+- Szünetelő VIP meghívóprogramnál az ügyfélportál külön tájékoztató állapotot mutat, és elrejti az új meghívásokhoz, kedvezményekhez és jutalmakhoz tartozó műveleteket.
+- A regisztrációs meghívókód mezője jelzi a szünetet, a szerver pedig ilyenkor nem hoz létre ajánlási kapcsolatot, kupont vagy jutalmat, és új emailes meghívót sem enged küldeni.
+
 ### Client registration coupon code
 
 - Elevated the optional coupon/invite-code entry into a clear, benefit-led registration card and made the expanded input visually distinct, while preserving the existing referral validation and registration flow.
@@ -14,6 +24,19 @@
 
 - Added editable transactional templates and live delivery for successful account registration, two-factor authentication enable/disable events, and completed password resets with a new password.
 - Applied the account-registration confirmation to both completed magic-link and password registrations while respecting the existing client welcome-email setting.
+
+### Public changelog and feature announcements
+
+- Added an admin-managed public `/changelog` page with publishable release notes, release types, summaries, and detailed descriptions.
+- Added configurable one-time feature announcements that display as either a modal or a lower-page banner after publication.
+
+### Public header layering
+
+- Raised the navigation layer above the announcement bar so the account sign-in dropdown remains fully visible and clickable.
+
+### Client portal sidebar interactions
+
+- Matched the client portal navigation hover and active states to the admin sidebar's accent rail, highlight sweep, icon glow, and horizontal motion while retaining the client palette.
 
 ## 2026-08-27
 

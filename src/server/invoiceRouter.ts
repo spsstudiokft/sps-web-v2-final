@@ -1398,7 +1398,9 @@ publicInvoiceRouter.get("/:id", async (req: any, res) => {
         name: config.studioName,
         fromEmail: config.fromEmail,
         replyToEmail: config.replyToEmail,
-        footerText: config.footerText
+        footerText: config.footerText,
+        logoLightUrl: config.lightLogoUrl,
+        logoAltText: config.logoAltText
       }
     });
   } catch (error: any) {

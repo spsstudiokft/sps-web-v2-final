@@ -1985,15 +1985,24 @@ html:not(.dark) .aero-site :focus-visible {
 .aero-client-shell .aero-ui-card .bg-surface { background-color: var(--client-row-bg); }
 
 .aero-client-nav-item {
+  isolation: isolate;
   position: relative;
   overflow: hidden;
   color: var(--client-muted);
   border: 1px solid transparent;
-  transition: color .22s ease, transform .22s ease, background-color .22s ease, border-color .22s ease, box-shadow .22s ease;
+  transition: color .22s ease, transform .24s cubic-bezier(.22,1,.36,1), border-color .22s ease, background-color .22s ease, box-shadow .22s ease;
 }
-.aero-client-nav-item:hover { color: var(--client-text) !important; transform: translateY(-2px); background: var(--client-row-bg) !important; border-color: var(--client-glass-hover); box-shadow: 0 8px 20px var(--client-glass-shadow); }
-.aero-client-nav-item[aria-current="page"] { color: #f7fbff !important; background: linear-gradient(110deg, #0c2944, #10213b) !important; border-color: var(--client-glass-hover); box-shadow: 0 8px 20px var(--client-glass-shadow); }
+.aero-client-nav-item::before { content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; background: linear-gradient(100deg, color-mix(in srgb, var(--client-accent) 17%, transparent), var(--client-row-bg) 54%, transparent); opacity: 0; transform: translateX(-24%); transition: opacity .24s ease, transform .32s cubic-bezier(.22,1,.36,1); pointer-events: none; }
+.aero-client-nav-item::after { content: ""; position: absolute; left: 0; top: 24%; bottom: 24%; width: 2px; border-radius: 999px; background: var(--client-accent); box-shadow: 0 0 14px var(--client-accent); opacity: 0; transform: scaleY(.35); transition: opacity .22s ease, transform .28s cubic-bezier(.22,1,.36,1); pointer-events: none; }
+.aero-client-nav-item:hover { color: var(--client-text) !important; transform: translateX(3px); background: var(--client-row-bg) !important; border-color: var(--client-glass-hover); box-shadow: 0 9px 22px var(--client-glass-shadow); }
+.aero-client-nav-item:hover::before { opacity: 1; transform: translateX(0); }
+.aero-client-nav-item:hover::after { opacity: 1; transform: scaleY(1); }
+.aero-client-nav-item:hover svg { color: var(--client-accent) !important; filter: drop-shadow(0 0 5px color-mix(in srgb, var(--client-accent) 48%, transparent)); }
+.aero-client-nav-item[aria-current="page"] { color: #f7fbff !important; background: linear-gradient(110deg, #0c2944, #10213b) !important; border-color: var(--client-glass-hover); box-shadow: 0 10px 24px var(--client-glass-shadow), inset 0 1px 0 rgba(255,255,255,.13); }
+.aero-client-nav-item[aria-current="page"]::after { opacity: 1; transform: scaleY(1); }
+.aero-client-nav-item[aria-current="page"] svg { color: #f7fbff !important; }
 .dark .aero-client-nav-item[aria-current="page"] { color: #10263a !important; background: linear-gradient(110deg, rgba(232,248,255,.96), rgba(255,255,255,.9)) !important; }
+.dark .aero-client-nav-item[aria-current="page"] svg { color: #10263a !important; }
 
 @media (max-width: 700px) {
   .aero-client-shell .aero-ui-card:hover,
@@ -2006,7 +2015,9 @@ html:not(.dark) .aero-site :focus-visible {
   .aero-client-shell .aero-ui-card,
   .aero-client-shell main div.bg-surface.rounded-xl,
   .aero-client-shell main div.bg-surface.rounded-2xl,
-  .aero-client-nav-item { transition: none !important; }
+  .aero-client-nav-item,
+  .aero-client-nav-item::before,
+  .aero-client-nav-item::after { transition: none !important; }
 }
 
 /* WCAG-aware modal palette consistency */

@@ -90,7 +90,7 @@ export default function PublicInvoicePage() {
   };
 
   const formatMoney = (val: number, curr: string = "USD") => {
-    return new Intl.NumberFormat("en-US", {
+    return new Intl.NumberFormat("hu-HU", {
       style: "currency",
       currency: curr || "USD",
       minimumFractionDigits: 2,
@@ -98,11 +98,21 @@ export default function PublicInvoicePage() {
     }).format(val || 0);
   };
 
+  const formatDate = (value?: string) => {
+    if (!value) return "—";
+    const date = new Date(`${value.slice(0, 10)}T12:00:00`);
+    return Number.isNaN(date.getTime()) ? value : new Intl.DateTimeFormat("hu-HU", {
+      year: "numeric",
+      month: "long",
+      day: "numeric"
+    }).format(date);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
         <div className="w-12 h-12 border-3 border-primary border-t-transparent rounded-full animate-spin mb-4" />
-        <p className="text-sm font-semibold text-text">Loading invoice...</p>
+        <p className="text-sm font-semibold text-text">Számla betöltése…</p>
       </div>
     );
   }
@@ -130,20 +140,20 @@ export default function PublicInvoicePage() {
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-base font-bold text-text font-heading">
-                  Invoice {invoice.invoice_number}
+                  Számla: {invoice.invoice_number}
                 </h2>
                 <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase border ${
                   isPaid
                     ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30"
                     : "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30"
                 }`}>
-                  {isPaid ? "Paid in Full" : `Due: ${invoice.due_date}`}
+                  {isPaid ? "Teljesen rendezve" : `Fizetési határidő: ${formatDate(invoice.due_date)}`}
                 </span>
               </div>
               <p className="text-xs text-muted-text mt-0.5">
                 {isPaid
-                  ? "Thank you! This invoice has been settled in full."
-                  : `Total amount due: ${formatMoney(amountDue, invoice.currency)}`}
+                  ? "Köszönjük! A számla teljes összege rendezve lett."
+                  : `Fizetendő összeg: ${formatMoney(amountDue, invoice.currency)}`}
               </p>
             </div>
           </div>
@@ -157,7 +167,7 @@ export default function PublicInvoicePage() {
               className="text-xs inline-flex items-center gap-1.5"
             >
               <Printer className="w-3.5 h-3.5" />
-              Print / Save PDF
+              Nyomtatás / PDF mentése
             </Button>
 
             {!isPaid && (
@@ -170,18 +180,18 @@ export default function PublicInvoicePage() {
                     className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground font-semibold rounded-lg text-xs shadow-xs hover:opacity-90 transition-opacity"
                   >
                     <CreditCard className="w-4 h-4" />
-                    Pay Now Online
+                    Online fizetés
                   </a>
                 ) : (
                   <Button
                     type="button"
-                    variant="default"
+                    variant="primary"
                     size="sm"
                     onClick={() => setShowNotifyModal(true)}
                     className="text-xs inline-flex items-center gap-1.5"
                   >
                     <Send className="w-3.5 h-3.5" />
-                    I Have Sent Payment
+                    Fizetést indítottam
                   </Button>
                 )}
               </>
@@ -193,12 +203,20 @@ export default function PublicInvoicePage() {
         <article className="invoice-document bg-surface border border-border rounded-2xl p-8 sm:p-10 shadow-xl space-y-8 print:border-none print:shadow-none print:p-0 print:rounded-none">
           {/* Header */}
           <div className="flex flex-col sm:flex-row justify-between items-start gap-6 border-b border-border pb-8">
-            <div>
-              <div className="font-heading font-black text-2xl tracking-tighter text-text mb-1">
-                SPS<span className="text-primary font-normal text-lg ml-1">STUDIO</span>
-              </div>
+            <div className="min-w-0">
+              {studio?.logoLightUrl ? (
+                <img
+                  src={studio.logoLightUrl}
+                  alt={studio?.logoAltText || studio?.name || "SPS Studio"}
+                  className="h-11 w-auto max-w-[220px] object-contain object-left mb-2"
+                />
+              ) : (
+                <div className="font-heading font-black text-2xl tracking-tighter text-text mb-1">
+                  SPS<span className="text-primary font-normal text-lg ml-1">STUDIO</span>
+                </div>
+              )}
               <p className="text-xs text-muted-text font-medium">
-                {studio?.name || "SPS Studio"} · Premium Visual Media
+                {studio?.name || "SPS Studio"} · Prémium ingatlanfotó és vizuális tartalom
               </p>
               <p className="text-xs text-muted-text">
                 {studio?.fromEmail || "billing@spsstudio.com"}
@@ -207,14 +225,14 @@ export default function PublicInvoicePage() {
 
             <div className="text-left sm:text-right">
               <h1 className="text-2xl font-black font-heading tracking-tight uppercase text-text">
-                INVOICE
+                SZÁMLA
               </h1>
               <div className="mt-1 font-mono font-bold text-sm text-primary">
                 {invoice.invoice_number}
               </div>
               <div className="text-xs text-muted-text mt-1 space-y-0.5">
-                <div>Issue Date: <strong className="text-text">{invoice.issue_date}</strong></div>
-                <div>Due Date: <strong className="text-text">{invoice.due_date}</strong></div>
+                <div>Kiállítás dátuma: <strong className="text-text">{formatDate(invoice.issue_date)}</strong></div>
+                <div>Fizetési határidő: <strong className="text-text">{formatDate(invoice.due_date)}</strong></div>
               </div>
             </div>
           </div>
@@ -224,7 +242,7 @@ export default function PublicInvoicePage() {
             <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-6 border-b border-border pb-4 mb-3">
               <div className="min-w-0">
                 <span className="text-[11px] uppercase text-muted-text font-bold tracking-wider">
-                  Invoice Number
+                  Számlaszám
                 </span>
                 <div className="text-lg font-extrabold text-text font-mono mt-0.5">
                   {invoice.invoice_number}
@@ -232,26 +250,26 @@ export default function PublicInvoicePage() {
               </div>
               <div className="text-right whitespace-nowrap">
                 <span className="text-[11px] uppercase text-muted-text font-bold tracking-wider">
-                  {isPaid ? "Payment Status" : "Amount Due"}
+                  {isPaid ? "Fizetési állapot" : "Fizetendő összeg"}
                 </span>
                 <div className={`text-xl sm:text-2xl font-extrabold mt-0.5 ${isPaid ? "text-emerald-700" : "text-text"}`}>
-                  {isPaid ? "PAID IN FULL" : formatMoney(amountDue, invoice.currency)}
+                  {isPaid ? "TELJESEN RENDEZVE" : formatMoney(amountDue, invoice.currency)}
                 </div>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-xs">
               <div className="flex justify-between gap-3">
-                <span className="text-muted-text">Issue Date:</span>
-                <strong className="text-text">{invoice.issue_date}</strong>
+                <span className="text-muted-text">Kiállítás dátuma:</span>
+                <strong className="text-text">{formatDate(invoice.issue_date)}</strong>
               </div>
               <div className="flex justify-between gap-3">
-                <span className="text-muted-text">Due Date:</span>
-                <strong className={isPaid ? "text-text" : "text-rose-600"}>{invoice.due_date}</strong>
+                <span className="text-muted-text">Fizetési határidő:</span>
+                <strong className={isPaid ? "text-text" : "text-rose-600"}>{formatDate(invoice.due_date)}</strong>
               </div>
               {invoice.property_address && (
                 <div className="col-span-2 flex items-start gap-3 pt-1">
-                  <span className="text-muted-text shrink-0">Property Ref:</span>
+                  <span className="text-muted-text shrink-0">Ingatlan:</span>
                   <strong className="text-text">{invoice.property_address}</strong>
                 </div>
               )}
@@ -262,7 +280,7 @@ export default function PublicInvoicePage() {
           <section className="invoice-print-section grid grid-cols-1 sm:grid-cols-2 gap-6 bg-background/50 p-5 rounded-xl border border-border">
             <div>
               <span className="text-[11px] font-bold uppercase tracking-wider text-muted-text block mb-1.5">
-                Billed To:
+                Számlázási adatok
               </span>
               <div className="font-bold text-sm text-text font-heading">
                 {invoice.client_name}
@@ -284,7 +302,7 @@ export default function PublicInvoicePage() {
 
             <div>
               <span className="text-[11px] font-bold uppercase tracking-wider text-muted-text block mb-1.5">
-                Service / Property Location:
+                Szolgáltatás / ingatlan helyszíne
               </span>
               {invoice.property_address ? (
                 <div className="text-xs text-text font-medium flex items-start gap-1.5">
@@ -293,7 +311,7 @@ export default function PublicInvoicePage() {
                 </div>
               ) : (
                 <div className="text-xs text-muted-text italic">
-                  Photography & Digital Production Services
+                  Ingatlanfotó és digitális tartalomkészítés
                 </div>
               )}
             </div>
@@ -304,10 +322,10 @@ export default function PublicInvoicePage() {
             <table className="w-full text-left text-xs">
               <thead className="bg-background text-muted-text font-bold uppercase text-[11px] border-b border-border">
                 <tr>
-                  <th className="py-3 px-4">Description</th>
-                  <th className="py-3 px-4 text-center">Qty</th>
-                  <th className="py-3 px-4 text-right">Unit Price</th>
-                  <th className="py-3 px-4 text-right">Amount</th>
+                  <th className="py-3 px-4">Megnevezés</th>
+                  <th className="py-3 px-4 text-center">Mennyiség</th>
+                  <th className="py-3 px-4 text-right">Egységár</th>
+                  <th className="py-3 px-4 text-right">Összeg</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -337,7 +355,7 @@ export default function PublicInvoicePage() {
               {invoice.payment_terms && (
                 <div>
                   <span className="text-[11px] font-bold uppercase tracking-wider text-muted-text block mb-1">
-                    Terms & Conditions:
+                    Fizetési feltételek:
                   </span>
                   <p className="text-xs text-muted-text">
                     {invoice.payment_terms}
@@ -348,7 +366,7 @@ export default function PublicInvoicePage() {
               {invoice.payment_method_instructions && (
                 <div className="invoice-payment-instructions bg-background p-4 rounded-xl border border-border">
                   <span className="text-[11px] font-bold uppercase tracking-wider text-primary block mb-1">
-                    Bank Transfer / Payment Instructions:
+                    Banki átutalási / fizetési információk:
                   </span>
                   <p className="text-xs text-muted-text whitespace-pre-line font-mono">
                     {invoice.payment_method_instructions}
@@ -359,7 +377,7 @@ export default function PublicInvoicePage() {
               {invoice.notes && (
                 <div>
                   <span className="text-[11px] font-bold uppercase tracking-wider text-muted-text block mb-1">
-                    Notes:
+                    Megjegyzés:
                   </span>
                   <p className="text-xs text-muted-text italic">
                     {invoice.notes}
@@ -370,7 +388,7 @@ export default function PublicInvoicePage() {
 
             <div className="w-full sm:w-72 space-y-2 text-xs">
               <div className="flex justify-between text-muted-text">
-                <span>Subtotal:</span>
+                <span>Nettó összeg:</span>
                 <span className="font-semibold text-text">
                   {formatMoney(invoice.subtotal, invoice.currency)}
                 </span>
@@ -378,7 +396,7 @@ export default function PublicInvoicePage() {
 
               {Number(invoice.tax_rate) > 0 && (
                 <div className="flex justify-between text-muted-text">
-                  <span>Tax ({invoice.tax_rate}%):</span>
+                  <span>ÁFA ({invoice.tax_rate}%):</span>
                   <span className="font-semibold text-text">
                     {formatMoney(invoice.tax_amount, invoice.currency)}
                   </span>
@@ -387,7 +405,7 @@ export default function PublicInvoicePage() {
 
               {Number(invoice.discount_amount) > 0 && (
                 <div className="flex justify-between text-muted-text">
-                  <span>Discount:</span>
+                  <span>Kedvezmény:</span>
                   <span className="font-semibold text-rose-500">
                     -{formatMoney(invoice.discount_amount, invoice.currency)}
                   </span>
@@ -395,14 +413,14 @@ export default function PublicInvoicePage() {
               )}
 
               <div className="flex justify-between items-center pt-2.5 border-t border-border text-sm font-bold">
-                <span className="text-text font-heading">Total:</span>
+                <span className="text-text font-heading">Végösszeg:</span>
                 <span className="text-base text-primary font-heading">
                   {formatMoney(invoice.total_amount, invoice.currency)}
                 </span>
               </div>
 
               <div className="flex justify-between text-muted-text pt-1">
-                <span>Amount Paid:</span>
+                <span>Befizetett összeg:</span>
                 <span className="font-semibold text-emerald-600 dark:text-emerald-400">
                   {formatMoney(invoice.amount_paid, invoice.currency)}
                 </span>
@@ -411,7 +429,7 @@ export default function PublicInvoicePage() {
               <div className={`flex justify-between items-center pt-2 border-t border-border font-bold text-sm ${
                 amountDue > 0 ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400"
               }`}>
-                <span>Balance Due:</span>
+                <span>Fennmaradó összeg:</span>
                 <span>{formatMoney(amountDue, invoice.currency)}</span>
               </div>
             </div>
@@ -422,22 +440,22 @@ export default function PublicInvoicePage() {
             <section className="invoice-receipts invoice-print-section pt-4 border-t border-border">
               <h4 className="text-xs font-bold uppercase tracking-wider text-muted-text mb-2 flex items-center gap-1.5">
                 <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                Confirmed Payment Receipts
+                Visszaigazolt fizetések
               </h4>
               <div className="overflow-hidden border border-border rounded-lg text-xs">
                 <table className="w-full text-left">
                   <thead className="bg-background text-muted-text text-[11px]">
                     <tr>
-                      <th className="p-2">Date</th>
-                      <th className="p-2">Method</th>
-                      <th className="p-2">Reference</th>
-                      <th className="p-2 text-right">Amount</th>
+                      <th className="p-2">Dátum</th>
+                      <th className="p-2">Fizetési mód</th>
+                      <th className="p-2">Hivatkozás</th>
+                      <th className="p-2 text-right">Összeg</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
                     {invoice.payments.map((p: any, i: number) => (
                       <tr key={i}>
-                        <td className="p-2 text-muted-text">{p.payment_date}</td>
+                        <td className="p-2 text-muted-text">{formatDate(p.payment_date)}</td>
                         <td className="p-2 text-text capitalize">{p.payment_method?.replace("_", " ")}</td>
                         <td className="p-2 font-mono text-muted-text">{p.transaction_reference || "—"}</td>
                         <td className="p-2 text-right font-semibold text-emerald-600 dark:text-emerald-400">
@@ -453,9 +471,9 @@ export default function PublicInvoicePage() {
 
           {/* Footer note */}
           <footer className="invoice-footer text-center pt-8 border-t border-border text-xs text-muted-text">
-            <p>Thank you for choosing SPS Studio for your real estate media needs.</p>
+            <p>Köszönjük, hogy az SPS Studio szolgáltatásait választotta ingatlanja vizuális megjelenítéséhez.</p>
             <p className="mt-1 text-[11px]">
-              For billing inquiries, please contact us at {studio?.fromEmail || "billing@spsstudio.com"}.
+              Számlázással kapcsolatos kérdés esetén írjon nekünk: {studio?.fromEmail || "billing@spsstudio.com"}.
             </p>
           </footer>
         </article>
@@ -466,42 +484,42 @@ export default function PublicInvoicePage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
           <div className="bg-surface border border-border rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-4">
             <h3 className="text-sm font-bold text-text font-heading">
-              Notify SPS Studio of Payment
+              Fizetés bejelentése
             </h3>
             <p className="text-xs text-muted-text">
-              If you have sent payment via bank wire, ACH, or check, let us know your transfer details below so our accounting team can verify and mark this invoice as paid.
+              Ha átutalással vagy más banki fizetési móddal rendezte a számlát, adja meg az alábbi adatokat, hogy a pénzügy ellenőrizhesse és jóváírhassa a befizetést.
             </p>
 
             {notifySent ? (
               <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-4 text-center space-y-2 text-emerald-600 dark:text-emerald-400">
                 <CheckCircle2 className="w-8 h-8 mx-auto" />
-                <p className="text-xs font-semibold">Payment Notification Sent!</p>
+                <p className="text-xs font-semibold">A fizetési értesítést elküldtük!</p>
               </div>
             ) : (
               <form onSubmit={handleNotifyPayment} className="space-y-3 text-xs">
                 <div>
                   <label className="block font-semibold text-text mb-1">
-                    Bank Reference / Transaction ID
+                    Banki közlemény / tranzakcióazonosító
                   </label>
                   <input
                     type="text"
                     required
                     value={notifyReference}
                     onChange={(e) => setNotifyReference(e.target.value)}
-                    placeholder="e.g. Wire confirmation #, Chase transfer ref"
+                    placeholder="pl. átutalási bizonylat száma vagy tranzakcióazonosító"
                     className="w-full px-3 py-2 bg-background border border-border rounded-lg text-text focus:outline-none focus:ring-1 focus:ring-primary"
                   />
                 </div>
 
                 <div>
                   <label className="block font-semibold text-text mb-1">
-                    Additional Notes
+                    További megjegyzés
                   </label>
                   <textarea
                     rows={2}
                     value={notifyNotes}
                     onChange={(e) => setNotifyNotes(e.target.value)}
-                    placeholder="Sent from Account ending in 4102..."
+                    placeholder="pl. az utalás a 4102 végű számláról indult…"
                     className="w-full px-3 py-2 bg-background border border-border rounded-lg text-text focus:outline-none focus:ring-1 focus:ring-primary"
                   />
                 </div>
@@ -513,15 +531,15 @@ export default function PublicInvoicePage() {
                     size="sm"
                     onClick={() => setShowNotifyModal(false)}
                   >
-                    Cancel
+                    Mégse
                   </Button>
                   <Button
                     type="submit"
-                    variant="default"
+                    variant="primary"
                     size="sm"
                     disabled={notifyLoading}
                   >
-                    {notifyLoading ? "Submitting..." : "Send Confirmation"}
+                    {notifyLoading ? "Küldés…" : "Visszaigazolás küldése"}
                   </Button>
                 </div>
               </form>

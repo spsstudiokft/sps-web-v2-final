@@ -5,7 +5,7 @@ import fs from "fs";
 import path from "path";
 import os from "node:os";
 import bcrypt from "bcryptjs";
-import { db, ensureTestimonialsTable } from "../db.js";
+import { db, ensureChangelogTables, ensureTestimonialsTable } from "../db.js";
 import { uploadMedia, deleteMedia } from "./storage/index.js";
 import { diagnoseAppwriteStorage, createAppwriteUploadSession, getAppwriteConfig, getAppwritePublicUrl } from "./storage/appwrite.js";
 import { initiateR2MultipartUpload, signR2MultipartPart, completeR2MultipartUpload, abortR2MultipartUpload } from "./storage/r2.js";
@@ -768,7 +768,7 @@ adminRouter.get("/exchange-rates", async (req, res) => {
     res.json({ ...payload, cached: false });
   } catch (error) { res.status(503).json({ error: "Az árfolyamforrás átmenetileg nem érhető el." }); }
 });
-const ROLE_MENU_IDS = new Set(["dashboard", "budget", "invoices", "payment_requests", "portfolio", "properties", "projects", "services", "visual_ideas", "pricing", "announcements", "social_links", "faqs", "team", "referrals", "leads", "customers", "clients", "submissions", "marketing_emails", "themes", "settings"]);
+const ROLE_MENU_IDS = new Set(["dashboard", "budget", "invoices", "payment_requests", "portfolio", "properties", "projects", "services", "visual_ideas", "pricing", "announcements", "changelog", "social_links", "faqs", "team", "referrals", "leads", "customers", "clients", "submissions", "marketing_emails", "themes", "settings"]);
 adminRouter.get("/role-menu-permissions", async (_req, res) => {
   try { const result = await db.execute({ sql: "SELECT value FROM settings WHERE key = ? LIMIT 1", args: [ROLE_MENU_PERMISSION_KEY] }); res.json({ value: result.rows[0]?.value || null }); }
   catch { res.status(500).json({ error: "Failed to load role menu permissions" }); }
@@ -3181,6 +3181,49 @@ adminRouter.delete("/faqs/:id", async (req, res) => {
     console.error("Failed to delete FAQ", error);
     res.status(500).json({ error: "Failed to delete FAQ" });
   }
+});
+
+// ==================== CHANGELOG CRUD ====================
+adminRouter.use("/changelog", async (_req, res, next) => {
+  const role = String((_req as any).user?.role || "").toLowerCase().replace(/[_-]/g, "");
+  if (!["superadmin", "admin", "editor", "advertiser"].includes(role)) return res.status(403).json({ error: "Nincs jogosultsága a változásnapló kezeléséhez." });
+  try { await ensureChangelogTables(); next(); }
+  catch (error) { console.error("Failed to initialize changelog", error); res.status(500).json({ error: "Failed to initialize changelog" }); }
+});
+
+adminRouter.get("/changelog", async (_req, res) => {
+  try {
+    const result = await db.execute("SELECT * FROM changelog_entries ORDER BY COALESCE(published_at, created_at) DESC");
+    res.json(result.rows);
+  } catch (error) { console.error("Failed to fetch changelog", error); res.status(500).json({ error: "Failed to fetch changelog" }); }
+});
+
+adminRouter.post("/changelog", async (req, res) => {
+  try {
+    const title = String(req.body?.title || "").trim();
+    const version = String(req.body?.version || "").trim();
+    if (!title || !version) return res.status(400).json({ error: "A verzió és a cím megadása kötelező." });
+    const published = req.body?.is_published === true || Number(req.body?.is_published) === 1;
+    const id = crypto.randomUUID();
+    await db.execute({ sql: "INSERT INTO changelog_entries (id, version, title, summary, content, entry_type, is_published, show_feature, feature_display, published_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", args: [id, version, title, String(req.body?.summary || "").trim(), String(req.body?.content || "").trim(), String(req.body?.entry_type || "feature"), published ? 1 : 0, req.body?.show_feature ? 1 : 0, req.body?.feature_display === "banner" ? "banner" : "modal", published ? new Date().toISOString() : null] });
+    res.status(201).json({ success: true, id });
+  } catch (error: any) { console.error("Failed to create changelog entry", error); res.status(500).json({ error: error.message || "Failed to create changelog entry" }); }
+});
+
+adminRouter.put("/changelog/:id", async (req, res) => {
+  try {
+    const title = String(req.body?.title || "").trim();
+    const version = String(req.body?.version || "").trim();
+    if (!title || !version) return res.status(400).json({ error: "A verzió és a cím megadása kötelező." });
+    const published = req.body?.is_published === true || Number(req.body?.is_published) === 1;
+    await db.execute({ sql: "UPDATE changelog_entries SET version = ?, title = ?, summary = ?, content = ?, entry_type = ?, is_published = ?, show_feature = ?, feature_display = ?, published_at = CASE WHEN ? = 1 AND published_at IS NULL THEN CURRENT_TIMESTAMP WHEN ? = 0 THEN NULL ELSE published_at END, updated_at = CURRENT_TIMESTAMP WHERE id = ?", args: [version, title, String(req.body?.summary || "").trim(), String(req.body?.content || "").trim(), String(req.body?.entry_type || "feature"), published ? 1 : 0, req.body?.show_feature ? 1 : 0, req.body?.feature_display === "banner" ? "banner" : "modal", published ? 1 : 0, published ? 1 : 0, req.params.id] });
+    res.json({ success: true });
+  } catch (error: any) { console.error("Failed to update changelog entry", error); res.status(500).json({ error: error.message || "Failed to update changelog entry" }); }
+});
+
+adminRouter.delete("/changelog/:id", async (req, res) => {
+  try { await db.execute({ sql: "DELETE FROM changelog_entries WHERE id = ?", args: [req.params.id] }); res.json({ success: true }); }
+  catch (error) { console.error("Failed to delete changelog entry", error); res.status(500).json({ error: "Failed to delete changelog entry" }); }
 });
 
 // ==================== TESTIMONIALS CRUD ====================

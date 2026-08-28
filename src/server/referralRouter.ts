@@ -16,6 +16,18 @@ import { db } from "../db.js";
 export const referralRouter = Router();
 export const publicReferralRouter = Router();
 
+// Public status only: registration and portal UI need to know whether an
+// invitation can currently earn rewards without exposing program settings.
+publicReferralRouter.get("/program-status", async (_req, res) => {
+  try {
+    const settings = await getReferralProgramSettings();
+    res.json({ is_active: settings.is_active });
+  } catch (error) {
+    console.error("Failed to fetch public referral program status:", error);
+    res.status(500).json({ is_active: false });
+  }
+});
+
 // =========================================================================
 // 1. GET /api/admin/referrals/dashboard - Full Dashboard Analytics & Data
 // =========================================================================
@@ -446,8 +458,17 @@ publicReferralRouter.get("/validate-code/:code", async (req: any, res) => {
     const referrer = userRes.rows[0] as any;
     const settings = await getReferralProgramSettings();
 
+    if (!settings.is_active) {
+      return res.json({
+        valid: false,
+        program_active: false,
+        message: "A meghívóprogram jelenleg szünetel. A regisztráció meghívókód nélkül is folytatható."
+      });
+    }
+
     res.json({
       valid: true,
+      program_active: true,
       referral_code: cleanCode,
       referrer_name: referrer.name ? referrer.name.split(" ")[0] : "A VIP Client",
       welcome_reward: {

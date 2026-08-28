@@ -133,6 +133,7 @@ export function Sidebar({ isMobileOpen = false, onMobileClose }: SidebarProps) {
         { to: "/admin/visual-ideas", label: "Visual Ideas", translationKey: "admin.nav.visual_ideas", icon: PanelsTopLeft, permissionKey: "visual_ideas" },
         { to: "/admin/pricing", label: "Pricing & Packages", translationKey: "admin.nav.pricing", icon: Tag, permissionKey: "pricing" },
         { to: "/admin/info-bar", label: "Announcement Bar", translationKey: "admin.nav.info_bar", icon: Megaphone, permissionKey: "announcements" },
+        { to: "/admin/changelog", label: "Változásnapló", translationKey: "admin.nav.changelog", icon: Megaphone, permissionKey: "changelog" },
         { to: "/admin/social-links", label: "Social Popup Tree", translationKey: "admin.nav.social_links", icon: Share2, permissionKey: "social_links" },
         { 
           to: "/admin/faqs", 

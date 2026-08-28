@@ -69,6 +69,7 @@ export interface EmailSenderConfig {
   studioName: string;
   brandDisplay: "logo_only" | "logo_and_name" | "name_only";
   logoUrl: string;
+  lightLogoUrl: string;
   logoAltText: string;
 }
 
@@ -126,6 +127,9 @@ export async function getEmailSenderConfig(): Promise<EmailSenderConfig> {
   const absoluteLogoUrl = configuredLogoUrl.startsWith("/") && appUrl
     ? `${appUrl}${configuredLogoUrl}`
     : configuredLogoUrl;
+  const absoluteLightLogoUrl = fallbackLogoUrl.startsWith("/") && appUrl
+    ? `${appUrl}${fallbackLogoUrl}`
+    : fallbackLogoUrl;
 
   return {
     fromEmail,
@@ -136,6 +140,7 @@ export async function getEmailSenderConfig(): Promise<EmailSenderConfig> {
     studioName,
     brandDisplay: requestedBrandDisplay,
     logoUrl: absoluteLogoUrl,
+    lightLogoUrl: absoluteLightLogoUrl,
     logoAltText: logoAltText || studioName,
   };
 }

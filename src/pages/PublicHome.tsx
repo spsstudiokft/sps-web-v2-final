@@ -25,6 +25,7 @@ import { getNormalizedGallery } from "../lib/mediaUtils";
 import { parseVisualIdeas } from "../lib/visualIdeas";
 import { MotionConfig } from "motion/react";
 import { PublicScrollAnimations } from "../components/public/PublicScrollAnimations";
+import { FeatureAnnouncement } from "../components/public/FeatureAnnouncement";
 
 type PublicBootstrapData = {
   settings: SiteSettings;
@@ -350,6 +351,7 @@ function PublicHomeContent({ settings, portfolio, services, bootstrap, loading }
           isOpen={isSocialPopupOpen}
           onClose={() => setIsSocialPopupOpen(false)}
         />
+        <FeatureAnnouncement />
       </div>
       </div>
       </MotionConfig>

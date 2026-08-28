@@ -6,7 +6,8 @@ import { createZip, parseGalleryItems, prepareGalleryFile } from "./services/gal
 import { 
   getClientReferralProfile, 
   redeemRewardVoucher, 
-  ensureUserReferralCode 
+  ensureUserReferralCode,
+  getReferralProgramSettings
 } from "./services/referralService.js";
 import { sendTransactionalEmail, getEmailSenderConfig } from "./services/emailService.js";
 import sharp from "sharp";
@@ -1045,6 +1046,11 @@ clientRouter.post("/referrals/invite-email", async (req, res) => {
     const user = (req as any).user;
     if (!user || !user.id) {
       return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const referralSettings = await getReferralProgramSettings();
+    if (!referralSettings.is_active) {
+      return res.status(409).json({ error: "A VIP meghívóprogram jelenleg szünetel, ezért új meghívó nem küldhető." });
     }
 
     const { recipient_email, recipient_name, custom_message } = req.body;

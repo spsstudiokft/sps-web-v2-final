@@ -49,10 +49,13 @@ export default function ClientRegister() {
   );
   const [referralInfo, setReferralInfo] = useState<{
     valid: boolean;
+    program_active?: boolean;
+    message?: string;
     referrer_name?: string;
     welcome_reward?: { type: string; value: number; description: string };
   } | null>(null);
   const [validatingRef, setValidatingRef] = useState(false);
+  const [referralProgramActive, setReferralProgramActive] = useState<boolean | null>(null);
   const [showReferralInput, setShowReferralInput] = useState(
     Boolean(searchParams.get("ref") || searchParams.get("referral") || searchParams.get("referral_code"))
   );
@@ -91,6 +94,19 @@ export default function ClientRegister() {
 
     return () => clearTimeout(timer);
   }, [referralCode]);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/public/referrals/program-status")
+      .then((res) => res.ok ? res.json() : null)
+      .then((data) => {
+        if (!cancelled && typeof data?.is_active === "boolean") setReferralProgramActive(data.is_active);
+      })
+      .catch(() => {
+        // Keep registration available if the informational status cannot load.
+      });
+    return () => { cancelled = true; };
+  }, []);
 
   // Countdown timer for resend cooldown
   useEffect(() => {
@@ -385,7 +401,9 @@ export default function ClientRegister() {
                           Van kupon- vagy meghívókódod?
                         </span>
                         <span className="mt-0.5 block text-[11px] leading-relaxed text-muted-text">
-                          Add meg regisztráció előtt, hogy a hozzá tartozó kedvezményt jóváírhassuk.
+                          {referralProgramActive === false
+                            ? "A meghívóprogram jelenleg szünetel; regisztrációt meghívókód nélkül is folytathatod."
+                            : "Add meg regisztráció előtt, hogy a hozzá tartozó kedvezményt jóváírhassuk."}
                         </span>
                       </span>
                       <span className="text-[11px] font-semibold text-primary transition-transform group-hover:translate-x-0.5">Megadás</span>
@@ -413,8 +431,17 @@ export default function ClientRegister() {
                       placeholder="e.g. REF-ALEX9K4M"
                       className="border-amber-400/45 bg-background/80 text-xs font-mono uppercase tracking-wider focus-visible:ring-amber-400/60"
                     />
+                    {referralProgramActive === false && (
+                      <p className="flex items-start gap-1.5 text-[11px] leading-relaxed text-amber-700 dark:text-amber-300">
+                        <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                        <span>A VIP meghívóprogram jelenleg szünetel, ezért az új meghívókódokhoz most nem jár kedvezmény vagy jutalom.</span>
+                      </p>
+                    )}
+                    {referralInfo?.program_active === false && referralInfo.message && (
+                      <p className="text-[11px] text-amber-600 dark:text-amber-400">{referralInfo.message}</p>
+                    )}
                     {referralCode.trim() && !validatingRef && referralInfo && !referralInfo.valid && (
-                      <p className="text-[11px] text-amber-600 dark:text-amber-400">
+                      !referralInfo.message && <p className="text-[11px] text-amber-600 dark:text-amber-400">
                         Referral code not found, but you can still proceed with registration.
                       </p>
                     )}

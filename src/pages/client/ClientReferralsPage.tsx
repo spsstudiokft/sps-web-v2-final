@@ -180,6 +180,24 @@ export default function ClientReferralsPage() {
 
   const { current_tier, next_tier, all_tiers, rewards, recent_referrals } = profile;
 
+  if (!profile.program_settings?.is_active) {
+    return (
+      <div className="mx-auto max-w-2xl py-8">
+        <Card className="overflow-hidden border-amber-500/35 bg-gradient-to-br from-amber-500/10 via-surface to-primary/5 shadow-xs">
+          <CardContent className="p-6 sm:p-8 text-center">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-500/20 text-amber-700 dark:text-amber-300">
+              <Info className="h-6 w-6" />
+            </div>
+            <h1 className="font-heading text-xl font-bold text-text">A VIP meghívóprogram szünetel</h1>
+            <p className="mx-auto mt-2 max-w-lg text-sm leading-relaxed text-muted-text">
+              Az új meghívások, kedvezmények és jutalmak kiadása átmenetileg nem aktív. Meglévő ügyfélfiókját és projektjeit ettől függetlenül változatlanul használhatja.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8 animate-in fade-in duration-200">
       {/* Header */}

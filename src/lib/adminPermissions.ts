@@ -20,6 +20,7 @@ export const ADMIN_MENU_PERMISSIONS: AdminMenuPermission[] = [
   { id: "visual_ideas", label: "Visual ideas", description: "Visual-ideas board content", defaultRoles: ["admin", "editor", "viewer"], matches: route("/admin/visual-ideas") },
   { id: "pricing", label: "Pricing & packages", description: "Pricing plans, bundles and extra services", defaultRoles: ["admin", "editor", "viewer"], matches: route("/admin/pricing") },
   { id: "announcements", label: "Announcement bar", description: "Information-bar messages and categories", defaultRoles: ["admin", "editor", "viewer"], matches: (path) => route("/admin/info-bar")(path) || route("/admin/announcements")(path) },
+  { id: "changelog", label: "Changelog", description: "Public release notes and feature announcements", defaultRoles: ["admin", "editor"], matches: route("/admin/changelog") },
   { id: "social_links", label: "Social links", description: "Social popup tree and public links", defaultRoles: ["admin", "editor", "viewer"], matches: route("/admin/social-links") },
   { id: "faqs", label: "FAQs", description: "Questions, answers, testimonials and FAQ categories", defaultRoles: ["admin", "editor", "viewer"], matches: (path) => route("/admin/faqs")(path) || route("/admin/testimonials")(path) },
   { id: "team", label: "Team & invites", description: "Team members, roles and invitations", defaultRoles: ["admin"], matches: route("/admin/team") },
@@ -37,7 +38,7 @@ export type RoleMenuPermissions = Record<ConfigurableAdminRole, string[]>;
 const defaultPermissionsFor = (role: ConfigurableAdminRole) => {
   if (role === "video_editor") return ["dashboard", "portfolio", "projects", "calendar", "submissions"];
   if (role === "real_estate_agent") return ["dashboard", "properties", "projects", "calendar", "leads", "customers", "clients", "submissions"];
-  if (role === "advertiser") return ["dashboard", "portfolio", "properties", "projects", "services", "visual_ideas", "pricing", "announcements", "social_links", "faqs", "leads", "submissions", "marketing_emails"];
+  if (role === "advertiser") return ["dashboard", "portfolio", "properties", "projects", "services", "visual_ideas", "pricing", "announcements", "changelog", "social_links", "faqs", "leads", "submissions", "marketing_emails"];
   return ADMIN_MENU_PERMISSIONS.filter((item) => item.defaultRoles.includes(role)).map((item) => item.id);
 };
 export function defaultRoleMenuPermissions(): RoleMenuPermissions { return { admin: defaultPermissionsFor("admin"), editor: defaultPermissionsFor("editor"), video_editor: defaultPermissionsFor("video_editor"), real_estate_agent: defaultPermissionsFor("real_estate_agent"), advertiser: defaultPermissionsFor("advertiser"), viewer: defaultPermissionsFor("viewer") }; }

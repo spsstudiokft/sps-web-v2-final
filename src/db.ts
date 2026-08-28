@@ -173,6 +173,33 @@ export async function ensureTestimonialsTable(): Promise<void> {
   await testimonialsTablePromise;
 }
 
+let changelogTablesPromise: Promise<void> | null = null;
+
+export async function ensureChangelogTables(): Promise<void> {
+  if (!changelogTablesPromise) {
+    changelogTablesPromise = getDb().execute(`
+      CREATE TABLE IF NOT EXISTS changelog_entries (
+        id TEXT PRIMARY KEY,
+        version TEXT NOT NULL,
+        title TEXT NOT NULL,
+        summary TEXT NOT NULL DEFAULT '',
+        content TEXT NOT NULL DEFAULT '',
+        entry_type TEXT NOT NULL DEFAULT 'feature',
+        is_published INTEGER NOT NULL DEFAULT 0,
+        show_feature INTEGER NOT NULL DEFAULT 0,
+        feature_display TEXT NOT NULL DEFAULT 'modal',
+        published_at DATETIME,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `).then(() => undefined).catch((error) => {
+      changelogTablesPromise = null;
+      throw error;
+    });
+  }
+  await changelogTablesPromise;
+}
+
 // Wrapper for execute
 export const db = {
   execute: async (stmt: any) => {
@@ -2178,6 +2205,7 @@ export const setupDatabase = async () => {
 
   // Public testimonials / recommendations shown before the FAQ section.
   await ensureTestimonialsTable();
+  await ensureChangelogTables();
 
   // Themes table for storing custom and preset themes
   await client.execute(`

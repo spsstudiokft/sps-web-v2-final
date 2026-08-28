@@ -376,6 +376,13 @@ export async function processRegistrationReferral(options: {
     return { success: false, error: "No referral code provided" };
   }
 
+  // A paused program must not create referral links, vouchers, credits, or
+  // notification emails even if an older invitation URL is still in use.
+  const settings = await getReferralProgramSettings();
+  if (!settings.is_active) {
+    return { success: false, error: "Referral program is currently paused" };
+  }
+
   const cleanCode = referralCode.trim().toUpperCase();
 
   // 1. Find referrer by referral code
@@ -406,7 +413,6 @@ export async function processRegistrationReferral(options: {
   }
 
   // 4. Check fraud / IP rules
-  const settings = await getReferralProgramSettings();
   let isFraud = false;
   if (settings.fraud_ip_check && ipAddress) {
     const ipCountRes = await db.execute({

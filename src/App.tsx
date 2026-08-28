@@ -64,6 +64,8 @@ const PropertyListingLoginPage = lazy(() => import("./pages/PropertyListingLogin
 const PublicInvoicePage = lazy(() => import("./pages/PublicInvoicePage"));
 const PortfolioGalleryPage = lazy(() => import("./pages/PortfolioGalleryPage"));
 const PropertiesPage = lazy(() => import("./pages/PropertiesPage"));
+const ChangelogPage = lazy(() => import("./pages/ChangelogPage"));
+const AdminChangelogPage = lazy(() => import("./pages/admin/ChangelogPage"));
 
 const ProtectedClientRoute = ({ children }: { children: ReactNode }) => {
   const { token, user } = useAuth();
@@ -141,6 +143,7 @@ export default function App() {
               <Routes>
               <Route element={<CookieConsentProvider><ComingSoonGate /></CookieConsentProvider>}>
                 <Route path="/" element={<PublicHome />} />
+                <Route path="/changelog" element={<ChangelogPage />} />
                 <Route path="/portfolio/:slug" element={<PortfolioGalleryPage />} />
                 <Route path="/properties" element={<PropertiesPage />} />
                 <Route path="/properties/:id" element={<PropertiesPage />} />
@@ -221,6 +224,7 @@ export default function App() {
                 <Route path="projects" element={<ProjectsPage />} />
                 <Route path="calendar" element={<CalendarPage />} />
                 <Route path="marketing-emails" element={<MarketingEmailsPage />} />
+                <Route path="changelog" element={<AdminChangelogPage />} />
                 <Route path="*" element={<ErrorPage status={404} embedded />} />
               </Route>
 

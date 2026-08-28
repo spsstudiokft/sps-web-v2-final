@@ -193,7 +193,7 @@ export function Header({ settings, hasServices = true, hasPortfolio = true, hasP
 
   return (
     <header className={`aero-header fixed w-full top-0 px-4 pt-4 md:pt-6 z-50 transition-transform duration-300 ${isVisible ? "translate-y-0" : "-translate-y-full"} pointer-events-none`}>
-      <div className="aero-nav max-w-7xl mx-auto pointer-events-auto h-16 md:h-20 px-4 md:px-6 flex items-center justify-between">
+      <div className="aero-nav relative z-10 max-w-7xl mx-auto pointer-events-auto h-16 md:h-20 px-4 md:px-6 flex items-center justify-between">
         <Link
           to="/"
           onClick={(event) => { if (!isStandalonePage) { event.preventDefault(); window.scrollTo({ top: 0, behavior: "smooth" }); } }}
@@ -300,7 +300,7 @@ export function Header({ settings, hasServices = true, hasPortfolio = true, hasP
       </div>
 
       {/* Multi-Category Configurable Announcement Info Bar */}
-      <div className="max-w-7xl mx-auto w-full">
+      <div className="relative z-0 max-w-7xl mx-auto w-full">
         <InfoBar />
       </div>
 

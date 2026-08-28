@@ -3,7 +3,7 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import { checkBotId } from "botid/server";
-import { db, ensureTestimonialsTable, getDb, isLocalDemoDatabase, LOCAL_DEMO_ADMIN } from "../db.js";
+import { db, ensureChangelogTables, ensureTestimonialsTable, getDb, isLocalDemoDatabase, LOCAL_DEMO_ADMIN } from "../db.js";
 import { 
   processRegistrationReferral, 
   ensureUserReferralCode 
@@ -2058,6 +2058,28 @@ router.get("/public/testimonials", async (_req, res) => {
   } catch (error) {
     console.error("Testimonials fetch error:", error);
     res.json([]);
+  }
+});
+
+router.get("/public/changelog", async (_req, res) => {
+  try {
+    await ensureChangelogTables();
+    const result = await db.execute("SELECT id, version, title, summary, content, entry_type, published_at, created_at FROM changelog_entries WHERE is_published = 1 ORDER BY COALESCE(published_at, created_at) DESC");
+    res.json(result.rows);
+  } catch (error) {
+    console.error("Changelog fetch error:", error);
+    res.json([]);
+  }
+});
+
+router.get("/public/changelog/featured", async (_req, res) => {
+  try {
+    await ensureChangelogTables();
+    const result = await db.execute("SELECT id, version, title, summary, content, entry_type, feature_display, published_at, updated_at FROM changelog_entries WHERE is_published = 1 AND show_feature = 1 ORDER BY updated_at DESC LIMIT 1");
+    res.json(result.rows[0] || null);
+  } catch (error) {
+    console.error("Featured changelog fetch error:", error);
+    res.json(null);
   }
 });
 
