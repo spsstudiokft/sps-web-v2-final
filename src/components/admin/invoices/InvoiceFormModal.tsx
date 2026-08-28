@@ -816,7 +816,7 @@ export function InvoiceFormModal({
           <div className="flex items-center gap-2">
             <Button
               type="button"
-              variant="default"
+              variant="primary"
               size="sm"
               onClick={handleSubmit}
               disabled={loading}
