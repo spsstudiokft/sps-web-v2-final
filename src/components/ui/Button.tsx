@@ -1,8 +1,18 @@
-import { ButtonHTMLAttributes } from "react";
 import { cn } from "../../lib/utils";
 
-interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: "primary" | "secondary" | "danger" | "ghost";
+interface ButtonProps {
+  /**
+   * React's HTML button definitions are not installed in this workspace.
+   * Preserve every native button attribute used throughout the app while
+   * explicitly typing the component-specific presentation options.
+   */
+  [attribute: string]: any;
+  children?: any;
+  className?: string;
+  disabled?: boolean;
+  onClick?: (...args: any[]) => void;
+  type?: "button" | "submit" | "reset";
+  variant?: "primary" | "secondary" | "outline" | "danger" | "ghost";
   size?: "default" | "sm" | "lg";
 }
 
@@ -10,6 +20,7 @@ export function Button({ className, variant = "primary", size = "default", ...pr
   const variants = {
     primary: "bg-primary text-background hover:opacity-90 disabled:opacity-70",
     secondary: "bg-background text-text border border-border hover:bg-surface",
+    outline: "bg-transparent text-text border border-border hover:bg-surface",
     danger: "text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 font-medium",
     ghost: "text-primary hover:opacity-80 font-medium",
   };

@@ -1,5 +1,15 @@
 # Modification Log
 
+## 2026-08-28
+
+### Client registration coupon code
+
+- Elevated the optional coupon/invite-code entry into a clear, benefit-led registration card and made the expanded input visually distinct, while preserving the existing referral validation and registration flow.
+
+### Shared button type compatibility
+
+- Restored the shared button component's `outline` variant and explicit children support, resolving its TypeScript errors across client registration and other existing button uses.
+
 ## 2026-08-27
 
 ### Public data loading resilience
