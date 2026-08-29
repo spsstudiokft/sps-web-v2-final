@@ -3,13 +3,13 @@ import { db } from "../db.js";
 const SETTINGS_KEY = "admin_role_menu_permissions";
 const CONFIGURABLE_ROLES = new Set(["admin", "editor", "videoeditor", "realestateagent", "advertiser", "viewer"]);
 const MENU_IDS = new Set([
-  "dashboard", "payment_requests", "budget", "invoices", "portfolio", "properties", "projects", "calendar", "services", "visual_ideas", "pricing", "announcements", "social_links", "faqs", "team", "referrals", "leads", "customers", "clients", "submissions", "marketing_emails", "themes", "settings",
+  "dashboard", "payment_requests", "budget", "invoices", "portfolio", "media_library", "properties", "projects", "calendar", "services", "visual_ideas", "pricing", "announcements", "social_links", "faqs", "team", "referrals", "leads", "customers", "clients", "submissions", "marketing_emails", "themes", "settings",
 ]);
 
 const DEFAULT_PERMISSIONS: Record<string, string[]> = {
   admin: [...MENU_IDS],
   editor: ["dashboard", "payment_requests", "portfolio", "properties", "projects", "calendar", "services", "visual_ideas", "pricing", "announcements", "social_links", "faqs", "leads", "customers", "clients", "submissions", "marketing_emails"],
-  video_editor: ["dashboard", "portfolio", "projects", "calendar", "submissions"],
+  video_editor: ["dashboard", "portfolio", "media_library", "projects", "calendar", "submissions"],
   real_estate_agent: ["dashboard", "properties", "projects", "calendar", "leads", "customers", "clients", "submissions"],
   advertiser: ["dashboard", "portfolio", "properties", "projects", "services", "visual_ideas", "pricing", "announcements", "social_links", "faqs", "leads", "submissions", "marketing_emails"],
   viewer: ["dashboard", "portfolio", "properties", "projects", "calendar", "services", "visual_ideas", "pricing", "announcements", "social_links", "faqs", "submissions"],
@@ -22,6 +22,7 @@ async function permissionForAdminEndpoint(req: any): Promise<Permission> {
   if (/^\/(verify|role-menu-permissions)(?:\/|$)/.test(path)) return null;
   if (/^\/settings(?:\/|$)/.test(path)) return req.method === "GET" ? [...MENU_IDS] : "settings";
   if (/^\/(legal-documents|themes|translations|branding)(?:\/|$)/.test(path)) return "settings";
+  if (/^\/media-library(?:\/|$)/.test(path)) return "media_library";
   if (/^\/(media|storage)(?:\/|$)/.test(path)) return ["portfolio", "projects", "properties"];
   if (/^\/(categories|portfolio)(?:\/|$)/.test(path)) return "portfolio";
   if (/^\/property-listings(?:\/|$)/.test(path)) return "properties";

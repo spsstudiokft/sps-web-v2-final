@@ -13,6 +13,7 @@ export const ADMIN_MENU_PERMISSIONS: AdminMenuPermission[] = [
   { id: "budget", label: "Budget manager", description: "Budget entries and financial reports", defaultRoles: ["admin"], matches: (path, search) => path === "/admin/budget" && !search.includes("tab=invoices") && !search.includes("tab=payment-requests") },
   { id: "invoices", label: "Invoices & payments", description: "Invoices, payment links and receivables", defaultRoles: ["admin"], matches: (path, search) => path === "/admin/invoices" || (path === "/admin/budget" && search.includes("tab=invoices")) },
   { id: "portfolio", label: "Portfolio", description: "Published galleries and portfolio media", defaultRoles: ["admin", "editor", "viewer"], matches: route("/admin/portfolio") },
+  { id: "media_library", label: "Shared media library", description: "Internal Synology media folders for the studio team", defaultRoles: ["admin"], matches: route("/admin/media-library") },
   { id: "properties", label: "Property listings", description: "Public real-estate listing catalog", defaultRoles: ["admin", "editor", "viewer"], matches: route("/admin/property-listings") },
   { id: "projects", label: "Projects", description: "Client projects and delivery workflows", defaultRoles: ["admin", "editor", "viewer"], matches: route("/admin/projects") },
   { id: "calendar", label: "Calendar", description: "Shared team schedule and internal projects", defaultRoles: ["admin", "editor", "viewer"], matches: route("/admin/calendar") },
@@ -36,7 +37,7 @@ export const ADMIN_MENU_PERMISSIONS: AdminMenuPermission[] = [
 
 export type RoleMenuPermissions = Record<ConfigurableAdminRole, string[]>;
 const defaultPermissionsFor = (role: ConfigurableAdminRole) => {
-  if (role === "video_editor") return ["dashboard", "portfolio", "projects", "calendar", "submissions"];
+  if (role === "video_editor") return ["dashboard", "portfolio", "media_library", "projects", "calendar", "submissions"];
   if (role === "real_estate_agent") return ["dashboard", "properties", "projects", "calendar", "leads", "customers", "clients", "submissions"];
   if (role === "advertiser") return ["dashboard", "portfolio", "properties", "projects", "services", "visual_ideas", "pricing", "announcements", "changelog", "social_links", "faqs", "leads", "submissions", "marketing_emails"];
   return ADMIN_MENU_PERMISSIONS.filter((item) => item.defaultRoles.includes(role)).map((item) => item.id);

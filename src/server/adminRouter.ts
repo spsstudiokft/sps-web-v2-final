@@ -13,6 +13,7 @@ import { translationService } from "./services/translationService.js";
 import { getAllLegalDocuments, saveLegalDocument } from "./services/legalDocumentService.js";
 import { scheduleGoogleReviewCampaign } from "./services/googleReviewService.js";
 import { scheduleCalendarReminder } from "./services/calendarReminderService.js";
+import { browseSynologyMedia, clearSynologyEditorAccess, getSynologyEditorAccesses, saveSynologyEditorAccess, synologyMediaAccess } from "./services/synologyMediaLibraryService.js";
 import { getAppUrl } from "./appUrl.js";
 import { archivePublishedListing } from "./services/internetArchiveService.js";
 import { createPortfolioSlug } from "./portfolioSlug.js";
@@ -45,6 +46,50 @@ import {
 import { issuePortalInviteCoupon } from "./services/referralService.js";
 
 const adminRouter = Router();
+
+// Internal shared Synology Drive library. Only admins and video editors can
+// reach it, and the service enforces a configured root path per account.
+const canManageSynologyEditorAccess = (user: any) => ["admin", "superadmin"].includes(String(user?.role || "").toLowerCase().replace(/[_-]/g, ""));
+
+adminRouter.get("/media-library/status", async (req: any, res) => {
+  try {
+    const access = await synologyMediaAccess(req.user);
+    res.json({ configured: true, available: true, ...access });
+  } catch (error: any) {
+    const message = error?.message || "A médiatár nem érhető el.";
+    const forbidden = /jogosults/i.test(message);
+    res.status(forbidden ? 403 : 200).json({ configured: false, available: false, error: message });
+  }
+});
+
+adminRouter.get("/media-library/editor-access", async (req: any, res) => {
+  if (!canManageSynologyEditorAccess(req.user)) return res.status(403).json({ error: "Csak admin kezelheti a vágói médiatár-hozzáféréseket." });
+  try { res.json(await getSynologyEditorAccesses()); }
+  catch (error: any) { res.status(500).json({ error: error?.message || "A vágói hozzáférések nem tölthetők be." }); }
+});
+
+adminRouter.put("/media-library/editor-access/:userId", async (req: any, res) => {
+  if (!canManageSynologyEditorAccess(req.user)) return res.status(403).json({ error: "Csak admin kezelheti a vágói médiatár-hozzáféréseket." });
+  try { res.json({ roots: await saveSynologyEditorAccess(String(req.params.userId || ""), req.body?.roots, String(req.user?.id || "")) }); }
+  catch (error: any) { res.status(400).json({ error: error?.message || "A vágói hozzáférés nem menthető." }); }
+});
+
+adminRouter.delete("/media-library/editor-access/:userId", async (req: any, res) => {
+  if (!canManageSynologyEditorAccess(req.user)) return res.status(403).json({ error: "Csak admin kezelheti a vágói médiatár-hozzáféréseket." });
+  try { await clearSynologyEditorAccess(String(req.params.userId || "")); res.json({ success: true }); }
+  catch (error: any) { res.status(500).json({ error: error?.message || "A vágói hozzáférés nem törölhető." }); }
+});
+
+adminRouter.get("/media-library/browse", async (req: any, res) => {
+  try {
+    const result = await browseSynologyMedia(req.user, typeof req.query.path === "string" ? req.query.path : undefined);
+    res.json(result);
+  } catch (error: any) {
+    const message = error?.message || "A Synology médiatár nem érhető el.";
+    const forbidden = /jogosults|mappa konfigurációja|vágó fiók/i.test(message);
+    res.status(forbidden ? 403 : 502).json({ error: message });
+  }
+});
 
 const isStrongAdminPassword = (password: string) => password.length >= 8 && /[A-Z]/.test(password) && /[a-z]/.test(password) && /\d/.test(password) && /[^A-Za-z0-9]/.test(password);
 const adminPasswordColumn = (user: any) => String(user.role || "").toLowerCase() === "client" && Boolean(user.admin_role) ? "admin_password_hash" : "password_hash";
@@ -769,7 +814,7 @@ adminRouter.get("/exchange-rates", async (req, res) => {
     res.json({ ...payload, cached: false });
   } catch (error) { res.status(503).json({ error: "Az árfolyamforrás átmenetileg nem érhető el." }); }
 });
-const ROLE_MENU_IDS = new Set(["dashboard", "budget", "invoices", "payment_requests", "portfolio", "properties", "projects", "services", "visual_ideas", "pricing", "announcements", "changelog", "social_links", "faqs", "team", "referrals", "leads", "customers", "clients", "submissions", "marketing_emails", "themes", "settings"]);
+const ROLE_MENU_IDS = new Set(["dashboard", "budget", "invoices", "payment_requests", "portfolio", "media_library", "properties", "projects", "services", "visual_ideas", "pricing", "announcements", "changelog", "social_links", "faqs", "team", "referrals", "leads", "customers", "clients", "submissions", "marketing_emails", "themes", "settings"]);
 adminRouter.get("/role-menu-permissions", async (_req, res) => {
   try { const result = await db.execute({ sql: "SELECT value FROM settings WHERE key = ? LIMIT 1", args: [ROLE_MENU_PERMISSION_KEY] }); res.json({ value: result.rows[0]?.value || null }); }
   catch { res.status(500).json({ error: "Failed to load role menu permissions" }); }

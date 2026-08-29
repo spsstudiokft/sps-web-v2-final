@@ -1,5 +1,17 @@
 # Modification Log
 
+## 2026-08-29
+
+### Synology közös médiatár API-alap
+
+- Elkészült a szerveroldali Synology Drive / File Station API-réteg a közös médiatár állapotának és engedélyezett mappáinak lekérdezéséhez, valamint a mappaböngészéshez.
+- A hozzáférés szerveroldalon csak superadmin, admin és vágó szerepkörnek engedélyezett; a vágók kizárólag környezeti változóban explicit megadott mappákat érhetnek el.
+- A NAS bejelentkezési adatai kizárólag szerveroldali környezeti változókban maradnak.
+- Elkészült az admin felület Közös médiatár oldala, amely csak a felhasználóhoz engedélyezett mappákat böngészi; a fájlok feltöltése és megosztása még nem része ennek a lépésnek.
+- Hiányzó Synology konfiguráció vagy átmenetileg elérhetetlen NAS esetén a felület egyértelmű, nem használható állapotot mutat, és nem indít fájlműveletet.
+- A környezeti változó mintája immár több mappát és e-mailes vagy belső felhasználói azonosítós vágói hozzárendelést bemutató JSON példát is tartalmaz.
+- Az adminok immár a Közös médiatár oldalon kezelhetik a vágók mappajogosultságait; a mentett adatbázis-szabály elsőbbséget kap, a szabály visszaállítható a környezeti JSON-ra.
+
 ## 2026-08-28
 
 ### Ügyfélportál meghívók kuponkóddal
@@ -29,6 +41,7 @@
 
 - A portálmeghívó modal csak sikeres küldés után záródik be; hiba vagy aktív korábbi meghívó esetén a szerver válasza közvetlenül a modalban jelenik meg.
 - Javítva a Turso/LibSQL-kompatibilis aktív meghívó ellenőrzés a normál és tömeges küldésnél.
+- A VIP-portálmeghívó a futáskor is biztonságosan létrehozza a kuponok tábláját, ezért meglévő Turso-adatbázison sem akad el hiányzó migráció miatt.
 
 ### Opcionális projektügyfél
 

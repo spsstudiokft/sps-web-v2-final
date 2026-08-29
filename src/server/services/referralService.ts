@@ -60,7 +60,22 @@ export function generateVoucherCode(prefix: string = "REW"): string {
   return `${prefix}-${crypto.randomBytes(4).toString("hex").toUpperCase()}`;
 }
 
+// Kept here as well as in the startup schema so a long-lived Turso database
+// can safely receive the feature before its next full application bootstrap.
+async function ensurePortalInviteCouponsTable() {
+  await db.execute(`CREATE TABLE IF NOT EXISTS portal_invite_coupons (
+    id TEXT PRIMARY KEY, email TEXT NOT NULL, code TEXT UNIQUE NOT NULL,
+    reward_type TEXT NOT NULL, reward_value REAL NOT NULL DEFAULT 0,
+    currency TEXT DEFAULT 'USD', description TEXT DEFAULT '', status TEXT NOT NULL DEFAULT 'issued',
+    issued_by_id TEXT DEFAULT NULL, expires_at DATETIME DEFAULT NULL,
+    redeemed_by_user_id TEXT DEFAULT NULL, redeemed_at DATETIME DEFAULT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )`);
+  await db.execute("CREATE INDEX IF NOT EXISTS idx_portal_invite_coupons_email_status ON portal_invite_coupons(email, status)");
+}
+
 export async function issuePortalInviteCoupon(email: string, issuedById?: string): Promise<{ code: string; expiresAt: string }> {
+  await ensurePortalInviteCouponsTable();
   const settings = await getReferralProgramSettings();
   if (!settings.is_active) throw new Error("A VIP meghívóprogram jelenleg szünetel.");
   const code = generateVoucherCode("WELCOME");
@@ -70,6 +85,7 @@ export async function issuePortalInviteCoupon(email: string, issuedById?: string
 }
 
 export async function redeemPortalInviteCoupon(code: string, email: string, userId: string): Promise<boolean> {
+  await ensurePortalInviteCouponsTable();
   const settings = await getReferralProgramSettings();
   if (!settings.is_active) return false;
   const found = await db.execute({ sql: `SELECT * FROM portal_invite_coupons WHERE UPPER(code) = ? AND LOWER(email) = ? AND status = 'issued' AND (expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP)`, args: [code.trim().toUpperCase(), email.trim().toLowerCase()] });

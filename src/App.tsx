@@ -66,6 +66,7 @@ const PortfolioGalleryPage = lazy(() => import("./pages/PortfolioGalleryPage"));
 const PropertiesPage = lazy(() => import("./pages/PropertiesPage"));
 const ChangelogPage = lazy(() => import("./pages/ChangelogPage"));
 const AdminChangelogPage = lazy(() => import("./pages/admin/ChangelogPage"));
+const MediaLibraryPage = lazy(() => import("./pages/admin/MediaLibraryPage"));
 
 const ProtectedClientRoute = ({ children }: { children: ReactNode }) => {
   const { token, user } = useAuth();
@@ -205,6 +206,7 @@ export default function App() {
                 <Route path="settings" element={<SettingsPage />} />
                 <Route path="account" element={<AdminAccountSettingsPage />} />
                 <Route path="portfolio" element={<PortfolioPage />} />
+                <Route path="media-library" element={<MediaLibraryPage />} />
                 <Route path="services" element={<ServicesPage />} />
                 <Route path="pricing" element={<PricingPage />} />
                 <Route path="visual-ideas" element={<VisualIdeasPage />} />
