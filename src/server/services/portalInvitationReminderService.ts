@@ -2,8 +2,27 @@ import { db } from "../../db.js";
 import { getAppUrl } from "../appUrl.js";
 import { sendTransactionalEmail } from "./emailService.js";
 
+let reminderColumnReady: Promise<void> | null = null;
+
+/**
+ * Cron functions can run before the application's full database bootstrap on
+ * Vercel. Keep this migration local and idempotent for older Turso databases.
+ */
+async function ensurePortalInviteReminderColumn() {
+  if (!reminderColumnReady) reminderColumnReady = (async () => {
+    try {
+      await db.execute("ALTER TABLE magic_links ADD COLUMN portal_invite_reminder_sent_at DATETIME DEFAULT NULL");
+    } catch (error: any) {
+      const message = String(error?.message || "").toLowerCase();
+      if (!message.includes("duplicate column") && !message.includes("already exists")) throw error;
+    }
+  })();
+  return reminderColumnReady;
+}
+
 /** Sends one reminder after ~36h only for unused, still-valid signup links. */
 export async function processDuePortalInvitationReminders(limit = 25) {
+  await ensurePortalInviteReminderColumn();
   const due = await db.execute({ sql: `SELECT ml.id, ml.email, ml.token, ml.expires_at, COALESCE(NULLIF(TRIM(u.name), ''), SUBSTR(ml.email, 1, INSTR(ml.email, '@') - 1)) AS recipient_name
     FROM magic_links ml LEFT JOIN users u ON LOWER(TRIM(u.email)) = LOWER(TRIM(ml.email))
     WHERE ml.type = 'signup' AND ml.used_at IS NULL AND ml.expires_at > CURRENT_TIMESTAMP

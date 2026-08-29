@@ -11,6 +11,8 @@
 - Hiányzó Synology konfiguráció vagy átmenetileg elérhetetlen NAS esetén a felület egyértelmű, nem használható állapotot mutat, és nem indít fájlműveletet.
 - A környezeti változó mintája immár több mappát és e-mailes vagy belső felhasználói azonosítós vágói hozzárendelést bemutató JSON példát is tartalmaz.
 - Az adminok immár a Közös médiatár oldalon kezelhetik a vágók mappajogosultságait; a mentett adatbázis-szabály elsőbbséget kap, a szabály visszaállítható a környezeti JSON-ra.
+- A Synology mappalistázás első kérése 200 elemre korlátozott, így nagy médiagyökérnél sem próbálja a teljes fájltárat egyszerre betölteni; a hálózati időtúllépés most célzott hibaüzenettel jelenik meg.
+- Javítva a régebbi Turso adatbázisokon futó portálmeghívó-emlékeztető cron: a hiányzó emlékeztető-oszlop a futás előtt automatikusan, idempotens módon létrejön.
 
 ## 2026-08-28
 

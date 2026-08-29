@@ -59,7 +59,13 @@ function resolvedPath(roots: string[], candidate?: string) {
 }
 async function synologyRequest(baseUrl: string, params: Record<string, string>, sid?: string) {
   const query = new URLSearchParams({ ...params, ...(sid ? { _sid: sid } : {}) });
-  const response = await fetch(`${baseUrl}/webapi/entry.cgi?${query.toString()}`, { signal: AbortSignal.timeout(15_000) });
+  let response: Response;
+  try {
+    response = await fetch(`${baseUrl}/webapi/entry.cgi?${query.toString()}`, { signal: AbortSignal.timeout(8_000) });
+  } catch (error: any) {
+    if (error?.name === "TimeoutError" || error?.name === "AbortError") throw new Error("A Synology File Station nem válaszolt időben. Ellenőrizze a NAS külső elérhetőségét és a mappa méretét.");
+    throw new Error("A Synology File Station hálózati kapcsolata sikertelen.");
+  }
   if (!response.ok) throw new Error("A Synology szerver nem válaszol megfelelően.");
   const body = await response.json() as any;
   if (!body?.success) throw new Error("A Synology API elutasította a kérést.");
@@ -86,9 +92,9 @@ export async function browseSynologyMedia(user: { id?: string; email?: string; r
   const { roots } = await synologyMediaAccess(user);
   const folderPath = resolvedPath(roots, requestedPath);
   return withSynologySession(async (baseUrl, sid) => {
-    const data = await synologyRequest(baseUrl, { api: "SYNO.FileStation.List", version: "2", method: "list", folder_path: folderPath, additional: JSON.stringify(["real_path", "size", "time"]) }, sid);
+    const data = await synologyRequest(baseUrl, { api: "SYNO.FileStation.List", version: "2", method: "list", folder_path: folderPath, offset: "0", limit: "200", sort_by: "name", sort_direction: "asc", additional: JSON.stringify(["real_path", "size", "time"]) }, sid);
     const files: SynologyFile[] = (data?.files || []).map((file: any) => ({ name: String(file.name || ""), path: String(file.path || ""), isDir: Boolean(file.isdir), size: Number(file.additional?.size || 0), modifiedAt: Number(file.additional?.time?.mtime || 0) }));
-    return { path: folderPath, roots, files };
+    return { path: folderPath, roots, files, total: Number(data?.total || files.length), isTruncated: Number(data?.total || files.length) > files.length };
   });
 }
 
