@@ -81,11 +81,11 @@ async function withSynologySession<T>(run: (baseUrl: string, sid: string) => Pro
   const account = String(process.env.SYNOLOGY_MEDIA_USERNAME || "");
   const password = String(process.env.SYNOLOGY_MEDIA_PASSWORD || "");
   if (!account || !password) throw new Error("A Synology szolgáltatási fiók nincs konfigurálva.");
-  const auth = await synologyRequest(baseUrl, { api: "SYNO.API.Auth", version: "6", method: "login", account, passwd: password, session: "SPSMediaLibrary", format: "sid" });
+  const auth = await synologyRequest(baseUrl, { api: "SYNO.API.Auth", version: "6", method: "login", account, passwd: password, session: "FileStation", format: "sid" });
   const sid = String(auth?.sid || "");
   if (!sid) throw new Error("A Synology bejelentkezés sikertelen.");
   try { return await run(baseUrl, sid); }
-  finally { await synologyRequest(baseUrl, { api: "SYNO.API.Auth", version: "6", method: "logout", session: "SPSMediaLibrary" }, sid).catch(() => undefined); }
+  finally { await synologyRequest(baseUrl, { api: "SYNO.API.Auth", version: "6", method: "logout", session: "FileStation" }, sid).catch(() => undefined); }
 }
 
 export async function synologyMediaAccess(user: { id?: string; email?: string; role?: string }) {
@@ -97,7 +97,7 @@ export async function browseSynologyMedia(user: { id?: string; email?: string; r
   const { roots } = await synologyMediaAccess(user);
   const folderPath = resolvedPath(roots, requestedPath);
   return withSynologySession(async (baseUrl, sid) => {
-    const data = await synologyRequest(baseUrl, { api: "SYNO.FileStation.List", version: "2", method: "list", folder_path: folderPath, offset: "0", limit: "200", sort_by: "name", sort_direction: "asc", additional: JSON.stringify(["real_path", "size", "time"]) }, sid);
+    const data = await synologyRequest(baseUrl, { api: "SYNO.FileStation.List", version: "2", method: "list", folder_path: folderPath, offset: "0", limit: "50", sort_by: "name", sort_direction: "asc" }, sid);
     const files: SynologyFile[] = (data?.files || []).map((file: any) => ({ name: String(file.name || ""), path: String(file.path || ""), isDir: Boolean(file.isdir), size: Number(file.additional?.size || 0), modifiedAt: Number(file.additional?.time?.mtime || 0) }));
     return { path: folderPath, roots, files, total: Number(data?.total || files.length), isTruncated: Number(data?.total || files.length) > files.length };
   });

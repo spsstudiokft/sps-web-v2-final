@@ -14,6 +14,8 @@
 - A Synology mappalistázás első kérése 200 elemre korlátozott, így nagy médiagyökérnél sem próbálja a teljes fájltárat egyszerre betölteni; a hálózati időtúllépés most célzott hibaüzenettel jelenik meg.
 - Javítva a régebbi Turso adatbázisokon futó portálmeghívó-emlékeztető cron: a hiányzó emlékeztető-oszlop a futás előtt automatikusan, idempotens módon létrejön.
 - A Synology File Station API-kérések formázott POST törzsbe kerültek; így a szolgáltatási jelszó nem URL-paraméter, és a NAS-proxy POST útvonalát használja a fájllista lekéréséhez is.
+- A Synology gyökérmappa első listázása 50 elemre és alap fájladatokra szűkült, hogy ne kérjen költséges fájlméret- és időbélyeg-metaadatokat a NAS-tól.
+- A Synology hitelesítési munkamenet neve a File Station által használt `FileStation` értékre módosult a fájllistázó API-kompatibilitás érdekében.
 
 ## 2026-08-28
 
