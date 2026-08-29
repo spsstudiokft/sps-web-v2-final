@@ -3,6 +3,7 @@ import { db } from "../../db.js";
 type SynologyFile = { name: string; path: string; isDir: boolean; size?: number; modifiedAt?: number };
 
 const allowedMediaRoles = new Set(["superadmin", "admin", "videoeditor"]);
+const fileStationPathCache = new Map<string, string>();
 
 function normalizedRole(value: unknown) { return String(value || "").toLowerCase().replace(/[_-]/g, ""); }
 function configuredBaseUrl() {
@@ -57,11 +58,11 @@ function resolvedPath(roots: string[], candidate?: string) {
   if (!path.startsWith("/") || path.includes("/../") || path.endsWith("/..") || !roots.some((root) => path === root || path.startsWith(`${root}/`))) throw new Error("A kért mappa nem érhető el.");
   return path;
 }
-async function synologyRequest(baseUrl: string, params: Record<string, string>, sid?: string) {
+async function synologyRequest(baseUrl: string, params: Record<string, string>, sid?: string, apiPath = "entry.cgi") {
   const form = new URLSearchParams({ ...params, ...(sid ? { _sid: sid } : {}) });
   let response: Response;
   try {
-    response = await fetch(`${baseUrl}/webapi/entry.cgi`, {
+    response = await fetch(`${baseUrl}/webapi/${apiPath.replace(/^\/+/, "")}`, {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: form,
@@ -75,6 +76,23 @@ async function synologyRequest(baseUrl: string, params: Record<string, string>, 
   const body = await response.json() as any;
   if (!body?.success) throw new Error("A Synology API elutasította a kérést.");
   return body.data;
+}
+
+async function fileStationApiPath(baseUrl: string) {
+  const cached = fileStationPathCache.get(baseUrl);
+  if (cached) return cached;
+  try {
+    const data = await synologyRequest(baseUrl, { api: "SYNO.API.Info", version: "1", method: "query", query: "SYNO.FileStation.List" }, undefined, "query.cgi");
+    const path = String(data?.["SYNO.FileStation.List"]?.path || "").trim().replace(/^\/+/, "");
+    if (path && !path.includes("..") && path.endsWith(".cgi")) {
+      fileStationPathCache.set(baseUrl, path);
+      return path;
+    }
+  } catch {
+    // Modern DSM versions commonly dispatch File Station through entry.cgi.
+  }
+  fileStationPathCache.set(baseUrl, "entry.cgi");
+  return "entry.cgi";
 }
 async function withSynologySession<T>(run: (baseUrl: string, sid: string) => Promise<T>) {
   const baseUrl = configuredBaseUrl();
@@ -97,7 +115,8 @@ export async function browseSynologyMedia(user: { id?: string; email?: string; r
   const { roots } = await synologyMediaAccess(user);
   const folderPath = resolvedPath(roots, requestedPath);
   return withSynologySession(async (baseUrl, sid) => {
-    const data = await synologyRequest(baseUrl, { api: "SYNO.FileStation.List", version: "2", method: "list", folder_path: folderPath, offset: "0", limit: "50", sort_by: "name", sort_direction: "asc" }, sid);
+    const apiPath = await fileStationApiPath(baseUrl);
+    const data = await synologyRequest(baseUrl, { api: "SYNO.FileStation.List", version: "2", method: "list", folder_path: folderPath, offset: "0", limit: "50", sort_by: "name", sort_direction: "asc" }, sid, apiPath);
     const files: SynologyFile[] = (data?.files || []).map((file: any) => ({ name: String(file.name || ""), path: String(file.path || ""), isDir: Boolean(file.isdir), size: Number(file.additional?.size || 0), modifiedAt: Number(file.additional?.time?.mtime || 0) }));
     return { path: folderPath, roots, files, total: Number(data?.total || files.length), isTruncated: Number(data?.total || files.length) > files.length };
   });
