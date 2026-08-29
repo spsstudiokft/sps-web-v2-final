@@ -3,7 +3,6 @@ import { db } from "../../db.js";
 type SynologyFile = { name: string; path: string; isDir: boolean; size?: number; modifiedAt?: number };
 
 const allowedMediaRoles = new Set(["superadmin", "admin", "videoeditor"]);
-const fileStationPathCache = new Map<string, string>();
 
 function normalizedRole(value: unknown) { return String(value || "").toLowerCase().replace(/[_-]/g, ""); }
 function configuredBaseUrl() {
@@ -78,31 +77,16 @@ async function synologyRequest(baseUrl: string, params: Record<string, string>, 
   return body.data;
 }
 
-async function fileStationApiPath(baseUrl: string) {
-  const cached = fileStationPathCache.get(baseUrl);
-  if (cached) return cached;
-  try {
-    const data = await synologyRequest(baseUrl, { api: "SYNO.API.Info", version: "1", method: "query", query: "SYNO.FileStation.List" }, undefined, "query.cgi");
-    const path = String(data?.["SYNO.FileStation.List"]?.path || "").trim().replace(/^\/+/, "");
-    if (path && !path.includes("..") && path.endsWith(".cgi")) {
-      fileStationPathCache.set(baseUrl, path);
-      return path;
-    }
-  } catch {
-    // Modern DSM versions commonly dispatch File Station through entry.cgi.
-  }
-  fileStationPathCache.set(baseUrl, "entry.cgi");
-  return "entry.cgi";
-}
-async function withSynologySession<T>(run: (baseUrl: string, sid: string) => Promise<T>) {
+async function withSynologySession<T>(run: (baseUrl: string, sid: string, synoToken: string) => Promise<T>) {
   const baseUrl = configuredBaseUrl();
   const account = String(process.env.SYNOLOGY_MEDIA_USERNAME || "");
   const password = String(process.env.SYNOLOGY_MEDIA_PASSWORD || "");
   if (!account || !password) throw new Error("A Synology szolgáltatási fiók nincs konfigurálva.");
-  const auth = await synologyRequest(baseUrl, { api: "SYNO.API.Auth", version: "6", method: "login", account, passwd: password, session: "FileStation", format: "sid" });
+  const auth = await synologyRequest(baseUrl, { api: "SYNO.API.Auth", version: "6", method: "login", account, passwd: password, session: "FileStation", format: "sid", enable_syno_token: "yes" });
   const sid = String(auth?.sid || "");
   if (!sid) throw new Error("A Synology bejelentkezés sikertelen.");
-  try { return await run(baseUrl, sid); }
+  const synoToken = String(auth?.synotoken || "");
+  try { return await run(baseUrl, sid, synoToken); }
   finally { await synologyRequest(baseUrl, { api: "SYNO.API.Auth", version: "6", method: "logout", session: "FileStation" }, sid).catch(() => undefined); }
 }
 
@@ -114,9 +98,15 @@ export async function synologyMediaAccess(user: { id?: string; email?: string; r
 export async function browseSynologyMedia(user: { id?: string; email?: string; role?: string }, requestedPath?: string) {
   const { roots } = await synologyMediaAccess(user);
   const folderPath = resolvedPath(roots, requestedPath);
-  return withSynologySession(async (baseUrl, sid) => {
-    const apiPath = await fileStationApiPath(baseUrl);
-    const data = await synologyRequest(baseUrl, { api: "SYNO.FileStation.List", version: "2", method: "list", folder_path: folderPath, offset: "0", limit: "50", sort_by: "name", sort_direction: "asc" }, sid, apiPath);
+  return withSynologySession(async (baseUrl, sid, synoToken) => {
+    // DSM reports File Station List with requestFormat: JSON. String values
+    // must therefore be sent as JSON strings even when the HTTP form is used.
+    const data = await synologyRequest(baseUrl, {
+      api: "SYNO.FileStation.List", version: "2", method: "list",
+      folder_path: JSON.stringify(folderPath), offset: "0", limit: "50",
+      sort_by: JSON.stringify("name"), sort_direction: JSON.stringify("asc"),
+      ...(synoToken ? { SynoToken: synoToken } : {}),
+    }, sid);
     const files: SynologyFile[] = (data?.files || []).map((file: any) => ({ name: String(file.name || ""), path: String(file.path || ""), isDir: Boolean(file.isdir), size: Number(file.additional?.size || 0), modifiedAt: Number(file.additional?.time?.mtime || 0) }));
     return { path: folderPath, roots, files, total: Number(data?.total || files.length), isTruncated: Number(data?.total || files.length) > files.length };
   });

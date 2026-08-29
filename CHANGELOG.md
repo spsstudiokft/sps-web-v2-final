@@ -16,7 +16,8 @@
 - A Synology File Station API-kérések formázott POST törzsbe kerültek; így a szolgáltatási jelszó nem URL-paraméter, és a NAS-proxy POST útvonalát használja a fájllista lekéréséhez is.
 - A Synology gyökérmappa első listázása 50 elemre és alap fájladatokra szűkült, hogy ne kérjen költséges fájlméret- és időbélyeg-metaadatokat a NAS-tól.
 - A Synology hitelesítési munkamenet neve a File Station által használt `FileStation` értékre módosult a fájllistázó API-kompatibilitás érdekében.
-- A Synology integráció a NAS API-információjából oldja fel a File Station listázó végpontját, így eltérő DSM-verzióknál is a megfelelő `entry.cgi` vagy `FileStation/file_share.cgi` útvonalat használja.
+- A Synology integráció a közvetlen File Station-listázást használja; a külön API-útvonal-felderítés el lett távolítva, mert egyes NAS-proxyk ezt a felderítő végpontot nem szolgálják ki külső kérésre.
+- A DSM 7 File Station-listázás most a Synology által jelzett JSON-paraméterformátummal és a bejelentkezéskor kapott `SynoToken` értékkel fut, ami a védett DSM API-k követelménye lehet.
 
 ## 2026-08-28
 
