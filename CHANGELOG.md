@@ -13,6 +13,7 @@
 - Az adminok immár a Közös médiatár oldalon kezelhetik a vágók mappajogosultságait; a mentett adatbázis-szabály elsőbbséget kap, a szabály visszaállítható a környezeti JSON-ra.
 - A Synology mappalistázás első kérése 200 elemre korlátozott, így nagy médiagyökérnél sem próbálja a teljes fájltárat egyszerre betölteni; a hálózati időtúllépés most célzott hibaüzenettel jelenik meg.
 - Javítva a régebbi Turso adatbázisokon futó portálmeghívó-emlékeztető cron: a hiányzó emlékeztető-oszlop a futás előtt automatikusan, idempotens módon létrejön.
+- A Synology File Station API-kérések formázott POST törzsbe kerültek; így a szolgáltatási jelszó nem URL-paraméter, és a NAS-proxy POST útvonalát használja a fájllista lekéréséhez is.
 
 ## 2026-08-28
 

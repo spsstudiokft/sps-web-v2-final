@@ -58,10 +58,15 @@ function resolvedPath(roots: string[], candidate?: string) {
   return path;
 }
 async function synologyRequest(baseUrl: string, params: Record<string, string>, sid?: string) {
-  const query = new URLSearchParams({ ...params, ...(sid ? { _sid: sid } : {}) });
+  const form = new URLSearchParams({ ...params, ...(sid ? { _sid: sid } : {}) });
   let response: Response;
   try {
-    response = await fetch(`${baseUrl}/webapi/entry.cgi?${query.toString()}`, { signal: AbortSignal.timeout(8_000) });
+    response = await fetch(`${baseUrl}/webapi/entry.cgi`, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: form,
+      signal: AbortSignal.timeout(8_000),
+    });
   } catch (error: any) {
     if (error?.name === "TimeoutError" || error?.name === "AbortError") throw new Error("A Synology File Station nem válaszolt időben. Ellenőrizze a NAS külső elérhetőségét és a mappa méretét.");
     throw new Error("A Synology File Station hálózati kapcsolata sikertelen.");
