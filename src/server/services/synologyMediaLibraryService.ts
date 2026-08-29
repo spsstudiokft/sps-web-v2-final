@@ -57,13 +57,22 @@ function resolvedPath(roots: string[], candidate?: string) {
   if (!path.startsWith("/") || path.includes("/../") || path.endsWith("/..") || !roots.some((root) => path === root || path.startsWith(`${root}/`))) throw new Error("A kért mappa nem érhető el.");
   return path;
 }
-async function synologyRequest(baseUrl: string, params: Record<string, string>, sid?: string, apiPath = "entry.cgi") {
+type SynologyResponse = { data: any; sessionCookie: string };
+
+function sessionCookieFrom(response: Response) {
+  const headers: any = response.headers;
+  const raw = typeof headers.getSetCookie === "function" ? headers.getSetCookie().join("; ") : headers.get("set-cookie") || "";
+  const match = String(raw).match(/(?:^|[,\s])id=([^;,\s]+)/);
+  return match ? `id=${match[1]}` : "";
+}
+
+async function synologyRequest(baseUrl: string, params: Record<string, string>, sid?: string, apiPath = "entry.cgi", requestHeaders: Record<string, string> = {}): Promise<SynologyResponse> {
   const form = new URLSearchParams({ ...params, ...(sid ? { _sid: sid } : {}) });
   let response: Response;
   try {
     response = await fetch(`${baseUrl}/webapi/${apiPath.replace(/^\/+/, "")}`, {
       method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      headers: { "Content-Type": "application/x-www-form-urlencoded", ...requestHeaders },
       body: form,
       signal: AbortSignal.timeout(8_000),
     });
@@ -74,20 +83,23 @@ async function synologyRequest(baseUrl: string, params: Record<string, string>, 
   if (!response.ok) throw new Error("A Synology szerver nem válaszol megfelelően.");
   const body = await response.json() as any;
   if (!body?.success) throw new Error("A Synology API elutasította a kérést.");
-  return body.data;
+  return { data: body.data, sessionCookie: sessionCookieFrom(response) };
 }
 
-async function withSynologySession<T>(run: (baseUrl: string, sid: string, synoToken: string) => Promise<T>) {
+async function withSynologySession<T>(run: (baseUrl: string, sid: string | undefined, synoToken: string, sessionCookie: string) => Promise<T>) {
   const baseUrl = configuredBaseUrl();
   const account = String(process.env.SYNOLOGY_MEDIA_USERNAME || "");
   const password = String(process.env.SYNOLOGY_MEDIA_PASSWORD || "");
   if (!account || !password) throw new Error("A Synology szolgáltatási fiók nincs konfigurálva.");
-  const auth = await synologyRequest(baseUrl, { api: "SYNO.API.Auth", version: "6", method: "login", account, passwd: password, session: "FileStation", format: "sid", enable_syno_token: "yes" });
-  const sid = String(auth?.sid || "");
-  if (!sid) throw new Error("A Synology bejelentkezés sikertelen.");
+  const authResponse = await synologyRequest(baseUrl, { api: "SYNO.API.Auth", version: "6", method: "login", account, passwd: password, session: "FileStation", format: "cookie", enable_syno_token: "yes" });
+  const auth = authResponse.data;
+  const sid = String(auth?.sid || "") || undefined;
+  const sessionCookie = authResponse.sessionCookie;
+  if (!sid && !sessionCookie) throw new Error("A Synology bejelentkezés sikertelen.");
   const synoToken = String(auth?.synotoken || "");
-  try { return await run(baseUrl, sid, synoToken); }
-  finally { await synologyRequest(baseUrl, { api: "SYNO.API.Auth", version: "6", method: "logout", session: "FileStation" }, sid).catch(() => undefined); }
+  const headers = sessionCookie ? { Cookie: sessionCookie } : {};
+  try { return await run(baseUrl, sid, synoToken, sessionCookie); }
+  finally { await synologyRequest(baseUrl, { api: "SYNO.API.Auth", version: "6", method: "logout", session: "FileStation" }, sid, "entry.cgi", headers).catch(() => undefined); }
 }
 
 export async function synologyMediaAccess(user: { id?: string; email?: string; role?: string }) {
@@ -98,15 +110,16 @@ export async function synologyMediaAccess(user: { id?: string; email?: string; r
 export async function browseSynologyMedia(user: { id?: string; email?: string; role?: string }, requestedPath?: string) {
   const { roots } = await synologyMediaAccess(user);
   const folderPath = resolvedPath(roots, requestedPath);
-  return withSynologySession(async (baseUrl, sid, synoToken) => {
+  return withSynologySession(async (baseUrl, sid, synoToken, sessionCookie) => {
     // DSM reports File Station List with requestFormat: JSON. String values
     // must therefore be sent as JSON strings even when the HTTP form is used.
-    const data = await synologyRequest(baseUrl, {
+    const result = await synologyRequest(baseUrl, {
       api: "SYNO.FileStation.List", version: "2", method: "list",
       folder_path: JSON.stringify(folderPath), offset: "0", limit: "50",
       sort_by: JSON.stringify("name"), sort_direction: JSON.stringify("asc"),
       ...(synoToken ? { SynoToken: synoToken } : {}),
-    }, sid);
+    }, sid, "entry.cgi", sessionCookie ? { Cookie: sessionCookie } : {});
+    const data = result.data;
     const files: SynologyFile[] = (data?.files || []).map((file: any) => ({ name: String(file.name || ""), path: String(file.path || ""), isDir: Boolean(file.isdir), size: Number(file.additional?.size || 0), modifiedAt: Number(file.additional?.time?.mtime || 0) }));
     return { path: folderPath, roots, files, total: Number(data?.total || files.length), isTruncated: Number(data?.total || files.length) > files.length };
   });

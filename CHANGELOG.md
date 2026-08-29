@@ -18,6 +18,7 @@
 - A Synology hitelesítési munkamenet neve a File Station által használt `FileStation` értékre módosult a fájllistázó API-kompatibilitás érdekében.
 - A Synology integráció a közvetlen File Station-listázást használja; a külön API-útvonal-felderítés el lett távolítva, mert egyes NAS-proxyk ezt a felderítő végpontot nem szolgálják ki külső kérésre.
 - A DSM 7 File Station-listázás most a Synology által jelzett JSON-paraméterformátummal és a bejelentkezéskor kapott `SynoToken` értékkel fut, ami a védett DSM API-k követelménye lehet.
+- A Synology File Station munkamenet most a DSM által kiadott session-cookie-t is továbbviszi az API-kérésekben, nem csak az opcionális `_sid` azonosítót.
 
 ## 2026-08-28
 
