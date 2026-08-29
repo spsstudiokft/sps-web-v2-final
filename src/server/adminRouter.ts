@@ -86,6 +86,7 @@ adminRouter.get("/media-library/browse", async (req: any, res) => {
     res.json(result);
   } catch (error: any) {
     const message = error?.message || "A Synology médiatár nem érhető el.";
+    console.error("[Synology Media Library] Browse failed", { message, path: typeof req.query.path === "string" ? req.query.path : "" });
     const forbidden = /jogosults|mappa konfigurációja|vágó fiók/i.test(message);
     res.status(forbidden ? 403 : 502).json({ error: message });
   }

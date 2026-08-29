@@ -19,6 +19,9 @@
 - A Synology integráció a közvetlen File Station-listázást használja; a külön API-útvonal-felderítés el lett távolítva, mert egyes NAS-proxyk ezt a felderítő végpontot nem szolgálják ki külső kérésre.
 - A DSM 7 File Station-listázás most a Synology által jelzett JSON-paraméterformátummal és a bejelentkezéskor kapott `SynoToken` értékkel fut, ami a védett DSM API-k követelménye lehet.
 - A Synology File Station munkamenet most a DSM által kiadott session-cookie-t is továbbviszi az API-kérésekben, nem csak az opcionális `_sid` azonosítót.
+- A Synology médiatár hibajelzése most megmutatja a DSM API konkrét hibakódját, így a kapcsolódás utáni File Station-elutasítások célzottan diagnosztizálhatók.
+- A Synology/Cloudflare HTTP-hibák most a rövid, csonkolt válaszszöveget is visszaadják, így a File Station 403 tiltás eredete elkülöníthető.
+- Javítva a Synology File Station mappalistázás 400-as hibája: a JSON-formátumú mappaútvonal mellett a rendezési mezők immár a DSM által elvárt sima `name` és `asc` értékként mennek ki.
 
 ## 2026-08-28
 

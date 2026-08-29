@@ -80,9 +80,18 @@ async function synologyRequest(baseUrl: string, params: Record<string, string>, 
     if (error?.name === "TimeoutError" || error?.name === "AbortError") throw new Error("A Synology File Station nem válaszolt időben. Ellenőrizze a NAS külső elérhetőségét és a mappa méretét.");
     throw new Error("A Synology File Station hálózati kapcsolata sikertelen.");
   }
-  if (!response.ok) throw new Error("A Synology szerver nem válaszol megfelelően.");
-  const body = await response.json() as any;
-  if (!body?.success) throw new Error("A Synology API elutasította a kérést.");
+  if (!response.ok) {
+    const responseText = (await response.text().catch(() => "")).replace(/\s+/g, " ").trim().slice(0, 240);
+    throw new Error(`A Synology szerver HTTP ${response.status} választ adott${responseText ? `: ${responseText}` : ""}`);
+  }
+  let body: any;
+  try { body = await response.json(); }
+  catch { throw new Error("A Synology szerver nem JSON API-választ adott."); }
+  if (!body?.success) {
+    const code = body?.error?.code;
+    const details = Array.isArray(body?.error?.errors) ? body.error.errors.map((item: any) => item?.code).filter(Boolean).join(", ") : "";
+    throw new Error(`A Synology API elutasította a ${params.api}.${params.method} kérést${code ? ` (hibakód: ${code}${details ? `; részlet: ${details}` : ""})` : ""}.`);
+  }
   return { data: body.data, sessionCookie: sessionCookieFrom(response) };
 }
 
@@ -111,12 +120,13 @@ export async function browseSynologyMedia(user: { id?: string; email?: string; r
   const { roots } = await synologyMediaAccess(user);
   const folderPath = resolvedPath(roots, requestedPath);
   return withSynologySession(async (baseUrl, sid, synoToken, sessionCookie) => {
-    // DSM reports File Station List with requestFormat: JSON. String values
-    // must therefore be sent as JSON strings even when the HTTP form is used.
+    // File Station's `folder_path` is a JSON-style string (for example
+    // `"/video"`).  The sort fields, however, are ordinary enum values; DSM
+    // returns HTTP 400 when those are quoted as JSON strings.
     const result = await synologyRequest(baseUrl, {
       api: "SYNO.FileStation.List", version: "2", method: "list",
       folder_path: JSON.stringify(folderPath), offset: "0", limit: "50",
-      sort_by: JSON.stringify("name"), sort_direction: JSON.stringify("asc"),
+      sort_by: "name", sort_direction: "asc",
       ...(synoToken ? { SynoToken: synoToken } : {}),
     }, sid, "entry.cgi", sessionCookie ? { Cookie: sessionCookie } : {});
     const data = result.data;
