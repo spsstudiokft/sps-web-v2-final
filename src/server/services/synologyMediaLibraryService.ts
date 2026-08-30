@@ -224,7 +224,12 @@ export async function getSynologyMediaFileRequestUrl(user: { id?: string; email?
   const { roots } = await synologyMediaAccess(user);
   const folderPath = resolvedPath(roots, requestedPath);
   await ensureSynologyMediaFileRequestTable();
-  const result = await db.execute({ sql: "SELECT request_url FROM synology_media_file_requests WHERE folder_path = ? LIMIT 1", args: [folderPath] });
+  const result = await db.execute({
+    sql: `SELECT request_url FROM synology_media_file_requests
+      WHERE folder_path = ? OR ? LIKE folder_path || '/%'
+      ORDER BY LENGTH(folder_path) DESC LIMIT 1`,
+    args: [folderPath, folderPath],
+  });
   return { path: folderPath, url: result.rows.length ? String(result.rows[0].request_url || "") : "" };
 }
 
@@ -237,14 +242,20 @@ export async function getSynologyMediaFileRequests() {
 export async function saveSynologyMediaFileRequest(pathInput: unknown, urlInput: unknown, updatedBy?: string) {
   const folderPath = String(pathInput || "").trim().replace(/\\/g, "/").replace(/\/+/g, "/");
   if (!folderPath.startsWith("/") || folderPath.includes("/../") || folderPath.endsWith("/..")) throw new Error("A Synology File Request célmappája érvénytelen.");
-  const base = new URL(configuredBaseUrl());
   let requestUrl: URL;
   try { requestUrl = new URL(String(urlInput || "").trim()); }
   catch { throw new Error("A Synology File Request linkje érvénytelen."); }
-  if (requestUrl.protocol !== "https:" || requestUrl.origin !== base.origin || !requestUrl.pathname.startsWith("/sharing/")) throw new Error("A File Request linknek a konfigurált Synology HTTPS címen kell lennie.");
+  if (requestUrl.protocol !== "https:" || !requestUrl.pathname.startsWith("/sharing/")) throw new Error("A File Request linknek HTTPS-es Synology /sharing/ linknek kell lennie.");
   await ensureSynologyMediaFileRequestTable();
-  await db.execute({ sql: "INSERT OR REPLACE INTO synology_media_file_requests (folder_path, request_url, updated_by, updated_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP)", args: [folderPath, requestUrl.toString(), updatedBy || null] });
-  return { path: folderPath, url: requestUrl.toString() };
+  await db.execute({
+    sql: `INSERT INTO synology_media_file_requests (folder_path, request_url, updated_by, updated_at)
+      VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+      ON CONFLICT(folder_path) DO UPDATE SET request_url = excluded.request_url, updated_by = excluded.updated_by, updated_at = CURRENT_TIMESTAMP`,
+    args: [folderPath, requestUrl.toString(), updatedBy || null],
+  });
+  const saved = await db.execute({ sql: "SELECT request_url FROM synology_media_file_requests WHERE folder_path = ? LIMIT 1", args: [folderPath] });
+  if (String(saved.rows[0]?.request_url || "") !== requestUrl.toString()) throw new Error("A közvetlen feltöltési link mentése nem ellenőrizhető.");
+  return { path: folderPath, url: String(saved.rows[0].request_url) };
 }
 
 export async function clearSynologyMediaFileRequest(pathInput: unknown) {
