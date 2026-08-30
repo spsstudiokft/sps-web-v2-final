@@ -1,5 +1,11 @@
 # Modification Log
 
+## 2026-08-30
+
+### Synology médiatár munkamenet
+
+- Javítva a File Station 119-es („SID not found”) válasza: a médiatár most a Synology dokumentált, SID-alapú bejelentkezési módját használja, és nem keveri a session-cookie és `_sid` továbbítását.
+
 ## 2026-08-29
 
 ### Synology közös médiatár API-alap
