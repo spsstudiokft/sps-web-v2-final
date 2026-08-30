@@ -88,19 +88,18 @@ async function synologyRequest(baseUrl: string, params: Record<string, string>, 
   return { data: body.data };
 }
 
-async function withSynologySession<T>(run: (baseUrl: string, sid: string, synoToken: string) => Promise<T>) {
+async function withSynologySession<T>(run: (baseUrl: string, sid: string) => Promise<T>) {
   const baseUrl = configuredBaseUrl();
   const account = String(process.env.SYNOLOGY_MEDIA_USERNAME || "");
   const password = String(process.env.SYNOLOGY_MEDIA_PASSWORD || "");
   if (!account || !password) throw new Error("A Synology szolgáltatási fiók nincs konfigurálva.");
   // Use the documented SID session format for all File Station calls.  Mixing
   // the cookie and _sid transports can make DSM reject the next call as SID 119.
-  const authResponse = await synologyRequest(baseUrl, { api: "SYNO.API.Auth", version: "6", method: "login", account, passwd: password, session: "FileStation", format: "sid", enable_syno_token: "yes" });
+  const authResponse = await synologyRequest(baseUrl, { api: "SYNO.API.Auth", version: "6", method: "login", account, passwd: password, session: "FileStation", format: "sid" });
   const auth = authResponse.data;
   const sid = String(auth?.sid || "");
   if (!sid) throw new Error("A Synology bejelentkezés nem adott érvényes munkamenet-azonosítót.");
-  const synoToken = String(auth?.synotoken || "");
-  try { return await run(baseUrl, sid, synoToken); }
+  try { return await run(baseUrl, sid); }
   finally { await synologyRequest(baseUrl, { api: "SYNO.API.Auth", version: "6", method: "logout", session: "FileStation" }, sid).catch(() => undefined); }
 }
 
@@ -112,7 +111,7 @@ export async function synologyMediaAccess(user: { id?: string; email?: string; r
 export async function browseSynologyMedia(user: { id?: string; email?: string; role?: string }, requestedPath?: string) {
   const { roots } = await synologyMediaAccess(user);
   const folderPath = resolvedPath(roots, requestedPath);
-  return withSynologySession(async (baseUrl, sid, synoToken) => {
+  return withSynologySession(async (baseUrl, sid) => {
     // File Station's `folder_path` is a JSON-style string (for example
     // `"/video"`).  The sort fields, however, are ordinary enum values; DSM
     // returns HTTP 400 when those are quoted as JSON strings.
@@ -120,7 +119,6 @@ export async function browseSynologyMedia(user: { id?: string; email?: string; r
       api: "SYNO.FileStation.List", version: "2", method: "list",
       folder_path: JSON.stringify(folderPath), offset: "0", limit: "50",
       sort_by: "name", sort_direction: "asc",
-      ...(synoToken ? { SynoToken: synoToken } : {}),
     }, sid);
     const data = result.data;
     const files: SynologyFile[] = (data?.files || []).map((file: any) => ({ name: String(file.name || ""), path: String(file.path || ""), isDir: Boolean(file.isdir), size: Number(file.additional?.size || 0), modifiedAt: Number(file.additional?.time?.mtime || 0) }));

@@ -5,6 +5,7 @@
 ### Synology médiatár munkamenet
 
 - Javítva a File Station 119-es („SID not found”) válasza: a médiatár most a Synology dokumentált, SID-alapú bejelentkezési módját használja, és nem keveri a session-cookie és `_sid` továbbítását.
+- A sikeres NAS-oldali reprodukcióhoz igazítva a csak olvasó mappalistázás már nem kér vagy továbbít CSRF `SynoToken` értéket; ez kizárólag későbbi módosító fájlműveletekhez szükséges.
 
 ## 2026-08-29
 
