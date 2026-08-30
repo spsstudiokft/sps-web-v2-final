@@ -10,6 +10,7 @@
 - A médiatári fájlokhoz lejáró, közvetlen Synology-letöltési link kérhető, így a letöltött adat nem halad át a Vercelen. Az adminok mappánként menthetnek Synology File Request linket is, amely a nagy fájlok böngészőből a NAS-ra történő, közvetlen feltöltését biztosítja.
 - A Közös médiatárban immár az aktuális engedélyezett mappán belül új almappa is létrehozható; a mappanév tiltott karaktereit és az útvonaljogosultságot a szerver ellenőrzi.
 - A közvetlen Synology File Request linkek mappánként adatbázisban, ütközés esetén frissítéssel tárolódnak, és a mentés sikerét a rendszer azonnali visszaolvasással ellenőrzi; a legközelebbi szülőmappa linkje az almappákban is elérhető.
+- Javítva a Synology-letöltési linkek érvényessége: a rendszer a Sharing API által adott teljes, eredeti publikus URL-t használja, ezért a QuickConnect/DDNS hosztnév és a Synology megosztási tokenje változatlan marad.
 
 ## 2026-08-29
 

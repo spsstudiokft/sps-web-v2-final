@@ -194,12 +194,6 @@ export async function createSynologyMediaFolder(user: { id?: string; email?: str
   });
 }
 
-function directSynologyUrl(baseUrl: string, sourceUrl: unknown) {
-  const source = new URL(String(sourceUrl || ""));
-  const target = new URL(baseUrl);
-  return `${target.origin}${source.pathname}${source.search}`;
-}
-
 function nextCalendarDay() {
   const value = new Date();
   value.setDate(value.getDate() + 1);
@@ -216,7 +210,13 @@ export async function createSynologyMediaDownloadLink(user: { id?: string; email
     }, sid);
     const link = Array.isArray(result.data?.links) ? result.data.links.find((item: any) => !item?.error && item?.url) : null;
     if (!link?.url) throw new Error("A Synology nem tudott letöltési linket létrehozni ehhez a fájlhoz.");
-    return { url: directSynologyUrl(baseUrl, link.url), expiresOn: nextCalendarDay() };
+    // The Sharing API returns a complete public URL.  Its hostname can differ
+    // from the private API hostname (for example a QuickConnect/DDNS URL).
+    // Keep it intact: replacing the host with the media API endpoint makes a
+    // perfectly valid Synology sharing token unusable.
+    const downloadUrl = new URL(String(link.url));
+    if (downloadUrl.protocol !== "https:") throw new Error("A Synology nem biztonságos letöltési linket adott vissza.");
+    return { url: downloadUrl.toString(), expiresOn: nextCalendarDay() };
   });
 }
 
