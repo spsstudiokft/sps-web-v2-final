@@ -11,6 +11,7 @@
 - A Közös médiatárban immár az aktuális engedélyezett mappán belül új almappa is létrehozható; a mappanév tiltott karaktereit és az útvonaljogosultságot a szerver ellenőrzi.
 - A közvetlen Synology File Request linkek mappánként adatbázisban, ütközés esetén frissítéssel tárolódnak, és a mentés sikerét a rendszer azonnali visszaolvasással ellenőrzi; a legközelebbi szülőmappa linkje az almappákban is elérhető.
 - Javítva a Synology-letöltési linkek érvényessége: a rendszer a Sharing API által adott teljes, eredeti publikus URL-t használja, ezért a QuickConnect/DDNS hosztnév és a Synology megosztási tokenje változatlan marad.
+- A médiatári letöltés immár a Synology közvetlen `fsdownload` útvonalát kéri, amely fájlcsatolmány-választ ad; a böngésző az admin felület elnavigálása és a Vercelen átmenő fájladat nélkül indítja el a letöltést.
 
 ## 2026-08-29
 

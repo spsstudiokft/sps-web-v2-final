@@ -158,7 +158,14 @@ export default function MediaLibraryPage() {
       const response = await fetchApi("/api/admin/media-library/download-link", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ path }) });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok || !payload.url) throw new Error(payload.error || "A közvetlen letöltési link nem hozható létre.");
-      window.location.assign(String(payload.url));
+      // The NAS responds with an attachment. Trigger it through an invisible
+      // anchor so the admin page stays open instead of navigating to DSM.
+      const anchor = document.createElement("a");
+      anchor.href = String(payload.url);
+      anchor.style.display = "none";
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
     } catch (reason: any) { setError(reason?.message || "A letöltés nem indítható el."); }
     finally { setDownloadPath(null); }
   };

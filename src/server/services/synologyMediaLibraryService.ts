@@ -200,6 +200,20 @@ function nextCalendarDay() {
   return value.toISOString().slice(0, 10);
 }
 
+function directSynologyDownloadUrl(sourceUrl: unknown, filePath: string) {
+  const shareUrl = new URL(String(sourceUrl || ""));
+  const segments = shareUrl.pathname.split("/").filter(Boolean);
+  const sharingSegment = segments.findIndex((segment) => segment === "sharing" || segment === "fbsharing");
+  const shareId = sharingSegment >= 0 ? segments[sharingSegment + 1] : "";
+  const fileName = filePath.split("/").filter(Boolean).pop();
+  // DSM's public sharing endpoint renders a landing page.  Its fsdownload
+  // counterpart returns Content-Disposition: attachment, so the browser can
+  // start the NAS download without navigating away from the media library.
+  if (!shareId || !fileName) return { url: shareUrl.toString(), isDirect: false };
+  shareUrl.pathname = `/fsdownload/${encodeURIComponent(shareId)}/${encodeURIComponent(fileName)}`;
+  return { url: shareUrl.toString(), isDirect: true };
+}
+
 export async function createSynologyMediaDownloadLink(user: { id?: string; email?: string; role?: string }, requestedPath: string | undefined) {
   const { roots } = await synologyMediaAccess(user);
   const filePath = resolvedPath(roots, requestedPath);
@@ -211,12 +225,12 @@ export async function createSynologyMediaDownloadLink(user: { id?: string; email
     const link = Array.isArray(result.data?.links) ? result.data.links.find((item: any) => !item?.error && item?.url) : null;
     if (!link?.url) throw new Error("A Synology nem tudott letöltési linket létrehozni ehhez a fájlhoz.");
     // The Sharing API returns a complete public URL.  Its hostname can differ
-    // from the private API hostname (for example a QuickConnect/DDNS URL).
-    // Keep it intact: replacing the host with the media API endpoint makes a
-    // perfectly valid Synology sharing token unusable.
-    const downloadUrl = new URL(String(link.url));
-    if (downloadUrl.protocol !== "https:") throw new Error("A Synology nem biztonságos letöltési linket adott vissza.");
-    return { url: downloadUrl.toString(), expiresOn: nextCalendarDay() };
+    // from the private API hostname (for example a QuickConnect/DDNS URL), so
+    // it must remain intact.  Convert only its public path to DSM's download
+    // route, which returns the binary file as an attachment.
+    const download = directSynologyDownloadUrl(link.url, filePath);
+    if (!new URL(download.url).protocol.startsWith("https")) throw new Error("A Synology nem biztonságos letöltési linket adott vissza.");
+    return { ...download, expiresOn: nextCalendarDay() };
   });
 }
 
