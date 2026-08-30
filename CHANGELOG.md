@@ -6,6 +6,9 @@
 
 - Javítva a File Station 119-es („SID not found”) válasza: a médiatár most a Synology dokumentált, SID-alapú bejelentkezési módját használja, és nem keveri a session-cookie és `_sid` továbbítását.
 - A sikeres NAS-oldali reprodukcióhoz igazítva a csak olvasó mappalistázás már nem kér vagy továbbít CSRF `SynoToken` értéket; ez kizárólag későbbi módosító fájlműveletekhez szükséges.
+- A Közös médiatár immár az aktuálisan megnyitott, engedélyezett mappába közvetlen feltöltést is támogat; a szerver minden célmappa-jogosultságot újraellenőriz, nem ír felül meglévő fájlt, és Vercel-kompatibilis, 4 MB-os egyszeri feltöltési korlátot jelez a felületen.
+- A médiatári fájlokhoz lejáró, közvetlen Synology-letöltési link kérhető, így a letöltött adat nem halad át a Vercelen. Az adminok mappánként menthetnek Synology File Request linket is, amely a nagy fájlok böngészőből a NAS-ra történő, közvetlen feltöltését biztosítja.
+- A Közös médiatárban immár az aktuális engedélyezett mappán belül új almappa is létrehozható; a mappanév tiltott karaktereit és az útvonaljogosultságot a szerver ellenőrzi.
 
 ## 2026-08-29
 

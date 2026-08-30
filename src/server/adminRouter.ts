@@ -13,7 +13,7 @@ import { translationService } from "./services/translationService.js";
 import { getAllLegalDocuments, saveLegalDocument } from "./services/legalDocumentService.js";
 import { scheduleGoogleReviewCampaign } from "./services/googleReviewService.js";
 import { scheduleCalendarReminder } from "./services/calendarReminderService.js";
-import { browseSynologyMedia, clearSynologyEditorAccess, getSynologyEditorAccesses, saveSynologyEditorAccess, synologyMediaAccess } from "./services/synologyMediaLibraryService.js";
+import { browseSynologyMedia, clearSynologyEditorAccess, clearSynologyMediaFileRequest, createSynologyMediaDownloadLink, createSynologyMediaFolder, getSynologyEditorAccesses, getSynologyMediaFileRequestUrl, getSynologyMediaFileRequests, saveSynologyEditorAccess, saveSynologyMediaFileRequest, synologyMediaAccess, uploadSynologyMedia } from "./services/synologyMediaLibraryService.js";
 import { getAppUrl } from "./appUrl.js";
 import { archivePublishedListing } from "./services/internetArchiveService.js";
 import { createPortfolioSlug } from "./portfolioSlug.js";
@@ -187,6 +187,78 @@ const upload = multer({
     fileSize: MAX_UPLOAD_SIZE,
     fieldSize: 50 * 1024 * 1024,
   },
+});
+
+// Vercel accepts request bodies only up to a few megabytes.  Keeping this
+// conservative makes the server-side NAS upload reliable and prevents large
+// media files from being buffered in a serverless function.
+const SYNOLOGY_LIBRARY_UPLOAD_LIMIT = 4 * 1024 * 1024;
+const synologyLibraryUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: SYNOLOGY_LIBRARY_UPLOAD_LIMIT, files: 1 } });
+
+adminRouter.post("/media-library/upload", (req, res, next) => {
+  (synologyLibraryUpload.single("file") as any)(req, res, (error: any) => {
+    if (error instanceof multer.MulterError && error.code === "LIMIT_FILE_SIZE") return res.status(413).json({ error: "A közös médiatárba egyszerre legfeljebb 4 MB-os fájl tölthető fel." });
+    if (error) return res.status(400).json({ error: error.message || "A feltöltési kérés nem dolgozható fel." });
+    next();
+  });
+}, async (req: any, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: "Válasszon ki egy feltöltendő fájlt." });
+    const targetPath = typeof req.body?.path === "string" ? req.body.path : undefined;
+    const uploaded = await uploadSynologyMedia(req.user, targetPath, req.file);
+    res.status(201).json({ success: true, file: uploaded });
+  } catch (error: any) {
+    const message = error?.message || "A Synology fájlfeltöltés sikertelen.";
+    console.error("[Synology Media Library] Upload failed", { message, path: typeof req.body?.path === "string" ? req.body.path : "" });
+    const forbidden = /jogosults|mappa konfigurációja|vágó fiók|kért mappa/i.test(message);
+    res.status(forbidden ? 403 : 502).json({ error: message });
+  }
+});
+
+adminRouter.post("/media-library/download-link", async (req: any, res) => {
+  try {
+    const path = typeof req.body?.path === "string" ? req.body.path : undefined;
+    res.json(await createSynologyMediaDownloadLink(req.user, path));
+  } catch (error: any) {
+    const message = error?.message || "A közvetlen letöltési link nem hozható létre.";
+    console.error("[Synology Media Library] Download-link creation failed", { message });
+    res.status(/jogosults|kért mappa/i.test(message) ? 403 : 502).json({ error: message });
+  }
+});
+
+adminRouter.post("/media-library/folders", async (req: any, res) => {
+  try {
+    const path = typeof req.body?.path === "string" ? req.body.path : undefined;
+    const folder = await createSynologyMediaFolder(req.user, path, req.body?.name);
+    res.status(201).json({ success: true, folder });
+  } catch (error: any) {
+    const message = error?.message || "Az új mappa nem hozható létre.";
+    console.error("[Synology Media Library] Folder creation failed", { message });
+    res.status(/jogosults|kért mappa/i.test(message) ? 403 : 400).json({ error: message });
+  }
+});
+
+adminRouter.get("/media-library/file-request", async (req: any, res) => {
+  try { res.json(await getSynologyMediaFileRequestUrl(req.user, typeof req.query.path === "string" ? req.query.path : undefined)); }
+  catch (error: any) { res.status(/jogosults|kért mappa/i.test(String(error?.message || "")) ? 403 : 502).json({ error: error?.message || "A közvetlen feltöltési link nem tölthető be." }); }
+});
+
+adminRouter.get("/media-library/file-requests", async (req: any, res) => {
+  if (!canManageSynologyEditorAccess(req.user)) return res.status(403).json({ error: "Csak admin kezelheti a közvetlen feltöltési linkeket." });
+  try { res.json(await getSynologyMediaFileRequests()); }
+  catch (error: any) { res.status(500).json({ error: error?.message || "A közvetlen feltöltési linkek nem tölthetők be." }); }
+});
+
+adminRouter.put("/media-library/file-requests", async (req: any, res) => {
+  if (!canManageSynologyEditorAccess(req.user)) return res.status(403).json({ error: "Csak admin kezelheti a közvetlen feltöltési linkeket." });
+  try { res.json(await saveSynologyMediaFileRequest(req.body?.path, req.body?.url, String(req.user?.id || ""))); }
+  catch (error: any) { res.status(400).json({ error: error?.message || "A közvetlen feltöltési link nem menthető." }); }
+});
+
+adminRouter.delete("/media-library/file-requests", async (req: any, res) => {
+  if (!canManageSynologyEditorAccess(req.user)) return res.status(403).json({ error: "Csak admin kezelheti a közvetlen feltöltési linkeket." });
+  try { await clearSynologyMediaFileRequest(req.body?.path); res.json({ success: true }); }
+  catch (error: any) { res.status(500).json({ error: error?.message || "A közvetlen feltöltési link nem törölhető." }); }
 });
 
 function validateMultipartReference(fileKey: unknown, uploadId: unknown) {
