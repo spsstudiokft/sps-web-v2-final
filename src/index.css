@@ -2305,6 +2305,11 @@ html.light select optgroup {
 }
 
 .aero-legal-modal {
+  /* The modal itself is animated by Motion. Exempt it from the broad
+     [role="dialog"] CSS entrance animation, which otherwise competes for the
+     transform property and makes the closing transition visibly jump back. */
+  animation: none !important;
+  will-change: transform, opacity;
   color: var(--theme-text);
   background: color-mix(in srgb, var(--theme-surface) 88%, transparent);
   border: 1px solid color-mix(in srgb, var(--theme-border) 78%, rgba(255,255,255,.24));

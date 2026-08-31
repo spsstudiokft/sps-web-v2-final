@@ -41,6 +41,14 @@ export function formatCurrencyPrice(price: number, currency = "USD"): string {
   return `${price.toLocaleString()} ${currency}`;
 }
 
+const HUNGARIAN_VAT_RATE = 0.27;
+
+function formatGrossPrice(netPrice: number, currency = "USD"): string {
+  const code = String(currency || "").toUpperCase();
+  const grossPrice = Math.max(0, Number(netPrice) || 0) * (1 + HUNGARIAN_VAT_RATE);
+  return formatCurrencyPrice(code === "HUF" || code === "FT" ? Math.round(grossPrice) : grossPrice, currency);
+}
+
 export interface ResolvedBundleItem {
   id?: string;
   title: string;
@@ -327,6 +335,9 @@ export function Pricing({
               {tUi("public.pricing.subtitle", currentLang, undefined, defaultLang) ||
                 "Tailored photography, cinematic video tours, and bundled media packages designed to accelerate real estate listings."}
             </p>
+            <p className="mt-3 inline-flex items-center rounded-lg border border-primary/20 bg-primary/10 px-3 py-2 text-xs font-semibold text-primary">
+              {tUi("public.pricing.net_vat_notice", currentLang, undefined, defaultLang) || "All prices are net. 27% VAT is added to the final invoice."}
+            </p>
           </div>
 
           {/* Filter Tabs (All / Plans / Bundles) */}
@@ -374,7 +385,10 @@ export function Pricing({
           data-pricing-grid="true"
           className="grid grid-cols-1 gap-5 sm:gap-8 md:grid-cols-2 lg:grid-cols-3"
         >
-          <AnimatePresence mode="wait" initial={false}>
+          {/* Multiple price cards may enter and leave together when a filter changes.
+              `wait` supports a single child only and caused Motion warnings plus
+              visually delayed card updates. */}
+          <AnimatePresence initial={false}>
             {filteredPlans.map((plan) => {
               const features = parseJsonArray(plan.features);
               const isBundle = plan.type === "bundle";
@@ -471,6 +485,12 @@ export function Pricing({
                           </>
                         )}
                       </div>
+                      {!(plan.billing_type === "custom" && plan.price === 0) && (
+                        <div className="mt-1.5 space-y-0.5 text-xs font-semibold">
+                          <p className="text-muted-text">{tUi("public.pricing.net_plus_vat", currentLang, undefined, defaultLang) || "Net price · +27% VAT"}</p>
+                          <p className="text-primary">{tUi("public.pricing.gross_price", currentLang, { price: formatGrossPrice(plan.price, plan.currency) }, defaultLang) || `Gross: ${formatGrossPrice(plan.price, plan.currency)}`}</p>
+                        </div>
+                      )}
 
                       {/* Original Price / Savings / Discount Tag */}
                       {(displayOriginalPrice || plan.discount_label) && (
@@ -530,7 +550,11 @@ export function Pricing({
                                           : "bg-blue-500/10 text-blue-600 dark:text-blue-400"
                                       }`}
                                     >
-                                      {item.itemType === "tier" ? "Tier" : item.itemType === "extra" ? "Add-on" : "Service"}
+                                      {item.itemType === "tier"
+                                        ? tUi("public.pricing.item_type_tier", currentLang, undefined, defaultLang)
+                                        : item.itemType === "extra"
+                                        ? tUi("public.pricing.item_type_extra", currentLang, undefined, defaultLang)
+                                        : tUi("public.pricing.item_type_service", currentLang, undefined, defaultLang)}
                                     </span>
                                     <span className="text-xs font-bold text-text">
                                       {item.quantity > 1 ? `${item.quantity}x ` : ""}{item.title}
@@ -565,7 +589,7 @@ export function Pricing({
                                       onClick={() => toggleBundleExpand(plan.id)}
                                       className="text-[10px] text-primary/80 font-medium hover:underline pt-0.5"
                                     >
-                                      +{item.features.length - 2} more deliverables
+                                      +{item.features.length - 2} {tUi("public.pricing.more_deliverables", currentLang, undefined, defaultLang)}
                                     </button>
                                   )}
                                 </div>
@@ -674,16 +698,24 @@ export function Pricing({
                               : formatCurrencyPrice(extra.price, extra.currency)}
                           </span>
                           {extra.price_type === "percentage" ? (
-                            <span className="text-xs text-muted-text">of plan</span>
+                            <span className="text-xs text-muted-text">
+                              {tUi("public.pricing.of_plan", currentLang, undefined, defaultLang)}
+                            </span>
                           ) : (
                             extra.unit && extra.unit !== "item" && (
                               <span className="text-xs text-muted-text">/ {extra.unit}</span>
                             )
                           )}
                         </div>
+                        {extra.price_type !== "percentage" && (
+                          <span className="text-[10px] font-semibold block space-y-0.5">
+                            <span className="text-muted-text block">{tUi("public.pricing.net_plus_vat", currentLang, undefined, defaultLang) || "Net price · +27% VAT"}</span>
+                            <span className="text-primary block">{tUi("public.pricing.gross_price", currentLang, { price: formatGrossPrice(extra.price, extra.currency) }, defaultLang) || `Gross: ${formatGrossPrice(extra.price, extra.currency)}`}</span>
+                          </span>
+                        )}
                         {extra.billing_type === "recurring" && (
                           <span className="text-[10px] text-accent font-semibold block">
-                            Recurring / Monthly
+                            {tUi("public.pricing.recurring_monthly", currentLang, undefined, defaultLang)}
                           </span>
                         )}
                         {extra.original_price && extra.original_price > extra.price && (

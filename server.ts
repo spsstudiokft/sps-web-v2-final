@@ -67,39 +67,47 @@ async function startServer() {
     console.log(`Server running on http://localhost:${PORT}`);
   });
 
-  let reviewWorkerRunning = false;
-  const runReviewWorker = async () => {
-    if (reviewWorkerRunning) return;
-    reviewWorkerRunning = true;
-    try {
-      const result = await processDueGoogleReviewCampaigns();
-      if (result.sent > 0) console.log(`[Google Review Worker] Sent ${result.sent} scheduled request(s).`);
-    } catch (error) {
-      console.error("[Google Review Worker] Processing failed:", error);
-    } finally {
-      reviewWorkerRunning = false;
-    }
-  };
-  void runReviewWorker();
-  const reviewWorkerTimer = setInterval(runReviewWorker, 60 * 1000);
-  reviewWorkerTimer.unref();
+  // A local server may deliberately use the production Turso data. Never let
+  // simply opening that local environment dispatch scheduled emails/reminders.
+  // Production workers remain enabled; local execution requires explicit opt-in.
+  const shouldRunBackgroundWorkers = process.env.NODE_ENV === "production" || process.env.ENABLE_LOCAL_BACKGROUND_WORKERS === "1";
+  if (shouldRunBackgroundWorkers) {
+    let reviewWorkerRunning = false;
+    const runReviewWorker = async () => {
+      if (reviewWorkerRunning) return;
+      reviewWorkerRunning = true;
+      try {
+        const result = await processDueGoogleReviewCampaigns();
+        if (result.sent > 0) console.log(`[Google Review Worker] Sent ${result.sent} scheduled request(s).`);
+      } catch (error) {
+        console.error("[Google Review Worker] Processing failed:", error);
+      } finally {
+        reviewWorkerRunning = false;
+      }
+    };
+    void runReviewWorker();
+    const reviewWorkerTimer = setInterval(runReviewWorker, 60 * 1000);
+    reviewWorkerTimer.unref();
 
-  let calendarReminderWorkerRunning = false;
-  const runCalendarReminderWorker = async () => {
-    if (calendarReminderWorkerRunning) return;
-    calendarReminderWorkerRunning = true;
-    try {
-      const result = await processDueCalendarReminders();
-      if (result.sent > 0) console.log(`[Calendar Reminder Worker] Sent ${result.sent} scheduled reminder(s).`);
-    } catch (error) {
-      console.error("[Calendar Reminder Worker] Processing failed:", error);
-    } finally {
-      calendarReminderWorkerRunning = false;
-    }
-  };
-  void runCalendarReminderWorker();
-  const calendarReminderWorkerTimer = setInterval(runCalendarReminderWorker, 60 * 1000);
-  calendarReminderWorkerTimer.unref();
+    let calendarReminderWorkerRunning = false;
+    const runCalendarReminderWorker = async () => {
+      if (calendarReminderWorkerRunning) return;
+      calendarReminderWorkerRunning = true;
+      try {
+        const result = await processDueCalendarReminders();
+        if (result.sent > 0) console.log(`[Calendar Reminder Worker] Sent ${result.sent} scheduled reminder(s).`);
+      } catch (error) {
+        console.error("[Calendar Reminder Worker] Processing failed:", error);
+      } finally {
+        calendarReminderWorkerRunning = false;
+      }
+    };
+    void runCalendarReminderWorker();
+    const calendarReminderWorkerTimer = setInterval(runCalendarReminderWorker, 60 * 1000);
+    calendarReminderWorkerTimer.unref();
+  } else {
+    console.log("[Local server] Scheduled background workers are disabled. Set ENABLE_LOCAL_BACKGROUND_WORKERS=1 to opt in.");
+  }
 
   // Configure server timeouts to accommodate high-capacity uploads (up to 10 GB)
   server.timeout = 0; // Disable socket inactivity timeout for large stream uploads

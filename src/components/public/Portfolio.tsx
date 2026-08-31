@@ -26,7 +26,9 @@ interface PortfolioProps {
   settings?: SiteSettings;
 }
 
-const MAX_SHOWCASE_CARDS_PER_ROW = 8;
+// Six distinct previews keep the visual rhythm while preventing every marquee
+// row from eagerly mounting a large duplicate gallery on the landing page.
+const MAX_SHOWCASE_CARDS_PER_ROW = 6;
 
 function shuffleShowcaseCards(cards: ShowcaseMediaCardItem[]): ShowcaseMediaCardItem[] {
   const remaining = [...cards];

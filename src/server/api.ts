@@ -12,8 +12,10 @@ import {
 import { translationService } from "./services/translationService.js";
 import { getAllLegalDocuments } from "./services/legalDocumentService.js";
 import { markGoogleReviewClicked } from "./services/googleReviewService.js";
-import { getAppUrl } from "./appUrl.js";
+import { getAppUrl, getCanonicalPublicUrl } from "./appUrl.js";
+import { renderPublicSeoHome } from "./publicSeoHtml.js";
 import { prepareGalleryFile } from "./services/galleryDownloadService.js";
+import { calculateFeeRuleCost } from "../lib/utils.js";
 import { 
   sendPasswordResetToken, 
   sendInquiryAlerts, 
@@ -1607,6 +1609,24 @@ router.get("/public/bootstrap", async (_req, res) => {
   }
 });
 
+// Vercel routes verified search crawlers here for the homepage. Human visitors
+// remain on the existing one-page React application; this is an equivalent,
+// data-backed semantic snapshot for crawlers that do not wait for API-driven UI.
+router.get("/public/seo-home", async (req, res) => {
+  try {
+    const origin = getCanonicalPublicUrl(req);
+    const markup = renderPublicSeoHome(await loadPublicBootstrap(), origin);
+    res.status(200)
+      .type("html")
+      .set("Cache-Control", "public, max-age=60")
+      .set("Vercel-CDN-Cache-Control", "public, s-maxage=300, stale-while-revalidate=86400")
+      .send(markup);
+  } catch (error) {
+    console.error("Public SEO homepage generation error:", error);
+    res.status(500).type("text/plain").send("Public page snapshot unavailable");
+  }
+});
+
 router.get("/public/coming-soon-config", async (_req, res) => {
   try {
     res.set("Cache-Control", "no-store, max-age=0");
@@ -1817,13 +1837,38 @@ const sitemapImages = (origin: string, rawImages: unknown, fallbackTitle: unknow
   }).join("");
 };
 
+const sitemapVideos = (origin: string, rawMedia: unknown, fallbackTitle: unknown, fallbackDescription: unknown) => {
+  let items: any = rawMedia;
+  if (typeof items === "string") {
+    try { items = JSON.parse(items); } catch { items = []; }
+  }
+  if (!Array.isArray(items)) return "";
+
+  return items.slice(0, 1_000).map((item: any) => {
+    const media = typeof item === "string" ? { url: item } : item || {};
+    const source = media.optimized_url || media.compressed_url || media.compressedUrl || media.url || media.src;
+    const thumbnail = media.thumbnail_url || media.thumbnailUrl || media.poster_url || media.posterUrl;
+    const type = String(media.type || media.media_type || media.item_type || "").toLowerCase();
+    const sourceText = String(source || "");
+    const isVideo = type.includes("video") || /\.(mp4|mov|webm|m4v)(\?|$)/i.test(sourceText);
+    const contentUrl = absolutePublicUrl(origin, source);
+    const thumbnailUrl = absolutePublicUrl(origin, thumbnail);
+    // Google requires a crawlable thumbnail and either a content or player URL.
+    if (!isVideo || !contentUrl || !thumbnailUrl) return "";
+
+    const title = String(media.title || media.name || fallbackTitle || "SPS Studio videó").trim().slice(0, 100);
+    const description = String(media.caption || media.description || fallbackDescription || title || "SPS Studio ingatlanvideó").trim().slice(0, 2048);
+    return `<video:video><video:thumbnail_loc>${escapeXml(thumbnailUrl)}</video:thumbnail_loc><video:title>${escapeXml(title)}</video:title><video:description>${escapeXml(description)}</video:description><video:content_loc>${escapeXml(contentUrl)}</video:content_loc></video:video>`;
+  }).join("");
+};
+
 // The Vercel function receives the original /sitemap.xml path after its
 // rewrite, while the local Express API is mounted below /api. Support both.
 router.get(["/public/sitemap.xml", "/sitemap.xml"], async (req, res) => {
   try {
-    const origin = getAppUrl(req).replace(/\/$/, "");
+    const origin = getCanonicalPublicUrl(req).replace(/\/$/, "");
     const [portfolioResult, propertiesResult] = await Promise.all([
-      db.execute(`SELECT slug, title, image_urls, COALESCE(updated_at, created_at) AS lastmod
+      db.execute(`SELECT slug, title, description, image_urls, COALESCE(updated_at, created_at) AS lastmod
                   FROM portfolio_items
                   WHERE is_published = 1 AND slug IS NOT NULL AND TRIM(slug) != ''
                   ORDER BY updated_at DESC, created_at DESC`),
@@ -1835,13 +1880,14 @@ router.get(["/public/sitemap.xml", "/sitemap.xml"], async (req, res) => {
     const urls = [
       `<url><loc>${escapeXml(origin)}/</loc><changefreq>weekly</changefreq><priority>1.0</priority></url>`,
       `<url><loc>${escapeXml(origin)}/properties</loc><changefreq>daily</changefreq><priority>0.9</priority></url>`,
-      ...portfolioResult.rows.map((row: any) => `<url><loc>${escapeXml(origin)}/portfolio/${encodeURIComponent(String(row.slug))}</loc>${sitemapLastModified(row.lastmod)}<changefreq>monthly</changefreq><priority>0.8</priority>${sitemapImages(origin, row.image_urls, row.title)}</url>`),
+      `<url><loc>${escapeXml(origin)}/changelog</loc><changefreq>weekly</changefreq><priority>0.5</priority></url>`,
+      ...portfolioResult.rows.map((row: any) => `<url><loc>${escapeXml(origin)}/portfolio/${encodeURIComponent(String(row.slug))}</loc>${sitemapLastModified(row.lastmod)}<changefreq>monthly</changefreq><priority>0.8</priority>${sitemapImages(origin, row.image_urls, row.title)}${sitemapVideos(origin, row.image_urls, row.title, row.description)}</url>`),
       ...propertiesResult.rows.map((row: any) => `<url><loc>${escapeXml(origin)}/properties/${encodeURIComponent(String(row.id))}</loc>${sitemapLastModified(row.lastmod)}<changefreq>weekly</changefreq><priority>0.7</priority>${sitemapImages(origin, row.image_urls, row.title)}</url>`),
     ];
     res.set("Content-Type", "application/xml; charset=utf-8");
     res.set("Cache-Control", "public, max-age=300, s-maxage=3600, stale-while-revalidate=86400");
     res.set("X-Robots-Tag", "noindex");
-    res.send(`<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">${urls.join("")}</urlset>`);
+    res.send(`<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1" xmlns:video="http://www.google.com/schemas/sitemap-video/1.1">${urls.join("")}</urlset>`);
   } catch (error) {
     console.error("Sitemap generation error:", error);
     res.status(500).type("text/plain").send("Failed to generate sitemap");
@@ -1851,7 +1897,7 @@ router.get(["/public/sitemap.xml", "/sitemap.xml"], async (req, res) => {
 // Like the sitemap route, support both local /api mounting and Vercel's
 // original rewritten path. Keep private application areas out of crawlers.
 router.get(["/public/robots.txt", "/robots.txt"], (req, res) => {
-  const origin = getAppUrl(req).replace(/\/$/, "");
+  const origin = getCanonicalPublicUrl(req).replace(/\/$/, "");
   res.type("text/plain").set("Cache-Control", "public, max-age=300, s-maxage=3600").send([
     "User-agent: *",
     "Allow: /",
@@ -2325,10 +2371,20 @@ router.post("/public/contact", requireHuman, async (req, res) => {
     const cleanTravelRoundTripKm = Number.isFinite(Number(req.body.travel_distance_round_trip_km)) ? Math.max(0, Number(req.body.travel_distance_round_trip_km)) : 0;
     const cleanPlanId = plan_id && typeof plan_id === "string" ? plan_id.trim() : null;
     const cleanPlanName = plan_name && typeof plan_name === "string" ? plan_name.trim() : "";
-    const cleanExtraServices = typeof req.body.extra_services === "string" ? req.body.extra_services : JSON.stringify(req.body.extra_services || []);
-    const cleanFeeDetails = typeof req.body.fee_details === "string" ? req.body.fee_details : JSON.stringify(req.body.fee_details || {});
-    const cleanEstimatedTotal = req.body.estimated_total !== undefined && req.body.estimated_total !== null && !isNaN(Number(req.body.estimated_total)) ? Number(req.body.estimated_total) : 0;
-    let cleanCurrency = req.body.currency && typeof req.body.currency === "string" ? req.body.currency.trim() : "USD";
+    // The request only supplies selections. Prices, quantities and totals are
+    // resolved below from the active server-side price lists.
+    const requestedExtras = (() => {
+      try {
+        const value = typeof req.body.extra_services === "string" ? JSON.parse(req.body.extra_services) : req.body.extra_services;
+        return Array.isArray(value) ? value : [];
+      } catch {
+        return [];
+      }
+    })();
+    let cleanExtraServices = "[]";
+    let cleanFeeDetails = "[]";
+    let cleanEstimatedTotal = 0;
+    let cleanCurrency = "USD";
     let cleanPlanPrice = 0;
     if (cleanPlanId) {
       try {
@@ -2338,7 +2394,69 @@ router.post("/public/contact", requireHuman, async (req, res) => {
         });
         if (planResult.rows.length > 0) {
           cleanPlanPrice = Number(planResult.rows[0].price) || 0;
-          cleanCurrency = String(planResult.rows[0].currency || cleanCurrency);
+          cleanCurrency = String(planResult.rows[0].currency || "USD");
+
+          const requestedQuantities = new Map<string, number>();
+          for (const entry of requestedExtras) {
+            const extraId = typeof entry?.id === "string" ? entry.id.trim() : "";
+            const quantity = Math.floor(Number(entry?.quantity));
+            if (extraId && Number.isFinite(quantity) && quantity > 0) requestedQuantities.set(extraId, quantity);
+          }
+
+          const selectedExtras: Array<Record<string, unknown>> = [];
+          if (requestedQuantities.size > 0) {
+            const extraIds = [...requestedQuantities.keys()];
+            const extrasResult = await db.execute({
+              sql: `SELECT id, title, price, currency, allow_quantity, min_quantity, max_quantity
+                    FROM pricing_extra_services
+                    WHERE is_enabled = 1 AND (show_on_pricing_page IS NULL OR show_on_pricing_page = 1)
+                      AND id IN (${extraIds.map(() => "?").join(",")})`,
+              args: extraIds,
+            });
+            for (const extra of extrasResult.rows as any[]) {
+              // The calculator has no currency conversion. Do not mix a
+              // different-currency add-on into the selected plan total.
+              if (String(extra.currency || cleanCurrency).toUpperCase() !== cleanCurrency.toUpperCase()) continue;
+              const requestedQuantity = requestedQuantities.get(String(extra.id)) || 0;
+              const allowsQuantity = Number(extra.allow_quantity) === 1;
+              const minimum = Math.max(1, Number(extra.min_quantity) || 1);
+              const maximum = Math.max(minimum, Number(extra.max_quantity) || minimum);
+              const quantity = allowsQuantity ? Math.min(maximum, Math.max(minimum, requestedQuantity)) : 1;
+              const price = Math.max(0, Number(extra.price) || 0);
+              selectedExtras.push({ id: String(extra.id), title: String(extra.title || "Additional service"), quantity, price, subtotal: price * quantity });
+            }
+          }
+
+          const extrasSubtotal = selectedExtras.reduce((sum, extra) => sum + (Number(extra.subtotal) || 0), 0);
+          const feeRulesResult = await db.execute(`
+            SELECT id, name, fee_type, amount, currency, min_distance, min_fee, max_distance, tiers, min_order_amount, max_order_amount
+            FROM pricing_fee_rules
+            WHERE is_enabled = 1 AND (show_on_pricing_page IS NULL OR show_on_pricing_page = 1)
+            ORDER BY sort_order ASC, created_at ASC
+          `);
+          const feeBase = cleanPlanPrice + extrasSubtotal;
+          const selectedFees = (feeRulesResult.rows as any[]).flatMap((rule) => {
+            if (String(rule.currency || cleanCurrency).toUpperCase() !== cleanCurrency.toUpperCase()) return [];
+            const isDistanceRule = rule.fee_type === "distance" || rule.fee_type === "distance_tiered";
+            const result = calculateFeeRuleCost(rule, isDistanceRule ? cleanTravelRoundTripKm : 0, feeBase);
+            if (result.fee <= 0) return [];
+            return [{
+              id: String(rule.id),
+              name: String(rule.name || "Additional fee"),
+              amount: result.fee,
+              explanation: result.explanation,
+              ...(isDistanceRule ? {
+                origin_city: "Hódmezővásárhely",
+                destination_city: cleanPropertyCity,
+                one_way_km: cleanTravelOneWayKm,
+                round_trip_km: cleanTravelRoundTripKm,
+              } : {}),
+            }];
+          });
+          const feesTotal = selectedFees.reduce((sum, fee) => sum + (Number(fee.amount) || 0), 0);
+          cleanExtraServices = JSON.stringify(selectedExtras);
+          cleanFeeDetails = JSON.stringify(selectedFees);
+          cleanEstimatedTotal = cleanPlanPrice + extrasSubtotal + feesTotal;
         }
       } catch (error) {
         console.warn("Unable to resolve selected pricing plan for inquiry email:", error);

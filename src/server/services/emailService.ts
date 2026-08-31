@@ -5,6 +5,7 @@ import { EmailTemplate, EmailTemplateToken } from "../../lib/types.js";
 
 // Lazy-loaded Resend client
 let resendClient: Resend | null = null;
+const HUNGARIAN_VAT_RATE = 0.27;
 
 export function getResendClient(): Resend | null {
   const apiKey = process.env.RESEND_API_KEY;
@@ -1205,7 +1206,9 @@ export const DEFAULT_EMAIL_TEMPLATES: Record<string, {
     {{#if estimated_travel_fee}}<tr><td style="padding:7px 0;color:#475569;">Estimated travel fee</td><td style="padding:7px 0;text-align:right;font-weight:600;color:#0f172a;">{{estimated_travel_fee}}</td></tr>{{/if}}
     {{#if selected_items_html}}{{selected_items_html}}{{/if}}
     {{#if fee_details_html}}{{fee_details_html}}{{/if}}
-    {{#if estimated_total}}<tr style="border-top:1px solid #cbd5e1;"><td style="padding:11px 0 4px;font-weight:700;color:#0f172a;">Estimated total</td><td style="padding:11px 0 4px;text-align:right;font-size:16px;font-weight:800;color:#2563eb;">{{estimated_total}}</td></tr>{{/if}}
+    {{#if estimated_net_total}}<tr style="border-top:1px solid #cbd5e1;"><td style="padding:11px 0 4px;font-weight:600;color:#475569;">Estimated net total</td><td style="padding:11px 0 4px;text-align:right;font-weight:700;color:#0f172a;">{{estimated_net_total}}</td></tr>{{/if}}
+    {{#if estimated_vat}}<tr><td style="padding:7px 0;color:#475569;">VAT ({{estimated_vat_rate}}%)</td><td style="padding:7px 0;text-align:right;font-weight:700;color:#0f172a;">{{estimated_vat}}</td></tr>{{/if}}
+    {{#if estimated_gross_total}}<tr><td style="padding:11px 0 4px;font-weight:800;color:#0f172a;">Estimated gross total</td><td style="padding:11px 0 4px;text-align:right;font-size:16px;font-weight:800;color:#2563eb;">{{estimated_gross_total}}</td></tr>{{/if}}
   </table>
 </div>
 {{/if}}
@@ -1221,7 +1224,7 @@ export const DEFAULT_EMAIL_TEMPLATES: Record<string, {
   </a>
 </div>
     `.trim(),
-    body_text: `New contact inquiry from {{client_name}} ({{client_email}}):\n\nProperty: {{property_address}}\nPhone: {{client_phone}}\nSubject: {{inquiry_subject}}\nAvailability: {{availability_window}}\n\nSelected package: {{pricing_plan}}\nBase price: {{plan_price}}\nProperty city: {{property_city}}\nTravel distance: {{travel_distance_round_trip}} round trip ({{travel_distance_one_way}} one way)\nEstimated travel fee: {{estimated_travel_fee}}\n{{selected_items_text}}\n{{fee_details_text}}\nEstimated total: {{estimated_total}}\n\nMessage:\n{{inquiry_message}}`.trim(),
+    body_text: `New contact inquiry from {{client_name}} ({{client_email}}):\n\nProperty: {{property_address}}\nPhone: {{client_phone}}\nSubject: {{inquiry_subject}}\nAvailability: {{availability_window}}\n\nSelected package: {{pricing_plan}}\nBase price: {{plan_price}}\nProperty city: {{property_city}}\nTravel distance: {{travel_distance_round_trip}} round trip ({{travel_distance_one_way}} one way)\nEstimated travel fee: {{estimated_travel_fee}}\n{{selected_items_text}}\n{{fee_details_text}}\nEstimated net total: {{estimated_net_total}}\nVAT ({{estimated_vat_rate}}%): {{estimated_vat}}\nEstimated gross total: {{estimated_gross_total}}\n\nMessage:\n{{inquiry_message}}`.trim(),
     available_tokens: [
       { token: "{{client_name}}", label: "Client Name", description: "Name entered in form", example: "Sophia Laurent" },
       { token: "{{client_email}}", label: "Client Email", description: "Email address entered in form", example: "sophia@luxuryestates.com" },
@@ -1238,7 +1241,11 @@ export const DEFAULT_EMAIL_TEMPLATES: Record<string, {
       { token: "{{selected_items_text}}", label: "Selected Items (Text)", description: "Plain-text list of selected additional services", example: "2x Drone photography: 40 000 Ft" },
       { token: "{{fee_details_html}}", label: "Calculated Fees (HTML)", description: "Formatted table rows for travel and other calculated fees", example: "Travel fee — 12 500 Ft" },
       { token: "{{fee_details_text}}", label: "Calculated Fees (Text)", description: "Plain-text list of travel and calculated fees", example: "Travel fee: 12 500 Ft" },
-      { token: "{{estimated_total}}", label: "Estimated Total", description: "Final calculated package estimate with currency", example: "172 500 Ft" },
+      { token: "{{estimated_total}}", label: "Estimated Total (legacy net)", description: "Backward-compatible net estimate token", example: "172 500 Ft" },
+      { token: "{{estimated_net_total}}", label: "Estimated Net Total", description: "Calculated estimate before VAT", example: "172 500 Ft" },
+      { token: "{{estimated_vat_rate}}", label: "VAT Rate", description: "Applied VAT percentage", example: "27" },
+      { token: "{{estimated_vat}}", label: "VAT Amount", description: "Calculated VAT amount", example: "46 575 Ft" },
+      { token: "{{estimated_gross_total}}", label: "Estimated Gross Total", description: "Calculated estimate including VAT", example: "219 075 Ft" },
       { token: "{{currency}}", label: "Currency", description: "Configured pricing currency code", example: "HUF" },
       { token: "{{property_city}}", label: "Property City", description: "City used for the travel calculation", example: "Szeged" },
       { token: "{{travel_distance_one_way}}", label: "One-Way Distance", description: "Estimated distance from Hódmezővásárhely to the property city", example: "27 km" },
@@ -1265,6 +1272,10 @@ export const DEFAULT_EMAIL_TEMPLATES: Record<string, {
       "fee_details_html": "<tr><td>Travel fee</td><td style=\"text-align:right\">12 500 Ft</td></tr>",
       "fee_details_text": "Travel fee: 12 500 Ft",
       "estimated_total": "172 500 Ft",
+      "estimated_net_total": "172 500 Ft",
+      "estimated_vat_rate": "27",
+      "estimated_vat": "46 575 Ft",
+      "estimated_gross_total": "219 075 Ft",
       "currency": "HUF",
       "property_city": "Szeged",
       "travel_distance_one_way": "27 km",
@@ -1301,7 +1312,9 @@ export const DEFAULT_EMAIL_TEMPLATES: Record<string, {
     {{#if estimated_travel_fee}}<tr><td style="padding:7px 0;color:#475569;">Estimated travel fee</td><td style="padding:7px 0;text-align:right;font-weight:600;color:#0f172a;">{{estimated_travel_fee}}</td></tr>{{/if}}
     {{#if selected_items_html}}{{selected_items_html}}{{/if}}
     {{#if fee_details_html}}{{fee_details_html}}{{/if}}
-    {{#if estimated_total}}<tr style="border-top:1px solid #cbd5e1;"><td style="padding:11px 0 4px;font-weight:700;color:#0f172a;">Estimated total</td><td style="padding:11px 0 4px;text-align:right;font-size:16px;font-weight:800;color:#2563eb;">{{estimated_total}}</td></tr>{{/if}}
+    {{#if estimated_net_total}}<tr style="border-top:1px solid #cbd5e1;"><td style="padding:11px 0 4px;font-weight:600;color:#475569;">Estimated net total</td><td style="padding:11px 0 4px;text-align:right;font-weight:700;color:#0f172a;">{{estimated_net_total}}</td></tr>{{/if}}
+    {{#if estimated_vat}}<tr><td style="padding:7px 0;color:#475569;">VAT ({{estimated_vat_rate}}%)</td><td style="padding:7px 0;text-align:right;font-weight:700;color:#0f172a;">{{estimated_vat}}</td></tr>{{/if}}
+    {{#if estimated_gross_total}}<tr><td style="padding:11px 0 4px;font-weight:800;color:#0f172a;">Estimated gross total</td><td style="padding:11px 0 4px;text-align:right;font-size:16px;font-weight:800;color:#2563eb;">{{estimated_gross_total}}</td></tr>{{/if}}
   </table>
 </div>
 {{/if}}
@@ -1319,7 +1332,7 @@ export const DEFAULT_EMAIL_TEMPLATES: Record<string, {
   If your photoshoot request is urgent, you can also reach us directly at <a href="mailto:{{contact_email}}" style="color: #3b82f6;">{{contact_email}}</a>.
 </p>
     `.trim(),
-    body_text: `Dear {{client_name}},\n\nThank you for reaching out to {{studio_name}}. We have received your inquiry and will be in touch shortly.\n\nSelected package: {{pricing_plan}}\nBase price: {{plan_price}}\nProperty city: {{property_city}}\nTravel distance: {{travel_distance_round_trip}} round trip ({{travel_distance_one_way}} one way)\nEstimated travel fee: {{estimated_travel_fee}}\n{{selected_items_text}}\n{{fee_details_text}}\nEstimated total: {{estimated_total}}\n\nYour message:\n{{inquiry_message}}\n\nDirect contact: {{contact_email}}`.trim(),
+    body_text: `Dear {{client_name}},\n\nThank you for reaching out to {{studio_name}}. We have received your inquiry and will be in touch shortly.\n\nSelected package: {{pricing_plan}}\nBase price: {{plan_price}}\nProperty city: {{property_city}}\nTravel distance: {{travel_distance_round_trip}} round trip ({{travel_distance_one_way}} one way)\nEstimated travel fee: {{estimated_travel_fee}}\n{{selected_items_text}}\n{{fee_details_text}}\nEstimated net total: {{estimated_net_total}}\nVAT ({{estimated_vat_rate}}%): {{estimated_vat}}\nEstimated gross total: {{estimated_gross_total}}\n\nYour message:\n{{inquiry_message}}\n\nDirect contact: {{contact_email}}`.trim(),
     available_tokens: [
       { token: "{{client_name}}", label: "Client Name", description: "Prospect name", example: "Sophia Laurent" },
       { token: "{{inquiry_message}}", label: "Message Summary", description: "Echo of the submitted message", example: "We have a 6,000 sq ft listing coming up." },
@@ -1329,7 +1342,11 @@ export const DEFAULT_EMAIL_TEMPLATES: Record<string, {
       { token: "{{selected_items_text}}", label: "Selected Items (Text)", description: "Plain-text list of selected additional services", example: "2x Drone photography: 40 000 Ft" },
       { token: "{{fee_details_html}}", label: "Calculated Fees (HTML)", description: "Formatted table rows for travel and calculated fees", example: "Travel fee — 12 500 Ft" },
       { token: "{{fee_details_text}}", label: "Calculated Fees (Text)", description: "Plain-text list of travel and calculated fees", example: "Travel fee: 12 500 Ft" },
-      { token: "{{estimated_total}}", label: "Estimated Total", description: "Final calculated estimate with currency", example: "172 500 Ft" },
+      { token: "{{estimated_total}}", label: "Estimated Total (legacy net)", description: "Backward-compatible net estimate token", example: "172 500 Ft" },
+      { token: "{{estimated_net_total}}", label: "Estimated Net Total", description: "Calculated estimate before VAT", example: "172 500 Ft" },
+      { token: "{{estimated_vat_rate}}", label: "VAT Rate", description: "Applied VAT percentage", example: "27" },
+      { token: "{{estimated_vat}}", label: "VAT Amount", description: "Calculated VAT amount", example: "46 575 Ft" },
+      { token: "{{estimated_gross_total}}", label: "Estimated Gross Total", description: "Calculated estimate including VAT", example: "219 075 Ft" },
       { token: "{{currency}}", label: "Currency", description: "Configured pricing currency code", example: "HUF" },
       { token: "{{property_city}}", label: "Property City", description: "City used for the travel calculation", example: "Szeged" },
       { token: "{{travel_distance_one_way}}", label: "One-Way Distance", description: "Estimated distance from Hódmezővásárhely to the property city", example: "27 km" },
@@ -1351,6 +1368,10 @@ export const DEFAULT_EMAIL_TEMPLATES: Record<string, {
       "fee_details_html": "<tr><td>Travel fee</td><td style=\"text-align:right\">12 500 Ft</td></tr>",
       "fee_details_text": "Travel fee: 12 500 Ft",
       "estimated_total": "172 500 Ft",
+      "estimated_net_total": "172 500 Ft",
+      "estimated_vat_rate": "27",
+      "estimated_vat": "46 575 Ft",
+      "estimated_gross_total": "219 075 Ft",
       "currency": "HUF",
       "property_city": "Szeged",
       "travel_distance_one_way": "27 km",
@@ -2510,6 +2531,10 @@ export async function getAllEmailTemplates(): Promise<EmailTemplate[]> {
   for (const [key, defaultDef] of Object.entries(DEFAULT_EMAIL_TEMPLATES)) {
     const custom = customMap.get(key);
     if (custom) {
+      // System-managed inquiry defaults may be upgraded safely. Once an admin
+      // edits a template, its custom layout remains completely untouched.
+      const useLatestInquiryDefault = !Boolean(custom.is_customized) &&
+        (key === "inquiry_received" || key === "inquiry_confirmation");
       let parsedTokens: EmailTemplateToken[] = defaultDef.available_tokens;
       try {
         if (custom.available_tokens) {
@@ -2533,8 +2558,8 @@ export async function getAllEmailTemplates(): Promise<EmailTemplate[]> {
         category: (custom.category as any) || defaultDef.category,
         description: custom.description || defaultDef.description,
         subject: custom.subject || defaultDef.subject,
-        body_html: custom.body_html || defaultDef.body_html,
-        body_text: custom.body_text || defaultDef.body_text,
+        body_html: useLatestInquiryDefault ? defaultDef.body_html : (custom.body_html || defaultDef.body_html),
+        body_text: useLatestInquiryDefault ? defaultDef.body_text : (custom.body_text || defaultDef.body_text),
         available_tokens: parsedTokens,
         sample_data: parsedSample,
         token_defaults: parsedDefaults,
@@ -2617,6 +2642,8 @@ export async function getEmailTemplateByKey(key: string): Promise<EmailTemplate 
     if (res.rows.length > 0) {
       const row = res.rows[0];
       if (!defaultDef && row.category !== "marketing") return null;
+      const useLatestInquiryDefault = !Boolean(row.is_customized) &&
+        (normalizedKey === "inquiry_received" || normalizedKey === "inquiry_confirmation");
       let parsedTokens: EmailTemplateToken[] = defaultDef?.available_tokens || [];
       try {
         if (row.available_tokens) {
@@ -2640,8 +2667,12 @@ export async function getEmailTemplateByKey(key: string): Promise<EmailTemplate 
         category: (row.category as any) || defaultDef?.category || "marketing",
         description: (row.description as string) || defaultDef?.description || "",
         subject: (row.subject as string) || defaultDef?.subject || "",
-        body_html: (row.body_html as string) || defaultDef?.body_html || "",
-        body_text: (row.body_text as string) || defaultDef?.body_text || "",
+        body_html: useLatestInquiryDefault
+          ? defaultDef?.body_html || ""
+          : (row.body_html as string) || defaultDef?.body_html || "",
+        body_text: useLatestInquiryDefault
+          ? defaultDef?.body_text || ""
+          : (row.body_text as string) || defaultDef?.body_text || "",
         available_tokens: parsedTokens,
         sample_data: parsedSample,
         token_defaults: parsedDefaults,
@@ -3200,6 +3231,11 @@ export async function sendInquiryAlerts(submission: {
       return `${amount.toLocaleString("hu-HU")} ${currency}`;
     }
   };
+  const formatEstimateMoney = (value: number) => {
+    // Customer-facing HUF estimates use whole forints, matching the calculator.
+    const amount = currency === "HUF" || currency === "FT" ? Math.round(value) : value;
+    return formatMoney(amount);
+  };
   const extras = parseItems(submission.extra_services);
   const fees = parseItems(submission.fee_details);
   const travelFeeItem = fees.find((item) =>
@@ -3212,6 +3248,9 @@ export async function sendInquiryAlerts(submission: {
     <tr><td style="padding:7px 0;color:#475569;">${escapeHtml(item.name || "Additional fee")}${item.explanation ? `<div style="font-size:11px;color:#94a3b8;">${escapeHtml(item.explanation)}</div>` : ""}</td><td style="padding:7px 0;text-align:right;font-weight:600;color:#0f172a;">${Number(item.amount) === 0 ? "FREE" : escapeHtml(formatMoney(item.amount))}</td></tr>`).join("");
   const selectedItemsText = extras.map((item) => `${item.quantity || 1}x ${item.title || "Additional service"}: ${formatMoney(item.subtotal ?? item.price)}`).join("\n");
   const feeDetailsText = otherFees.map((item) => `${item.name || "Additional fee"}: ${Number(item.amount) === 0 ? "FREE" : formatMoney(item.amount)}${item.explanation ? ` (${item.explanation})` : ""}`).join("\n");
+  const estimatedNetTotal = Math.max(0, Number(submission.estimated_total) || 0);
+  const estimatedVatAmount = estimatedNetTotal * HUNGARIAN_VAT_RATE;
+  const estimatedGrossTotal = estimatedNetTotal + estimatedVatAmount;
   const pricingTokens = {
     pricing_plan: submission.plan_name || "",
     plan_price: submission.plan_price ? formatMoney(submission.plan_price) : "",
@@ -3219,7 +3258,13 @@ export async function sendInquiryAlerts(submission: {
     selected_items_text: selectedItemsText,
     fee_details_html: feeDetailsHtml,
     fee_details_text: feeDetailsText,
-    estimated_total: submission.estimated_total ? formatMoney(submission.estimated_total) : "",
+    // Keep the existing token as a net-value alias so saved templates remain
+    // compatible, while the new values make the 27% VAT breakdown explicit.
+    estimated_total: estimatedNetTotal > 0 ? formatEstimateMoney(estimatedNetTotal) : "",
+    estimated_net_total: estimatedNetTotal > 0 ? formatEstimateMoney(estimatedNetTotal) : "",
+    estimated_vat_rate: String(HUNGARIAN_VAT_RATE * 100),
+    estimated_vat: estimatedNetTotal > 0 ? formatEstimateMoney(estimatedVatAmount) : "",
+    estimated_gross_total: estimatedNetTotal > 0 ? formatEstimateMoney(estimatedGrossTotal) : "",
     currency,
     property_city: submission.property_city || travelFeeItem?.destination_city || "",
     travel_distance_one_way: submission.travel_distance_one_way_km || travelFeeItem?.one_way_km

@@ -26,7 +26,10 @@ export function InfiniteMarqueeRow({
   const [isRowHovered, setIsRowHovered] = useState(false);
   const viewportRef = useRef<HTMLDivElement>(null); const [isVisible, setIsVisible] = useState(false);
   useEffect(() => { const node = viewportRef.current; if (!node) return; const observer = new IntersectionObserver(([entry]) => setIsVisible(entry.isIntersecting), { rootMargin: "160px" }); observer.observe(node); return () => observer.disconnect(); }, []);
-  const staticMode = isReducedMotion || isStaticScroll;
+  // A one- or two-card carousel has to repeat the same rich, interactive card
+  // many times to look infinite. A simple touch/trackpad row is clearer and
+  // considerably lighter in that case.
+  const staticMode = isReducedMotion || isStaticScroll || items.length < 3;
   const [visibleStaticItems, setVisibleStaticItems] = useState(2);
 
   useEffect(() => {
@@ -37,8 +40,9 @@ export function InfiniteMarqueeRow({
   const baseSequence = useMemo(() => {
     if (!items || items.length === 0) return [];
     
-    // Ensure base sequence has at least 6 items so one track spans beyond widest displays
-    const minItemsNeeded = 6;
+    // Four cards cover standard desktop widths; keeping this low avoids
+    // multiplying complex video/image card trees for small collections.
+    const minItemsNeeded = 4;
     const multiplier = Math.max(1, Math.ceil(minItemsNeeded / items.length));
     
     const seq: ShowcaseMediaCardItem[] = [];
@@ -132,6 +136,8 @@ export function InfiniteMarqueeRow({
               onClick={onItemClick}
               priority={false}
               useVercelImageOptimization={useVercelImageOptimization}
+              decorative
+              allowDecorativePointerClick
             />
           ))}
         </div>

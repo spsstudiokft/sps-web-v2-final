@@ -23,6 +23,8 @@ export type SiteSettings = {
   visual_ideas_description?: string;
   visual_ideas_items?: string;
   visual_ideas_enabled?: string;
+  client_help_topics?: string;
+  client_help_enabled?: string;
   property_menu_enabled?: string;
   image_optimization_mode?: "vercel" | "appwrite";
   coming_soon_enabled?: string;

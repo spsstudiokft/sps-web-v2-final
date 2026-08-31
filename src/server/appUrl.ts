@@ -18,3 +18,14 @@ export function getAppUrl(req?: RequestLike): string {
 
   return `${protocol}://${host}`.replace(/\/+$/, "");
 }
+
+/**
+ * The public canonical host must not depend on whichever host Vercel used to
+ * invoke an API route. Local development intentionally keeps its own origin.
+ */
+export function getCanonicalPublicUrl(req?: RequestLike): string {
+  const configuredUrl = String(process.env.SEO_CANONICAL_URL || "").trim();
+  if (configuredUrl) return configuredUrl.replace(/\/+$/, "");
+  if (process.env.VERCEL === "1") return "https://www.spsstudio.hu";
+  return getAppUrl(req);
+}

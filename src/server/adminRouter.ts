@@ -44,8 +44,43 @@ import {
   EmailTemplateData
 } from "./services/emailService.js";
 import { issuePortalInviteCoupon } from "./services/referralService.js";
+import { getNormalizedGallery } from "../lib/mediaUtils.js";
 
 const adminRouter = Router();
+
+/**
+ * Counts the actual media files delivered through the project's linked
+ * portfolio galleries. A portfolio row can contain many entries in
+ * `image_urls`, therefore counting portfolio rows would undercount photos and
+ * videos in the gallery-ready email.
+ */
+async function getProjectGalleryMediaCounts(projectId: string) {
+  const result = await db.execute({
+    sql: `SELECT pi.image_urls, pi.media_type, pi.media_url
+          FROM portfolio_items pi
+          JOIN project_portfolio_items ppi ON ppi.portfolio_item_id = pi.id
+          WHERE ppi.project_id = ?`,
+    args: [projectId],
+  });
+
+  let photoCount = 0;
+  let videoCount = 0;
+  for (const row of result.rows as any[]) {
+    const items = getNormalizedGallery(row.image_urls);
+    // Keep older, single-media portfolio records visible in the email too.
+    const media = items.length > 0
+      ? items
+      : row.media_url
+        ? [{ type: String(row.media_type || "image").toLowerCase() === "video" ? "video" : "image" }]
+        : [];
+    for (const item of media) {
+      if (item.type === "video") videoCount += 1;
+      else photoCount += 1;
+    }
+  }
+
+  return { photoCount, videoCount };
+}
 
 // Internal shared Synology Drive library. Only admins and video editors can
 // reach it, and the service enforces a configured root path per account.
@@ -966,6 +1001,27 @@ adminRouter.post("/settings", async (req, res) => {
           }
         }
         if (key === 'visual_ideas_enabled') {
+          finalValue = value === '0' || value === 'false' ? '0' : '1';
+        }
+        if (key === 'client_help_topics') {
+          try {
+            const parsed = JSON.parse(value);
+            if (!Array.isArray(parsed)) throw new Error('Client help topics must be an array');
+            finalValue = JSON.stringify(parsed.slice(0, 30).map((topic: any, index: number) => ({
+              id: String(topic?.id || `client-help-${index + 1}`).slice(0, 100),
+              title: String(topic?.title || '').slice(0, 300),
+              description: String(topic?.description || '').slice(0, 5000),
+              image_url: String(topic?.image_url || '').slice(0, 2000),
+              steps: Array.isArray(topic?.steps)
+                ? topic.steps.slice(0, 20).map((step: unknown) => String(step || '').trim().slice(0, 1000)).filter(Boolean)
+                : [],
+              is_visible: topic?.is_visible !== false && topic?.is_visible !== 0,
+            })));
+          } catch {
+            return res.status(400).json({ error: 'Invalid client help topics data' });
+          }
+        }
+        if (key === 'client_help_enabled') {
           finalValue = value === '0' || value === 'false' ? '0' : '1';
         }
         if (key === 'image_optimization_mode') {
@@ -4702,15 +4758,9 @@ adminRouter.post("/projects/:id/notify-client", async (req, res) => {
 
     const appOrigin = getAppUrl(req);
     const isGalleryDelivery = String(project.status || "").toLowerCase() === "completed";
-    const mediaCounts = isGalleryDelivery ? await db.execute({
-      sql: `SELECT
-              SUM(CASE WHEN COALESCE(pi.media_type, 'image') = 'video' THEN 0 ELSE 1 END) AS photo_count,
-              SUM(CASE WHEN pi.media_type = 'video' THEN 1 ELSE 0 END) AS video_count
-            FROM portfolio_items pi
-            JOIN project_portfolio_items ppi ON ppi.portfolio_item_id = pi.id
-            WHERE ppi.project_id = ?`,
-      args: [project.id],
-    }) : null;
+    const mediaCounts = isGalleryDelivery
+      ? await getProjectGalleryMediaCounts(String(project.id))
+      : null;
     const recipientName = String(project.client_name || project.client_email).split("@")[0];
     const downloadPin = isGalleryDelivery ? String(crypto.randomInt(1000, 10000)) : "";
     const templateData = isGalleryDelivery ? {
@@ -4718,8 +4768,8 @@ adminRouter.post("/projects/:id/notify-client", async (req, res) => {
       "user.name": recipientName,
       project_name: project.name,
       gallery_url: `${appOrigin}/client/projects`,
-      photo_count: Number(mediaCounts?.rows[0]?.photo_count || 0),
-      video_count: Number(mediaCounts?.rows[0]?.video_count || 0),
+      photo_count: mediaCounts?.photoCount || 0,
+      video_count: mediaCounts?.videoCount || 0,
       download_pin: downloadPin,
       action_text: "Open delivered gallery",
       project_id: project.id,
@@ -7570,12 +7620,19 @@ adminRouter.post("/email/preview", async (req, res) => {
 // Get email logs
 adminRouter.get("/email/logs", async (req, res) => {
   try {
-    const limit = Math.min(Number(req.query.limit) || 50, 100);
-    const result = await db.execute({
-      sql: `SELECT * FROM email_logs ORDER BY created_at DESC LIMIT ?`,
-      args: [limit]
-    });
-    res.json(result.rows);
+    const requestedLimit = Number(req.query.limit);
+    const requestedOffset = Number(req.query.offset);
+    const limit = Number.isFinite(requestedLimit) ? Math.min(Math.max(Math.floor(requestedLimit), 1), 250) : 100;
+    const offset = Number.isFinite(requestedOffset) ? Math.max(Math.floor(requestedOffset), 0) : 0;
+    const [result, count] = await Promise.all([
+      db.execute({
+        sql: `SELECT * FROM email_logs ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?`,
+        args: [limit, offset]
+      }),
+      db.execute("SELECT COUNT(*) AS total FROM email_logs"),
+    ]);
+    const total = Number(count.rows[0]?.total || 0);
+    res.json({ logs: result.rows, total, limit, offset, has_more: offset + result.rows.length < total });
   } catch (error: any) {
     console.error("Failed to fetch email logs:", error);
     res.status(500).json({ error: "Failed to fetch email logs" });

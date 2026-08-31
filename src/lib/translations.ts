@@ -55,6 +55,7 @@ import { adminEmailLogsPreviewTranslations } from "./adminEmailLogsPreviewTransl
 import { adminEmailRuntimeTranslations } from "./adminEmailRuntimeTranslations.js";
 import { localDemoTranslations } from "./localDemoTranslations.js";
 import { pricingUiTranslations } from "./pricingUiTranslations.js";
+import { publicPagesTranslations } from "./publicPagesTranslations.js";
 
 export type TranslationDictionary = Record<string, string>;
 
@@ -1416,7 +1417,10 @@ export const enTranslations: Record<string, string> = {
   "contact.email_us": "Email Us",
   "contact.error_message": "Failed to send message. Please try again or reach out via direct email.",
   "contact.estimated_cost_title": "Interactive Cost Estimate",
+  "contact.estimated_gross_total": "Estimated gross total:",
+  "contact.estimated_net_total": "Estimated net total:",
   "contact.estimated_total": "Estimated Total:",
+  "contact.estimated_vat": "VAT ({rate}%):",
   "contact.hours": "Opening Hours",
   "contact.map": "Location Map",
   "contact.message": "Project Details & Message",
@@ -1526,6 +1530,12 @@ export const enTranslations: Record<string, string> = {
   "public.pricing.hide_specs": "Hide Specs",
   "public.pricing.included_services": "Included Services:",
   "public.pricing.included_tiers_title": "Included Tiers & Services",
+  "public.pricing.item_type_extra": "Add-on",
+  "public.pricing.item_type_service": "Service",
+  "public.pricing.item_type_tier": "Tier",
+  "public.pricing.more_deliverables": "more deliverables",
+  "public.pricing.of_plan": "of plan",
+  "public.pricing.recurring_monthly": "Recurring / Monthly",
   "public.pricing.save_percent": "Save {percent}% ({amount})",
   "public.pricing.subtitle": "Flexible photography, video, and multimedia packages designed to elevate your property listings.",
   "public.pricing.tab_all": "All Offers",
@@ -3217,7 +3227,10 @@ export const defaultLocales: Record<string, Record<string, string>> = {
   "contact.email_us": "Írjon nekünk",
   "contact.error_message": "Nem sikerült elküldeni az üzenetet. Kérjük, próbálja újra vagy írjon közvetlenül e-mailt.",
   "contact.estimated_cost_title": "Interaktív költségbecslés",
+  "contact.estimated_gross_total": "Becsült bruttó végösszeg:",
+  "contact.estimated_net_total": "Becsült nettó összesen:",
   "contact.estimated_total": "Becsült végösszeg:",
+  "contact.estimated_vat": "ÁFA ({rate}%):",
   "contact.hours": "Nyitvatartás",
   "contact.map": "Helyszín Térkép",
   "contact.message": "Projekt részletei és üzenet",
@@ -3327,6 +3340,12 @@ export const defaultLocales: Record<string, Record<string, string>> = {
   "public.pricing.hide_specs": "Részletek Elrejtése",
   "public.pricing.included_services": "Tartalmazott Szolgáltatások:",
   "public.pricing.included_tiers_title": "Tartalmazott Csomagok & Szolgáltatások",
+  "public.pricing.item_type_extra": "Kiegészítő",
+  "public.pricing.item_type_service": "Szolgáltatás",
+  "public.pricing.item_type_tier": "Csomagszint",
+  "public.pricing.more_deliverables": "további tétel",
+  "public.pricing.of_plan": "a csomag árából",
+  "public.pricing.recurring_monthly": "Ismétlődő / havi",
   "public.pricing.save_percent": "Megtakarítás: {percent}% ({amount})",
   "public.pricing.subtitle": "Rugalmas fotózási, videós és multimédiás csomagok ingatlanjai prémium bemutatásához.",
   "public.pricing.tab_all": "Minden Ajánlat",
@@ -5014,7 +5033,10 @@ export const defaultLocales: Record<string, Record<string, string>> = {
   "contact.email_us": "Email Us",
   "contact.error_message": "Failed to send message. Please try again or reach out via direct email.",
   "contact.estimated_cost_title": "Interaktive Kostenschätzung",
+  "contact.estimated_gross_total": "Geschätzte Bruttosumme:",
+  "contact.estimated_net_total": "Geschätzte Nettosumme:",
   "contact.estimated_total": "Geschätzte Gesamtsumme:",
+  "contact.estimated_vat": "MwSt. ({rate}%):",
   "contact.hours": "Öffnungszeiten",
   "contact.map": "Location Map",
   "contact.message": "Projektdetails und Nachricht",
@@ -5124,6 +5146,12 @@ export const defaultLocales: Record<string, Record<string, string>> = {
   "public.pricing.hide_specs": "Details Ausblenden",
   "public.pricing.included_services": "Enthaltene Leistungen:",
   "public.pricing.included_tiers_title": "Enthaltene Kategorien & Dienste",
+  "public.pricing.item_type_extra": "Zusatzleistung",
+  "public.pricing.item_type_service": "Dienstleistung",
+  "public.pricing.item_type_tier": "Paketstufe",
+  "public.pricing.more_deliverables": "weitere Leistungen",
+  "public.pricing.of_plan": "des Pakets",
+  "public.pricing.recurring_monthly": "Wiederkehrend / monatlich",
   "public.pricing.save_percent": "Sparen Sie {percent}% ({amount})",
   "public.pricing.subtitle": "Flexible Foto-, Video- und Multimediapakete zur perfekten Präsentation Ihrer Immobilien.",
   "public.pricing.tab_all": "Alle Angebote",
@@ -6811,7 +6839,10 @@ export const defaultLocales: Record<string, Record<string, string>> = {
   "contact.email_us": "Email Us",
   "contact.error_message": "Failed to send message. Please try again or reach out via direct email.",
   "contact.estimated_cost_title": "Estimación interactiva de costos",
+  "contact.estimated_gross_total": "Total bruto estimado:",
+  "contact.estimated_net_total": "Total neto estimado:",
   "contact.estimated_total": "Total estimado:",
+  "contact.estimated_vat": "IVA ({rate}%):",
   "contact.hours": "Horario de atención",
   "contact.map": "Location Map",
   "contact.message": "Project Details & Message",
@@ -6921,6 +6952,12 @@ export const defaultLocales: Record<string, Record<string, string>> = {
   "public.pricing.hide_specs": "Ocultar Detalles",
   "public.pricing.included_services": "Servicios Incluidos:",
   "public.pricing.included_tiers_title": "Planes y Servicios Incluidos",
+  "public.pricing.item_type_extra": "Complemento",
+  "public.pricing.item_type_service": "Servicio",
+  "public.pricing.item_type_tier": "Nivel",
+  "public.pricing.more_deliverables": "entregables más",
+  "public.pricing.of_plan": "del plan",
+  "public.pricing.recurring_monthly": "Recurrente / mensual",
   "public.pricing.save_percent": "Ahorre {percent}% ({amount})",
   "public.pricing.subtitle": "Paquetes flexibles de fotografía, vídeo y multimedia diseñados para elevar sus propiedades.",
   "public.pricing.tab_all": "Todas las Ofertas",
@@ -8608,7 +8645,10 @@ export const defaultLocales: Record<string, Record<string, string>> = {
   "contact.email_us": "Email Us",
   "contact.error_message": "Failed to send message. Please try again or reach out via direct email.",
   "contact.estimated_cost_title": "Estimation interactive des coûts",
+  "contact.estimated_gross_total": "Total TTC estimé :",
+  "contact.estimated_net_total": "Total HT estimé :",
   "contact.estimated_total": "Total estimé :",
+  "contact.estimated_vat": "TVA ({rate} %) :",
   "contact.hours": "Heures d'ouverture",
   "contact.map": "Location Map",
   "contact.message": "Project Details & Message",
@@ -8718,6 +8758,12 @@ export const defaultLocales: Record<string, Record<string, string>> = {
   "public.pricing.hide_specs": "Masquer les Détails",
   "public.pricing.included_services": "Services Inclus :",
   "public.pricing.included_tiers_title": "Formules et Services Inclus",
+  "public.pricing.item_type_extra": "Option",
+  "public.pricing.item_type_service": "Service",
+  "public.pricing.item_type_tier": "Niveau",
+  "public.pricing.more_deliverables": "livrables supplémentaires",
+  "public.pricing.of_plan": "de l’offre",
+  "public.pricing.recurring_monthly": "Récurrent / mensuel",
   "public.pricing.save_percent": "Économisez {percent}% ({amount})",
   "public.pricing.subtitle": "Des formules flexibles de photographie, vidéo et multimédia conçues pour valoriser vos biens immobiliers.",
   "public.pricing.tab_all": "Toutes les Offres",
@@ -9101,6 +9147,7 @@ for (const locale of ["en", "hu", "de", "es", "fr"] as const) {
   if (defaultLocales[locale]) Object.assign(defaultLocales[locale], adminEmailRuntimeTranslations[locale]);
   if (defaultLocales[locale]) Object.assign(defaultLocales[locale], localDemoTranslations[locale]);
   if (defaultLocales[locale]) Object.assign(defaultLocales[locale], pricingUiTranslations[locale]);
+  if (defaultLocales[locale]) Object.assign(defaultLocales[locale], publicPagesTranslations[locale]);
   if (defaultLocales[locale]) Object.assign(defaultLocales[locale], adminProjectsTranslations[locale]);
   if (defaultLocales[locale]) Object.assign(defaultLocales[locale], adminVisualIdeasTranslations[locale]);
   if (defaultLocales[locale]) Object.assign(defaultLocales[locale], adminThemesTranslations[locale]);
@@ -9183,3 +9230,4 @@ Object.assign(enTranslations, adminEmailLogsPreviewTranslations.en);
 Object.assign(enTranslations, adminEmailRuntimeTranslations.en);
 Object.assign(enTranslations, localDemoTranslations.en);
 Object.assign(enTranslations, pricingUiTranslations.en);
+Object.assign(enTranslations, publicPagesTranslations.en);

@@ -97,6 +97,9 @@ export function EmailSettingsManager({ settings, onChange }: EmailSettingsManage
   // Logs state
   const [logs, setLogs] = useState<EmailLog[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
+  const [loadingMoreLogs, setLoadingMoreLogs] = useState(false);
+  const [logsTotal, setLogsTotal] = useState(0);
+  const [hasMoreLogs, setHasMoreLogs] = useState(false);
   const [clearingLogs, setClearingLogs] = useState(false);
   const [logFilter, setLogFilter] = useState<string>("all");
 
@@ -140,18 +143,25 @@ export function EmailSettingsManager({ settings, onChange }: EmailSettingsManage
   };
 
   // Fetch email logs
-  const fetchLogs = async () => {
+  const fetchLogs = async (options: { append?: boolean } = {}) => {
+    const append = options.append === true;
     try {
-      setLoadingLogs(true);
-      const res = await fetchApi("/api/admin/email/logs?limit=50");
+      if (append) setLoadingMoreLogs(true);
+      else setLoadingLogs(true);
+      const offset = append ? logs.length : 0;
+      const res = await fetchApi(`/api/admin/email/logs?limit=100&offset=${offset}`);
       if (res.ok) {
         const data = await res.json();
-        setLogs(data);
+        const incoming = Array.isArray(data) ? data : (Array.isArray(data.logs) ? data.logs : []);
+        setLogs((current) => append ? [...current, ...incoming] : incoming);
+        setLogsTotal(Number(data.total ?? incoming.length));
+        setHasMoreLogs(Boolean(data.has_more));
       }
     } catch (e) {
       console.error("Failed to load email logs", e);
     } finally {
-      setLoadingLogs(false);
+      if (append) setLoadingMoreLogs(false);
+      else setLoadingLogs(false);
     }
   };
 
@@ -263,6 +273,8 @@ export function EmailSettingsManager({ settings, onChange }: EmailSettingsManage
       const res = await fetchApi("/api/admin/email/logs", { method: "DELETE" });
       if (res.ok) {
         setLogs([]);
+        setLogsTotal(0);
+        setHasMoreLogs(false);
       }
     } catch (e) {
       console.error("Failed to clear logs", e);
@@ -887,7 +899,7 @@ export function EmailSettingsManager({ settings, onChange }: EmailSettingsManage
             <div className="flex items-center gap-2">
               <Mail className="w-4 h-4 text-primary" />
               <h3 className="text-sm font-bold text-text">{tUi("admin.email.settings.transactional_delivery_logs")}</h3>
-              <span className="text-xs text-muted-text">({filteredLogs.length} {tUi("admin.email.settings.events")}</span>
+              <span className="text-xs text-muted-text">({filteredLogs.length}{logsTotal > filteredLogs.length ? ` / ${logsTotal}` : ""} {tUi("admin.email.settings.events")}</span>
             </div>
 
             <div className="flex items-center gap-2 flex-wrap">
@@ -919,6 +931,20 @@ export function EmailSettingsManager({ settings, onChange }: EmailSettingsManage
                 <RefreshCw className={`w-3 h-3 ${loadingLogs ? "animate-spin" : ""}`} />
                 <span>{tUi("admin.faq_categories.refresh")}</span>
               </Button>
+
+              {hasMoreLogs && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fetchLogs({ append: true })}
+                  disabled={loadingMoreLogs}
+                  className="text-xs h-7 px-2.5 flex items-center gap-1"
+                >
+                  {loadingMoreLogs ? <Loader2 className="w-3 h-3 animate-spin" /> : <ChevronDown className="w-3 h-3" />}
+                  <span>További naplóbejegyzések</span>
+                </Button>
+              )}
 
               {logs.length > 0 && (
                 <Button

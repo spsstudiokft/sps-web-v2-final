@@ -32,6 +32,8 @@ import { formatCurrencyPrice } from "./Pricing";
 import { calculateFeeRuleCost, interpolatePricingMessageTemplate } from "../../lib/utils";
 import { useCookieConsent } from "./CookieConsent";
 
+const HUNGARIAN_VAT_RATE = 0.27;
+
 interface SelectedExtraItem {
   service: ExtraService;
   quantity: number;
@@ -249,6 +251,12 @@ export function Contact({
 
   // Calculate live fees & total breakdown
   const currency = selectedPlan?.currency || availableExtras[0]?.currency || "USD";
+  const formatCalculatorPrice = (amount: number) => {
+    const currencyCode = String(currency || "").toUpperCase();
+    // HUF does not have a practical fractional unit in customer-facing
+    // invoices, so avoid showing fractional forints in the VAT breakdown.
+    return formatCurrencyPrice(currencyCode === "HUF" || currencyCode === "FT" ? Math.round(amount) : amount, currency);
+  };
 
   const selectedExtrasList = useMemo(() => {
     const list: Array<{ service: ExtraService; quantity: number; subtotal: number }> = [];
@@ -272,16 +280,17 @@ export function Contact({
   }, [selectedExtrasList]);
 
   const calculatedFees = useMemo(() => {
+    const subtotalBeforeFees = (selectedPlan ? Number(selectedPlan.price) : 0) + extrasSubtotal;
     return feeRules.map((rule) => {
       const isDistance = rule.fee_type === "distance" || rule.fee_type === "distance_tiered";
-      const costInfo = calculateFeeRuleCost(rule, isDistance ? travelDistance : 0);
+      const costInfo = calculateFeeRuleCost(rule, isDistance ? travelDistance : 0, subtotalBeforeFees);
       return {
         rule,
         cost: costInfo.fee,
         explanation: costInfo.explanation,
       };
     });
-  }, [feeRules, travelDistance]);
+  }, [feeRules, travelDistance, selectedPlan, extrasSubtotal]);
 
   const feesTotal = useMemo(() => {
     return calculatedFees.reduce((acc, f) => acc + f.cost, 0);
@@ -291,6 +300,12 @@ export function Contact({
     const basePlanPrice = selectedPlan ? Number(selectedPlan.price) : 0;
     return basePlanPrice + extrasSubtotal + feesTotal;
   }, [selectedPlan, extrasSubtotal, feesTotal]);
+
+  // All configurable plan, extra and travel-fee prices are stored as net
+  // amounts. Keep that breakdown intact and present the statutory VAT and
+  // payable gross total explicitly to the visitor.
+  const vatAmount = useMemo(() => estimatedTotal * HUNGARIAN_VAT_RATE, [estimatedTotal]);
+  const grossEstimatedTotal = useMemo(() => estimatedTotal + vatAmount, [estimatedTotal, vatAmount]);
 
   // Settings evaluation
   const showPhone = settings.contact_form_show_phone !== "0" && settings.contact_form_show_phone !== "false";
@@ -816,7 +831,7 @@ export function Contact({
 
                         <div className="flex items-center gap-3">
                           <span className="text-sm font-extrabold text-primary">
-                            {formatCurrencyPrice(estimatedTotal, currency)}
+                            {formatCalculatorPrice(grossEstimatedTotal)}
                           </span>
                           {showPricingDetails ? <ChevronUp className="w-4 h-4 text-muted-text" /> : <ChevronDown className="w-4 h-4 text-muted-text" />}
                         </div>
@@ -885,9 +900,19 @@ export function Contact({
                               </div>
                             ))}
 
-                            <div className="pt-2 border-t border-border flex items-center justify-between text-sm font-bold text-text">
-                              <span>{tUi("contact.estimated_total", currentLang, undefined, defaultLang) || "Estimated Total:"}</span>
-                              <span className="text-primary text-base font-extrabold">{formatCurrencyPrice(estimatedTotal, currency)}</span>
+                            <div className="pt-2 border-t border-border space-y-2 text-sm">
+                              <div className="flex items-center justify-between font-semibold text-muted-text">
+                                <span>{tUi("contact.estimated_net_total", currentLang, undefined, defaultLang) || "Estimated net total:"}</span>
+                                <span>{formatCalculatorPrice(estimatedTotal)}</span>
+                              </div>
+                              <div className="flex items-center justify-between font-semibold text-muted-text">
+                                <span>{tUi("contact.estimated_vat", { rate: HUNGARIAN_VAT_RATE * 100 }, currentLang, defaultLang) || "VAT (27%):"}</span>
+                                <span>{formatCalculatorPrice(vatAmount)}</span>
+                              </div>
+                              <div className="pt-2 border-t border-border flex items-center justify-between font-bold text-text">
+                                <span>{tUi("contact.estimated_gross_total", currentLang, undefined, defaultLang) || "Estimated gross total:"}</span>
+                                <span className="text-primary text-base font-extrabold">{formatCalculatorPrice(grossEstimatedTotal)}</span>
+                              </div>
                             </div>
                           </div>
                         </div>

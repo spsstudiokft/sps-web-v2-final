@@ -38,9 +38,13 @@ interface MediaCardProps {
   priority?: boolean;
   deferMedia?: boolean;
   useVercelImageOptimization?: boolean;
+  /** Second marquee-track cards provide visual continuity only. */
+  decorative?: boolean;
+  /** Decorative marquee copies still need to open the same gallery on pointer/touch input. */
+  allowDecorativePointerClick?: boolean;
 }
 
-export function MediaCard({ card, onClick, priority = false, deferMedia = false, useVercelImageOptimization = true }: MediaCardProps) {
+export function MediaCard({ card, onClick, priority = false, deferMedia = false, useVercelImageOptimization = true, decorative = false, allowDecorativePointerClick = false }: MediaCardProps) {
   const instanceId = useId();
   const { currentLang, defaultLang } = useLanguage();
   
@@ -60,6 +64,7 @@ export function MediaCard({ card, onClick, priority = false, deferMedia = false,
   );
 
   const { item, media, mediaIndex, totalInGallery, itemType } = card;
+  const isPointerClickable = !decorative || allowDecorativePointerClick;
 
   const isVideoCard = 
     itemType === "drone_video" || 
@@ -78,7 +83,7 @@ export function MediaCard({ card, onClick, priority = false, deferMedia = false,
 
   // 1. Register with Global Video Playback Scheduler to enforce GPU concurrency budget (Max 5 active streams)
   useEffect(() => {
-    if (!isVideoCard) return;
+    if (!isVideoCard || decorative) return;
 
     const unregister = globalVideoStreamManager.register(
       instanceId,
@@ -89,13 +94,13 @@ export function MediaCard({ card, onClick, priority = false, deferMedia = false,
     );
 
     return () => unregister();
-  }, [instanceId, isVideoCard, priority]);
+  }, [decorative, instanceId, isVideoCard, priority]);
 
   // 2. Viewport Intersection Observer: Detect entry & track visibility ratio
   useEffect(() => {
     if (!cardRef.current || typeof IntersectionObserver === "undefined") {
       setIsInViewport(true);
-      if (isVideoCard) {
+      if (isVideoCard && !decorative) {
         globalVideoStreamManager.updateState(instanceId, { isInViewport: true, visibilityRatio: 1 });
       }
       return;
@@ -109,7 +114,7 @@ export function MediaCard({ card, onClick, priority = false, deferMedia = false,
         
         setIsInViewport(isVisible);
         
-        if (isVideoCard) {
+        if (isVideoCard && !decorative) {
           globalVideoStreamManager.updateState(instanceId, {
             isInViewport: isVisible,
             visibilityRatio: ratio,
@@ -123,19 +128,19 @@ export function MediaCard({ card, onClick, priority = false, deferMedia = false,
 
     observer.observe(cardRef.current);
     return () => observer.disconnect();
-  }, [deferMedia, instanceId, isVideoCard]);
+  }, [decorative, deferMedia, instanceId, isVideoCard]);
 
   // 3. Update hover state in Video Stream Manager for instant top-priority playback
   const handleMouseEnter = () => {
     setIsHovered(true);
-    if (isVideoCard) {
+    if (isVideoCard && !decorative) {
       globalVideoStreamManager.updateState(instanceId, { isHovered: true });
     }
   };
 
   const handleMouseLeave = () => {
     setIsHovered(false);
-    if (isVideoCard) {
+    if (isVideoCard && !decorative) {
       globalVideoStreamManager.updateState(instanceId, { isHovered: false });
     }
   };
@@ -152,7 +157,7 @@ export function MediaCard({ card, onClick, priority = false, deferMedia = false,
   // 4. Playback is hover-only. The global scheduler still caps simultaneous
   // decoders when users hover overlapping cards during marquee movement.
   useEffect(() => {
-    if (!isDirectVideo || !videoRef.current) return;
+    if (!isDirectVideo || decorative || !videoRef.current) return;
 
     if (canPlayStream && isInViewport && isHovered) {
       videoRef.current.muted = true;
@@ -167,7 +172,7 @@ export function MediaCard({ card, onClick, priority = false, deferMedia = false,
       videoRef.current.pause();
       if (!isHovered) seekToPreviewFrame();
     }
-  }, [canPlayStream, isInViewport, isHovered, isDirectVideo]);
+  }, [canPlayStream, decorative, isInViewport, isHovered, isDirectVideo]);
 
   // For image items derive image preview. For video items, use dedicated 360p video poster (never project cover art).
   const youtubePreviewIndex = (Array.from(card.id).reduce((sum, char) => sum + char.charCodeAt(0), 0) % 3) + 1;
@@ -207,23 +212,25 @@ export function MediaCard({ card, onClick, priority = false, deferMedia = false,
   return (
     <div
       ref={cardRef}
-      onClick={() => onClick(item, mediaIndex)}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
+      onClick={isPointerClickable ? () => onClick(item, mediaIndex) : undefined}
+      onMouseEnter={decorative ? undefined : handleMouseEnter}
+      onMouseLeave={decorative ? undefined : handleMouseLeave}
       className="group relative flex-shrink-0 w-[310px] sm:w-[380px] md:w-[420px] h-52 sm:h-64 rounded-2xl overflow-hidden bg-black/95 border border-white/10 shadow-lg hover:shadow-2xl hover:border-primary/60 hover:shadow-[0_12px_40px_-10px_rgba(0,0,0,0.9),0_0_25px_rgba(245,158,11,0.2)] transition-all duration-400 cursor-pointer select-none mx-2.5 transform-gpu"
       style={{
         transform: "translate3d(0, 0, 0)",
         contain: "content",
       }}
-      role="button"
-      tabIndex={0}
+      role={decorative ? undefined : "button"}
+      tabIndex={decorative ? -1 : 0}
+      aria-hidden={decorative || undefined}
       onKeyDown={(e) => {
+        if (decorative) return;
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
           onClick(item, mediaIndex);
         }
       }}
-      aria-label={tUi("portfolio.view_media_from_project", { title: displayTitle, project: projectTitle }, currentLang, defaultLang)}
+      aria-label={decorative ? undefined : tUi("portfolio.view_media_from_project", { title: displayTitle, project: projectTitle }, currentLang, defaultLang)}
     >
       {/* Media Rendering Layer */}
       {isVideoCard ? (

@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import { db } from "../../db.js";
 
 type SynologyFile = { name: string; path: string; isDir: boolean; size?: number; modifiedAt?: number };
@@ -200,23 +201,30 @@ function nextCalendarDay() {
   return value.toISOString().slice(0, 10);
 }
 
-function directSynologyDownloadUrl(sourceUrl: unknown, filePath: string) {
-  const shareUrl = new URL(String(sourceUrl || ""));
-  const segments = shareUrl.pathname.split("/").filter(Boolean);
-  const sharingSegment = segments.findIndex((segment) => segment === "sharing" || segment === "fbsharing");
-  const shareId = sharingSegment >= 0 ? segments[sharingSegment + 1] : "";
-  const fileName = filePath.split("/").filter(Boolean).pop();
-  // DSM's public sharing endpoint renders a landing page.  Its fsdownload
-  // counterpart returns Content-Disposition: attachment, so the browser can
-  // start the NAS download without navigating away from the media library.
-  if (!shareId || !fileName) return { url: shareUrl.toString(), isDirect: false };
-  shareUrl.pathname = `/fsdownload/${encodeURIComponent(shareId)}/${encodeURIComponent(fileName)}`;
-  return { url: shareUrl.toString(), isDirect: true };
+function configuredDownloadGateway() {
+  const rawUrl = String(process.env.SYNOLOGY_MEDIA_DOWNLOAD_GATEWAY_URL || "").trim();
+  const secret = String(process.env.SYNOLOGY_MEDIA_DOWNLOAD_SIGNING_SECRET || "").trim();
+  if (!rawUrl && !secret) return null;
+  if (!rawUrl || !secret) throw new Error("A közvetlen NAS-letöltő átjáró konfigurációja hiányos.");
+  const url = new URL(rawUrl);
+  if (url.protocol !== "https:") throw new Error("A közvetlen NAS-letöltő átjáróhoz HTTPS cím szükséges.");
+  return { url: url.toString().replace(/\/$/, ""), secret };
+}
+
+function createGatewayDownloadToken(filePath: string, secret: string) {
+  const payload = Buffer.from(JSON.stringify({ path: filePath, exp: Math.floor(Date.now() / 1000) + 5 * 60, nonce: crypto.randomBytes(12).toString("base64url") })).toString("base64url");
+  const signature = crypto.createHmac("sha256", secret).update(payload).digest("base64url");
+  return `${payload}.${signature}`;
 }
 
 export async function createSynologyMediaDownloadLink(user: { id?: string; email?: string; role?: string }, requestedPath: string | undefined) {
   const { roots } = await synologyMediaAccess(user);
   const filePath = resolvedPath(roots, requestedPath);
+  const gateway = configuredDownloadGateway();
+  if (gateway) {
+    const token = createGatewayDownloadToken(filePath, gateway.secret);
+    return { url: `${gateway.url}/download?token=${encodeURIComponent(token)}`, isDirect: true, expiresOn: new Date(Date.now() + 5 * 60_000).toISOString() };
+  }
   return withSynologySession(async (baseUrl, sid) => {
     const result = await synologyRequest(baseUrl, {
       api: "SYNO.FileStation.Sharing", version: "3", method: "create",
@@ -224,13 +232,10 @@ export async function createSynologyMediaDownloadLink(user: { id?: string; email
     }, sid);
     const link = Array.isArray(result.data?.links) ? result.data.links.find((item: any) => !item?.error && item?.url) : null;
     if (!link?.url) throw new Error("A Synology nem tudott letöltési linket létrehozni ehhez a fájlhoz.");
-    // The Sharing API returns a complete public URL.  Its hostname can differ
-    // from the private API hostname (for example a QuickConnect/DDNS URL), so
-    // it must remain intact.  Convert only its public path to DSM's download
-    // route, which returns the binary file as an attachment.
-    const download = directSynologyDownloadUrl(link.url, filePath);
-    if (!new URL(download.url).protocol.startsWith("https")) throw new Error("A Synology nem biztonságos letöltési linket adott vissza.");
-    return { ...download, expiresOn: nextCalendarDay() };
+    // Keep Synology's complete URL intact for the fallback sharing flow.
+    const downloadUrl = new URL(String(link.url));
+    if (downloadUrl.protocol !== "https:") throw new Error("A Synology nem biztonságos letöltési linket adott vissza.");
+    return { url: downloadUrl.toString(), isDirect: false, expiresOn: nextCalendarDay() };
   });
 }
 

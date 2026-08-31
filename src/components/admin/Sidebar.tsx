@@ -145,6 +145,7 @@ export function Sidebar({ isMobileOpen = false, onMobileClose }: SidebarProps) {
           subItems: [
             { to: "/admin/faqs", label: "Questions & Answers", translationKey: "admin.nav.faq_questions", icon: HelpCircle },
             { to: "/admin/faqs/categories", label: "FAQ Categories", translationKey: "admin.nav.faq_categories", icon: FolderTree },
+            { to: "/admin/client-help", label: "Ügyfélportál súgó", translationKey: "admin.nav.client_help", icon: HelpCircle },
             { to: "/admin/testimonials", label: "Rólunk mondták", translationKey: "admin.nav.testimonials", icon: MessageSquare },
           ]
         },

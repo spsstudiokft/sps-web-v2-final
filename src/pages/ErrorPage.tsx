@@ -25,6 +25,26 @@ export function ErrorPage({ status = 404, embedded = false }: { status?: ErrorSt
   const title = tr("title", status === 404 ? "Page not found" : "Something went wrong");
   usePageTitle(`${status} — ${title}`, "SPS Studio");
 
+  // A rendered SPA error page is still delivered through index.html. Make sure
+  // crawlers do not treat it as a valid, indexable destination.
+  useEffect(() => {
+    const selector = 'meta[name="robots"]';
+    const previous = document.querySelector<HTMLMetaElement>(selector);
+    const created = !previous;
+    const meta = previous || document.createElement("meta");
+    if (created) {
+      meta.name = "robots";
+      document.head.appendChild(meta);
+    }
+    const previousContent = meta.getAttribute("content");
+    meta.setAttribute("content", "noindex, follow");
+    return () => {
+      if (created) meta.remove();
+      else if (previousContent === null) meta.removeAttribute("content");
+      else meta.setAttribute("content", previousContent);
+    };
+  }, []);
+
   useEffect(() => {
     const redirectTimer = window.setTimeout(() => navigate("/", { replace: true }), 3000);
     const countdownTimer = window.setInterval(() => setSecondsRemaining((seconds) => Math.max(0, seconds - 1)), 1000);

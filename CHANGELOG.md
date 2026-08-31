@@ -1,6 +1,72 @@
 # Modification Log
 
+## 2026-08-31
+
+### One-page organikus keresési indexelés
+
+- A publikus one-page felület megőrzése mellett a keresőrobotok adatbázis-alapú, szemantikus HTML-pillanatképet kapnak a kezdőoldal fő tartalmáról, szolgáltatásairól, portfóliójáról, árazásáról és GYIK-jéről.
+- A robots.txt és a sitemap most egységesen a `https://www.spsstudio.hu` kanonikus domaint használja Vercel környezetben, így nem kerülnek átirányított nem-www URL-ek a sitemapbe.
+- A dokumentum nyelvi jelölése magyarra lett állítva, összhangban az alapértelmezett publikus tartalommal.
+- A sitemap publikus portfólióvideóihoz Google Video Sitemap bejegyzések készülnek a lejátszási URL-lel, bélyegképpel, címmel és leírással.
+
 ## 2026-08-30
+
+### Árlista nettó árak és ÁFA-jelölés
+
+- A publikus árlistán minden összeg nettó árként jelenik meg, a szakasz fejlécében pedig egyértelmű tájékoztató jelzi a végszámlán felszámított 27% ÁFÁ-t.
+- A csomag- és fix összegű kiegészítő szolgáltatáskártyák közvetlenül az ár alatt is mutatják: „Nettó ár · +27% ÁFA”.
+- Ugyanezek a kártyák most a 27%-os ÁFÁ-val számolt bruttó összeget is külön sorban kiírják, miközben a fő ár továbbra is a nettó érték marad.
+
+### Portfólió futósor kattinthatósága
+
+- A végtelen portfólió futósor második, vizuális ismétlődését adó kártyái érintéssel és egérkattintással is ugyanazt a galériát nyitják meg. Korábban a futósor körbefordulásakor ezek a kártyák dekorációként viselkedtek, ezért a látható kép nem volt kattintható.
+- Az ismétlődő kártyák továbbra sem kerülnek a billentyűzetes fókuszsorrendbe és nem indítanak külön videólejátszást, így a javítás nem növeli a média- vagy fókuszterhelést.
+
+### Publikus útvonalak, SEO és ajánlatkérési adatintegritás
+
+- A régi `/contact/` útvonal a kapcsolatfelvételi szakaszra irányít át; a Vercel is tartós átirányítást küld hozzá. A kliensoldali hibaoldalak `noindex, follow` jelölést kapnak, így nem jelennek meg keresőtalálatként.
+- Az ajánlatkérési összeg, extra szolgáltatások és díjtételek a szerveren, az aktuális aktív árlistából számítódnak újra. A böngésző csak a választott csomagot és kiegészítőket küldi, nem tekintjük árforrásnak.
+- A százalékos díjszabályok a csomag és a kiválasztott extrák nettó részösszegére számítódnak a webes kalkulátorban és a szerveren is.
+- A publikus ingatlan- és változásnapló-oldal önálló SEO-címet/leírást kapott, a változásnapló pedig bekerült a sitemapbe.
+- Az ingatlanos katalógus és részletező felület fő statikus feliratai a fordítási rétegből érkeznek; a hibásan duplikált `/auth/verify` route eltávolítva.
+
+### Ajánlatkérő e-mailek ÁFA-bontása
+
+- Az adminnak küldött új ajánlatkérés és az ügyfél automatikus visszaigazoló e-mailje is külön mutatja a becsült nettó összeget, a 27%-os ÁFÁ-t és a becsült bruttó végösszeget.
+- A szerver a tárolt nettó becslésből számolja az ÁFÁ-t és a bruttó értéket, így a két e-mail minden esetben ugyanazt a bontást kapja.
+- A két sablon szerkesztőjében új nettó, ÁFA-kulcs, ÁFA-összeg és bruttó végösszeg tokenek érhetők el; a korábbi `{{estimated_total}}` token nettó kompatibilitási aliasként megmarad.
+- A még nem kézzel módosított adatbázis-sablonok automatikusan az új bontást használják; már szerkesztett sablonok tartalmát a rendszer nem írja felül.
+
+### Ár-kalkulátor ÁFA-bontás
+
+- A kapcsolatfelvételi űrlap élő költségbecslése a nettó összeget, a 27%-os ÁFÁ-t és a fizetendő becsült bruttó végösszeget külön sorban mutatja.
+- A kalkulátor összecsukott fejlécében is a bruttó becsült összeg látható, miközben a részletező sorok nettó árakon maradnak követhetők.
+
+### Főoldal animáció és portfólió teljesítmény
+
+- A Pricing kártyaszűrés Motion-kezelése már több kártya egyidejű belépését és kilépését támogatja, így megszűnik a `mode="wait"` figyelmeztetés és a késleltetett váltás.
+- A portfólió futósora kisebb összeállításoknál statikus, érintéssel is görgethető sávra vált; az animált sor kevesebb belső kártyamásolatot épít fel.
+- A csak vizuális, második futósor kártyái nem fókuszolhatók, nem indítanak videólejátszást, és nem regisztrálnak a globális videókezelőbe.
+- A Pricing kiegészítő szolgáltatásainak korábban fix angol állapot- és típusfeliratai az öt támogatott nyelv fordítási rétegéből érkeznek.
+
+### Jogi dokumentum modal animáció
+
+- Javítva a jogi dokumentumok modal bezárásakor tapasztalható visszaugrás: a Motion átmenet többé nem ütközik az összes dialógusra érvényes CSS-belépő animációval.
+
+### E-mail kézbesítési napló
+
+- Az admin e-mail kézbesítési naplója nem korlátozódik többé az utolsó 50 eseményre. A szerver 100-as oldalanként, stabil rendezéssel és teljes darabszámmal szolgálja ki a naplót; a felületen további események tölthetők be.
+
+### Szerkeszthető kliensportál-súgó
+
+- Új, külön Súgó oldal készült a kliensportálra, amely lenyitható topikokban mutatja a leírást, opcionális segédképet és a számozott, egymás után következő lépéseket.
+- Az adminpanelen a GYIK és súgó menücsoportban új „Ügyfélportál súgó” szerkesztő érhető el: topikok létrehozhatók, átrendezhetők, elrejthetők, törölhetők, és mindegyikhez több lépés, képfeltöltés vagy kép URL állítható be.
+- A súgó publikálása központilag be- és kikapcsolható; az ügyféloldali API csak a látható, szerveroldalon megtisztított topikokat adja ki.
+
+### Végleges projekt galéria PIN-email
+
+- Javítva a `gallery_ready` e-mail képes/videós darabszáma: a rendszer már nem a kapcsolt portfólió-bejegyzéseket, hanem az azok galériáiban ténylegesen szereplő egyes médiaelemeket számolja.
+- A régebbi, egyetlen médiát tartalmazó portfólió-bejegyzések továbbra is beleszámítanak a kiküldött összesítésbe.
 
 ### Synology médiatár munkamenet
 
@@ -11,7 +77,16 @@
 - A Közös médiatárban immár az aktuális engedélyezett mappán belül új almappa is létrehozható; a mappanév tiltott karaktereit és az útvonaljogosultságot a szerver ellenőrzi.
 - A közvetlen Synology File Request linkek mappánként adatbázisban, ütközés esetén frissítéssel tárolódnak, és a mentés sikerét a rendszer azonnali visszaolvasással ellenőrzi; a legközelebbi szülőmappa linkje az almappákban is elérhető.
 - Javítva a Synology-letöltési linkek érvényessége: a rendszer a Sharing API által adott teljes, eredeti publikus URL-t használja, ezért a QuickConnect/DDNS hosztnév és a Synology megosztási tokenje változatlan marad.
-- A médiatári letöltés immár a Synology közvetlen `fsdownload` útvonalát kéri, amely fájlcsatolmány-választ ad; a böngésző az admin felület elnavigálása és a Vercelen átmenő fájladat nélkül indítja el a letöltést.
+- Elkészült a külön Dockeres NAS-letöltő átjáró integrációja: a Vercel öt percig érvényes, HMAC-aláírt fájlútvonalat ad ki, a NAS-on futó konténer pedig csak ezt ellenőrizve, közvetlen fájlcsatolmány-válasszal streameli az állományt. A QuickConnect megosztási oldal csak konfiguráció nélküli tartalékútvonal marad.
+
+### Vizuális email-sablonszerkesztő
+
+- Az email-sablon modal kapott egy alapértelmezett vizuális szerkesztőnézetet: a levéltörzs közvetlenül formázható, a címsor, félkövér/dőlt, idézet, listák, hivatkozás és szövegszín eszközökkel.
+- A változók a vizuális vászon aktuális kurzorpozíciójába is beilleszthetők; az eredmény ugyanabba a korábbi, szerveroldalon tisztított HTML mezőbe mentődik. A haladó HTML- és a sima szöveges szerkesztő továbbra is elérhető.
+
+### Biztonságos helyi Turso használat
+
+- A helyi fejlesztői szerver alapértelmezésben nem indít ütemezett email- vagy naptári emlékeztető-feldolgozást akkor sem, ha a `.env` éles Turso-adatbázisra mutat. Helyi környezetben ez csak az explicit `ENABLE_LOCAL_BACKGROUND_WORKERS=1` kapcsolóval engedélyezhető.
 
 ## 2026-08-29
 

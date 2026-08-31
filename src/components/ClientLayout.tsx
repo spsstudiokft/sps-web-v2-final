@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Outlet, Link, useNavigate, useLocation } from "react-router-dom";
-import { Building2, FileText, FolderKanban, Gift, LayoutDashboard, LogOut, Menu, Settings, UserRound, X } from "lucide-react";
+import { Building2, CircleHelp, FileText, FolderKanban, Gift, LayoutDashboard, LogOut, Menu, Settings, UserRound, X } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { useLanguage } from "../contexts/LanguageContext";
 import { Button } from "./ui/Button";
@@ -21,6 +21,7 @@ export default function ClientLayout() {
     { to: "/client/invoices", label: tUi("client.nav.invoices") || "Számlák", icon: FileText, active: (path) => path.startsWith("/client/invoices") },
     { to: "/client/referrals", label: tUi("client.nav.rewards") || "Ajánlások", icon: Gift, active: (path) => path.startsWith("/client/referrals") },
     { to: "/client/property-listings", label: tUi("client.nav.property_listings") || "Ingatlanhirdetések", icon: Building2, active: (path) => path.startsWith("/client/property-listings") },
+    { to: "/client/help", label: tUi("client.nav.help") || "Súgó", icon: CircleHelp, active: (path) => path.startsWith("/client/help") },
     { to: "/client/settings", label: tUi("client.nav.settings") || "Fiókbeállítások", icon: Settings, active: (path) => path.startsWith("/client/settings") },
   ];
   const handleLogout = () => { logout(); navigate("/"); };

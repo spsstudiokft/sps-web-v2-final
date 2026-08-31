@@ -60,6 +60,7 @@ const ClientReferralsPage = lazy(() => import("./pages/client/ClientReferralsPag
 const ClientSettingsPage = lazy(() => import("./pages/client/ClientSettingsPage"));
 const ClientListingAccountPage = lazy(() => import("./pages/client/ClientListingAccountPage"));
 const ClientPropertyListingsPage = lazy(() => import("./pages/client/ClientPropertyListingsPage"));
+const ClientHelpPage = lazy(() => import("./pages/client/ClientHelpPage"));
 const PropertyListingLoginPage = lazy(() => import("./pages/PropertyListingLoginPage"));
 const PublicInvoicePage = lazy(() => import("./pages/PublicInvoicePage"));
 const PortfolioGalleryPage = lazy(() => import("./pages/PortfolioGalleryPage"));
@@ -67,6 +68,7 @@ const PropertiesPage = lazy(() => import("./pages/PropertiesPage"));
 const ChangelogPage = lazy(() => import("./pages/ChangelogPage"));
 const AdminChangelogPage = lazy(() => import("./pages/admin/ChangelogPage"));
 const MediaLibraryPage = lazy(() => import("./pages/admin/MediaLibraryPage"));
+const ClientHelpAdminPage = lazy(() => import("./pages/admin/ClientHelpAdminPage"));
 
 const ProtectedClientRoute = ({ children }: { children: ReactNode }) => {
   const { token, user } = useAuth();
@@ -145,6 +147,7 @@ export default function App() {
               <Route element={<CookieConsentProvider><ComingSoonGate /></CookieConsentProvider>}>
                 <Route path="/" element={<PublicHome />} />
                 <Route path="/changelog" element={<ChangelogPage />} />
+                <Route path="/contact/*" element={<Navigate to={{ pathname: "/", hash: "#contact" }} replace />} />
                 <Route path="/portfolio/:slug" element={<PortfolioGalleryPage />} />
                 <Route path="/properties" element={<PropertiesPage />} />
                 <Route path="/properties/:id" element={<PropertiesPage />} />
@@ -159,7 +162,6 @@ export default function App() {
               <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
               <Route path="/auth/verify" element={<VerifyMagicLinkPage />} />
               <Route path="/auth/magic-link" element={<VerifyMagicLinkPage />} />
-              <Route path="/auth/verify" element={<VerifyMagicLinkPage />} />
 
               {/* Public Invoices */}
               <Route path="/invoice/:id" element={<PublicInvoicePage />} />
@@ -186,6 +188,7 @@ export default function App() {
                 <Route path="referrals" element={<ClientReferralsPage />} />
                 <Route path="settings" element={<ClientSettingsPage />} />
                 <Route path="property-listings" element={<ClientListingAccountPage />} />
+                <Route path="help" element={<ClientHelpPage />} />
                 <Route path="*" element={<ErrorPage status={404} embedded />} />
               </Route>
 
@@ -218,6 +221,7 @@ export default function App() {
                 <Route path="social-links" element={<SocialLinksPage />} />
                 <Route path="faqs" element={<FaqsPage />} />
                 <Route path="faqs/categories" element={<FaqCategoriesPage />} />
+                <Route path="client-help" element={<ClientHelpAdminPage />} />
                 <Route path="testimonials" element={<TestimonialsPage />} />
                 <Route path="contacts" element={<ContactsPage />} />
                 <Route path="clients" element={<ClientsPage />} />

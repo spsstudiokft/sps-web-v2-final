@@ -21,6 +21,35 @@ const JWT_SECRET = process.env.JWT_SECRET || "supersecretjwtstring";
 const pinAttempts = new Map<string, { count: number; resetAt: number }>();
 const pinEmailRequests = new Map<string, number>();
 
+clientRouter.get("/help", async (_req, res) => {
+  try {
+    const result = await db.execute({
+      sql: "SELECT key, value FROM settings WHERE key IN ('client_help_enabled', 'client_help_topics')",
+      args: [],
+    });
+    const values = Object.fromEntries((result.rows as any[]).map((row) => [String(row.key), String(row.value || "")]));
+    if (values.client_help_enabled === "0" || values.client_help_enabled === "false") {
+      return res.json({ enabled: false, topics: [] });
+    }
+    let topics: any[] = [];
+    try { topics = JSON.parse(values.client_help_topics || "[]"); } catch { topics = []; }
+    const safeTopics = Array.isArray(topics) ? topics
+      .filter((topic) => topic && topic.is_visible !== false && topic.is_visible !== 0)
+      .slice(0, 30)
+      .map((topic, index) => ({
+        id: String(topic.id || `client-help-${index + 1}`),
+        title: String(topic.title || "").slice(0, 300),
+        description: String(topic.description || "").slice(0, 5000),
+        image_url: String(topic.image_url || "").slice(0, 2000),
+        steps: Array.isArray(topic.steps) ? topic.steps.slice(0, 20).map((step: unknown) => String(step || "").trim()).filter(Boolean) : [],
+      })) : [];
+    res.json({ enabled: true, topics: safeTopics });
+  } catch (error) {
+    console.error("Failed to load client help topics", error);
+    res.status(500).json({ error: "A súgó jelenleg nem tölthető be." });
+  }
+});
+
 clientRouter.use((req: any, res, next) => {
   if (req.user?.role === "property_client" && !req.path.startsWith("/property-listings")) {
     return res.status(403).json({ error: "Ez a munkamenet kizárólag az ingatlanhirdetés-kezelőhöz használható." });
