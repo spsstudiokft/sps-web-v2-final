@@ -744,6 +744,12 @@ html:not(.dark) .aero-site {
     width: 100%;
     min-inline-size: 0;
   }
+  /* iOS zooms a page when focused form controls use a font below 16px. */
+  .aero-contact-form input,
+  .aero-contact-form select,
+  .aero-contact-form textarea {
+    font-size: 16px;
+  }
   .aero-contact-form [class*="justify-between"] {
     min-width: 0;
     flex-wrap: wrap;

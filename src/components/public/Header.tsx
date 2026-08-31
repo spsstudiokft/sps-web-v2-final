@@ -193,18 +193,18 @@ export function Header({ settings, hasServices = true, hasPortfolio = true, hasP
 
   return (
     <header className={`aero-header fixed w-full top-0 px-4 pt-4 md:pt-6 z-50 transition-transform duration-300 ${isVisible ? "translate-y-0" : "-translate-y-full"} pointer-events-none`}>
-      <div className="aero-nav relative z-10 max-w-7xl mx-auto pointer-events-auto h-16 md:h-20 px-4 md:px-6 flex items-center justify-between">
+      <div className="aero-nav relative z-10 max-w-7xl mx-auto pointer-events-auto h-16 md:h-20 px-4 md:px-6 flex items-center justify-between min-w-0">
         <Link
           to="/"
           onClick={(event) => { if (!isStandalonePage) { event.preventDefault(); window.scrollTo({ top: 0, behavior: "smooth" }); } }}
-          className="flex items-center gap-2.5 hover:opacity-85 transition-opacity outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-lg py-1 px-1 cursor-pointer"
+          className="flex min-w-0 items-center gap-2.5 hover:opacity-85 transition-opacity outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-lg py-1 px-1 cursor-pointer"
           aria-label={studioNameText}
         >
           {showLogo && (
             <img 
               src={activeLogo} 
               alt={altText}
-              className="h-8 md:h-10 max-w-[180px] md:max-w-[240px] w-auto object-contain transition-all duration-200"
+              className="h-8 w-auto max-w-[148px] object-contain transition-all duration-200 sm:max-w-[180px] md:h-10 md:max-w-[240px]"
               onError={() => setLogoLoadFailed(true)}
             />
           )}
@@ -281,10 +281,11 @@ export function Header({ settings, hasServices = true, hasPortfolio = true, hasP
         </nav>
 
         {/* Mobile menu button & selector */}
-        <div className="md:hidden flex items-center gap-2">
-          <ThemeToggle id="navbar-theme-toggle-mobile" size="md" />
-
-          <LanguageSelector />
+        <div className="md:hidden flex shrink-0 items-center gap-2">
+          <div className="hidden sm:contents">
+            <ThemeToggle id="navbar-theme-toggle-mobile" size="md" />
+            <LanguageSelector />
+          </div>
           
           <UserDropdown token={token} logout={logout} currentLang={currentLang} />
 
@@ -369,6 +370,13 @@ export function Header({ settings, hasServices = true, hasPortfolio = true, hasP
                   {tUi("admin.settings.section_theme_palette", currentLang, undefined, defaultLang) || "Theme"}
                 </span>
                 <ThemeToggle id="mobile-drawer-theme-toggle" size="md" />
+              </div>
+
+              <div className="flex items-center justify-between gap-4 py-1">
+                <span className="text-sm font-medium text-muted-text">
+                  {tUi("Language", currentLang, undefined, defaultLang) || "Language"}
+                </span>
+                <LanguageSelector className="shrink-0" />
               </div>
 
               {showProperties && <Link to="/properties" onClick={closeMenu} className="flex items-center gap-3 text-lg font-medium text-text hover:text-primary w-fit">

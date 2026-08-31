@@ -8,21 +8,27 @@ export function PublicScrollAnimations({ disabled, contentReady }: { disabled: b
   useEffect(() => {
     const sections = Array.from(document.querySelectorAll<HTMLElement>("section[data-gsap-reveal]"));
     const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const mobileViewport = window.matchMedia("(max-width: 767px), (pointer: coarse)").matches;
 
-    if (disabled || prefersReducedMotion) {
+    // Content must never be hidden while a mobile user is scrolling. Besides
+    // saving work on touch devices, this avoids visible blank sections during
+    // fast flick scrolling or delayed image decoding.
+    if (disabled || prefersReducedMotion || mobileViewport) {
       gsap.set(sections, { clearProps: "opacity,transform,visibility" });
       return;
     }
 
     const context = gsap.context(() => {
       sections.forEach((section) => {
-        gsap.set(section, { autoAlpha: 0, y: 24 });
+        // Keep sections readable from the first paint. The prior autoAlpha: 0
+        // allowed a fast scroll to expose an empty section before ScrollTrigger
+        // processed its enter event.
+        gsap.set(section, { y: 18 });
         ScrollTrigger.create({
           trigger: section,
-          start: "top 86%",
+          start: "top 92%",
           once: true,
           onEnter: () => gsap.to(section, {
-            autoAlpha: 1,
             y: 0,
             duration: 0.58,
             ease: "power2.out",

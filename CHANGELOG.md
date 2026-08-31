@@ -2,26 +2,47 @@
 
 ## 2026-08-31
 
-### Fordítási adatbázis-betöltés és hiányjelzés
+### Changelog Language Convention
 
-- A fordítási szótárak nyelvkódjai és kulcsai betöltéskor egységesítve vannak, ezért a korábban eltérő nagybetűzés vagy felesleges szóköz nem okozhat látszólag üres nyelvi szótárat.
-- Az admin fordításszerkesztő csak sikeresen beolvasott adatbázis-válasz alapján számít hiányokat. Sikertelen kérésnél egyértelmű állapotjelzést és újrapróbálási lehetőséget mutat, nem pedig tévesen több ezer hiányzó kulcsot.
-- A fordítási státusz a szerver oldali hiányjelentést használja, így az admin felület a tényleges adatbázis-állapotot jelzi.
+- New changelog entries are written in English using concise, past-tense descriptions. Historical Hungarian entries are retained unchanged for traceability.
 
-### Admin saját fiók hibakezelése
+### Mobile Public Website Layout
 
-- Az admin profil- és jelszókezelő már biztonságosan kezeli a JSON helyett érkező platformszintű szerverhibát. A nyers `Unexpected token` üzenet helyett a tényleges HTTP hibaállapotot jelzi, így a hiba nem tűnik adatbeviteli vagy fordítási problémának.
+- Reworked the compact header so language and theme controls move into the navigation drawer on narrow screens, preserving space for the brand, account control, and menu button.
+- Constrained the mobile logo and flex layout to prevent header collisions on small devices.
+- Set public inquiry form controls to a 16px mobile font size to prevent automatic iOS page zoom when an input receives focus.
 
-### Vercel modulbetöltés
+### Mobile Scroll Rendering Performance
 
-- Javítva a szerveroldali médiasegéd importja: a Vercel natív ESM futtatója most már feloldja a `mediaUtils` modult. Korábban ez a hiányzó kiterjesztés minden, közös `utils` segédet használó API-függvény indulását megakadályozhatta.
+- Disabled section reveal animations on touch and narrow-screen devices so fast scrolling never exposes transparent, apparently unloaded sections.
+- Kept desktop section content visible during its entrance transition, eliminating blank states while retaining a subtle positional reveal.
+- Increased mobile prefetch distance for portfolio, pricing, and FAQ data so interactive content is ready before the user reaches its section.
 
-### One-page organikus keresési indexelés
+### Maintenance Script Cleanup
 
-- A publikus one-page felület megőrzése mellett a keresőrobotok adatbázis-alapú, szemantikus HTML-pillanatképet kapnak a kezdőoldal fő tartalmáról, szolgáltatásairól, portfóliójáról, árazásáról és GYIK-jéről.
-- A robots.txt és a sitemap most egységesen a `https://www.spsstudio.hu` kanonikus domaint használja Vercel környezetben, így nem kerülnek átirányított nem-www URL-ek a sitemapbe.
-- A dokumentum nyelvi jelölése magyarra lett állítva, összhangban az alapértelmezett publikus tartalommal.
-- A sitemap publikus portfólióvideóihoz Google Video Sitemap bejegyzések készülnek a lejátszási URL-lel, bélyegképpel, címmel és leírással.
+- Removed historical one-off translation fixes and data generators, stale reports, and the temporary MFA test from `scripts`.
+- Retained the translation migration and audit tools used by the project npm commands: full i18n audit, admin static-text audit, comparison audit, existing-key wiring, and manual translation migration.
+
+### Translation Database Loading and Missing-Key Reporting
+
+- Normalized locale codes and translation keys during loading, preventing inconsistent casing or surrounding whitespace from appearing as empty locale dictionaries.
+- Updated the admin translation editor to calculate missing keys only after a successful database response; failed loads show a clear state and retry action instead of falsely reporting thousands of missing keys.
+- Switched translation status reporting to the server-side missing-key report so the admin UI reflects the actual database state.
+
+### Admin Account Error Handling
+
+- Updated the admin profile and password pages to handle platform-level non-JSON errors safely. They now show the actual HTTP failure state instead of a misleading `Unexpected token` parsing error.
+
+### Vercel Module Resolution
+
+- Fixed the server-side media utility import so Vercel's native ESM runtime resolves `mediaUtils`. The missing extension could previously prevent every API function using the shared `utils` helper from starting.
+
+### One-Page Organic Search Indexing
+
+- Preserved the public one-page experience while serving search crawlers a database-backed semantic HTML snapshot of homepage content, services, portfolio, pricing, and FAQ data.
+- Standardized `robots.txt` and the sitemap on the `https://www.spsstudio.hu` canonical domain in Vercel environments, preventing redirected non-www URLs from entering the sitemap.
+- Set the document language to Hungarian to match the default public content.
+- Added Google Video Sitemap entries for public portfolio videos, including playback URL, thumbnail, title, and description.
 
 ## 2026-08-30
 

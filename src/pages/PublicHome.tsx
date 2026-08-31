@@ -163,7 +163,8 @@ export default function PublicHome() {
     if (loading || portfolioLoaded.current) return;
     const target = document.getElementById("portfolio");
     if (!target) return;
-    const observer = new IntersectionObserver(([entry]) => { if (!entry.isIntersecting || portfolioLoaded.current) return; portfolioLoaded.current = true; fetch("/api/public/portfolio").then(r => r.ok ? r.json() : null).then(data => { if (Array.isArray(data)) setPortfolio(data); }).catch(() => {}); observer.disconnect(); }, { rootMargin: "600px" });
+    const mobilePrefetch = window.matchMedia("(max-width: 767px), (pointer: coarse)").matches;
+    const observer = new IntersectionObserver(([entry]) => { if (!entry.isIntersecting || portfolioLoaded.current) return; portfolioLoaded.current = true; fetch("/api/public/portfolio").then(r => r.ok ? r.json() : null).then(data => { if (Array.isArray(data)) setPortfolio(data); }).catch(() => {}); observer.disconnect(); }, { rootMargin: mobilePrefetch ? "1400px 0px" : "600px" });
     observer.observe(target); return () => observer.disconnect();
   }, [loading]);
 
@@ -205,12 +206,13 @@ function PublicHomeContent({ settings, portfolio, services, bootstrap, loading }
     if (pricingLoaded.current) return;
     const target = document.getElementById("pricing");
     if (!target) return;
+    const mobilePrefetch = window.matchMedia("(max-width: 767px), (pointer: coarse)").matches;
     const observer = new IntersectionObserver(([entry]) => {
       if (!entry.isIntersecting || pricingLoaded.current) return;
       pricingLoaded.current = true;
       setLoadFullPricing(true);
       observer.disconnect();
-    }, { rootMargin: "600px" });
+    }, { rootMargin: mobilePrefetch ? "1400px 0px" : "600px" });
     observer.observe(target);
     return () => observer.disconnect();
   }, []);
@@ -219,12 +221,13 @@ function PublicHomeContent({ settings, portfolio, services, bootstrap, loading }
     if (faqsLoaded.current) return;
     const target = document.getElementById("faq");
     if (!target) return;
+    const mobilePrefetch = window.matchMedia("(max-width: 767px), (pointer: coarse)").matches;
     const observer = new IntersectionObserver(([entry]) => {
       if (!entry.isIntersecting || faqsLoaded.current) return;
       faqsLoaded.current = true;
       setLoadFullFaqs(true);
       observer.disconnect();
-    }, { rootMargin: "600px" });
+    }, { rootMargin: mobilePrefetch ? "1400px 0px" : "600px" });
     observer.observe(target);
     return () => observer.disconnect();
   }, []);
