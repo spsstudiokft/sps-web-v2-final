@@ -13,7 +13,7 @@
     "dev": "tsx server.ts",
     "build:client": "vite build",
     "build:server": "esbuild server.ts --bundle --platform=node --format=cjs --packages=external --minify --legal-comments=none --sourcemap --log-level=error --outfile=dist/server.cjs",
-    "build:vercel": "vite build",
+    "build:vercel": "vite build && node scripts/prepare-vercel-output.mjs",
     "build": "vite build && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --minify --legal-comments=none --sourcemap --log-level=error --outfile=dist/server.cjs",
     "start": "node dist/server.cjs",
     "migrate:translations": "tsx scripts/migrate-translations.ts",

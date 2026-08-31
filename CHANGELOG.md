@@ -47,6 +47,7 @@
 - Added Google Video Sitemap entries for public portfolio videos, including playback URL, thumbnail, title, and description.
 - Routed the homepage through a cache-safe renderer so crawlers cannot receive a cached SPA shell instead of the semantic page snapshot.
 - Expanded the crawler snapshot to cover Vision, About, visual ideas, testimonials, and all published public portfolio, pricing, and FAQ records.
+- Renamed the production SPA shell after Vite builds because Vercel gives a physical `index.html` precedence over homepage rewrites; `/` now reliably reaches the cache-safe renderer.
 
 ## 2026-08-30
 

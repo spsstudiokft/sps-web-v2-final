@@ -21,7 +21,7 @@
     "contentDispositionType": "inline"
   },
   "functions": {
-    "api/home.ts": { "maxDuration": 60, "includeFiles": "dist/index.html" },
+    "api/home.ts": { "maxDuration": 60, "includeFiles": "dist/app-shell.html" },
     "api/cron-calendar.ts": { "maxDuration": 60 },
     "api/public.ts": { "maxDuration": 60 },
     "api/auth.ts": { "maxDuration": 60 },
@@ -166,7 +166,7 @@
     },
     {
       "source": "/((?!api/|api$).*)",
-      "destination": "/index.html"
+      "destination": "/app-shell.html"
     }
   ]
 }

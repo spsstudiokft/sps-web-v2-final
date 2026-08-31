@@ -8,8 +8,8 @@ import { renderPublicSeoHome } from "../src/server/publicSeoHtml.js";
 const crawlerPattern = /(Googlebot|bingbot|Baiduspider|YandexBot|DuckDuckBot|facebookexternalhit|Twitterbot|Slackbot)/i;
 
 function readBuiltIndex() {
-  const file = path.join(process.cwd(), "dist", "index.html");
-  if (!fs.existsSync(file)) throw new Error("Built public index.html is unavailable.");
+  const file = path.join(process.cwd(), "dist", "app-shell.html");
+  if (!fs.existsSync(file)) throw new Error("Built public app shell is unavailable.");
   return fs.readFileSync(file, "utf8");
 }
 
