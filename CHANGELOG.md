@@ -2,6 +2,20 @@
 
 ## 2026-08-31
 
+### Fordítási adatbázis-betöltés és hiányjelzés
+
+- A fordítási szótárak nyelvkódjai és kulcsai betöltéskor egységesítve vannak, ezért a korábban eltérő nagybetűzés vagy felesleges szóköz nem okozhat látszólag üres nyelvi szótárat.
+- Az admin fordításszerkesztő csak sikeresen beolvasott adatbázis-válasz alapján számít hiányokat. Sikertelen kérésnél egyértelmű állapotjelzést és újrapróbálási lehetőséget mutat, nem pedig tévesen több ezer hiányzó kulcsot.
+- A fordítási státusz a szerver oldali hiányjelentést használja, így az admin felület a tényleges adatbázis-állapotot jelzi.
+
+### Admin saját fiók hibakezelése
+
+- Az admin profil- és jelszókezelő már biztonságosan kezeli a JSON helyett érkező platformszintű szerverhibát. A nyers `Unexpected token` üzenet helyett a tényleges HTTP hibaállapotot jelzi, így a hiba nem tűnik adatbeviteli vagy fordítási problémának.
+
+### Vercel modulbetöltés
+
+- Javítva a szerveroldali médiasegéd importja: a Vercel natív ESM futtatója most már feloldja a `mediaUtils` modult. Korábban ez a hiányzó kiterjesztés minden, közös `utils` segédet használó API-függvény indulását megakadályozhatta.
+
 ### One-page organikus keresési indexelés
 
 - A publikus one-page felület megőrzése mellett a keresőrobotok adatbázis-alapú, szemantikus HTML-pillanatképet kapnak a kezdőoldal fő tartalmáról, szolgáltatásairól, portfóliójáról, árazásáról és GYIK-jéről.

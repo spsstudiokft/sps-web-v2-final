@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { Language, TranslationItem, TranslationStats } from "../../lib/types";
-import { defaultLocales, enTranslations } from "../../lib/translations";
+import { enTranslations } from "../../lib/translations";
 import {
   compareTranslationGroups,
   getTranslationGroup,
@@ -45,6 +45,32 @@ interface TranslationsManagerProps {
   onChange?: (translationsJson: string) => void;
 }
 
+const normalizeLocaleCode = (value: unknown): string => String(value ?? "").trim().toLowerCase();
+
+function normalizeDictionaryPayload(value: unknown): Record<string, Record<string, string>> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error("A fordítási adatbázis válasza érvénytelen.");
+  }
+
+  const dictionaries: Record<string, Record<string, string>> = {};
+  for (const [rawLocale, rawDictionary] of Object.entries(value)) {
+    const locale = normalizeLocaleCode(rawLocale);
+    if (!locale || !rawDictionary || typeof rawDictionary !== "object" || Array.isArray(rawDictionary)) continue;
+
+    const dictionary: Record<string, string> = {};
+    for (const [rawKey, rawValue] of Object.entries(rawDictionary)) {
+      const key = rawKey.trim();
+      if (key) dictionary[key] = String(rawValue ?? "");
+    }
+    dictionaries[locale] = { ...(dictionaries[locale] || {}), ...dictionary };
+  }
+
+  if (Object.keys(dictionaries).length === 0) {
+    throw new Error("A fordítási adatbázis nem adott vissza nyelvi szótárat.");
+  }
+  return dictionaries;
+}
+
 export function TranslationsManager({
   supportedLanguages,
   defaultLanguage,
@@ -54,7 +80,7 @@ export function TranslationsManager({
   const { fetchApi } = useApi();
 
   const [selectedLang, setSelectedLang] = useState<string>(() => {
-    return supportedLanguages[0]?.code || "en";
+    return normalizeLocaleCode(supportedLanguages[0]?.code) || "en";
   });
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
@@ -72,6 +98,7 @@ export function TranslationsManager({
 
   // Database translations state
   const [loading, setLoading] = useState(true);
+  const [translationDataError, setTranslationDataError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [migrating, setMigrating] = useState(false);
@@ -89,16 +116,31 @@ export function TranslationsManager({
 
   // Fetch initial translations & statistics from API
   const fetchAllTranslations = useCallback(async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-      
       // Fetch full translations dictionary
-      const transRes = await fetch("/api/public/translations");
-      if (transRes.ok) {
-        const dicts = await transRes.json();
-        setDbDictionaries(dicts || {});
-      }
+      const transRes = await fetch("/api/public/translations", {
+        cache: "no-store",
+        credentials: "same-origin",
+        headers: { Accept: "application/json" },
+      });
+      if (!transRes.ok) throw new Error(`A fordítási adatbázis nem elérhető (HTTP ${transRes.status}).`);
+      const dicts = normalizeDictionaryPayload(await transRes.json());
+      setDbDictionaries(dicts);
+      setTranslationDataError(null);
 
+      setModifiedKeys(new Set());
+    } catch (err) {
+      console.error("Failed to load translation dictionaries in manager:", err);
+      setTranslationDataError(err instanceof Error ? err.message : "A fordítási adatbázis betöltése sikertelen.");
+      setLoading(false);
+      return;
+    }
+
+    // These health endpoints require admin authorization. Their temporary
+    // failure must not turn a successfully loaded dictionary into a false
+    // "all keys are missing" state.
+    try {
       // Fetch statistics
       const statsRes = await fetchApi("/api/admin/translations/stats");
       if (statsRes.ok) {
@@ -112,11 +154,8 @@ export function TranslationsManager({
         const rep = await missingRes.json();
         setMissingReport(rep);
       }
-
-      setModifiedKeys(new Set());
     } catch (err) {
-      console.error("Failed to load translations in manager:", err);
-      setDbDictionaries(defaultLocales);
+      console.warn("Failed to load translation health data in manager:", err);
     } finally {
       setLoading(false);
     }
@@ -125,6 +164,14 @@ export function TranslationsManager({
   useEffect(() => {
     fetchAllTranslations();
   }, [fetchAllTranslations]);
+
+  useEffect(() => {
+    const selected = normalizeLocaleCode(selectedLang);
+    const available = supportedLanguages.map((language) => normalizeLocaleCode(language.code)).filter(Boolean);
+    if (available.length > 0 && !available.includes(selected)) {
+      setSelectedLang(available[0]);
+    }
+  }, [selectedLang, supportedLanguages]);
 
   // Combine all known keys across dictionaries and hardcoded sources
   const allKeys = useMemo(() => {
@@ -157,7 +204,8 @@ export function TranslationsManager({
   const { missingCount, modifiedCount } = useMemo(() => {
     let missing = 0;
     let modified = 0;
-    const currentDict = dbDictionaries[selectedLang] || {};
+    if (translationDataError) return { missingCount: 0, modifiedCount: 0 };
+    const currentDict = dbDictionaries[normalizeLocaleCode(selectedLang)] || {};
 
     allKeys.forEach((k) => {
       const val = currentDict[k];
@@ -170,7 +218,7 @@ export function TranslationsManager({
     });
 
     return { missingCount: missing, modifiedCount: modified };
-  }, [allKeys, dbDictionaries, selectedLang, modifiedKeys]);
+  }, [allKeys, dbDictionaries, selectedLang, modifiedKeys, translationDataError]);
 
   // Filtered keys based on search, group, and filter mode
   const filteredKeys = useMemo(() => {
@@ -181,7 +229,7 @@ export function TranslationsManager({
       if (!matchesCategory) return false;
 
       const englishVal = dbDictionaries["en"]?.[key] || enTranslations[key] || "";
-      const currentVal = dbDictionaries[selectedLang]?.[key] ?? "";
+      const currentVal = dbDictionaries[normalizeLocaleCode(selectedLang)]?.[key] ?? "";
       const isMissing = !currentVal || currentVal.trim() === "";
       const isModified = modifiedKeys.has(`${selectedLang}:${key}`);
 
@@ -505,7 +553,11 @@ export function TranslationsManager({
     }
   };
 
-  const currentLangObj = supportedLanguages.find((l) => l.code === selectedLang) || { code: selectedLang, name: selectedLang };
+  const selectedLocale = normalizeLocaleCode(selectedLang);
+  const reportedMissingCount = translationDataError
+    ? null
+    : missingReport?.missingByLocale[selectedLocale]?.length ?? missingCount;
+  const currentLangObj = supportedLanguages.find((l) => normalizeLocaleCode(l.code) === selectedLocale) || { code: selectedLocale, name: selectedLocale };
   const unsavedCount = modifiedKeys.size;
 
   return (
@@ -519,8 +571,8 @@ export function TranslationsManager({
                 <Database className="w-5 h-5 text-primary" />
                 <span>{tUi("admin.translation_editor.title", currentLang)}</span>
               </h3>
-              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                Active & Synced
+              <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${translationDataError ? "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20" : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"}`}>
+                {translationDataError ? "Database unavailable" : "Active & Synced"}
               </span>
             </div>
             <p className="text-xs text-muted-text max-w-3xl">
@@ -601,8 +653,8 @@ export function TranslationsManager({
             </div>
             <div className="p-2.5 rounded-xl bg-background/60 border border-border/50">
               <span className="text-[11px] text-muted-text block">Target ({selectedLang.toUpperCase()}) Status</span>
-              <strong className={`text-sm font-semibold ${missingCount > 0 ? "text-amber-500" : "text-emerald-500"}`}>
-                {missingCount === 0 ? "100% Complete" : `${missingCount} Missing`}
+              <strong className={`text-sm font-semibold ${reportedMissingCount === null ? "text-red-500" : reportedMissingCount > 0 ? "text-amber-500" : "text-emerald-500"}`}>
+                {reportedMissingCount === null ? "Not checked" : reportedMissingCount === 0 ? "100% Complete" : `${reportedMissingCount} Missing`}
               </strong>
             </div>
             <div className="p-2.5 rounded-xl bg-background/60 border border-border/50">
@@ -632,22 +684,33 @@ export function TranslationsManager({
         </div>
       )}
 
+      {translationDataError && (
+        <div className="p-3.5 rounded-xl border border-red-500/20 bg-red-500/10 text-xs font-medium text-red-600 dark:text-red-400 flex items-center justify-between gap-3">
+          <span className="flex items-center gap-2.5"><AlertCircle className="w-4 h-4 shrink-0" />A fordítások nem töltődtek be az adatbázisból, ezért a hiányzó kulcsok száma nem kerül kiszámításra.</span>
+          <Button type="button" variant="secondary" size="sm" onClick={fetchAllTranslations} disabled={loading} className="shrink-0 text-xs cursor-pointer">
+            {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+            <span>Újrapróbálás</span>
+          </Button>
+        </div>
+      )}
+
       {/* Language Selector Tabs */}
       <div className="flex items-center gap-2 overflow-x-auto pb-1 border-b border-border">
         <span className="text-xs font-semibold text-muted-text uppercase tracking-wider pr-2 shrink-0">
           Target Language:
         </span>
         {supportedLanguages.map((lang) => {
-          const isSelected = selectedLang === lang.code;
-          const isDefault = defaultLanguage === lang.code;
+          const localeCode = normalizeLocaleCode(lang.code);
+          const isSelected = selectedLocale === localeCode;
+          const isDefault = normalizeLocaleCode(defaultLanguage) === localeCode;
           const isEnabled = lang.enabled !== false;
-          const localeCount = Object.keys(dbDictionaries[lang.code] || {}).length;
+          const localeCount = Object.keys(dbDictionaries[localeCode] || {}).length;
 
           return (
             <button
-              key={lang.code}
+              key={localeCode}
               type="button"
-              onClick={() => setSelectedLang(lang.code)}
+              onClick={() => setSelectedLang(localeCode)}
               className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
                 isSelected
                   ? "bg-primary text-primary-foreground shadow-xs"
@@ -672,7 +735,7 @@ export function TranslationsManager({
 
       {/* Disabled Language Status Banner */}
       {(() => {
-        const activeLangObj = supportedLanguages.find((l) => l.code === selectedLang);
+        const activeLangObj = supportedLanguages.find((l) => normalizeLocaleCode(l.code) === selectedLocale);
         if (activeLangObj && activeLangObj.enabled === false) {
           return (
             <div className="p-3 rounded-xl bg-slate-500/10 border border-slate-500/20 text-slate-600 dark:text-slate-400 text-xs flex items-center gap-2">
@@ -718,9 +781,9 @@ export function TranslationsManager({
               }`}
             >
               <span>{tUi("admin.translation_editor.missing", currentLang)}</span>
-              {missingCount > 0 && (
+              {reportedMissingCount !== null && reportedMissingCount > 0 && (
                 <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-red-500/10 text-red-500 font-mono">
-                  {missingCount}
+                  {reportedMissingCount}
                 </span>
               )}
             </button>
@@ -828,7 +891,7 @@ export function TranslationsManager({
             ) : (
               paginatedKeys.map((key) => {
                 const defaultEnglish = dbDictionaries["en"]?.[key] || enTranslations[key] || "";
-                const displayValue = dbDictionaries[selectedLang]?.[key] ?? "";
+                const displayValue = dbDictionaries[selectedLocale]?.[key] ?? "";
                 const isModified = modifiedKeys.has(`${selectedLang}:${key}`);
                 const hasValue = displayValue.trim() !== "";
                 const groupName = getTranslationGroup(key);

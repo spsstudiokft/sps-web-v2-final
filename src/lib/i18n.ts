@@ -10,14 +10,33 @@ let activeFetchPromise: Promise<Record<string, TranslationDictionary>> | null = 
 const CACHE_STORAGE_PREFIX = "sps_db_translations_v3_";
 const CACHE_EXPIRY_MS = 10 * 60 * 1000; // 10 minutes client cache
 
+function normalizeTranslationDictionaries(value: unknown): Record<string, TranslationDictionary> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+
+  const dictionaries: Record<string, TranslationDictionary> = {};
+  for (const [rawLocale, rawDictionary] of Object.entries(value)) {
+    const locale = rawLocale.trim().toLowerCase();
+    if (!locale || !rawDictionary || typeof rawDictionary !== "object" || Array.isArray(rawDictionary)) continue;
+
+    const dictionary: TranslationDictionary = {};
+    for (const [rawKey, rawValue] of Object.entries(rawDictionary)) {
+      const key = rawKey.trim();
+      if (key) dictionary[key] = String(rawValue ?? "");
+    }
+    dictionaries[locale] = { ...(dictionaries[locale] || {}), ...dictionary };
+  }
+  return dictionaries;
+}
+
 /**
  * Initializes and syncs database translations cache
  */
 export function setDatabaseTranslations(translations: Record<string, TranslationDictionary>) {
-  if (translations && typeof translations === "object") {
+  const normalized = normalizeTranslationDictionaries(translations);
+  if (Object.keys(normalized).length > 0) {
     databaseTranslationsCache = {
       ...databaseTranslationsCache,
-      ...translations,
+      ...normalized,
     };
   }
 }
@@ -47,7 +66,8 @@ export async function loadTranslationsFromDatabase(
       if (cachedStr) {
         const cached = JSON.parse(cachedStr);
         if (cached && cached.data && Date.now() - (cached.timestamp || 0) < CACHE_EXPIRY_MS) {
-          databaseTranslationsCache = cached.data;
+          const normalized = normalizeTranslationDictionaries(cached.data);
+          if (Object.keys(normalized).length > 0) databaseTranslationsCache = normalized;
         }
       }
     } catch {
@@ -76,10 +96,15 @@ export async function loadTranslationsFromDatabase(
 
       const data = await response.json();
       
-      if (targetLocale && typeof data === "object") {
-        databaseTranslationsCache[targetLocale] = data;
-      } else if (typeof data === "object" && data !== null) {
-        databaseTranslationsCache = data;
+      if (targetLocale && typeof data === "object" && data !== null && !Array.isArray(data)) {
+        const locale = targetLocale.trim().toLowerCase();
+        const normalized = normalizeTranslationDictionaries({ [locale]: data });
+        if (!normalized[locale]) throw new Error("Invalid locale translation payload");
+        databaseTranslationsCache[locale] = normalized[locale];
+      } else {
+        const normalized = normalizeTranslationDictionaries(data);
+        if (Object.keys(normalized).length === 0) throw new Error("Invalid translation dictionary payload");
+        databaseTranslationsCache = normalized;
       }
 
       // Persist to client localStorage for fast subsequent boots

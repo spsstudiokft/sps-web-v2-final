@@ -48,6 +48,8 @@ const defaultSupportedLangs: Language[] = [
   { code: "fr", name: "Français", enabled: true },
 ];
 
+const normalizeLanguageCode = (value: unknown): string => String(value ?? "").trim().toLowerCase();
+
 const LanguageContext = createContext<LanguageContextType>({
   currentLang: "en",
   currentLanguage: "en",
@@ -79,7 +81,7 @@ export function LanguageProvider({
   const [translationsReady, setTranslationsReady] = useState<boolean>(false);
   const [currentLang, setCurrentLang] = useState<string>(() => {
     try {
-      return hasConsent("preferences") ? localStorage.getItem("site_lang") || "en" : "en";
+      return hasConsent("preferences") ? normalizeLanguageCode(localStorage.getItem("site_lang")) || "en" : "en";
     } catch {
       return "en";
     }
@@ -93,8 +95,8 @@ export function LanguageProvider({
 
     let targetDefLang = defaultLang;
     if (settings.default_language) {
-      targetDefLang = settings.default_language;
-      setDefaultLang(settings.default_language);
+      targetDefLang = normalizeLanguageCode(settings.default_language) || "en";
+      setDefaultLang(targetDefLang);
     }
 
     // Supported languages
@@ -102,14 +104,16 @@ export function LanguageProvider({
       try {
         const parsed = JSON.parse(settings.site_languages);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          const normalized: Language[] = parsed.map((l: any) => ({
-            code: String(l.code || "").trim(),
+          const normalized: Language[] = parsed.map((l: any) => {
+            const code = normalizeLanguageCode(l.code);
+            return {
+            code,
             name: String(l.name || l.code || "").trim(),
             // Default language is ALWAYS enabled; for other languages, default to true if undefined
-            enabled: l.code === targetDefLang ? true : (l.enabled !== false),
+            enabled: code === targetDefLang ? true : (l.enabled !== false),
             flag: l.flag,
             nativeName: l.nativeName,
-          })).filter(l => Boolean(l.code));
+          }; }).filter(l => Boolean(l.code));
 
           if (normalized.length > 0) {
             setSupportedLangs(normalized);
@@ -196,7 +200,7 @@ export function LanguageProvider({
   // Sync active language selection with localStorage and HTML attribute,
   // falling back gracefully if current language is disabled or not supported
   useEffect(() => {
-    const saved = hasConsent("preferences") ? localStorage.getItem("site_lang") : null;
+    const saved = hasConsent("preferences") ? normalizeLanguageCode(localStorage.getItem("site_lang")) : null;
     const activeEnabled = supportedLangs.filter((l) => l.enabled !== false);
     
     // Check if the saved language is currently enabled
@@ -230,11 +234,12 @@ export function LanguageProvider({
   }, [supportedLangs, defaultLang, currentLang]);
 
   const setLang = useCallback((lang: string) => {
-    setCurrentLang(lang);
+    const normalized = normalizeLanguageCode(lang) || "en";
+    setCurrentLang(normalized);
     try {
-      if (hasConsent("preferences")) localStorage.setItem("site_lang", lang);
+      if (hasConsent("preferences")) localStorage.setItem("site_lang", normalized);
     } catch {}
-    document.documentElement.lang = lang;
+    document.documentElement.lang = normalized;
   }, []);
 
   const setCustomTranslationsMap = useCallback((translations: Record<string, Record<string, string>>) => {

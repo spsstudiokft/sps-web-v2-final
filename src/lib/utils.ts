@@ -1,6 +1,9 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
-import { getNormalizedGallery, getOptimizedMediaUrl, parseVideoUrl } from "./mediaUtils";
+// Serverless Node runs in native ESM mode, where extensionless relative
+// imports are not resolved. Keep the `.js` specifier: TypeScript maps it to
+// mediaUtils.ts locally and Vercel resolves the emitted mediaUtils.js module.
+import { getNormalizedGallery, getOptimizedMediaUrl, parseVideoUrl } from "./mediaUtils.js";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));

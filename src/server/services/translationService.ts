@@ -25,6 +25,8 @@ let memoryCache: {
 
 const CACHE_TTL_MS = 60 * 1000; // 1 minute TTL or until explicitly invalidated
 
+const normalizeLocale = (locale: unknown): string => String(locale ?? "").trim().toLowerCase();
+
 export function invalidateTranslationsCache() {
   memoryCache.dictionaries = null;
   memoryCache.lastUpdated = 0;
@@ -54,7 +56,7 @@ export const translationService = {
    */
   async getDictionary(locale: string): Promise<Record<string, string>> {
     const allDicts = await this.getAllDictionaries();
-    return allDicts[locale] || {};
+    return allDicts[normalizeLocale(locale)] || {};
   },
 
   /**
@@ -80,9 +82,13 @@ export const translationService = {
       const dicts: Record<string, Record<string, string>> = {};
 
       for (const row of result.rows) {
-        const loc = String(row.locale);
-        const k = String(row.key);
-        const v = String(row.value);
+        // Locale codes are identifiers. Normalizing them here keeps legacy
+        // `HU`/`hu ` rows usable by every public and admin consumer.
+        const loc = normalizeLocale(row.locale);
+        const k = String(row.key ?? "").trim();
+        const v = String(row.value ?? "");
+
+        if (!loc || !k) continue;
 
         if (!dicts[loc]) {
           dicts[loc] = {};
@@ -304,9 +310,9 @@ export const translationService = {
       const totalTranslations = Number(totalTransRes.rows[0]?.count || 0);
 
       const localeCountsRes = await db.execute(`
-        SELECT locale, COUNT(*) as count 
+        SELECT LOWER(TRIM(locale)) as locale, COUNT(*) as count 
         FROM translations 
-        GROUP BY locale
+        GROUP BY LOWER(TRIM(locale))
       `);
       const locales: Record<string, number> = {};
       localeCountsRes.rows.forEach((r: any) => {
