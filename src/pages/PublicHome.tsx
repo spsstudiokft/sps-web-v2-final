@@ -108,12 +108,13 @@ function shouldUseLitePerformanceMode() {
     connection?: { saveData?: boolean; effectiveType?: string };
   };
   const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-  const coarsePointer = window.matchMedia?.("(pointer: coarse)").matches;
-  const lowMemory = typeof nav.deviceMemory === "number" && nav.deviceMemory <= 4;
-  const lowCpu = typeof nav.hardwareConcurrency === "number" && nav.hardwareConcurrency <= 4;
-  const constrainedNetwork = Boolean(nav.connection?.saveData) || ["slow-2g", "2g"].includes(nav.connection?.effectiveType || "");
-  const mobileViewport = coarsePointer && window.innerWidth <= 767;
-  const narrowLowCoreMobile = coarsePointer && window.innerWidth <= 480 && typeof nav.hardwareConcurrency === "number" && nav.hardwareConcurrency <= 6;
+    const lowMemory = typeof nav.deviceMemory === "number" && nav.deviceMemory <= 4;
+    const lowCpu = typeof nav.hardwareConcurrency === "number" && nav.hardwareConcurrency <= 4;
+    const constrainedNetwork = Boolean(nav.connection?.saveData) || ["slow-2g", "2g"].includes(nav.connection?.effectiveType || "");
+    // Some mobile WebViews report a fine pointer, so do not use pointer
+    // capability to decide whether narrow screens receive the light mode.
+    const mobileViewport = window.innerWidth <= 767;
+    const narrowLowCoreMobile = window.innerWidth <= 480 && typeof nav.hardwareConcurrency === "number" && nav.hardwareConcurrency <= 6;
   return Boolean(reducedMotion || lowMemory || lowCpu || constrainedNetwork || mobileViewport || narrowLowCoreMobile);
 }
 
@@ -163,7 +164,7 @@ export default function PublicHome() {
     if (loading || portfolioLoaded.current) return;
     const target = document.getElementById("portfolio");
     if (!target) return;
-    const mobilePrefetch = window.matchMedia("(max-width: 767px), (pointer: coarse)").matches;
+    const mobilePrefetch = window.innerWidth <= 767;
     const observer = new IntersectionObserver(([entry]) => { if (!entry.isIntersecting || portfolioLoaded.current) return; portfolioLoaded.current = true; fetch("/api/public/portfolio").then(r => r.ok ? r.json() : null).then(data => { if (Array.isArray(data)) setPortfolio(data); }).catch(() => {}); observer.disconnect(); }, { rootMargin: mobilePrefetch ? "1400px 0px" : "600px" });
     observer.observe(target); return () => observer.disconnect();
   }, [loading]);
@@ -206,7 +207,7 @@ function PublicHomeContent({ settings, portfolio, services, bootstrap, loading }
     if (pricingLoaded.current) return;
     const target = document.getElementById("pricing");
     if (!target) return;
-    const mobilePrefetch = window.matchMedia("(max-width: 767px), (pointer: coarse)").matches;
+    const mobilePrefetch = window.innerWidth <= 767;
     const observer = new IntersectionObserver(([entry]) => {
       if (!entry.isIntersecting || pricingLoaded.current) return;
       pricingLoaded.current = true;
@@ -221,7 +222,7 @@ function PublicHomeContent({ settings, portfolio, services, bootstrap, loading }
     if (faqsLoaded.current) return;
     const target = document.getElementById("faq");
     if (!target) return;
-    const mobilePrefetch = window.matchMedia("(max-width: 767px), (pointer: coarse)").matches;
+    const mobilePrefetch = window.innerWidth <= 767;
     const observer = new IntersectionObserver(([entry]) => {
       if (!entry.isIntersecting || faqsLoaded.current) return;
       faqsLoaded.current = true;

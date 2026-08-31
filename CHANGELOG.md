@@ -17,6 +17,8 @@
 - Disabled section reveal animations on touch and narrow-screen devices so fast scrolling never exposes transparent, apparently unloaded sections.
 - Kept desktop section content visible during its entrance transition, eliminating blank states while retaining a subtle positional reveal.
 - Increased mobile prefetch distance for portfolio, pricing, and FAQ data so interactive content is ready before the user reaches its section.
+- Forced lightweight rendering for every viewport up to 767 px instead of relying on inconsistent mobile pointer detection.
+- Disabled mobile `content-visibility` placeholders and the fixed ambient blur so fast flick scrolling cannot expose an unpainted section frame.
 
 ### Maintenance Script Cleanup
 
