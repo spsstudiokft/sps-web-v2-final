@@ -45,6 +45,8 @@
 - Standardized `robots.txt` and the sitemap on the `https://www.spsstudio.hu` canonical domain in Vercel environments, preventing redirected non-www URLs from entering the sitemap.
 - Set the document language to Hungarian to match the default public content.
 - Added Google Video Sitemap entries for public portfolio videos, including playback URL, thumbnail, title, and description.
+- Routed the homepage through a cache-safe renderer so crawlers cannot receive a cached SPA shell instead of the semantic page snapshot.
+- Expanded the crawler snapshot to cover Vision, About, visual ideas, testimonials, and all published public portfolio, pricing, and FAQ records.
 
 ## 2026-08-30
 

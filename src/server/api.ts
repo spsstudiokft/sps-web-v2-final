@@ -301,6 +301,44 @@ async function loadPublicBootstrap() {
   return publicBootstrapPending;
 }
 
+// The public app deliberately keeps its bootstrap compact. Search crawlers,
+// however, need a complete semantic representation of the public content and
+// must not inherit the homepage's visual-data limits.
+export async function loadPublicSeoSnapshot() {
+  const results = await getDb().batch([
+    "SELECT key, value FROM settings",
+    `SELECT p.*, c.name as category_name, c.slug as category_slug FROM portfolio_items p LEFT JOIN categories c ON p.category_id = c.id WHERE p.is_published = 1 ORDER BY p.sort_order ASC, p.created_at DESC`,
+    "SELECT * FROM services WHERE is_published = 1 ORDER BY sort_order ASC, created_at ASC",
+    "SELECT * FROM pricing_plans WHERE is_enabled = 1 ORDER BY sort_order ASC, created_at ASC",
+    "SELECT * FROM pricing_extra_services WHERE is_enabled = 1 AND (show_on_pricing_page IS NULL OR show_on_pricing_page = 1) ORDER BY sort_order ASC, created_at ASC",
+    `SELECT f.*, fc.name as category_name, fc.slug as category_slug, fc.sort_order as category_sort_order FROM faqs f LEFT JOIN faq_categories fc ON f.category_id = fc.id WHERE f.is_published = 1 AND (fc.is_published = 1 OR fc.is_published IS NULL OR f.category_id IS NULL) ORDER BY COALESCE(fc.sort_order, 999) ASC, f.sort_order ASC, f.created_at ASC`,
+  ], "read");
+
+  let testimonials: any[] = [];
+  try {
+    await ensureTestimonialsTable();
+    testimonials = (await getDb().execute(
+      "SELECT * FROM testimonials WHERE is_published = 1 ORDER BY sort_order ASC, created_at ASC",
+    )).rows || [];
+  } catch (error) {
+    console.warn("Public SEO testimonials are unavailable; continuing without them:", error);
+  }
+
+  const settings = (results[0]?.rows || []).reduce((acc: Record<string, unknown>, row: any) => {
+    acc[String(row.key)] = row.value;
+    return acc;
+  }, {});
+  return {
+    settings,
+    portfolio: results[1]?.rows || [],
+    services: results[2]?.rows || [],
+    pricing: hydratePublicPricing((results[3]?.rows || []) as any[]),
+    extraServices: results[4]?.rows || [],
+    faqs: results[5]?.rows || [],
+    testimonials,
+  };
+}
+
 router.get("/public/google-review/:token", async (req, res) => {
   try {
     const destination = await markGoogleReviewClicked(String(req.params.token || ""));
@@ -1615,7 +1653,7 @@ router.get("/public/bootstrap", async (_req, res) => {
 router.get("/public/seo-home", async (req, res) => {
   try {
     const origin = getCanonicalPublicUrl(req);
-    const markup = renderPublicSeoHome(await loadPublicBootstrap(), origin);
+    const markup = renderPublicSeoHome(await loadPublicSeoSnapshot(), origin);
     res.status(200)
       .type("html")
       .set("Cache-Control", "public, max-age=60")

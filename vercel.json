@@ -21,6 +21,7 @@
     "contentDispositionType": "inline"
   },
   "functions": {
+    "api/home.ts": { "maxDuration": 60, "includeFiles": "dist/index.html" },
     "api/cron-calendar.ts": { "maxDuration": 60 },
     "api/public.ts": { "maxDuration": 60 },
     "api/auth.ts": { "maxDuration": 60 },
@@ -77,14 +78,7 @@
   "rewrites": [
     {
       "source": "/",
-      "has": [
-        {
-          "type": "header",
-          "key": "user-agent",
-          "value": ".*(Googlebot|bingbot|Baiduspider|YandexBot|DuckDuckBot|facebookexternalhit|Twitterbot|Slackbot).*"
-        }
-      ],
-      "destination": "/api/public/seo-home"
+      "destination": "/api/home"
     },
     {
       "source": "/149e9513-01fa-4fb0-aad4-566afd725d1b/2d206a39-8ed7-437e-a3be-862e0f06eea3/a-4-a/c.js",
