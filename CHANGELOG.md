@@ -6,6 +6,11 @@
 
 - Added an MIT `LICENSE` file and updated the project documentation to reflect the repository's open-source licensing.
 - Added a GitHub warning callout at the top of the README to disclose that the repository contains machine-generated code.
+- Added a Contributor Covenant 2.1 Code of Conduct and linked it from the README.
+
+### Local Development Logs
+
+- Moved local development-server output and error logs into the dedicated, ignored `logs/` directory.
 
 ### Shopify SPS Storefront Composition
 

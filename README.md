@@ -268,7 +268,7 @@ The repository-local development database is `local.db`. Its prepared local demo
 
 ## 📖 Available Scripts
 
-- `npm run dev`: Boots the full-stack application in development mode with `tsx`.
+- `npm run dev`: Boots the full-stack application in development mode and stores its output in `logs/server.out.log` and errors in `logs/server.err.log`.
 - `npm run build`: Compiles the React frontend via `vite build` and bundles `server.ts` into `dist/server.cjs` via `esbuild`.
 - `npm run start`: Starts the production CommonJS server from `dist/server.cjs`.
 - `npm run migrate:translations`: Seeds and synchronizes static localization dictionaries with the database.
@@ -353,6 +353,10 @@ Every active API prefix has an explicit rewrite. The previous all-in-one `api/in
 ## 📄 License
 
 This project is released under the [MIT License](LICENSE). See `LICENSE` for the full terms.
+
+## 🤝 Code of Conduct
+
+All contributors are expected to follow the [Code of Conduct](CODE_OF_CONDUCT.md).
 - **Team role management**: Secure invitation onboarding and normalized Superadmin, Admin, Editor, and Viewer role display with protected Superadmin account operations.
 - **Role-aware Admin Navigation**: Shared route permissions keep Superadmin, Admin, Editor, and Viewer menus aligned with direct-URL access controls.
 - **Dual Client/Admin Accounts**: A client can accept an admin invitation under the same email while retaining separate client and admin passwords, roles, and portal access.
