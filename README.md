@@ -1,0 +1,359 @@
+# SPS Studio — Real Estate Visual Marketing CMS & Client Portal
+
+> [!WARNING]
+> This repository contains machine-generated code. Review, test, and validate all changes before using them in production.
+
+A production-ready, high-performance CMS, public showcase portfolio, and dedicated client portal built for real estate and architectural photography studios. Powered by **React 19**, **Vite**, **Tailwind CSS v4**, **Express**, and **Turso (LibSQL SQLite)**.
+
+---
+
+## 🌟 Overview & Architecture
+
+SPS Studio is an all-in-one studio management platform designed for architectural photographers, media production teams, and real estate marketing agencies. It pairs an ultra-fast public portfolio with an admin management console and a secure client portal for project deliverables, asset downloads, and transactional communication.
+
+### High-Level Architecture
+- **Frontend SPA**: React 19 single-page app bundled with Vite, styled with Tailwind CSS v4 and Motion animations.
+- **AERO/GLOW Design System**: Responsive blue-white ambient lighting, section-aware imagery, accessible light/dark palettes, frosted-glass cards, modals, navigation, authentication, and client/admin workspaces.
+- **Backend API**: Express REST API with modular public, authentication, admin, client, billing, media, and automation routers.
+- **Vercel Runtime**: Domain-isolated Vercel Functions for public content, authentication, administration, client delivery, budgets, invoices, payment requests, referrals, public billing links, and system health, with shared application bootstrap and function-specific duration settings.
+- **Deployment-Specific Builds**: Vercel builds only the Vite client and packages `api/*.ts` Functions itself; the standalone Express bundle and source map are generated only by the full local/self-hosted build, keeping redundant artifacts out of Vercel deployments.
+- **Lean Dependency Graph**: Build and runtime packages are audited so unused direct dependencies do not add installation or serverless tracing work.
+- **Database Layer**: LibSQL / Turso SQLite with local fallback (`local.db`) for lightweight development and edge/serverless scaling in production.
+- **Media Engine**: Cloudflare R2 multipart and direct browser-to-Appwrite uploads, structured filenames, automatic sub-10 MB JPEG derivatives, video thumbnails, watermark rendering, storage lifecycle cleanup, and ZIP delivery.
+- **Email Engine**: Resend API integration with transactional email templates, live multi-device visual previewer, and token interpolation.
+
+---
+
+## 🚀 Key Features
+
+### 📸 Public Portfolio & Studio Showcase
+- **Hero & Featured Gallery**: Spotlight high-value architectural shoots and property portfolios using optimized display assets instead of full-resolution masters.
+- **Category Filter & Search**: Interactive filtering across photography, aerial drone, 3D virtual tours, and cinematic video.
+- **Lightbox & Gallery Viewer**: Full-screen high-resolution media previews with responsive touch navigation.
+- **Services & Pricing Showcase**: Dynamic tier cards with package feature lists, pricing models, and instant booking CTAs.
+- **Real Estate Visual Ideas**: A compact, responsive text-card section before pricing supports up to 15 localized, admin-managed property ideas in a five-column desktop layout without adding another public navigation item.
+- **Mobile Section Budgeting**: Visual Ideas cards use a contained, transition-free mobile rendering path, while portfolio rows progressively mount small card batches and use static posters instead of starting video decoders during touch scrolling.
+- **Collapsible FAQs & Social Hub**: Grouped questions with instant search, plus verified studio social media links.
+- **Interactive Contact & Booking**: Guided lead capture with required property city, optional address, travel-distance pricing from Hódmezővásárhely, package/add-on calculator, structured estimate persistence, admin alert, and client confirmation.
+- **Consent & Legal Modals**: Cookie-gated inquiry form plus database-backed Privacy Policy, Terms, Cookie Policy, and Legal Notice documents rendered from formatted admin content.
+- **Adaptive Navigation**: Services and Portfolio links disappear automatically when no published content exists.
+- **Mobile Navigation Strategy**: Handheld layouts keep the primary top navbar permanently visible and omit the desktop-only floating section rail, while desktop retains scroll-aware header hiding and the floating shortcuts.
+- **Content-Aware Section Rendering**: Services, Portfolio, Pricing, Visual Ideas, and FAQ sections are omitted together with their header/floating navigation anchors whenever they contain no visible items; hidden Visual Ideas cards are excluded individually.
+- **Mixed Portfolio Conveyor**: Gallery media is randomized across marquee rows and avoids adjacent images from the same portfolio whenever possible.
+- **Four Media Rows**: Separate randomized rows for standard photography, drone video, interior walkthrough video, and drone photography, using an alternating left/right motion pattern.
+- **Touch-Safe Portfolio Scrolling**: Mobile rows remain manually swipeable in both directions without capturing vertical page gestures, and their paint work is isolated from the rest of the page.
+- **Indexable Gallery Pages**: Every published portfolio gallery has a stable `/portfolio/:slug` page containing all associated media, canonical/Open Graph metadata, ImageGallery structured data, and automatic sitemap discovery.
+- **Immersive Media Viewer**: The viewport-level gallery lightbox fully blurs the page behind it and keeps media centered, while uploaded videos use branded playback, seek, volume, mute, and fullscreen controls.
+- **On-Demand Protected Saving**: Public lightbox and dedicated portfolio-gallery images remain clean while viewing; right-click initiates a server-rendered watermarked JPG download from the optimized derivative. Locked client previews use the uploaded dark-background logo plus a font-independent, dual-contrast vector watermark for consistent visibility and rendering on Vercel.
+
+### 🔐 Client Portal & Project Management
+- **Passwordless Magic Link & Password Sign-In**: Secure client authentication via email magic link or traditional credentials.
+- **Idempotent Magic-Link Delivery**: Double submits, browser/network retries, and parallel serverless invocations cannot send duplicate signup or login links within the delivery window.
+- **Self-Service Client Registration**: Onboarding flow with client profile setup and welcome emails.
+- **Client Account Settings**: Clients can maintain the display name shown to administrators, change an existing password, or add their first password after magic-link registration; every actual profile/password change sends an editable security-notification email, production-safe additive migrations keep registered account data available across rolling Vercel deployments, the admin client list displays creation timestamps consistently, and the security area is prepared for future TFA enrollment.
+- **Interactive Project Tracker**: Each authenticated client sees the ordered milestones, live status, due dates, and timestamped update feed for their own projects.
+- **PIN-Protected Deliverable Galleries**: Individual and multi-select ZIP downloads with rotating four-digit PINs, forgotten-PIN email recovery, locked-preview watermarking, and right-click-safe delivery.
+- **Original & Optimized Downloads**: Separate full-resolution and optimized-image categories with identical authorization and watermark rules.
+- **Video & Image Previewing**: Generated video frame thumbnails, project preview images, attached-gallery counts, and full-size media modals.
+- **Client Feedback Conversations**: Each client has private, separately managed feedback threads with statuses, unread state, and near-real-time message refresh; administrators can reply and resolve each case from a dedicated inbox.
+- **In-App Notifications**: Persistent, account-scoped notification centres on both portals provide unread counters and read controls. The popover is viewport-aware and scroll-constrained on small screens.
+- **Bonus-Code Redemption**: Clients can apply eligible referral or bonus vouchers to one of their own unpaid invoices; ownership, availability, expiry, currency, and invoice checks are enforced on the server.
+- **VIP SPS RAW Feed**: A disabled-by-default, server-gated short-form behind-the-scenes video feed is available only to VIP clients when enabled by a Superadmin.
+
+### 🏠 Property Listing Management
+- **Admin Listing CRUD**: Create, edit, search, enable/disable, and delete sale or rental listings before the public real-estate page is unlocked.
+- **Structured Property Data**: Pricing, dimensions, room counts, construction details, orientation, view, bathroom arrangement, multi-select heating, and amenity flags are stored in a dedicated schema.
+- **Optimized Listing Media**: Multi-image uploads reuse direct storage delivery and create optimized and thumbnail variants, with storage cleanup when media or listings are deleted.
+- **Linked Client Listing Accounts**: An authenticated portal client can perform a one-time migration into a separate, one-to-one listing account. Subsequent access uses a dedicated email/password login and independently scoped session without direct portal switching or general admin access.
+- **Ownership Auditability**: Every client-created listing records its linked owner, creator user, and creator role for clear identification in the admin listing catalog.
+- **Account Lifecycle Cleanup**: Deleting a migrated portal client from the admin panel also removes its linked listing account, owned listings, and tracked listing media so no orphaned ownership or storage records remain.
+- **Direct English URLs**: Migrated users sign in at `/property-listings/login` and manage their listings at `/property-listings/manager`.
+- **Vercel Property API Routing**: Dedicated rewrites route `/api/property-auth/*` and `/api/property-manager/*` to independently deployed authentication and scoped listing-manager serverless functions.
+- **Scoped Listing Media Uploads**: Active migrated advertisers can use the shared optimized/direct media pipeline on Vercel without receiving admin access, while all non-upload admin endpoints remain inaccessible to property-client tokens.
+- **Unified Property Experience**: The public catalog, advertiser login, and authenticated listing manager share the homepage Header/Footer, configured theme-specific logos, public light/dark mode, language selector, mobile navigation, ambient surfaces, and responsive Aero card styling.
+- **Public Property Catalog**: `/properties` lists every enabled sale and rental listing with optimized media, feature badges, price and description; `/properties/:id` provides the full gallery, structured property data, amenities, and direct advertiser contact.
+- **Immediate Listing Publication**: Public property list/detail responses bypass browser and Vercel CDN caches, so enabling or disabling a listing is reflected on `/properties` without waiting for a stale catalog to expire.
+- **Direct Section Media Uploads**: Admin-managed section backgrounds and content images use the configured direct Appwrite/R2 pipeline, generate optimized display media during upload, and avoid Vercel request-body limits.
+- **Built-in Section Media Previews**: The section media editor shows the public site's hard-coded default imagery until an uploaded override is configured.
+- **Editable Section Media Localization**: Section-image controls and labels are available in all five supported locales and are synchronized to the database translation editor together with property-listing navigation and account keys.
+- **Context-Aware Error Pages**: Aero-styled 401, 403, 404, 500, and 503 states preserve light/dark mode, distinguish login redirects from forbidden roles, keep nested dashboard context, and handle missing public resources without silent homepage redirects.
+- **Coming Soon Mode**: Administrators can immediately gate public marketing routes behind a multilingual Aero countdown with uploaded blurred image/video media, theme-aware branding, social-tree links, and optional footer while operational portals and invoice links remain accessible.
+- **Consistent Social Brand Icons**: A shared normalized renderer keeps Facebook and other social/service glyphs correctly proportioned across public buttons, Coming Soon, popups, footer, and admin previews, including legacy icon aliases.
+- **Font Awesome Social Tree**: Social platforms render exclusively through Font Awesome Brands, while structural groups and non-brand contact actions use matching Font Awesome Solid icons.
+- **Menu Publication Control**: Administrators can show or hide the Properties entry in the public desktop and mobile navigation without disabling direct access to the catalog URL.
+- **Direct Studio Messaging**: In-portal project inquiries and revision requests linked directly to the studio admin.
+
+### 🛠️ Admin Management Dashboard
+- **Portfolio & Gallery CMS**: Multi-image uploads, drag-and-drop sorting (`@dnd-kit`), localized names/categories, automatic optimized-media creation, category management, and keyword tagging.
+- **Persistent Background Uploads**: Saved portfolio galleries continue sequential image/video transfers across admin-page navigation, show application-level progress and failures, and attach each completed object to the gallery immediately.
+- **Media-Optional Portfolio Drafting**: Portfolio records may be saved before media is available; empty records stay manageable in admin but do not render on the public site until a gallery element is attached.
+- **Section Media Management**: Public-section images and backgrounds can be replaced from the admin panel without code changes.
+- **Projects & Client Accounts**: Create client accounts, link projects, update delivery milestones, and upload final deliverables.
+- **Null-Safe Property Records**: Client and admin property creation/editing normalize incomplete legacy values and validate missing addresses without exposing runtime errors; full customer-editor saves atomically synchronize every property and listing link with a linked portal account.
+- **Readable Customer Audit History**: Customer detail views translate security event codes and stored JSON into labelled event summaries, actors, network information, status transitions, reasons, and affected-account counts; every label is localized across five languages and editable through database-backed translation management.
+- **Services & Pricing Manager**: Manage service offerings, highlight featured tiers, and update pricing schedules.
+- **Visual Ideas Manager**: Edit the pre-pricing section heading, introduction, visibility, localized card copy, ordering, and up to 15 compact cards.
+- **FAQ & Knowledge Base Manager**: Organize questions into custom categories with quick reordering.
+- **Inquiry & Lead CRM**: Status tracking (`new`, `contacted`, `converted`, `archived`) with contact details and notes.
+- **Social Media Link Manager**: Manage brand handles across 20+ platforms with FontAwesome and Lucide icons.
+- **Hierarchical Social Tree**: Always-visible Add Group and Add Social Link controls open a viewport-safe responsive editor for root links and nested groups, with validated parent relationships, consistent platform presets, legacy icon compatibility, and identical icon rendering in admin previews, the public popup, and the footer.
+- **Legal Document Editor**: Full-page WYSIWYG editing for all public legal documents with formatted modal rendering.
+- **Team & Invitation Management**: Team grouping, role-aware members, invitation resend/revoke, and verification-code-protected direct admin onboarding.
+- **Marketing Email Workspace**: Create multiple reusable marketing templates and manually dispatch them to chosen recipients.
+- **Dashboard Quick Actions**: Permission-aware shortcuts create clients, projects, and portfolio entries directly, or open calendar and payment-request workflows.
+- **Feedback Inbox & SPS RAW Control**: Administrators can manage client feedback conversations and publish, order, edit, or remove VIP SPS RAW videos.
+- **Google Analytics 4 Dashboard**: A server-side GA4 overview shows users, sessions, page views, new users, acquisition channels, and popular pages without exposing Google credentials to the browser.
+
+### 💳 Finance, Invoices & Payment Requests
+- **Budget Manager**: Categorized income/expense entries, audit history, status management, summaries, and shared default-currency configuration.
+- **Client-Linked Invoices**: Email-based client association, public printable invoices, payment confirmation, receipts, and paid-record portal visibility.
+- **Paid Invoice Archival**: Confirmed invoices cannot receive duplicate payment requests and can be archived manually by administrators.
+- **Payment Request Workflow**: Superadmin approval, denial, hold, editable categories, linked budget/invoice records, and status-specific email notifications.
+- **Currency-Aware Dashboards**: Budget, invoice/payment, and payment-request totals use the configured default currency.
+- **Stripe Test Checkout**: Superadmins can enable or disable sandbox-only Stripe Checkout for outstanding public invoice balances. Amount calculation, payment verification, and duplicate prevention remain server-side.
+
+### ✉️ Resend Email Engine & Template Editor
+- **Configurable Sender Profiles**: Set custom `from_name`, `from_email`, `reply_to`, and admin alert addresses.
+- **Email Header Branding**: Transactional and marketing email layouts can use the uploaded header logo, logo with studio name, or studio name only. Their blue header prefers the dark-background logo variant, with the light-background logo as fallback.
+- **Transactional Template Catalog**: Pre-built system templates covering:
+  - Password Reset & Account Recovery (`password_reset`)
+  - Magic Link Passwordless Sign-In (`magic_link_login`)
+  - Magic Link Account Registration (`magic_link_signup`)
+  - Client Welcome & Portal Activation (`account_verification`)
+  - Public Client Password Registration Welcome (`client_password_registration`)
+  - Project Milestone & Delivery Updates (`project_update`)
+  - Gallery Ready & Media Notification (`gallery_ready`)
+  - Gallery PIN Recovery (`gallery_pin_recovery`)
+  - Google Review Request & Reminders (`google_review_request`)
+  - Admin Alert on New Inquiry (`inquiry_received`)
+  - Client Inquiry Confirmation Auto-Reply (`inquiry_confirmation`)
+  - Admin Account Verification Code (`admin_account_verification_code`)
+  - Invoice Payment Request & Receipt (`invoice_payment_request`, `invoice_payment_receipt`)
+  - Payment Request Approval/Approved/Denied/Hold templates
+  - System Diagnostic & Deliverability Test (`test_email`)
+- **Visual Template Editor**: Full-page HTML and plain-text editing, editable header/footer text and token defaults, token insertion palette, desktop/mobile/plain-text preview, and direct test dispatch.
+- **Inquiry Estimate Tokens**: Contact emails expose package, verified base price, selected items, calculated fees, currency, and estimated total in HTML and text formats.
+- **Canonical Links**: Transactional action URLs are generated from `APP_URL`, not the transient serverless request hostname.
+- **Review Automation**: Review requests are scheduled after gallery delivery and stop automatically after the tracked Google review link is clicked.
+- **Delivery Activity Logs**: Real-time delivery tracking with message IDs and status filters.
+
+### 🌐 Multi-Language (i18n) & AI Translation
+- **5 Core Languages**: English (`en`), Hungarian (`hu`), German (`de`), Spanish (`es`), French (`fr`).
+- **AI-Powered Translation**: Automated string translation using Google Gemini API.
+- **Custom Overrides**: Granular manual translation management from the admin dashboard.
+- **Coverage Auditing**: Public, admin, finance, email, cookie, and client-portal keys can be audited and synchronized with database translations.
+- **Localization Groups**: Translation-manager entries are grouped by their owning interface for easier editing.
+
+### 🎨 Branding, Theming & Granular SEO
+- **Adaptive Logo System**: Header and footer logo management with distinct light and dark theme assets.
+- **Independent Theme Modes**: The public website/client experience and admin dashboard keep separate light/dark preferences and apply their own theme variables when navigating between areas.
+- **Favicon & Brand Identity**: Custom browser favicon, studio metadata, and copyright configuration.
+- **SEO & Social Share Cards**: Open Graph (OG) tags, Twitter cards, meta descriptions, canonical URLs, and Google Search Console verification.
+
+### ⚡ Public Performance & Accessibility
+
+- **Batched Public Bootstrap**: Settings, portfolio, services, pricing, add-ons, fee rules, and FAQs load through one LibSQL/Turso batch instead of repeated component-level queries.
+- **Layered Caching**: Short-lived server memory, Vercel CDN `stale-while-revalidate`, browser HTTP, and session caches reduce repeat database work.
+- **Fast Vercel Cold Starts**: Read-only public functions skip schema migration work during cold starts, while admin and write-capable functions retain full database initialization.
+- **Immutable Build Assets**: Fingerprinted Vite assets receive a one-year immutable cache policy, and public image assets use browser/CDN revalidation windows.
+- **Route-Level Code Splitting**: Admin, finance, authentication, and client-portal pages are loaded only when their routes are opened; public visitors do not download those modules during startup.
+- **Mobile Touch Portfolio**: Mobile portfolio rows are static by default and remain horizontally touch-scrollable, avoiding continuous marquee work and duplicate media cards on handheld devices.
+- **Progressive Mobile Media**: Mobile gallery rows mount cards in small batches and assign image/video-poster sources only near the viewport, preventing decode bursts when the portfolio section enters the screen.
+- **Adaptive Image Delivery**: Public portfolio cards and lightboxes use responsive `srcset` candidates backed by Appwrite's cached JPEG preview transformations (with Unsplash URL support), so each screen downloads an appropriately sized display asset without proxying bytes through Vercel; failed transformations fall back to the stored optimized image.
+- **Stored Card Derivatives**: New image uploads also create a dedicated 840 px JPEG card asset in object storage; cards use this file directly, while existing media uses a standardized, preconnected 640 px Appwrite preview path until regenerated.
+- **Progressive Gallery Loading**: The lightbox immediately displays the stored card thumbnail as a blurred placeholder and crossfades to the larger optimized image after it has decoded.
+- **Adaptive Low-End Mode**: Low-memory/low-core devices, constrained connections, data-saver mode, and reduced-motion preferences receive fewer blur/3D effects and deferred off-screen rendering.
+- **Reliable Mobile Pricing**: Pricing cards bypass viewport-dependent entrance opacity in lightweight mode and use compact mobile spacing and filter controls, preventing deferred rendering from leaving cards invisible.
+- **Critical Media Loading**: The hero background is preloaded while optimized portfolio derivatives are prefetched only when device and connection conditions allow it.
+- **Accessible Light Theme**: Public light-mode body, muted, primary, accent, placeholder, border, and focus colors use higher-contrast values, including explicit text colors over photographic sections.
+
+---
+
+## 🛠️ Tech Stack & Dependencies
+
+| Category | Technology |
+|---|---|
+| **Frontend Framework** | React 19, React Router v7 |
+| **Styling & Animation** | Tailwind CSS v4, Motion (`motion/react`) |
+| **Icons & UI** | Lucide React, FontAwesome SVG Icons, `@dnd-kit` |
+| **Backend & Server** | Express 4, Node.js (ESM / CommonJS bundle) |
+| **Database** | LibSQL (`@libsql/client`), Turso SQLite |
+| **Storage Providers** | AWS S3 SDK (Cloudflare R2), Appwrite Web SDK + `node-appwrite` |
+| **Email Service** | Resend (`resend`) |
+| **Security & Auth** | JSON Web Tokens (`jsonwebtoken`), Bcrypt (`bcryptjs`) |
+| **Build & Tooling** | Vite 6, ESBuild, TypeScript 5.8, TSX |
+
+---
+
+## ⚙️ Installation & Local Setup
+
+### 1. Prerequisites
+- **Node.js**: v18.0.0 or higher
+- **npm 10** (the repository and Vercel deployment use `package-lock.json`, `npm ci`, and `npm run build`)
+
+### 2. Clone and Install Dependencies
+```bash
+git clone https://github.com/your-org/sps-studio.git
+cd sps-studio
+npm install
+```
+
+### 3. Environment Configuration
+Create a `.env` file in the root directory (refer to `.env.example`):
+
+```env
+# Application URL (used for email links and CORS)
+APP_URL=http://localhost:3000
+
+# Optional local server port (defaults to 3000)
+PORT=3000
+
+# Turso SQLite Database (the legacy TURSO_* aliases are also accepted)
+DATABASE_URL=file:local.db
+DATABASE_AUTH_TOKEN=
+
+# JWT Authentication Secret
+JWT_SECRET=your_super_secret_jwt_key_change_in_production
+
+# Google Gemini API (Optional - for AI translations)
+GEMINI_API_KEY=
+
+# Media Storage Configuration: "r2", "appwrite", or "local"
+MEDIA_PROVIDER=appwrite
+
+# Appwrite direct browser upload
+APPWRITE_ENDPOINT=https://cloud.appwrite.io/v1
+APPWRITE_PROJECT_ID=
+APPWRITE_API_KEY=
+APPWRITE_BUCKET_ID=
+
+# R2 alternative
+R2_ACCOUNT_ID=
+R2_ACCESS_KEY_ID=
+R2_SECRET_ACCESS_KEY=
+R2_BUCKET_NAME=
+R2_PUBLIC_DOMAIN=
+
+# Resend Email Integration (Optional - simulation mode used if omitted)
+RESEND_API_KEY=
+RESEND_FROM_EMAIL=onboarding@resend.dev
+RESEND_FROM_NAME=SPS Studio
+RESEND_REPLY_TO=contact@spsstudio.com
+
+# Optional Stripe sandbox billing (test-mode key only)
+STRIPE_SECRET_KEY=sk_test_...
+
+# Optional Google Analytics 4 admin dashboard (server-side only)
+GOOGLE_ANALYTICS_PROPERTY_ID=123456789
+GOOGLE_ANALYTICS_SERVICE_ACCOUNT_JSON={"type":"service_account","client_email":"analytics-reader@example.iam.gserviceaccount.com","private_key":"-----BEGIN PRIVATE KEY-----\\n...\\n-----END PRIVATE KEY-----\\n"}
+```
+
+For GA4, enable the Google Analytics Data API and grant the service-account email Viewer access to the selected GA4 property. Keep the service-account JSON in the server environment only; never place it in a client-side `VITE_` variable. Stripe billing remains unavailable until a Superadmin enables it in the admin settings and a valid `sk_test_` key is present.
+
+### 4. Start Development Server
+```bash
+npm run dev
+```
+The server starts on `http://localhost:3000` by default. Set `PORT` when that port is occupied, for example `$env:PORT='3003'; npm run dev` in PowerShell.
+
+The repository-local development database is `local.db`. Its prepared local demo accounts, when present, are documented in `DEMOACCOUNTS.md`; do not use those credentials in production.
+
+### 5. Initial First-Time Setup Wizard
+1. Open your browser and navigate to `http://localhost:3000`.
+2. If no admin account exists, the application will automatically route you to the **Admin Setup Wizard** (`/admin/setup`).
+3. Create your primary administrator account (Email & Password).
+4. Log in at `/admin/login` to access the full CMS, configure branding, and publish portfolio galleries.
+
+---
+
+## 📖 Available Scripts
+
+- `npm run dev`: Boots the full-stack application in development mode and stores its output in `logs/server.out.log` and errors in `logs/server.err.log`.
+- `npm run build`: Compiles the React frontend via `vite build` and bundles `server.ts` into `dist/server.cjs` via `esbuild`.
+- `npm run start`: Starts the production CommonJS server from `dist/server.cjs`.
+- `npm run migrate:translations`: Seeds and synchronizes static localization dictionaries with the database.
+- `npm run audit:i18n`: Audits translation-key coverage across the application.
+
+---
+
+## Visual System
+
+- Public sections use locally stored, photography-themed background images and a smooth ambient side glow that adapts to the currently visible section.
+- Admin and client cards, grids, tables, sidebars, forms, authentication screens, and modal surfaces share the same frosted-glass language.
+- Light and dark modes use separate surface and text values to preserve readable WCAG-oriented contrast.
+- Motion is reduced automatically when the operating system requests reduced animation.
+- Source image masters are kept in `png-k/`; web-served copies live in `public/images/`.
+- The information bar, incident widget, contact cards, pricing cards, legal modals, cookie banner, dropdowns, and both authenticated workspaces use the same frosted-glass surface and constrained shine treatment.
+- Portfolio conveyors use rounded edge masks, pause the hovered row, show idle video frames, and start video playback only on hover to reduce memory use.
+- Mobile Hero and Contact layouts constrain intrinsic grid/form widths, wrap long localized content, and remain within narrow viewports.
+- FAQ and portfolio category labels resolve localized JSON fields before rendering, so serialized translation objects never appear in the public interface.
+
+---
+
+## Gallery Delivery Model
+
+1. An administrator links one or more portfolio galleries to a client project.
+2. The gallery-ready email sends the project link and a random four-digit download PIN.
+3. Before PIN verification, preview and downloaded images are rendered with a continuous “Courtesy of SPS Studio” watermark.
+4. A verified PIN unlocks original and optimized deliverables for the project gallery.
+5. Clients may download one item or select multiple items for server-generated ZIP delivery.
+6. Requesting a forgotten PIN sends the editable recovery template and rotates the PIN immediately.
+
+Large file bytes do not pass through Vercel during normal Appwrite upload. The browser receives a short-lived server-created upload session, transfers directly to the configured bucket, and the API registers the completed object and metadata. Image uploads automatically create a high-quality JPEG display/download derivative below 10 MB while retaining the original master. Removing gallery media or deleting a portfolio also removes its original and derived objects from the configured bucket, including recognizable legacy Appwrite objects that predate upload tracking.
+
+---
+
+## 🚢 Production Deployment
+
+### Deployment with Cloud Run or Docker
+The project compiles into a single, self-contained server file (`dist/server.cjs`) and static assets (`dist/`):
+```bash
+npm run build
+npm run start
+```
+
+### Deployment with Vercel or Serverless Platforms
+1. Create a remote database on [Turso](https://turso.tech) and obtain your `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN`.
+2. Connect your Git repository to Vercel.
+3. Configure the required environment variables (`TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN`, `JWT_SECRET`, `APP_URL`, `RESEND_API_KEY`, etc.).
+4. When using Appwrite, configure the bucket permissions/CORS and the alphanumeric server-upload label expected by the direct-upload session.
+5. Deploy — Vercel uses the routes in `vercel.json` to create separate domain functions.
+
+| Function | Routes | Default maximum duration |
+|---|---|---:|
+| `api/public.ts` | Public content, contact form, travel calculator | 60 s |
+| `api/auth.ts` | Authentication, registration, invitations, setup | 60 s |
+| `api/admin.ts` | Admin CMS, teams, email, media control | 300 s |
+| `api/client.ts` | Client portal, gallery authorization and downloads | 300 s |
+| `api/budgets.ts` | Budget records, settings and audit logs | 120 s |
+| `api/invoices.ts` | Administrative invoice workflows | 120 s |
+| `api/payment-requests.ts` | Payment requests, uploads and approvals | 300 s |
+| `api/referrals.ts` | Administrative referral program workflows | 120 s |
+| `api/public-invoices.ts` | Public invoice views and payment intent notifications | 60 s |
+| `api/public-referrals.ts` | Public referral-code validation | 60 s |
+| `api/system.ts` | Health and external status summary | 30 s |
+
+Every active API prefix has an explicit rewrite. The previous all-in-one `api/index.ts` compatibility Function was removed so Vercel no longer packages the complete backend a second time.
+
+`APP_URL` must contain the canonical public origin (for example `https://studio.example.com`) without an application path. It is used for magic links, invitations, invoice links, gallery links, review tracking, and all other transactional email actions.
+
+---
+
+## 🔒 Security & Data Privacy
+
+- **Stateless Authentication**: Signed JWT tokens stored in browser local storage and validated with server-side middleware.
+- **Password Hashing**: Strong one-way password hashing via `bcryptjs` with salt rounds.
+- **Direct Object-Storage Uploads**: Large Appwrite and R2 uploads bypass the Vercel request body and read-only deployment filesystem.
+- **Gallery Access Control**: Rotating PINs, attempt tracking, authorization checks, watermarking, and ownership validation protect client deliverables.
+- **Transactional Sanitization**: HTML escaping and script-tag sanitization on customized email templates.
+- **Admin Verification Codes**: Direct password account creation for invited administrators requires a random, expiring, single-use email code.
+
+---
+
+## 📄 License
+
+This project is released under the [MIT License](LICENSE). See `LICENSE` for the full terms.
+- **Team role management**: Secure invitation onboarding and normalized Superadmin, Admin, Editor, and Viewer role display with protected Superadmin account operations.
+- **Role-aware Admin Navigation**: Shared route permissions keep Superadmin, Admin, Editor, and Viewer menus aligned with direct-URL access controls.
+- **Dual Client/Admin Accounts**: A client can accept an admin invitation under the same email while retaining separate client and admin passwords, roles, and portal access.
+- **Editable Team Categories**: Team groups can be created, renamed inline, and safely deleted after assigned members are moved.
