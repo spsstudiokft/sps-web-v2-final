@@ -353,6 +353,10 @@ Every active API prefix has an explicit rewrite. The previous all-in-one `api/in
 ## 📄 License
 
 This project is released under the [MIT License](LICENSE). See `LICENSE` for the full terms.
+
+## 🤝 Code of Conduct
+
+All contributors are expected to follow the [Code of Conduct](CODE_OF_CONDUCT.md).
 - **Team role management**: Secure invitation onboarding and normalized Superadmin, Admin, Editor, and Viewer role display with protected Superadmin account operations.
 - **Role-aware Admin Navigation**: Shared route permissions keep Superadmin, Admin, Editor, and Viewer menus aligned with direct-URL access controls.
 - **Dual Client/Admin Accounts**: A client can accept an admin invitation under the same email while retaining separate client and admin passwords, roles, and portal access.
