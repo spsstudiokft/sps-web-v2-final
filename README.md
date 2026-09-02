@@ -1,5 +1,8 @@
 # SPS Studio — Real Estate Visual Marketing CMS & Client Portal
 
+> [!WARNING]
+> This repository contains machine-generated code. Review, test, and validate all changes before using them in production.
+
 A production-ready, high-performance CMS, public showcase portfolio, and dedicated client portal built for real estate and architectural photography studios. Powered by **React 19**, **Vite**, **Tailwind CSS v4**, **Express**, and **Turso (LibSQL SQLite)**.
 
 ---
@@ -52,6 +55,10 @@ SPS Studio is an all-in-one studio management platform designed for architectura
 - **PIN-Protected Deliverable Galleries**: Individual and multi-select ZIP downloads with rotating four-digit PINs, forgotten-PIN email recovery, locked-preview watermarking, and right-click-safe delivery.
 - **Original & Optimized Downloads**: Separate full-resolution and optimized-image categories with identical authorization and watermark rules.
 - **Video & Image Previewing**: Generated video frame thumbnails, project preview images, attached-gallery counts, and full-size media modals.
+- **Client Feedback Conversations**: Each client has private, separately managed feedback threads with statuses, unread state, and near-real-time message refresh; administrators can reply and resolve each case from a dedicated inbox.
+- **In-App Notifications**: Persistent, account-scoped notification centres on both portals provide unread counters and read controls. The popover is viewport-aware and scroll-constrained on small screens.
+- **Bonus-Code Redemption**: Clients can apply eligible referral or bonus vouchers to one of their own unpaid invoices; ownership, availability, expiry, currency, and invoice checks are enforced on the server.
+- **VIP SPS RAW Feed**: A disabled-by-default, server-gated short-form behind-the-scenes video feed is available only to VIP clients when enabled by a Superadmin.
 
 ### 🏠 Property Listing Management
 - **Admin Listing CRUD**: Create, edit, search, enable/disable, and delete sale or rental listings before the public real-estate page is unlocked.
@@ -93,6 +100,9 @@ SPS Studio is an all-in-one studio management platform designed for architectura
 - **Legal Document Editor**: Full-page WYSIWYG editing for all public legal documents with formatted modal rendering.
 - **Team & Invitation Management**: Team grouping, role-aware members, invitation resend/revoke, and verification-code-protected direct admin onboarding.
 - **Marketing Email Workspace**: Create multiple reusable marketing templates and manually dispatch them to chosen recipients.
+- **Dashboard Quick Actions**: Permission-aware shortcuts create clients, projects, and portfolio entries directly, or open calendar and payment-request workflows.
+- **Feedback Inbox & SPS RAW Control**: Administrators can manage client feedback conversations and publish, order, edit, or remove VIP SPS RAW videos.
+- **Google Analytics 4 Dashboard**: A server-side GA4 overview shows users, sessions, page views, new users, acquisition channels, and popular pages without exposing Google credentials to the browser.
 
 ### 💳 Finance, Invoices & Payment Requests
 - **Budget Manager**: Categorized income/expense entries, audit history, status management, summaries, and shared default-currency configuration.
@@ -100,6 +110,7 @@ SPS Studio is an all-in-one studio management platform designed for architectura
 - **Paid Invoice Archival**: Confirmed invoices cannot receive duplicate payment requests and can be archived manually by administrators.
 - **Payment Request Workflow**: Superadmin approval, denial, hold, editable categories, linked budget/invoice records, and status-specific email notifications.
 - **Currency-Aware Dashboards**: Budget, invoice/payment, and payment-request totals use the configured default currency.
+- **Stripe Test Checkout**: Superadmins can enable or disable sandbox-only Stripe Checkout for outstanding public invoice balances. Amount calculation, payment verification, and duplicate prevention remain server-side.
 
 ### ✉️ Resend Email Engine & Template Editor
 - **Configurable Sender Profiles**: Set custom `from_name`, `from_email`, `reply_to`, and admin alert addresses.
@@ -228,13 +239,24 @@ RESEND_API_KEY=
 RESEND_FROM_EMAIL=onboarding@resend.dev
 RESEND_FROM_NAME=SPS Studio
 RESEND_REPLY_TO=contact@spsstudio.com
+
+# Optional Stripe sandbox billing (test-mode key only)
+STRIPE_SECRET_KEY=sk_test_...
+
+# Optional Google Analytics 4 admin dashboard (server-side only)
+GOOGLE_ANALYTICS_PROPERTY_ID=123456789
+GOOGLE_ANALYTICS_SERVICE_ACCOUNT_JSON={"type":"service_account","client_email":"analytics-reader@example.iam.gserviceaccount.com","private_key":"-----BEGIN PRIVATE KEY-----\\n...\\n-----END PRIVATE KEY-----\\n"}
 ```
+
+For GA4, enable the Google Analytics Data API and grant the service-account email Viewer access to the selected GA4 property. Keep the service-account JSON in the server environment only; never place it in a client-side `VITE_` variable. Stripe billing remains unavailable until a Superadmin enables it in the admin settings and a valid `sk_test_` key is present.
 
 ### 4. Start Development Server
 ```bash
 npm run dev
 ```
 The server starts on `http://localhost:3000` by default. Set `PORT` when that port is occupied, for example `$env:PORT='3003'; npm run dev` in PowerShell.
+
+The repository-local development database is `local.db`. Its prepared local demo accounts, when present, are documented in `DEMOACCOUNTS.md`; do not use those credentials in production.
 
 ### 5. Initial First-Time Setup Wizard
 1. Open your browser and navigate to `http://localhost:3000`.
@@ -330,7 +352,7 @@ Every active API prefix has an explicit rewrite. The previous all-in-one `api/in
 
 ## 📄 License
 
-This project is proprietary software developed for **SPS Studio**. All rights reserved.
+This project is released under the [MIT License](LICENSE). See `LICENSE` for the full terms.
 - **Team role management**: Secure invitation onboarding and normalized Superadmin, Admin, Editor, and Viewer role display with protected Superadmin account operations.
 - **Role-aware Admin Navigation**: Shared route permissions keep Superadmin, Admin, Editor, and Viewer menus aligned with direct-URL access controls.
 - **Dual Client/Admin Accounts**: A client can accept an admin invitation under the same email while retaining separate client and admin passwords, roles, and portal access.

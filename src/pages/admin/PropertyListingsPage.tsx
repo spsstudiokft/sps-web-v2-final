@@ -80,7 +80,7 @@ export default function PropertyListingsPage() {
     else setMessage(body.error || "A láthatóság módosítása sikertelen.");
   };
   const remove = async (item: PropertyListing) => {
-    if (!confirm(`Biztosan törlöd ezt a hirdetést és minden feltöltött képét?\n\n${item.title}`)) return;
+    if (!(await globalThis.appConfirm(`Biztosan törlöd ezt a hirdetést és minden feltöltött képét?\n\n${item.title}`, { tone: "danger", confirmLabel: "Törlés" }))) return;
     const response = await fetchApi(`/api/admin/property-listings/${item.id}`, { method: "DELETE" });
     const body = await response.json();
     if (response.ok) setItems(current => current.filter(entry => entry.id !== item.id));

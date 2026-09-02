@@ -78,7 +78,7 @@ export function PaymentRequestCategoriesModal({ isOpen, token, categories, onClo
   };
 
   const deleteCategory = async (category: PaymentRequestCategoryOption) => {
-    if (!confirm(`Delete category “${category.name}”?`)) return;
+    if (!(await globalThis.appConfirm(`Delete category “${category.name}”?`, { tone: "danger", confirmLabel: "Törlés" }))) return;
     setBusy(true);
     try {
       await request(`/api/admin/payment-requests/categories/${category.id}`, "DELETE");

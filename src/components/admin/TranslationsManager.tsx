@@ -432,8 +432,8 @@ export function TranslationsManager({
 
   // Re-sync all translations from hardcoded files to DB
   const handleMigrateFromFiles = async () => {
-    const confirm = window.confirm(tUi("admin.translation_editor.sync_confirm", currentLang));
-    if (!confirm) return;
+    const confirmed = await globalThis.appConfirm(tUi("admin.translation_editor.sync_confirm", currentLang), { confirmLabel: "Szinkronizálás" });
+    if (!confirmed) return;
 
     try {
       setMigrating(true);
@@ -467,7 +467,7 @@ export function TranslationsManager({
 
   // Delete key for current locale
   const handleDeleteKeyLocale = async (key: string) => {
-    if (!window.confirm(tUi("admin.translation_editor.delete_confirm", currentLang, { key, locale: selectedLang.toUpperCase() }))) return;
+    if (!(await globalThis.appConfirm(tUi("admin.translation_editor.delete_confirm", currentLang, { key, locale: selectedLang.toUpperCase() }), { tone: "danger", confirmLabel: "Törlés" }))) return;
 
     try {
       const res = await fetchApi(`/api/admin/translations/${encodeURIComponent(selectedLang)}/${encodeURIComponent(key)}`, {

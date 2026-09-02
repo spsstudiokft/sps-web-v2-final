@@ -3,6 +3,7 @@ import { Building2, CheckCircle2, Database, Loader2, ShieldCheck } from "lucide-
 import { Card, CardContent } from "../../components/ui/Card";
 import { useApi } from "../../hooks/useApi";
 import { usePageTitle } from "../../hooks/usePageTitle";
+import { confirmAction } from "../../components/common/AppFeedbackProvider";
 
 export default function ClientListingAccountPage() {
   const { fetchApi } = useApi();
@@ -10,7 +11,7 @@ export default function ClientListingAccountPage() {
   usePageTitle("Ingatlanhirdetési fiók");
   useEffect(() => { fetchApi("/api/client/property-listing-account").then(async response => { const body = await response.json(); if (!response.ok) throw new Error(body.error); setState(body); }).catch(error => setError(error.message || "A fiókállapot nem tölthető be.")).finally(() => setLoading(false)); }, [fetchApi]);
   const migrate = async () => {
-    if (!confirm("A rendszer egyszeri, kapcsolt ingatlanhirdetési fiókot hoz létre az ügyfélkapus neveddel és email-címeddel. Folytatod?")) return;
+    if (!(await confirmAction("A rendszer egyszeri, kapcsolt ingatlanhirdetési fiókot hoz létre az ügyfélkapus neveddel és email-címeddel. Folytatod?", { confirmLabel: "Folytatás" }))) return;
     setMigrating(true); setError("");
     try { const response = await fetchApi("/api/client/property-listing-account/migrate", { method: "POST" }); const body = await response.json(); if (!response.ok) throw new Error(body.error); setState(body); }
     catch (error) { setError(error instanceof Error ? error.message : "Az adatmigráció sikertelen."); } finally { setMigrating(false); }

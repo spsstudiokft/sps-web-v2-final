@@ -53,7 +53,7 @@ export default function MarketingEmailsPage() {
   };
 
   const remove = async (template: EmailTemplate) => {
-    if (!confirm(`Biztosan törlöd ezt a sablont: ${template.name}?`)) return;
+    if (!(await globalThis.appConfirm(`Biztosan törlöd ezt a sablont: ${template.name}?`, { tone: "danger", confirmLabel: "Törlés" }))) return;
     const res = await fetch(`/api/admin/email/templates/marketing/${template.template_key}`, { method: "DELETE", headers: authHeaders() });
     if (res.ok) { if (selected?.template_key === template.template_key) setSelected(null); await load(); }
   };

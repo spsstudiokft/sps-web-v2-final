@@ -119,7 +119,7 @@ export default function CalendarPage() {
     finally { setSaving(false); }
   };
   const remove = async () => {
-    if (!active?.id || !active.can_edit || !confirm(`Biztosan törlöd ezt a bejegyzést${active.event_type === "portfolio" ? " és az üres portfóliógaléria-vázlatot" : active.event_type === "project" ? " és a hozzá tartozó belső projektet" : ""}?`)) return;
+    if (!active?.id || !active.can_edit || !(await globalThis.appConfirm(`Biztosan törlöd ezt a bejegyzést${active.event_type === "portfolio" ? " és az üres portfóliógaléria-vázlatot" : active.event_type === "project" ? " és a hozzá tartozó belső projektet" : ""}?`, { tone: "danger", confirmLabel: "Törlés" }))) return;
     setSaving(true);
     try { const res = await fetchApi(`/api/admin/calendar-events/${active.id}`, { method: "DELETE" }); const data = await res.json(); if (!res.ok) throw new Error(data.error); setActive(null); await loadEvents(); }
     catch (e: any) { setError(e.message || "A törlés sikertelen."); } finally { setSaving(false); }

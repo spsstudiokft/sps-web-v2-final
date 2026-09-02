@@ -246,7 +246,7 @@ export default function ReferralsPage() {
 
   // Tier Delete
   const handleDeleteTier = async (id: string) => {
-    if (!confirm(tUi("admin.referrals.runtime.tier_delete_confirm"))) return;
+    if (!(await globalThis.appConfirm(tUi("admin.referrals.runtime.tier_delete_confirm"), { tone: "danger", confirmLabel: "Törlés" }))) return;
 
     try {
       const token = localStorage.getItem("admin_token") || localStorage.getItem("token");

@@ -15,11 +15,75 @@ import { getAppUrl } from "./appUrl.js";
 import { archivePublishedListing } from "./services/internetArchiveService.js";
 import bcrypt from "bcryptjs";
 import { deleteMedia } from "./storage/index.js";
+import { createPortalNotification, ensurePortalNotificationSchema, notifyAllAdmins } from "./services/portalNotificationService.js";
 
 const clientRouter = Router();
 const JWT_SECRET = process.env.JWT_SECRET || "supersecretjwtstring";
 const pinAttempts = new Map<string, { count: number; resetAt: number }>();
 const pinEmailRequests = new Map<string, number>();
+
+let feedbackSchemaReady = false;
+let spsRawSchemaReady = false;
+async function ensureSpsRawSchema() {
+  if (spsRawSchemaReady) return;
+  await db.execute(`CREATE TABLE IF NOT EXISTS sps_raw_posts (id TEXT PRIMARY KEY, title TEXT NOT NULL, caption TEXT NOT NULL DEFAULT '', video_url TEXT NOT NULL, poster_url TEXT DEFAULT '', is_published INTEGER NOT NULL DEFAULT 0, sort_order INTEGER NOT NULL DEFAULT 0, created_by TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
+  await db.execute("CREATE INDEX IF NOT EXISTS idx_sps_raw_posts_published ON sps_raw_posts(is_published, sort_order, created_at)");
+  spsRawSchemaReady = true;
+}
+async function getSpsRawAccess(userId: string) {
+  await ensureSpsRawSchema();
+  const settings = await db.execute({ sql: "SELECT value FROM settings WHERE key = 'sps_raw_enabled' LIMIT 1", args: [] });
+  const enabled = ["1", "true"].includes(String(settings.rows[0]?.value || "").toLowerCase());
+  if (!enabled) return { enabled: false, vip: false };
+  const vip = await db.execute({ sql: "SELECT 1 FROM customers c JOIN users u ON lower(u.email) = lower(c.email) WHERE u.id = ? AND COALESCE(c.is_vip, 0) = 1 LIMIT 1", args: [userId] });
+  return { enabled, vip: Boolean(vip.rows.length) };
+}
+async function ensureFeedbackSchema() {
+  if (feedbackSchemaReady) return;
+  await db.execute(`CREATE TABLE IF NOT EXISTS client_feedback_conversations (
+    id TEXT PRIMARY KEY, client_id TEXT NOT NULL, subject TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'open',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, last_message_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )`);
+  await db.execute(`CREATE TABLE IF NOT EXISTS client_feedback_messages (
+    id TEXT PRIMARY KEY, conversation_id TEXT NOT NULL, sender_id TEXT NOT NULL, sender_role TEXT NOT NULL,
+    body TEXT NOT NULL, read_at DATETIME DEFAULT NULL, created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )`);
+  await db.execute("CREATE INDEX IF NOT EXISTS idx_feedback_conversations_client ON client_feedback_conversations(client_id, last_message_at)");
+  await db.execute("CREATE INDEX IF NOT EXISTS idx_feedback_messages_conversation ON client_feedback_messages(conversation_id, created_at)");
+  feedbackSchemaReady = true;
+}
+
+clientRouter.get("/notifications", async (req: any, res) => {
+  try { await ensurePortalNotificationSchema(); const rows = await db.execute({ sql: "SELECT * FROM portal_notifications WHERE recipient_id = ? AND recipient_portal = 'client' ORDER BY created_at DESC LIMIT 50", args: [req.user.id] }); res.json(rows.rows); }
+  catch (error: any) { res.status(500).json({ error: error.message || "Failed to load notifications" }); }
+});
+clientRouter.patch("/notifications/read-all", async (req: any, res) => {
+  try { await ensurePortalNotificationSchema(); await db.execute({ sql: "UPDATE portal_notifications SET read_at = CURRENT_TIMESTAMP WHERE recipient_id = ? AND recipient_portal = 'client' AND read_at IS NULL", args: [req.user.id] }); res.json({ success: true }); }
+  catch (error: any) { res.status(500).json({ error: error.message || "Failed to update notifications" }); }
+});
+clientRouter.patch("/notifications/:id/read", async (req: any, res) => {
+  try { await ensurePortalNotificationSchema(); await db.execute({ sql: "UPDATE portal_notifications SET read_at = CURRENT_TIMESTAMP WHERE id = ? AND recipient_id = ? AND recipient_portal = 'client'", args: [req.params.id, req.user.id] }); res.json({ success: true }); }
+  catch (error: any) { res.status(500).json({ error: error.message || "Failed to update notification" }); }
+});
+clientRouter.get("/sps-raw/access", async (req: any, res) => { try { res.json(await getSpsRawAccess(req.user.id)); } catch (error: any) { res.status(500).json({ error: error.message || "Failed to check SPS RAW access" }); } });
+clientRouter.get("/sps-raw/feed", async (req: any, res) => { try { const access = await getSpsRawAccess(req.user.id); if (!access.enabled || !access.vip) return res.status(403).json({ error: "Az SPS RAW jelenleg csak meghívott VIP ügyfelek számára érhető el." }); const rows = await db.execute("SELECT id, title, caption, video_url, poster_url, created_at FROM sps_raw_posts WHERE is_published = 1 ORDER BY sort_order ASC, created_at DESC"); res.json(rows.rows); } catch (error: any) { res.status(500).json({ error: error.message || "Failed to load SPS RAW" }); } });
+
+clientRouter.get("/feedback/conversations", async (req: any, res) => {
+  try { await ensureFeedbackSchema(); const user = req.user; const rows = await db.execute({ sql: `SELECT c.*, (SELECT body FROM client_feedback_messages WHERE conversation_id = c.id ORDER BY created_at DESC LIMIT 1) AS last_message, (SELECT COUNT(*) FROM client_feedback_messages WHERE conversation_id = c.id AND sender_role = 'admin' AND read_at IS NULL) AS unread_count FROM client_feedback_conversations c WHERE c.client_id = ? ORDER BY c.last_message_at DESC`, args: [user.id] }); res.json(rows.rows); }
+  catch (error: any) { res.status(500).json({ error: error.message || "Failed to load feedback conversations" }); }
+});
+clientRouter.post("/feedback/conversations", async (req: any, res) => {
+  try { await ensureFeedbackSchema(); const user = req.user; const subject = String(req.body?.subject || "").trim().slice(0, 160); const body = String(req.body?.message || "").trim().slice(0, 5000); if (!subject || !body) return res.status(400).json({ error: "Subject and message are required" }); const id = crypto.randomUUID(); await db.execute({ sql: "INSERT INTO client_feedback_conversations (id, client_id, subject) VALUES (?, ?, ?)", args: [id, user.id, subject] }); await db.execute({ sql: "INSERT INTO client_feedback_messages (id, conversation_id, sender_id, sender_role, body) VALUES (?, ?, ?, 'client', ?)", args: [crypto.randomUUID(), id, user.id, body] }); await notifyAllAdmins({ type: "client_feedback", title: "Új ügyfél-visszajelzés", body: `${user.name || user.email || "Egy ügyfél"}: ${subject}`, link: "/admin/client-feedback" }); res.status(201).json({ id, subject, status: "open" }); }
+  catch (error: any) { res.status(500).json({ error: error.message || "Failed to create feedback conversation" }); }
+});
+clientRouter.get("/feedback/conversations/:id/messages", async (req: any, res) => {
+  try { await ensureFeedbackSchema(); const user = req.user; const own = await db.execute({ sql: "SELECT id FROM client_feedback_conversations WHERE id = ? AND client_id = ?", args: [req.params.id, user.id] }); if (!own.rows.length) return res.status(404).json({ error: "Conversation not found" }); await db.execute({ sql: "UPDATE client_feedback_messages SET read_at = CURRENT_TIMESTAMP WHERE conversation_id = ? AND sender_role = 'admin' AND read_at IS NULL", args: [req.params.id] }); const messages = await db.execute({ sql: "SELECT * FROM client_feedback_messages WHERE conversation_id = ? ORDER BY created_at ASC", args: [req.params.id] }); res.json(messages.rows); }
+  catch (error: any) { res.status(500).json({ error: error.message || "Failed to load messages" }); }
+});
+clientRouter.post("/feedback/conversations/:id/messages", async (req: any, res) => {
+  try { await ensureFeedbackSchema(); const user = req.user; const body = String(req.body?.message || "").trim().slice(0, 5000); if (!body) return res.status(400).json({ error: "Message is required" }); const own = await db.execute({ sql: "SELECT id, status, subject FROM client_feedback_conversations WHERE id = ? AND client_id = ?", args: [req.params.id, user.id] }); if (!own.rows.length) return res.status(404).json({ error: "Conversation not found" }); await db.execute({ sql: "INSERT INTO client_feedback_messages (id, conversation_id, sender_id, sender_role, body) VALUES (?, ?, ?, 'client', ?)", args: [crypto.randomUUID(), req.params.id, user.id, body] }); await db.execute({ sql: "UPDATE client_feedback_conversations SET status = 'open', updated_at = CURRENT_TIMESTAMP, last_message_at = CURRENT_TIMESTAMP WHERE id = ?", args: [req.params.id] }); await notifyAllAdmins({ type: "client_feedback_reply", title: "Új ügyfélüzenet", body: `${user.name || user.email || "Egy ügyfél"}: ${String(own.rows[0].subject)}`, link: "/admin/client-feedback" }); res.status(201).json({ success: true }); }
+  catch (error: any) { res.status(500).json({ error: error.message || "Failed to send message" }); }
+});
 
 clientRouter.get("/help", async (_req, res) => {
   try {
@@ -1046,6 +1110,56 @@ clientRouter.get("/invoices/:id", async (req, res) => {
     console.error("Failed to fetch client invoice detail", error);
     res.status(500).json({ error: "Failed to fetch invoice" });
   }
+});
+
+// Redeem an issued referral/bonus voucher against the authenticated client's
+// own outstanding invoice. The client never supplies the discount amount.
+clientRouter.post("/rewards/redeem", async (req, res) => {
+  try {
+    const user: any = (req as any).user;
+    const voucherCode = String(req.body?.voucher_code || "").trim().toUpperCase();
+    const invoiceId = String(req.body?.invoice_id || "").trim();
+    if (!user?.id || !user?.email) return res.status(401).json({ error: "Unauthorized" });
+    if (!voucherCode || !invoiceId) return res.status(400).json({ error: "Bonus code and invoice are required" });
+
+    const [rewardResult, invoiceResult] = await Promise.all([
+      db.execute({ sql: "SELECT * FROM referral_rewards WHERE UPPER(voucher_code) = ? AND user_id = ? AND status = 'available' AND (expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP) LIMIT 1", args: [voucherCode, user.id] }),
+      db.execute({ sql: "SELECT * FROM invoices WHERE id = ? AND LOWER(TRIM(client_email)) = ? AND LOWER(TRIM(status)) NOT IN ('draft', 'cancelled', 'paid') LIMIT 1", args: [invoiceId, String(user.email).trim().toLowerCase()] }),
+    ]);
+    const reward: any = rewardResult.rows[0];
+    const invoice: any = invoiceResult.rows[0];
+    if (!reward) return res.status(404).json({ error: "This bonus code is unavailable, expired, or does not belong to your account." });
+    if (!invoice) return res.status(404).json({ error: "The selected outstanding invoice was not found for your account." });
+    if (String(reward.currency || invoice.currency).toUpperCase() !== String(invoice.currency || "").toUpperCase()) return res.status(400).json({ error: "The bonus code currency does not match this invoice." });
+
+    const amountDue = Math.max(0, Number(invoice.total_amount || 0) - Number(invoice.amount_paid || 0));
+    if (amountDue <= 0) return res.status(400).json({ error: "This invoice has already been settled." });
+    const type = String(reward.reward_type || "");
+    let appliedAmount = 0;
+
+    if (type === "discount_percent") appliedAmount = Math.min(amountDue, Math.round(amountDue * Math.max(0, Number(reward.reward_value || 0)) * 100) / 10000);
+    else if (type === "discount_fixed") appliedAmount = Math.min(amountDue, Math.max(0, Number(reward.reward_value || 0)));
+    else if (type === "credit") {
+      const creditResult = await db.execute({ sql: "UPDATE users SET referral_credits = referral_credits - ? WHERE id = ? AND COALESCE(referral_credits, 0) >= ?", args: [Math.min(amountDue, Number(reward.reward_value || 0)), user.id, Math.min(amountDue, Number(reward.reward_value || 0))] });
+      if (Number((creditResult as any).rowsAffected || 0) !== 1) return res.status(400).json({ error: "The available account credit is insufficient for this bonus code." });
+      appliedAmount = Math.min(amountDue, Math.max(0, Number(reward.reward_value || 0)));
+      await db.execute({ sql: "INSERT INTO invoice_payments (id, invoice_id, amount, payment_date, payment_method, transaction_reference, notes, recorded_by_id, recorded_by_name, created_at) VALUES (?, ?, ?, ?, 'referral_credit', ?, ?, ?, 'Client bonus code', CURRENT_TIMESTAMP)", args: [crypto.randomUUID(), invoiceId, appliedAmount, new Date().toISOString().slice(0, 10), voucherCode, `Bonus code ${voucherCode} applied`, user.id] });
+    } else return res.status(400).json({ error: "This bonus requires manual studio approval and cannot be applied to an invoice online." });
+    if (appliedAmount <= 0) return res.status(400).json({ error: "This bonus code has no applicable value." });
+
+    if (type === "discount_percent" || type === "discount_fixed") {
+      const nextTotal = Math.max(Number(invoice.amount_paid || 0), Number(invoice.total_amount || 0) - appliedAmount);
+      const paid = Number(invoice.amount_paid || 0) >= nextTotal;
+      await db.execute({ sql: "UPDATE invoices SET discount_amount = COALESCE(discount_amount, 0) + ?, total_amount = ?, status = CASE WHEN ? THEN 'paid' ELSE status END, paid_at = CASE WHEN ? THEN CURRENT_TIMESTAMP ELSE paid_at END, updated_at = CURRENT_TIMESTAMP WHERE id = ?", args: [appliedAmount, nextTotal, paid ? 1 : 0, paid ? 1 : 0, invoiceId] });
+    } else {
+      const totals = await db.execute({ sql: "SELECT COALESCE(SUM(amount), 0) AS total_paid FROM invoice_payments WHERE invoice_id = ?", args: [invoiceId] });
+      const amountPaid = Number(totals.rows[0]?.total_paid || 0); const paid = amountPaid >= Number(invoice.total_amount || 0);
+      await db.execute({ sql: "UPDATE invoices SET amount_paid = ?, status = CASE WHEN ? THEN 'paid' ELSE status END, paid_at = CASE WHEN ? THEN CURRENT_TIMESTAMP ELSE paid_at END, updated_at = CURRENT_TIMESTAMP WHERE id = ?", args: [amountPaid, paid ? 1 : 0, paid ? 1 : 0, invoiceId] });
+    }
+    const consume = await db.execute({ sql: "UPDATE referral_rewards SET status = 'redeemed', redeemed_at = CURRENT_TIMESTAMP, redeemed_invoice_id = ?, redeemed_notes = ? WHERE id = ? AND status = 'available'", args: [invoiceId, `Redeemed by client against invoice ${invoice.invoice_number}`, reward.id] });
+    if (Number((consume as any).rowsAffected || 0) !== 1) return res.status(409).json({ error: "This bonus code was just used. Refresh your rewards and try another code." });
+    res.json({ success: true, applied_amount: appliedAmount, currency: invoice.currency, invoice_id: invoiceId });
+  } catch (error: any) { console.error("Client bonus redemption failed", error); res.status(500).json({ error: error.message || "Failed to redeem bonus code" }); }
 });
 
 // =========================================================================

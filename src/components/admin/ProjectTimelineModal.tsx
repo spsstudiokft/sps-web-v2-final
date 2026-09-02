@@ -79,7 +79,7 @@ export function ProjectTimelineModal({ project, onClose }: { project: Project | 
   };
 
   const remove = async (kind: "milestones" | "updates", id: string) => {
-    if (!window.confirm(`Delete this ${kind === "milestones" ? "milestone" : "project update"}?`)) return;
+    if (!(await globalThis.appConfirm(`Delete this ${kind === "milestones" ? "milestone" : "project update"}?`, { tone: "danger", confirmLabel: "Törlés" }))) return;
     const response = await fetchApi(`/api/admin/projects/${project.id}/${kind}/${id}`, { method: "DELETE" });
     if (response.ok) await load();
   };

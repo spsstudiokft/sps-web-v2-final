@@ -133,7 +133,7 @@ export default function ClientDashboardHome() {
   };
 
   const handleDeleteProperty = async (id: string) => {
-    if (!confirm("Remove this property?")) return;
+    if (!(await globalThis.appConfirm("Remove this property?", { tone: "danger", confirmLabel: "Törlés" }))) return;
     try {
       await fetchApi(`/api/client/properties/${id}`, { method: "DELETE" });
       await loadData();
@@ -192,7 +192,7 @@ export default function ClientDashboardHome() {
   };
 
   const handleDeleteLink = async (id: string) => {
-    if (!confirm("Remove this link?")) return;
+    if (!(await globalThis.appConfirm("Remove this link?", { tone: "danger", confirmLabel: "Törlés" }))) return;
     try {
       await fetchApi(`/api/client/links/${id}`, { method: "DELETE" });
       await loadData();

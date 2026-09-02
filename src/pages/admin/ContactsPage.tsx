@@ -5,6 +5,7 @@ import { Card, CardContent } from "../../components/ui/Card";
 import { Button } from "../../components/ui/Button";
 import { Input } from "../../components/ui/Input";
 import { cn } from "../../lib/utils";
+import { confirmAction } from "../../components/common/AppFeedbackProvider";
 import { AdminListSkeleton } from "../../components/admin/AdminSkeleton";
 import { AdminPagination, AdminPaginationMeta } from "../../components/admin/AdminPagination";
 import { CustomerModal } from "../../components/admin/CustomerModal";
@@ -234,7 +235,7 @@ export default function ContactsPage() {
   };
 
   const deleteContact = async (id: string) => {
-    if (!confirm(tUi("admin.submissions.confirm_delete", currentLanguage))) return;
+    if (!(await confirmAction(tUi("admin.submissions.confirm_delete", currentLanguage), { tone: "danger", confirmLabel: "Törlés" }))) return;
     try {
       setActionLoading(true);
       const res = await fetchApi(`/api/admin/contacts/${id}`, {
@@ -261,7 +262,7 @@ export default function ContactsPage() {
   const handleBulkArchive = async () => {
     if (selectedIds.size === 0) return;
     const ids = Array.from(selectedIds);
-    if (!confirm(tUi("admin.submissions.confirm_bulk_archive", currentLanguage, { count: ids.length }))) return;
+    if (!(await confirmAction(tUi("admin.submissions.confirm_bulk_archive", currentLanguage, { count: ids.length }), { confirmLabel: "Archiválás" }))) return;
 
     try {
       setActionLoading(true);
@@ -290,7 +291,7 @@ export default function ContactsPage() {
   const handleBulkUnarchive = async () => {
     if (selectedIds.size === 0) return;
     const ids = Array.from(selectedIds);
-    if (!confirm(tUi("admin.submissions.confirm_bulk_unarchive", currentLanguage, { count: ids.length }))) return;
+    if (!(await confirmAction(tUi("admin.submissions.confirm_bulk_unarchive", currentLanguage, { count: ids.length }), { confirmLabel: "Visszaállítás" }))) return;
 
     try {
       setActionLoading(true);
@@ -344,7 +345,7 @@ export default function ContactsPage() {
 
   const handleBulkDelete = async () => {
     if (selectedIds.size === 0) return;
-    if (!confirm(tUi("admin.submissions.confirm_bulk_delete", currentLanguage, { count: selectedIds.size }))) return;
+    if (!(await confirmAction(tUi("admin.submissions.confirm_bulk_delete", currentLanguage, { count: selectedIds.size }), { tone: "danger", confirmLabel: "Törlés" }))) return;
     try {
       setActionLoading(true);
       const res = await fetchApi(`/api/admin/contacts/bulk-delete`, {

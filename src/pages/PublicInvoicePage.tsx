@@ -41,10 +41,19 @@ export default function PublicInvoicePage() {
   const [notifyNotes, setNotifyNotes] = useState("");
   const [notifySent, setNotifySent] = useState(false);
   const [notifyLoading, setNotifyLoading] = useState(false);
+  const [stripeLoading, setStripeLoading] = useState(false);
 
   useEffect(() => {
     fetchInvoice();
   }, [id, token]);
+
+  useEffect(() => {
+    const sessionId = searchParams.get("stripe_checkout");
+    if (!id || !token || !sessionId) return;
+    fetch(`/api/public/invoices/${id}/stripe-confirm?token=${encodeURIComponent(token)}`, {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ session_id: sessionId })
+    }).then((res) => { if (res.ok) return fetchInvoice(); }).catch(() => undefined);
+  }, [id, token, searchParams]);
 
   useEffect(() => {
     if (!appliedRequestedLanguage.current && requestedLanguage && enabledLangs.some((language) => language.code === requestedLanguage)) {
@@ -101,6 +110,20 @@ export default function PublicInvoicePage() {
     } finally {
       setNotifyLoading(false);
     }
+  };
+
+  const handleStripeCheckout = async () => {
+    if (!token) return;
+    setStripeLoading(true);
+    try {
+      const res = await fetch(`/api/public/invoices/${id}/stripe-checkout?token=${encodeURIComponent(token)}`, { method: "POST" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.checkout_url) throw new Error(data.error || "Stripe Checkout is unavailable");
+      window.location.assign(data.checkout_url);
+    } catch (err: any) {
+      setError(err.message || "Stripe Checkout is unavailable");
+      setErrorStatus(503);
+    } finally { setStripeLoading(false); }
   };
 
   const formatMoney = (val: number, curr: string = "USD") => {
@@ -204,6 +227,11 @@ export default function PublicInvoicePage() {
                     <CreditCard className="w-4 h-4" />
                     {copy("payOnline")}
                   </a>
+                ) : token && invoice.stripe_checkout_available ? (
+                  <Button type="button" variant="primary" size="sm" onClick={handleStripeCheckout} disabled={stripeLoading} className="text-xs inline-flex items-center gap-1.5">
+                    <CreditCard className="w-3.5 h-3.5" />
+                    {stripeLoading ? copy("loading") : `${copy("payOnline")} · Stripe`}
+                  </Button>
                 ) : (
                   <Button
                     type="button"

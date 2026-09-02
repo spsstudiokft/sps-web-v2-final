@@ -256,7 +256,7 @@ export default function ThemesPage() {
   // Delete custom theme
   const handleDeleteTheme = async (themeId: string, themeName: string) => {
     const confirmPrompt = tUi("themeManager.delete_theme_confirm", { name: themeName }, currentLanguage);
-    if (!confirm(confirmPrompt)) return;
+    if (!(await globalThis.appConfirm(confirmPrompt, { confirmLabel: "Megerősítés" }))) return;
 
     try {
       const res = await fetchApi(`/api/admin/themes/${themeId}`, {

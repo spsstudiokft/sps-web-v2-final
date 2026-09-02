@@ -254,7 +254,7 @@ export default function CustomersPage() {
   useEffect(() => { setPage(1); }, [search, statusFilter, portalFilter]);
 
   const handleDelete = async (id: string) => {
-    if (!confirm(tUi("admin.customers.confirm_delete", currentLanguage))) return;
+    if (!(await globalThis.appConfirm(tUi("admin.customers.confirm_delete", currentLanguage), { tone: "danger", confirmLabel: "Törlés" }))) return;
     try {
       await fetchApi(`/api/admin/crm/${id}`, { method: "DELETE" });
       setSelectedIds(prev => prev.filter(item => item !== id));
@@ -321,7 +321,7 @@ export default function CustomersPage() {
     const confirmMsg = newStatus === 'inactive'
       ? `Are you sure you want to mark ${selectedIds.length} customer(s) as INACTIVE?\n\nThis will automatically DISABLE all linked client portal user accounts and terminate active sessions.`
       : `Change status of ${selectedIds.length} customer(s) to '${newStatus}'?`;
-    if (!confirm(confirmMsg)) return;
+    if (!(await globalThis.appConfirm(confirmMsg, { confirmLabel: "Megerősítés" }))) return;
 
     try {
       setIsBulkSending(true);
@@ -453,7 +453,7 @@ export default function CustomersPage() {
     const confirmMsg = (tUi("admin.customers.bulk_invite_confirm", currentLanguage) || "Send portal invitation emails to {count} selected customer(s)?")
       .replace("{count}", String(eligibleSelectedCustomers.length));
 
-    if (!confirm(confirmMsg)) return;
+    if (!(await globalThis.appConfirm(confirmMsg, { confirmLabel: "Megerősítés" }))) return;
 
     setIsBulkSending(true);
     try {

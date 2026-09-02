@@ -8,7 +8,7 @@ export type AdminMenuPermission = { id: string; label: string; description: stri
 const route = (path: string) => (pathname: string) => pathname === path || pathname.startsWith(`${path}/`);
 
 export const ADMIN_MENU_PERMISSIONS: AdminMenuPermission[] = [
-  { id: "dashboard", label: "Dashboard", description: "Overview and activity summary", defaultRoles: ["admin", "editor", "viewer"], matches: (path) => path === "/admin" },
+  { id: "dashboard", label: "Dashboard", description: "Overview and activity summary", defaultRoles: ["admin", "editor", "viewer"], matches: (path) => path === "/admin" || route("/admin/google-analytics")(path) },
   { id: "payment_requests", label: "Payment requests", description: "Internal payment requests and reimbursement workflow", defaultRoles: ["admin", "editor"], matches: (path, search) => path === "/admin/budget" && search.includes("tab=payment-requests") },
   { id: "budget", label: "Budget manager", description: "Budget entries and financial reports", defaultRoles: ["admin"], matches: (path, search) => path === "/admin/budget" && !search.includes("tab=invoices") && !search.includes("tab=payment-requests") },
   { id: "invoices", label: "Invoices & payments", description: "Invoices, payment links and receivables", defaultRoles: ["admin"], matches: (path, search) => path === "/admin/invoices" || (path === "/admin/budget" && search.includes("tab=invoices")) },
@@ -28,7 +28,7 @@ export const ADMIN_MENU_PERMISSIONS: AdminMenuPermission[] = [
   { id: "referrals", label: "Referral program", description: "Referral settings and rewards", defaultRoles: ["admin"], matches: route("/admin/referrals") },
   { id: "leads", label: "Leads", description: "Lead pipeline and prospect records", defaultRoles: ["admin", "editor"], matches: route("/admin/leads") },
   { id: "customers", label: "Customers", description: "Customer records and portal invitations", defaultRoles: ["admin", "editor"], matches: route("/admin/customers") },
-  { id: "clients", label: "Client portal users", description: "Client portal accounts and access", defaultRoles: ["admin", "editor"], matches: route("/admin/clients") },
+  { id: "clients", label: "Client portal users", description: "Client portal accounts, feedback and access", defaultRoles: ["admin", "editor"], matches: (path) => route("/admin/clients")(path) || route("/admin/client-feedback")(path) || route("/admin/sps-raw")(path) },
   { id: "submissions", label: "Submissions", description: "Contact-form requests and notes", defaultRoles: ["admin", "editor", "viewer"], matches: route("/admin/contacts") },
   { id: "marketing_emails", label: "Marketing emails", description: "Campaign templates and sends", defaultRoles: ["admin", "editor"], matches: route("/admin/marketing-emails") },
   { id: "themes", label: "Theme & branding", description: "Theme editor and visual identity", defaultRoles: ["admin"], matches: route("/admin/themes") },

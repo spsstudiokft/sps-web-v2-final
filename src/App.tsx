@@ -15,6 +15,7 @@ import { ComingSoonGate } from "./components/public/ComingSoonGate";
 import { BackgroundUploadProvider } from "./contexts/BackgroundUploadContext";
 import { AdminCurrencyProvider } from "./contexts/AdminCurrencyContext";
 import { CookieConsentProvider } from "./components/public/CookieConsent";
+import { AppFeedbackProvider } from "./components/common/AppFeedbackProvider";
 
 const AdminLogin = lazy(() => import("./pages/AdminLogin"));
 const AdminSetup = lazy(() => import("./pages/AdminSetup"));
@@ -25,6 +26,7 @@ const ThemesPage = lazy(() => import("./pages/admin/ThemesPage"));
 const PortfolioPage = lazy(() => import("./pages/admin/PortfolioPage"));
 const ContactsPage = lazy(() => import("./pages/admin/ContactsPage"));
 const ClientsPage = lazy(() => import("./pages/admin/ClientsPage"));
+const ClientFeedbackPage = lazy(() => import("./pages/admin/ClientFeedbackPage"));
 const LeadsPage = lazy(() => import("./pages/admin/LeadsPage"));
 const CustomersPage = lazy(() => import("./pages/admin/CustomersPage"));
 const ProjectsPage = lazy(() => import("./pages/admin/ProjectsPage"));
@@ -61,6 +63,9 @@ const ClientSettingsPage = lazy(() => import("./pages/client/ClientSettingsPage"
 const ClientListingAccountPage = lazy(() => import("./pages/client/ClientListingAccountPage"));
 const ClientPropertyListingsPage = lazy(() => import("./pages/client/ClientPropertyListingsPage"));
 const ClientHelpPage = lazy(() => import("./pages/client/ClientHelpPage"));
+const ClientSpsRawPage = lazy(() => import("./pages/client/ClientSpsRawPage"));
+const SpsRawPage = lazy(() => import("./pages/admin/SpsRawPage"));
+const GoogleAnalyticsPage = lazy(() => import("./pages/admin/GoogleAnalyticsPage"));
 const PropertyListingLoginPage = lazy(() => import("./pages/PropertyListingLoginPage"));
 const PublicInvoicePage = lazy(() => import("./pages/PublicInvoicePage"));
 const PortfolioGalleryPage = lazy(() => import("./pages/PortfolioGalleryPage"));
@@ -137,7 +142,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <ThemeProvider>
-        <AuthProvider><AdminCurrencyProvider>
+        <AuthProvider><AdminCurrencyProvider><AppFeedbackProvider>
           <LanguageProvider>
             <BackgroundUploadProvider>
               <IncidentStatusWidget />
@@ -189,6 +194,7 @@ export default function App() {
                 <Route path="settings" element={<ClientSettingsPage />} />
                 <Route path="property-listings" element={<ClientListingAccountPage />} />
                 <Route path="help" element={<ClientHelpPage />} />
+                <Route path="sps-raw" element={<ClientSpsRawPage />} />
                 <Route path="*" element={<ErrorPage status={404} embedded />} />
               </Route>
 
@@ -225,6 +231,9 @@ export default function App() {
                 <Route path="testimonials" element={<TestimonialsPage />} />
                 <Route path="contacts" element={<ContactsPage />} />
                 <Route path="clients" element={<ClientsPage />} />
+                <Route path="client-feedback" element={<ClientFeedbackPage />} />
+                <Route path="sps-raw" element={<SpsRawPage />} />
+                <Route path="google-analytics" element={<GoogleAnalyticsPage />} />
                 <Route path="leads" element={<LeadsPage />} />
                 <Route path="customers" element={<CustomersPage />} />
                 <Route path="projects" element={<ProjectsPage />} />
@@ -245,7 +254,7 @@ export default function App() {
               </RouteErrorBoundary>
             </BackgroundUploadProvider>
           </LanguageProvider>
-        </AdminCurrencyProvider></AuthProvider>
+        </AppFeedbackProvider></AdminCurrencyProvider></AuthProvider>
       </ThemeProvider>
     </BrowserRouter>
   );

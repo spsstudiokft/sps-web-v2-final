@@ -848,7 +848,7 @@ export function SocialLinksPage() {
 
   // Reset to default presets
   const handleResetDefaults = async () => {
-    if (!window.confirm(tUi("admin.social.reset_confirm", currentLanguage))) {
+    if (!(await globalThis.appConfirm(tUi("admin.social.reset_confirm", currentLanguage), { tone: "danger", confirmLabel: "Visszaállítás" }))) {
       return;
     }
 

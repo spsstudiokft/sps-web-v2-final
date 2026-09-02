@@ -276,7 +276,7 @@ export function EmailTemplateEditorModal({
 
   // Reset to default
   const handleReset = async () => {
-    if (!window.confirm(`Are you sure you want to reset "${template.name}" back to the system factory default? All custom edits will be discarded.`)) {
+    if (!(await globalThis.appConfirm(`Are you sure you want to reset "${template.name}" back to the system factory default? All custom edits will be discarded.`, { tone: "danger", confirmLabel: "Visszaállítás" }))) {
       return;
     }
 

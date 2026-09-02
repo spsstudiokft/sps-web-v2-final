@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
 import { PortfolioItem, Category } from "../../lib/types";
 import { PageHeader } from "../../components/admin/PageHeader";
 import { Button } from "../../components/ui/Button";
@@ -24,6 +25,7 @@ import {
   CheckCircle2,
   AlertCircle
 } from "lucide-react";
+import { confirmAction } from "../../components/common/AppFeedbackProvider";
 
 function parseCategoryName(val?: string, fallback = "Untitled category"): string {
   if (!val) return fallback;
@@ -44,6 +46,7 @@ export default function PortfolioPage() {
   const { currentLanguage, tUi } = useLanguage();
   usePageTitle(tUi("admin.portfolio.title", currentLanguage));
   const { fetchApi } = useApi();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [items, setItems] = useState<PortfolioItem[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   
@@ -65,6 +68,13 @@ export default function PortfolioPage() {
   useEffect(() => {
     fetchData();
   }, []);
+
+  useEffect(() => {
+    if (searchParams.get("create") !== "1") return;
+    setEditingItem(null);
+    setIsItemModalOpen(true);
+    setSearchParams({}, { replace: true });
+  }, [searchParams, setSearchParams]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -161,7 +171,7 @@ export default function PortfolioPage() {
   };
 
   const deleteItem = async (id: string) => {
-    if (!confirm(tUi("admin.portfolio.confirm_delete_item", currentLanguage))) return;
+    if (!(await confirmAction(tUi("admin.portfolio.confirm_delete_item", currentLanguage), { tone: "danger", confirmLabel: "Törlés" }))) return;
     try {
       await fetchApi(`/api/admin/portfolio/${id}`, { method: "DELETE" });
       fetchData();
@@ -194,7 +204,7 @@ export default function PortfolioPage() {
   };
 
   const handleBulkAction = async (action: string, ids: string[], value?: any) => {
-    if (action === "delete" && !confirm(tUi("admin.portfolio.confirm_bulk_delete", currentLanguage, { count: ids.length }))) return;
+    if (action === "delete" && !(await confirmAction(tUi("admin.portfolio.confirm_bulk_delete", currentLanguage, { count: ids.length }), { tone: "danger", confirmLabel: "Törlés" }))) return;
     
     try {
       await fetchApi("/api/admin/portfolio/bulk", {
@@ -267,7 +277,7 @@ export default function PortfolioPage() {
   };
 
   const deleteCategory = async (id: string) => {
-    if (!confirm(tUi("admin.portfolio.confirm_delete_category", currentLanguage))) return;
+    if (!(await confirmAction(tUi("admin.portfolio.confirm_delete_category", currentLanguage), { tone: "danger", confirmLabel: "Törlés" }))) return;
     try {
       const res = await fetchApi(`/api/admin/categories/${id}`, { method: "DELETE" });
       if (!res.ok) {

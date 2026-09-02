@@ -1,5 +1,139 @@
 # Modification Log
 
+## 2026-09-02
+
+### Open-Source License
+
+- Added an MIT `LICENSE` file and updated the project documentation to reflect the repository's open-source licensing.
+- Added a GitHub warning callout at the top of the README to disclose that the repository contains machine-generated code.
+
+### Shopify SPS Storefront Composition
+
+- Rebuilt the Aero Glow homepage into an SPS-coloured, commerce-first storefront with a promotional strip, full-bleed editorial hero, category gallery, five-column featured-products band, metrics, lead capture, social gallery, and refined footer.
+- Preserved theme-editor ownership of images, collections, copy, links, and form labels so the composition is fully configurable without code edits.
+
+### Shopify SPS Blue Baseline
+
+- Renamed the theme to SPS Blue and replaced the default Aero Glow visual treatment with a flat SPS-blue baseline, leaving future glow enhancements as an optional layer.
+
+### Shopify Promotional Header CTA
+
+- Restored the promotional-bar button even when no custom destination has been selected in Shopify. It now safely links to the product catalogue by default, while the theme editor's custom link still takes precedence.
+
+## 2026-09-01
+
+### Google Analytics Admin Dashboard
+
+- Added a server-side GA4 dashboard in the admin panel with user, session, page-view, new-user, top-page, and acquisition-channel summaries.
+- The integration uses a Google service account and property ID stored only in server environment variables; the UI presents safe setup guidance until configured.
+
+### Local Database Connection
+
+- Switched local development to the existing `file:local.db` database so the local server no longer depends on an unavailable remote Turso connection.
+
+### SPS RAW VIP Platform
+
+- Added a switchable, VIP-only SPS RAW short-form behind-the-scenes video feed and a separate admin panel for publishing, ordering, editing, and removing videos.
+
+### Unified Notifications and Confirmations
+
+- Added an application-wide toast and confirmation-dialog foundation with consistent SPS Studio styling, status colors, keyboard focus, and modal behavior.
+- Replaced every remaining native browser confirmation prompt with the shared asynchronous confirmation dialog across admin, client, and property-management workflows.
+
+### Internal Portal Notifications
+
+- Added persistent, account-scoped in-app notifications to both the admin panel and client portal, including unread counters, individual or bulk read actions, and automatic refresh.
+- Linked feedback conversations to the notification center: new client messages alert each eligible admin, while an admin reply alerts only the client who owns that conversation.
+- Fixed notification popovers to stay inside the viewport on both portals, selecting the available opening direction and constraining the scrollable message area.
+- Removed the outside-click close handler that caused the notification panel to close immediately after opening; the bell toggle and notification selection now control closing.
+
+### Client Feedback Conversations
+
+- Added client-owned feedback conversations with separate threads, status tracking, unread state, and live-style polling for new messages.
+- Added an admin feedback inbox to view each client separately, reply, and manage conversations through open, pending, resolved, and closed states.
+
+### Client Bonus-Code Redemption
+
+- Connected available referral and bonus vouchers to client accounts: clients can now select one of their own outstanding invoices and redeem eligible percentage, fixed-discount, or account-credit codes.
+- Added server-side ownership, expiry, currency, invoice-ownership, and availability checks; successful redemptions update the invoice discount or payment balance and record the voucher against that invoice.
+
+### Sitemap Canonical URL Audit
+
+- Aligned property sitemap eligibility with the public property-detail endpoint: listings whose linked Property is archived are no longer emitted as URLs that resolve to a public 404 and client-side homepage redirect.
+
+### Admin Dashboard Quick Actions
+
+- Added a permission-aware quick-actions panel to the admin dashboard for creating a client, project, or portfolio item and opening calendar or payment-request workflows.
+- Added direct create-query handling on the client, project, and portfolio pages so dashboard create actions open the respective form immediately.
+
+### Stripe Test Billing
+
+- Added server-side Stripe Checkout for unpaid invoice balances, using only `STRIPE_SECRET_KEY` test credentials and server-authoritative amount calculations.
+- Added a durable Superadmin Stripe enable/disable setting; checkout and return confirmation are blocked when disabled or no valid `sk_test_` key is available.
+- Added Stripe-return verification and idempotent payment recording so sandbox payments update the existing invoice balance and status.
+
+### Shopify Aero Glow Theme
+
+- Added a standalone Shopify Online Store 2.0 theme in `shopify-aero-glow-theme`, using the existing blue glass, cyan glow, rounded-card visual system.
+- Included editable homepage modules plus product, collection, cart, search, page, collection-list, and 404 templates with native Shopify Liquid commerce flows.
+- Kept the stylesheet as a normal Shopify asset and moved editable theme colors and font declarations into the Liquid layout head, ensuring the uploaded theme serves its CSS correctly.
+- Switched the font preload to Shopify's `preload_tag`; the official Theme Check now reports no offenses across all 33 theme files.
+- Added resilient aero color and type fallbacks, conditional setting overrides, and Shopify-supported default font selections so a newly uploaded theme retains readable header, navigation, and CTA contrast.
+- Increased the rich-content eyebrow spacing and replaced the placeholder cart glyph with an accessible inline SVG icon and compact quantity badge.
+- Added Aero Glow implementations for contact, blog, article, password-protected storefront, gift-card, and legacy customer account templates, including account activation, password reset, orders, and addresses.
+- Added Shopify's modern `shopify-account` header component for stores using new customer accounts; static and policy content remains covered by the shared page template.
+
+### Shopify Fulfillment Request Notification
+
+- Added an SPS Studio-branded Shopify Fulfillment Request email source with dynamic service, order, fulfillment-line, shipping-address, note, and configured-logo support, plus copy/paste subject and setup notes.
+- Added the matching customer-facing Shopify Order Confirmation email source with order-status CTA, product summary, totals, discounts, delivery method, addresses, and configured-logo support.
+- Added a safe SPS Studio visual override for Shopify's full generated Order Confirmation template so its split-cart, tracking, payment-term, transaction, and policy-attachment logic can remain intact.
+- Added a complete copy/paste-ready `.liquid` version of the supplied Shopify Order Confirmation source, verified to retain all original Liquid logic outside the SPS visual style block.
+- Added an SPS Studio-styled full Liquid version of the supplied Shopify Draft Order Invoice template, retaining its original payment-term and inventory-reservation logic.
+
+### Shopify Navigation Motion
+
+- Updated Shopify desktop navigation links with the client-portal-inspired glass sweep, cyan glow underline, responsive hover lift, active state, and reduced-motion fallback.
+
+### Shopify Commerce Emphasis
+
+- Added quick add-to-cart actions, sale and sold-out states, vendor metadata, and clearer product-card purchase affordances.
+- Added an editable homepage commerce-benefits strip and product-detail purchase assurances to make the Aero Glow theme feel explicitly commerce-led while retaining its visual system.
+- Refined the homepage commerce benefits into elevated individual trust cards and softened the hero-to-content transition for a less technical, more premium storefront presentation.
+
+### Shopify Cart and Responsive Refinements
+
+- Added a dedicated, padded cart-update action area so the update button no longer rests against the cart card edge.
+- Corrected mobile hero spacing and floating benefit-card borders that were being overridden by older responsive strip styles.
+
+### Shopify Theme Visual Audit
+
+- Fixed the rich-content image-position setting so the configured right-side layout now renders correctly on desktop while retaining the intended mobile reading order.
+- Normalized placeholder-media sizing and added Aero Glow styling for Shopify's accelerated checkout control.
+- Restored the shared visually-hidden utility so assistive labels no longer create unintended visible spacing in forms.
+
+### Shopify Theme Localization
+
+- Added the missing English and Hungarian storefront translation keys for commerce actions, empty states, product details, search, contact forms, customer authentication, password pages, blog and gift-card copy.
+- Replaced the corresponding hard-coded customer-facing template copy with Shopify translation filters, including count and named-value interpolation.
+
+### Shopify Contact Layout
+
+- Applied dedicated contact-section spacing, aligned the introduction with the form card, and increased the form card's internal padding for a more balanced contact layout.
+
+### Shopify Before and After Module
+
+- Added an editable Aero Glow Before / After image-comparison section with image upload controls, responsive styling, a keyboard-accessible range control, and a full-size clipped before layer that preserves image alignment while dragging.
+
+### Shopify Commerce Home Redesign
+
+- Added the Aero Glow commerce-first homepage system: promotional bar, editorial category showcase, featured-product band, store metrics, newsletter capture, and editable social gallery.
+- Kept every image- and link-dependent module editable through the Shopify theme editor while retaining the existing blue-glass visual identity.
+
+### Legacy Contact URL Indexing
+
+- Added explicit permanent redirects for both `/contact` and `/contact/` to the homepage contact section, preventing the legacy standalone URL from remaining a valid indexable page.
+
 ## 2026-08-31
 
 ### Changelog Language Convention

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useApi } from "../../hooks/useApi";
 import { Project, PortfolioItem } from "../../lib/types";
 import { PageHeader } from "../../components/admin/PageHeader";
@@ -12,11 +13,13 @@ import { useLanguage } from "../../contexts/LanguageContext";
 import { usePageTitle } from "../../hooks/usePageTitle";
 import { cn } from "../../lib/utils";
 import { Search, Plus, Trash2, Edit2, FolderKanban, Link as LinkIcon, User, Milestone } from "lucide-react";
+import { confirmAction } from "../../components/common/AppFeedbackProvider";
 
 export default function ProjectsPage() {
   const { currentLanguage, tUi } = useLanguage();
   usePageTitle(tUi("admin.projects.title", currentLanguage));
   const { fetchApi } = useApi();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [projects, setProjects] = useState<Project[]>([]);
   const [clients, setClients] = useState<{id: string, email: string}[]>([]);
   const [portfolios, setPortfolios] = useState<PortfolioItem[]>([]);
@@ -35,6 +38,13 @@ export default function ProjectsPage() {
   }, [search, statusFilter, page]);
 
   useEffect(() => { setPage(1); }, [search, statusFilter]);
+
+  useEffect(() => {
+    if (searchParams.get("create") !== "1") return;
+    setEditingProject(null);
+    setIsModalOpen(true);
+    setSearchParams({}, { replace: true });
+  }, [searchParams, setSearchParams]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -80,7 +90,7 @@ export default function ProjectsPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm(tUi("admin.projects.confirm_delete", currentLanguage))) return;
+    if (!(await confirmAction(tUi("admin.projects.confirm_delete", currentLanguage), { tone: "danger", confirmLabel: "Törlés" }))) return;
     try {
       await fetchApi(`/api/admin/projects/${id}`, { method: "DELETE" });
       fetchData();

@@ -267,7 +267,7 @@ export function EmailSettingsManager({ settings, onChange }: EmailSettingsManage
 
   // Handle Clear Logs
   const handleClearLogs = async () => {
-    if (!confirm(tUi("admin.email.runtime.clear_logs_confirm"))) return;
+    if (!(await globalThis.appConfirm(tUi("admin.email.runtime.clear_logs_confirm"), { tone: "danger", confirmLabel: "Törlés" }))) return;
     try {
       setClearingLogs(true);
       const res = await fetchApi("/api/admin/email/logs", { method: "DELETE" });

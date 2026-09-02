@@ -181,7 +181,7 @@ export default function LeadsPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm(tUi("admin.leads.confirm_delete", currentLanguage))) return;
+    if (!(await globalThis.appConfirm(tUi("admin.leads.confirm_delete", currentLanguage), { tone: "danger", confirmLabel: "Törlés" }))) return;
     try {
       await fetchApi(`/api/admin/crm/${id}`, { method: "DELETE" });
       fetchLeads();

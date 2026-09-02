@@ -136,7 +136,7 @@ export default function InfoBarPage() {
 
   // Delete Message
   const handleDeleteMessage = async (id: string) => {
-    if (!window.confirm("Are you sure you want to delete this announcement?")) return;
+    if (!(await globalThis.appConfirm("Are you sure you want to delete this announcement?", { tone: "danger", confirmLabel: "Törlés" }))) return;
     try {
       const res = await fetch(`/api/admin/info-bar/messages/${id}`, {
         method: "DELETE",
@@ -272,7 +272,7 @@ export default function InfoBarPage() {
 
   // Delete Category
   const handleDeleteCategory = async (id: string) => {
-    if (!window.confirm("Are you sure you want to delete this category?")) return;
+    if (!(await globalThis.appConfirm("Are you sure you want to delete this category?", { tone: "danger", confirmLabel: "Törlés" }))) return;
     try {
       const res = await fetch(`/api/admin/info-bar/categories/${id}`, {
         method: "DELETE",

@@ -11,6 +11,39 @@ import { getAppUrl } from "./appUrl.js";
 export const invoiceRouter = Router();
 export const publicInvoiceRouter = Router();
 
+const STRIPE_ENABLED_SETTING = "stripe_billing_enabled";
+function isStripeTestSecretConfigured() { return String(process.env.STRIPE_SECRET_KEY || "").trim().startsWith("sk_test_"); }
+async function isStripeBillingEnabled() {
+  const result = await db.execute({ sql: "SELECT value FROM settings WHERE key = ? LIMIT 1", args: [STRIPE_ENABLED_SETTING] });
+  return ["1", "true"].includes(String(result.rows[0]?.value || "0").toLowerCase()) && isStripeTestSecretConfigured();
+}
+function requireSuperadmin(req: any, res: any) {
+  if (String(req.user?.role || "").toLowerCase() !== "superadmin") { res.status(403).json({ error: "Only Superadmin can manage Stripe billing" }); return false; }
+  return true;
+}
+async function stripeRequest(pathname: string, init: RequestInit = {}) {
+  const response = await fetch(`https://api.stripe.com/v1${pathname}`, { ...init, headers: { Authorization: `Bearer ${String(process.env.STRIPE_SECRET_KEY || "").trim()}`, ...(init.headers || {}) } });
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(String((body as any)?.error?.message || "Stripe request failed"));
+  return body as any;
+}
+function stripeAmount(amount: unknown) { const cents = Math.round(Number(amount || 0) * 100); if (!Number.isSafeInteger(cents) || cents < 1) throw new Error("The invoice must have a positive amount to pay by card"); return cents; }
+
+// Financial configuration is deliberately separate from generic site settings.
+invoiceRouter.get("/stripe-settings", async (req: any, res) => {
+  if (!requireSuperadmin(req, res)) return;
+  const result = await db.execute({ sql: "SELECT value FROM settings WHERE key = ? LIMIT 1", args: [STRIPE_ENABLED_SETTING] });
+  const requestedEnabled = ["1", "true"].includes(String(result.rows[0]?.value || "0").toLowerCase());
+  res.json({ enabled: requestedEnabled && isStripeTestSecretConfigured(), requested_enabled: requestedEnabled, test_key_configured: isStripeTestSecretConfigured(), mode: "test" });
+});
+invoiceRouter.put("/stripe-settings", async (req: any, res) => {
+  if (!requireSuperadmin(req, res)) return;
+  const enabled = req.body?.enabled === true;
+  if (enabled && !isStripeTestSecretConfigured()) return res.status(400).json({ error: "A valid STRIPE_SECRET_KEY (sk_test_...) is required before enabling Stripe test payments." });
+  await db.execute({ sql: "INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)", args: [STRIPE_ENABLED_SETTING, enabled ? "1" : "0"] });
+  res.json({ success: true, enabled, mode: "test" });
+});
+
 function normalizeEmail(email: unknown): string {
   return String(email || "").trim().toLowerCase();
 }
@@ -1391,6 +1424,7 @@ publicInvoiceRouter.get("/:id", async (req: any, res) => {
     res.json({
       invoice: {
         ...inv,
+        stripe_checkout_available: await isStripeBillingEnabled(),
         items: itemsRes.rows,
         payments: paymentsRes.rows
       },
@@ -1407,6 +1441,48 @@ publicInvoiceRouter.get("/:id", async (req: any, res) => {
     console.error("Error fetching public invoice:", error);
     res.status(500).json({ error: "Failed to load invoice" });
   }
+});
+
+// Uses the invoice held by the server, so the browser cannot set a card charge amount.
+publicInvoiceRouter.post("/:id/stripe-checkout", async (req: any, res) => {
+  try {
+    const { id } = req.params;
+    const token = String(req.query.token || req.body?.token || "");
+    if (!token) return res.status(403).json({ error: "A valid invoice access token is required" });
+    if (!(await isStripeBillingEnabled())) return res.status(503).json({ error: "Stripe test payments are currently unavailable" });
+    const result = await db.execute({ sql: "SELECT * FROM invoices WHERE id = ?", args: [id] }); const inv: any = result.rows[0];
+    if (!inv) return res.status(404).json({ error: "Invoice not found" });
+    if (token !== String(inv.access_token || "")) return res.status(403).json({ error: "Invalid access token for this invoice" });
+    const amountDue = Math.max(0, Number(inv.total_amount || 0) - Number(inv.amount_paid || 0));
+    if (inv.status === "paid" || amountDue <= 0) return res.status(400).json({ error: "This invoice is already paid" });
+    const origin = getAppUrl(req).replace(/\/$/, ""); const invoicePath = `/invoice/${encodeURIComponent(id)}?token=${encodeURIComponent(token)}`;
+    const form = new URLSearchParams({ mode: "payment", client_reference_id: id, success_url: `${origin}${invoicePath}&stripe_checkout={CHECKOUT_SESSION_ID}`, cancel_url: `${origin}${invoicePath}`, "payment_method_types[0]": "card", "line_items[0][price_data][currency]": String(inv.currency || "USD").toLowerCase(), "line_items[0][price_data][product_data][name]": `Invoice ${String(inv.invoice_number || id)}`, "line_items[0][price_data][unit_amount]": String(stripeAmount(amountDue)), "line_items[0][quantity]": "1", "metadata[invoice_id]": id });
+    const session = await stripeRequest("/checkout/sessions", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: form.toString() });
+    res.json({ checkout_url: session.url });
+  } catch (error: any) { console.error("Stripe Checkout creation error:", error); res.status(502).json({ error: error.message || "Unable to start Stripe Checkout" }); }
+});
+
+// The return URL only supplies a session id; Stripe remains the authority for payment state.
+publicInvoiceRouter.post("/:id/stripe-confirm", async (req: any, res) => {
+  try {
+    const { id } = req.params; const token = String(req.query.token || req.body?.token || ""); const sessionId = String(req.body?.session_id || "");
+    if (!token || !sessionId.startsWith("cs_")) return res.status(400).json({ error: "Invalid Stripe payment confirmation" });
+    if (!(await isStripeBillingEnabled())) return res.status(503).json({ error: "Stripe test payments are currently unavailable" });
+    const result = await db.execute({ sql: "SELECT * FROM invoices WHERE id = ?", args: [id] }); const inv: any = result.rows[0];
+    if (!inv || token !== String(inv.access_token || "")) return res.status(403).json({ error: "Invalid access token for this invoice" });
+    const session = await stripeRequest(`/checkout/sessions/${encodeURIComponent(sessionId)}`);
+    if (session.payment_status !== "paid" || session.client_reference_id !== id || session.metadata?.invoice_id !== id) return res.status(400).json({ error: "Stripe has not confirmed this payment" });
+    const duplicate = await db.execute({ sql: "SELECT id FROM invoice_payments WHERE invoice_id = ? AND transaction_reference = ? LIMIT 1", args: [id, sessionId] });
+    if (!duplicate.rows.length) {
+      const paid = Number(session.amount_total || 0) / 100; const due = Math.max(0, Number(inv.total_amount || 0) - Number(inv.amount_paid || 0));
+      if (paid <= 0 || paid > due + 0.01) return res.status(400).json({ error: "Stripe payment amount does not match the invoice balance" });
+      await db.execute({ sql: "INSERT INTO invoice_payments (id, invoice_id, amount, payment_date, payment_method, transaction_reference, notes, recorded_by_name, created_at) VALUES (?, ?, ?, ?, 'stripe', ?, ?, 'Stripe Checkout', CURRENT_TIMESTAMP)", args: [crypto.randomUUID(), id, paid, new Date().toISOString().slice(0, 10), sessionId, "Stripe test payment"] });
+      const totals = await db.execute({ sql: "SELECT SUM(amount) AS total_paid FROM invoice_payments WHERE invoice_id = ?", args: [id] }); const amountPaid = Number(totals.rows[0]?.total_paid || 0); const fullyPaid = amountPaid >= Number(inv.total_amount || 0);
+      await db.execute({ sql: "UPDATE invoices SET amount_paid = ?, status = ?, paid_at = CASE WHEN ? THEN CURRENT_TIMESTAMP ELSE paid_at END, updated_at = CURRENT_TIMESTAMP WHERE id = ?", args: [amountPaid, fullyPaid ? "paid" : inv.status, fullyPaid ? 1 : 0, id] });
+      if (inv.budget_entry_id && fullyPaid) await db.execute({ sql: "UPDATE budget_entries SET status = 'confirmed', updated_at = CURRENT_TIMESTAMP WHERE id = ?", args: [inv.budget_entry_id] }).catch(() => undefined);
+    }
+    res.json({ success: true });
+  } catch (error: any) { console.error("Stripe payment confirmation error:", error); res.status(502).json({ error: error.message || "Unable to confirm Stripe payment" }); }
 });
 
 // Client notifies intent or submits transfer reference on public invoice page

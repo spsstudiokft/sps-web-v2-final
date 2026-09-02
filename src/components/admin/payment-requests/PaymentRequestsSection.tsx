@@ -174,7 +174,7 @@ export function PaymentRequestsSection({
   };
 
   const handleDelete = async (requestId: string) => {
-    if (!confirm("Are you sure you want to delete this payment request?")) return;
+    if (!(await globalThis.appConfirm("Are you sure you want to delete this payment request?", { tone: "danger", confirmLabel: "Törlés" }))) return;
     if (!token) return;
 
     try {

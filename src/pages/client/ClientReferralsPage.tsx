@@ -51,6 +51,10 @@ export default function ClientReferralsPage() {
   const [sendingInvite, setSendingInvite] = useState(false);
   const [inviteSuccess, setInviteSuccess] = useState<string | null>(null);
   const [inviteError, setInviteError] = useState<string | null>(null);
+  const [openInvoices, setOpenInvoices] = useState<Array<{ id: string; invoice_number: string; total_amount: number; amount_paid: number; currency: string }>>([]);
+  const [redeemingVoucher, setRedeemingVoucher] = useState<string | null>(null);
+  const [selectedInvoiceId, setSelectedInvoiceId] = useState("");
+  const [redeemMessage, setRedeemMessage] = useState<string | null>(null);
 
   useEffect(() => {
     fetchProfile();
@@ -97,6 +101,27 @@ export default function ClientReferralsPage() {
     navigator.clipboard.writeText(code);
     setCopiedVoucher(code);
     setTimeout(() => setCopiedVoucher(null), 2000);
+  };
+
+  const openRedemption = async (code: string) => {
+    setRedeemMessage(null); setRedeemingVoucher(code); setSelectedInvoiceId("");
+    try {
+      const res = await fetchApi("/api/client/invoices");
+      const invoices = res.ok ? await res.json() : [];
+      setOpenInvoices(Array.isArray(invoices) ? invoices.filter((invoice: any) => Number(invoice.total_amount || 0) > Number(invoice.amount_paid || 0) && invoice.status !== "paid") : []);
+    } catch { setOpenInvoices([]); }
+  };
+
+  const redeemVoucher = async () => {
+    if (!redeemingVoucher || !selectedInvoiceId) return;
+    setRedeemMessage(null);
+    try {
+      const res = await fetchApi("/api/client/rewards/redeem", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ voucher_code: redeemingVoucher, invoice_id: selectedInvoiceId }) });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "A bónuszkód nem váltható be.");
+      setRedeemMessage(`A bónuszkód beváltva: ${formatMoney(data.applied_amount, data.currency)}.`);
+      setRedeemingVoucher(null); await fetchProfile();
+    } catch (error: any) { setRedeemMessage(error.message || "A bónuszkód beváltása nem sikerült."); }
   };
 
   const handleSendInvite = async (e: React.FormEvent) => {
@@ -582,6 +607,7 @@ export default function ClientReferralsPage() {
                           </>
                         )}
                       </button>
+                      {rw.status === "available" && ["discount_percent", "discount_fixed", "credit"].includes(rw.reward_type) && <button type="button" onClick={() => openRedemption(rw.voucher_code)} className="text-[11px] font-semibold text-primary hover:underline">Beváltás</button>}
                     </div>
                   </div>
                 ))}
@@ -590,6 +616,9 @@ export default function ClientReferralsPage() {
           </CardContent>
         </Card>
       </div>
+
+      {redeemingVoucher && <Card className="border-primary/30 shadow-xs"><CardContent className="p-5"><div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="font-bold text-text">Bónuszkód beváltása</h2><p className="mt-1 text-xs text-muted-text">{redeemingVoucher} csak a saját, nyitott számládra használható fel.</p></div><Button variant="ghost" size="sm" onClick={() => setRedeemingVoucher(null)}>Mégse</Button></div>{openInvoices.length ? <div className="mt-4 flex flex-col gap-3 sm:flex-row"><select value={selectedInvoiceId} onChange={event => setSelectedInvoiceId(event.target.value)} className="min-w-0 flex-1 rounded-xl border border-border bg-background px-3 py-2 text-sm text-text"><option value="">Válassz nyitott számlát…</option>{openInvoices.map(invoice => <option key={invoice.id} value={invoice.id}>{invoice.invoice_number} · {formatMoney(Number(invoice.total_amount) - Number(invoice.amount_paid), invoice.currency)}</option>)}</select><Button disabled={!selectedInvoiceId} onClick={redeemVoucher}>Bónuszkód alkalmazása</Button></div> : <p className="mt-4 text-sm text-muted-text">Nincs olyan nyitott számlád, amelyre a kód felhasználható.</p>}</CardContent></Card>}
+      {redeemMessage && <div role="status" className="rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-text">{redeemMessage}</div>}
 
       {/* Tier Roadmap Explorer */}
       <Card className="border-border shadow-xs">

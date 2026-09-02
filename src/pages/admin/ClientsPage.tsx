@@ -27,7 +27,8 @@ import {
   Copy,
   Check
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
+import { confirmAction } from "../../components/common/AppFeedbackProvider";
 
 const ADMIN_DATE_LOCALES: Record<string, string> = {
   hu: "hu-HU", en: "en-GB", de: "de-DE", fr: "fr-FR", es: "es-ES",
@@ -71,6 +72,7 @@ export default function ClientsPage() {
   const { currentLanguage, tUi } = useLanguage();
   usePageTitle(tUi("admin.clients.title", currentLanguage));
   const { fetchApi } = useApi();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -99,6 +101,12 @@ export default function ClientsPage() {
   useEffect(() => {
     fetchClients();
   }, [fetchClients]);
+
+  useEffect(() => {
+    if (searchParams.get("create") !== "1") return;
+    void handleOpenEdit({ email: '', is_active: 1, property_address: '', advertisement_link: '', password: '' });
+    setSearchParams({}, { replace: true });
+  }, [searchParams, setSearchParams]);
 
   const loadClientDetails = async (client: Client) => {
     try {
@@ -139,7 +147,7 @@ export default function ClientsPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm(tUi("admin.clients.confirm_delete", currentLanguage))) return;
+    if (!(await confirmAction(tUi("admin.clients.confirm_delete", currentLanguage), { tone: "danger", confirmLabel: "Törlés" }))) return;
     try {
       await fetchApi(`/api/admin/clients/${id}`, { method: "DELETE" });
       fetchClients();

@@ -246,7 +246,7 @@ export default function TeamManagementPage() {
 
   const handleDeleteTeam = async (team: Team) => {
     if (Number(team.member_count) > 0) return alert(tUi("admin.team.runtime.team_not_empty"));
-    if (!window.confirm(tUi("admin.team.runtime.delete_team_confirm", { name: team.name }))) return;
+    if (!(await globalThis.appConfirm(tUi("admin.team.runtime.delete_team_confirm", { name: team.name }), { tone: "danger", confirmLabel: "Törlés" }))) return;
     const response = await fetch(`/api/admin/teams/${team.id}`, { method: "DELETE", headers: authHeaders });
     const data = await response.json();
     if (!response.ok) return alert(data.error || tUi("admin.team.runtime.delete_team_failed"));
@@ -393,7 +393,7 @@ export default function TeamManagementPage() {
 
   // Revoke Invitation
   const handleRevoke = async (id: string) => {
-    if (!confirm(tUi("admin.team.runtime.revoke_confirm"))) {
+    if (!(await globalThis.appConfirm(tUi("admin.team.runtime.revoke_confirm"), { tone: "danger", confirmLabel: "Visszavonás" }))) {
       return;
     }
     setProcessingId(id);
@@ -414,7 +414,7 @@ export default function TeamManagementPage() {
 
   // Delete Invitation Record
   const handleDeleteInvite = async (id: string) => {
-    if (!confirm(tUi("admin.team.runtime.delete_invitation_confirm"))) return;
+    if (!(await globalThis.appConfirm(tUi("admin.team.runtime.delete_invitation_confirm"), { tone: "danger", confirmLabel: "Törlés" }))) return;
     setProcessingId(id);
     try {
       const res = await fetch(`/api/admin/invitations/${id}`, {
@@ -486,7 +486,7 @@ export default function TeamManagementPage() {
 
   // Delete Member
   const handleDeleteMember = async (id: string, nameOrEmail: string) => {
-    if (!confirm(tUi("admin.team.runtime.remove_member_confirm", { name: nameOrEmail }))) {
+    if (!(await globalThis.appConfirm(tUi("admin.team.runtime.remove_member_confirm", { name: nameOrEmail }), { tone: "danger", confirmLabel: "Eltávolítás" }))) {
       return;
     }
 

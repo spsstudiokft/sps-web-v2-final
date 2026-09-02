@@ -45,6 +45,8 @@ import {
 } from "./services/emailService.js";
 import { issuePortalInviteCoupon } from "./services/referralService.js";
 import { getNormalizedGallery } from "../lib/mediaUtils.js";
+import { createPortalNotification, ensurePortalNotificationSchema } from "./services/portalNotificationService.js";
+import { getGoogleAnalyticsOverview } from "./services/googleAnalyticsService.js";
 
 const adminRouter = Router();
 
@@ -901,6 +903,62 @@ adminRouter.get("/verify", (req, res) => {
 });
 
 const ROLE_MENU_PERMISSION_KEY = "admin_role_menu_permissions";
+let feedbackAdminSchemaReady = false;
+let spsRawAdminSchemaReady = false;
+async function ensureSpsRawAdminSchema() {
+  if (spsRawAdminSchemaReady) return;
+  await db.execute(`CREATE TABLE IF NOT EXISTS sps_raw_posts (id TEXT PRIMARY KEY, title TEXT NOT NULL, caption TEXT NOT NULL DEFAULT '', video_url TEXT NOT NULL, poster_url TEXT DEFAULT '', is_published INTEGER NOT NULL DEFAULT 0, sort_order INTEGER NOT NULL DEFAULT 0, created_by TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
+  await db.execute("CREATE INDEX IF NOT EXISTS idx_sps_raw_posts_published ON sps_raw_posts(is_published, sort_order, created_at)");
+  spsRawAdminSchemaReady = true;
+}
+async function ensureFeedbackAdminSchema() {
+  if (feedbackAdminSchemaReady) return;
+  await db.execute(`CREATE TABLE IF NOT EXISTS client_feedback_conversations (id TEXT PRIMARY KEY, client_id TEXT NOT NULL, subject TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'open', created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, last_message_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
+  await db.execute(`CREATE TABLE IF NOT EXISTS client_feedback_messages (id TEXT PRIMARY KEY, conversation_id TEXT NOT NULL, sender_id TEXT NOT NULL, sender_role TEXT NOT NULL, body TEXT NOT NULL, read_at DATETIME DEFAULT NULL, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
+  await db.execute("CREATE INDEX IF NOT EXISTS idx_feedback_conversations_client ON client_feedback_conversations(client_id, last_message_at)");
+  await db.execute("CREATE INDEX IF NOT EXISTS idx_feedback_messages_conversation ON client_feedback_messages(conversation_id, created_at)");
+  feedbackAdminSchemaReady = true;
+}
+
+adminRouter.get("/notifications", async (req: any, res) => {
+  try { await ensurePortalNotificationSchema(); const rows = await db.execute({ sql: "SELECT * FROM portal_notifications WHERE recipient_id = ? AND recipient_portal = 'admin' ORDER BY created_at DESC LIMIT 50", args: [req.user.id] }); res.json(rows.rows); }
+  catch (error: any) { res.status(500).json({ error: error.message || "Failed to load notifications" }); }
+});
+adminRouter.patch("/notifications/read-all", async (req: any, res) => {
+  try { await ensurePortalNotificationSchema(); await db.execute({ sql: "UPDATE portal_notifications SET read_at = CURRENT_TIMESTAMP WHERE recipient_id = ? AND recipient_portal = 'admin' AND read_at IS NULL", args: [req.user.id] }); res.json({ success: true }); }
+  catch (error: any) { res.status(500).json({ error: error.message || "Failed to update notifications" }); }
+});
+adminRouter.patch("/notifications/:id/read", async (req: any, res) => {
+  try { await ensurePortalNotificationSchema(); await db.execute({ sql: "UPDATE portal_notifications SET read_at = CURRENT_TIMESTAMP WHERE id = ? AND recipient_id = ? AND recipient_portal = 'admin'", args: [req.params.id, req.user.id] }); res.json({ success: true }); }
+  catch (error: any) { res.status(500).json({ error: error.message || "Failed to update notification" }); }
+});
+adminRouter.get("/sps-raw", async (_req, res) => { try { await ensureSpsRawAdminSchema(); const settings = await db.execute({ sql: "SELECT value FROM settings WHERE key = 'sps_raw_enabled' LIMIT 1", args: [] }); const posts = await db.execute("SELECT * FROM sps_raw_posts ORDER BY sort_order ASC, created_at DESC"); res.json({ enabled: ["1", "true"].includes(String(settings.rows[0]?.value || "").toLowerCase()), posts: posts.rows }); } catch (error: any) { res.status(500).json({ error: error.message || "Failed to load SPS RAW" }); } });
+adminRouter.put("/sps-raw/settings", async (req: any, res) => { const role = String(req.user?.role || "").toLowerCase().replace(/[_-]/g, ""); if (role !== "superadmin") return res.status(403).json({ error: "Only Superadmin can change SPS RAW availability" }); try { await ensureSpsRawAdminSchema(); await db.execute({ sql: "INSERT OR REPLACE INTO settings (key, value) VALUES ('sps_raw_enabled', ?)", args: [req.body?.enabled ? "true" : "false"] }); res.json({ success: true }); } catch (error: any) { res.status(500).json({ error: error.message || "Failed to update SPS RAW" }); } });
+adminRouter.post("/sps-raw/posts", async (req: any, res) => { try { await ensureSpsRawAdminSchema(); const title = String(req.body?.title || "").trim().slice(0, 160); const videoUrl = String(req.body?.video_url || "").trim().slice(0, 2000); if (!title || !videoUrl) return res.status(400).json({ error: "Title and video URL are required" }); const id = crypto.randomUUID(); await db.execute({ sql: "INSERT INTO sps_raw_posts (id, title, caption, video_url, poster_url, is_published, sort_order, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", args: [id, title, String(req.body?.caption || "").trim().slice(0, 3000), videoUrl, String(req.body?.poster_url || "").trim().slice(0, 2000), req.body?.is_published ? 1 : 0, Number(req.body?.sort_order || 0), req.user.id] }); res.status(201).json({ id }); } catch (error: any) { res.status(500).json({ error: error.message || "Failed to create SPS RAW post" }); } });
+adminRouter.patch("/sps-raw/posts/:id", async (req: any, res) => { try { await ensureSpsRawAdminSchema(); const title = String(req.body?.title || "").trim().slice(0, 160); const videoUrl = String(req.body?.video_url || "").trim().slice(0, 2000); if (!title || !videoUrl) return res.status(400).json({ error: "Title and video URL are required" }); await db.execute({ sql: "UPDATE sps_raw_posts SET title = ?, caption = ?, video_url = ?, poster_url = ?, is_published = ?, sort_order = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", args: [title, String(req.body?.caption || "").trim().slice(0, 3000), videoUrl, String(req.body?.poster_url || "").trim().slice(0, 2000), req.body?.is_published ? 1 : 0, Number(req.body?.sort_order || 0), req.params.id] }); res.json({ success: true }); } catch (error: any) { res.status(500).json({ error: error.message || "Failed to update SPS RAW post" }); } });
+adminRouter.delete("/sps-raw/posts/:id", async (req: any, res) => { try { await ensureSpsRawAdminSchema(); await db.execute({ sql: "DELETE FROM sps_raw_posts WHERE id = ?", args: [req.params.id] }); res.json({ success: true }); } catch (error: any) { res.status(500).json({ error: error.message || "Failed to delete SPS RAW post" }); } });
+
+adminRouter.get("/client-feedback", async (_req: any, res) => {
+  try { await ensureFeedbackAdminSchema(); const rows = await db.execute(`SELECT c.*, COALESCE(NULLIF(u.name, ''), u.email) AS client_name, u.email AS client_email, (SELECT body FROM client_feedback_messages WHERE conversation_id = c.id ORDER BY created_at DESC LIMIT 1) AS last_message, (SELECT COUNT(*) FROM client_feedback_messages WHERE conversation_id = c.id AND sender_role = 'client' AND read_at IS NULL) AS unread_count FROM client_feedback_conversations c JOIN users u ON u.id = c.client_id ORDER BY CASE c.status WHEN 'open' THEN 0 WHEN 'pending' THEN 1 ELSE 2 END, c.last_message_at DESC`); res.json(rows.rows); }
+  catch (error: any) { res.status(500).json({ error: error.message || "Failed to load client feedback" }); }
+});
+adminRouter.get("/client-feedback/:id/messages", async (req: any, res) => {
+  try { await ensureFeedbackAdminSchema(); const exists = await db.execute({ sql: "SELECT id FROM client_feedback_conversations WHERE id = ?", args: [req.params.id] }); if (!exists.rows.length) return res.status(404).json({ error: "Conversation not found" }); await db.execute({ sql: "UPDATE client_feedback_messages SET read_at = CURRENT_TIMESTAMP WHERE conversation_id = ? AND sender_role = 'client' AND read_at IS NULL", args: [req.params.id] }); const messages = await db.execute({ sql: "SELECT * FROM client_feedback_messages WHERE conversation_id = ? ORDER BY created_at ASC", args: [req.params.id] }); res.json(messages.rows); }
+  catch (error: any) { res.status(500).json({ error: error.message || "Failed to load feedback messages" }); }
+});
+adminRouter.post("/client-feedback/:id/messages", async (req: any, res) => {
+  try { await ensureFeedbackAdminSchema(); const body = String(req.body?.message || "").trim().slice(0, 5000); if (!body) return res.status(400).json({ error: "Message is required" }); const conversation = await db.execute({ sql: "SELECT id, client_id, subject FROM client_feedback_conversations WHERE id = ?", args: [req.params.id] }); if (!conversation.rows.length) return res.status(404).json({ error: "Conversation not found" }); await db.execute({ sql: "INSERT INTO client_feedback_messages (id, conversation_id, sender_id, sender_role, body) VALUES (?, ?, ?, 'admin', ?)", args: [crypto.randomUUID(), req.params.id, req.user.id, body] }); await db.execute({ sql: "UPDATE client_feedback_conversations SET status = 'pending', updated_at = CURRENT_TIMESTAMP, last_message_at = CURRENT_TIMESTAMP WHERE id = ?", args: [req.params.id] }); await createPortalNotification({ recipientId: String(conversation.rows[0].client_id), portal: "client", type: "feedback_reply", title: "Válasz érkezett az ügyedre", body: String(conversation.rows[0].subject), link: "/client/help" }); res.status(201).json({ success: true }); }
+  catch (error: any) { res.status(500).json({ error: error.message || "Failed to send feedback reply" }); }
+});
+adminRouter.patch("/client-feedback/:id", async (req: any, res) => {
+  const status = String(req.body?.status || ""); if (!["open", "pending", "resolved", "closed"].includes(status)) return res.status(400).json({ error: "Invalid conversation status" });
+  try { await ensureFeedbackAdminSchema(); await db.execute({ sql: "UPDATE client_feedback_conversations SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", args: [status, req.params.id] }); res.json({ success: true }); }
+  catch (error: any) { res.status(500).json({ error: error.message || "Failed to update conversation" }); }
+});
+adminRouter.get("/google-analytics", async (req, res) => {
+  try { const days = Number(req.query.days || 30); res.json(await getGoogleAnalyticsOverview(days)); }
+  catch (error: any) { res.status(503).json({ error: error.message || "A Google Analytics jelenleg nem érhető el." }); }
+});
 const exchangeRateCache = new Map<string, { expiresAt: number; payload: any }>();
 
 // Latest reference rates are proxied and cached so the admin UI never exposes

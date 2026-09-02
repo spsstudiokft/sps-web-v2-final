@@ -42,6 +42,8 @@ export default function SettingsPage() {
   const [modalTab, setModalTab] = useState<"general" | "branding" | "translations" | "contact" | "content" | "seo" | "email">("general");
   const [saveBanner, setSaveBanner] = useState<string | null>(null);
   const [activeSettingsGroup, setActiveSettingsGroup] = useState<"site" | "content" | "communication" | "governance">("site");
+  const [stripeConfig, setStripeConfig] = useState<{ enabled: boolean; test_key_configured: boolean } | null>(null);
+  const [stripeSaving, setStripeSaving] = useState(false);
 
   const fetchSettings = async () => {
     try {
@@ -60,6 +62,23 @@ export default function SettingsPage() {
   useEffect(() => {
     fetchSettings();
   }, []);
+
+  useEffect(() => {
+    if (normalizeAdminRole(user?.role) !== "superadmin") return;
+    fetchApi("/api/admin/invoices/stripe-settings").then(async (res) => res.ok ? setStripeConfig(await res.json()) : undefined).catch(() => undefined);
+  }, [user?.role]);
+
+  const setStripeEnabled = async (enabled: boolean) => {
+    setStripeSaving(true);
+    try {
+      const res = await fetchApi("/api/admin/invoices/stripe-settings", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ enabled }) });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Unable to update Stripe");
+      setStripeConfig((current) => ({ ...(current || { test_key_configured: false }), enabled: data.enabled }));
+      setSaveBanner(enabled ? "Stripe tesztfizetés bekapcsolva." : "Stripe fizetés kikapcsolva.");
+    } catch (error: any) { setSaveBanner(error.message || "A Stripe beállítás nem menthető."); }
+    finally { setStripeSaving(false); }
+  };
 
   const handleOpenModal = (tab: "general" | "branding" | "translations" | "contact" | "content" | "seo" | "email" = "general") => {
     setModalTab(tab);
@@ -578,6 +597,14 @@ export default function SettingsPage() {
       {normalizeAdminRole(user?.role) === "superadmin" && <Card className={`${activeSettingsGroup === "governance" ? "" : "!hidden"} border-border overflow-hidden`}>
         <CardHeader className="border-b border-border bg-surface/60"><CardTitle className="text-lg">Szerepkörök és adminpanel-jogosultságok</CardTitle><CardDescription className="mt-1">Válassza ki, hogy az egyes szerepkörök mely adminpanel-menüket és oldalakat érhetik el.</CardDescription></CardHeader>
         <CardContent className="p-5 sm:p-6"><RoleMenuPermissionsManager /></CardContent>
+      </Card>}
+
+      {normalizeAdminRole(user?.role) === "superadmin" && <Card className={`${activeSettingsGroup === "governance" ? "" : "!hidden"} border-border overflow-hidden`}>
+        <CardHeader className="border-b border-border bg-surface/60"><CardTitle className="text-lg">Stripe számlafizetés</CardTitle><CardDescription className="mt-1">Kizárólag Stripe tesztüzem. A titkos API-kulcs a környezeti beállításban marad.</CardDescription></CardHeader>
+        <CardContent className="p-5 sm:p-6 flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between">
+          <div><p className={`text-sm font-semibold ${stripeConfig?.enabled ? "text-emerald-600" : "text-muted-text"}`}>{stripeConfig?.enabled ? "Tesztfizetés aktív" : "Tesztfizetés kikapcsolva"}</p><p className="text-xs text-muted-text mt-1">{stripeConfig?.test_key_configured ? "STRIPE_SECRET_KEY tesztkulcs beállítva." : "Előbb add meg a STRIPE_SECRET_KEY=sk_test_... értéket a környezeti változók között."}</p></div>
+          <Button type="button" variant={stripeConfig?.enabled ? "secondary" : "primary"} disabled={stripeSaving || (!stripeConfig?.test_key_configured && !stripeConfig?.enabled)} onClick={() => setStripeEnabled(!stripeConfig?.enabled)}>{stripeSaving ? "Mentés…" : stripeConfig?.enabled ? "Stripe kikapcsolása" : "Stripe tesztfizetés bekapcsolása"}</Button>
+        </CardContent>
       </Card>}
 
       {/* Modal Dialog */}

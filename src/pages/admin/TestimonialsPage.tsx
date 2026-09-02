@@ -32,7 +32,7 @@ export default function TestimonialsPage() {
       setEditing(null); await load();
     } catch (error: any) { setMessage(error.message || "A mentés nem sikerült."); } finally { setSaving(false); }
   };
-  const remove = async (item: Testimonial) => { if (!window.confirm(`Biztosan törli ezt a visszajelzést: ${item.author_name}?`)) return; const response = await fetchApi(`/api/admin/testimonials/${item.id}`, { method: "DELETE" }); if (response.ok) await load(); else setMessage("A törlés nem sikerült."); };
+  const remove = async (item: Testimonial) => { if (!(await globalThis.appConfirm(`Biztosan törli ezt a visszajelzést: ${item.author_name}?`, { tone: "danger", confirmLabel: "Törlés" }))) return; const response = await fetchApi(`/api/admin/testimonials/${item.id}`, { method: "DELETE" }); if (response.ok) await load(); else setMessage("A törlés nem sikerült."); };
 
   return <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-6">
     <PageHeader title="Rólunk mondták" subtitle="Kezelje a GYIK előtt megjelenő ügyfél-visszajelzéseket.">

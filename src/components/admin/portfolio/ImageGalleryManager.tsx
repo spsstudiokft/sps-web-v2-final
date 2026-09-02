@@ -356,9 +356,9 @@ export function ImageGalleryManager({
     onChange(newImages);
   };
 
-  const handleBulkDelete = () => {
+  const handleBulkDelete = async () => {
     if (selectedIds.size === 0) return;
-    if (!confirm(tUi("admin.portfolio.gallery.delete_confirm", currentLanguage, { count: selectedIds.size }))) return;
+    if (!(await globalThis.appConfirm(tUi("admin.portfolio.gallery.delete_confirm", currentLanguage, { count: selectedIds.size }), { tone: "danger", confirmLabel: "Törlés" }))) return;
     
     const newImages = images.filter(img => !selectedIds.has(img.id));
     onChange(newImages);

@@ -44,8 +44,11 @@ import {
   Building2,
   CalendarDays,
   HardDrive,
+  Crown,
+  BarChart3,
   LucideIcon
 } from "lucide-react";
+import { PortalNotificationBell } from "../common/PortalNotificationBell";
 
 export interface SubNavItem {
   to: string;
@@ -162,6 +165,9 @@ export function Sidebar({ isMobileOpen = false, onMobileClose }: SidebarProps) {
         { to: "/admin/leads", label: "Leads Pipeline", translationKey: "admin.nav.leads", icon: Target, permissionKey: "leads" },
         { to: "/admin/customers", label: "Customers", translationKey: "admin.nav.customers", icon: UserCheck, permissionKey: "customers" },
         { to: "/admin/clients", label: "Client Portal Users", translationKey: "admin.nav.clients", icon: Users, permissionKey: "clients" },
+        { to: "/admin/client-feedback", label: "Ügyfél visszajelzések", translationKey: "admin.nav.clients", icon: MessageSquare, permissionKey: "clients" },
+        { to: "/admin/google-analytics", label: "Google Analytics", translationKey: "admin.nav.dashboard", icon: BarChart3, permissionKey: "dashboard" },
+        { to: "/admin/sps-raw", label: "SPS RAW VIP", translationKey: "admin.nav.clients", icon: Crown, permissionKey: "clients" },
         { to: "/admin/contacts", label: "Submissions", translationKey: "admin.nav.submissions", icon: MessageSquare, permissionKey: "submissions" },
         { to: "/admin/marketing-emails", label: "Marketing Emails", translationKey: "admin.nav.marketing_emails", icon: Mail, permissionKey: "marketing_emails" },
       ]
@@ -478,6 +484,7 @@ export function Sidebar({ isMobileOpen = false, onMobileClose }: SidebarProps) {
 
       {/* Footer Controls */}
       <div className="aero-sidebar-footer p-3 border-t border-border space-y-1.5 bg-background shrink-0">
+        <div className={cn("flex", isCollapsed ? "justify-center" : "justify-start")}><PortalNotificationBell portal="admin" compact={isCollapsed} /></div>
         
         {/* Language Selector Dropdown */}
         {supportedLangs.length > 1 && (

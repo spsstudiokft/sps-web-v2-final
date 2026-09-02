@@ -1910,10 +1910,14 @@ router.get(["/public/sitemap.xml", "/sitemap.xml"], async (req, res) => {
                   FROM portfolio_items
                   WHERE is_published = 1 AND slug IS NOT NULL AND TRIM(slug) != ''
                   ORDER BY updated_at DESC, created_at DESC`),
-      db.execute(`SELECT id, title, image_urls, COALESCE(updated_at, created_at) AS lastmod
-                  FROM property_listings
-                  WHERE is_enabled = 1
-                  ORDER BY updated_at DESC, created_at DESC`),
+      // Keep sitemap eligibility identical to the public detail endpoint.
+      // A listing linked to an archived Property returns 404 publicly; listing
+      // it here caused crawlers to follow the SPA error-page home redirect.
+      db.execute(`SELECT pl.id, pl.title, pl.image_urls, COALESCE(pl.updated_at, pl.created_at) AS lastmod
+                  FROM property_listings pl
+                  JOIN properties p ON p.id = pl.property_id AND p.archived_at IS NULL
+                  WHERE pl.is_enabled = 1
+                  ORDER BY pl.updated_at DESC, pl.created_at DESC`),
     ]);
     const urls = [
       `<url><loc>${escapeXml(origin)}/</loc><changefreq>weekly</changefreq><priority>1.0</priority></url>`,
