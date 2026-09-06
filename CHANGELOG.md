@@ -10,6 +10,8 @@
 ### [Fixed] Crawler page delivery
 
 - Replaced Express-only response helpers in the direct Vercel SEO-page function with native server-response handling, preventing crawler requests to public subpages from failing with `FUNCTION_INVOCATION_FAILED` / HTTP 500.
+- Resolved localized database titles and descriptions before rendering crawler snapshots, preventing JSON translation objects from appearing in public SEO titles and headings.
+- Restored the visible `Új kampány` action in the admin campaign header and made campaign landing and thank-you pages use the uploaded site logo with a safe text fallback.
 
 ### [Updated] Translation audit coverage
 

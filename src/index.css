@@ -1513,6 +1513,7 @@ html:not(.dark) .aero-site :focus-visible {
 .campaign-topbar > p { font-size: .62rem; font-weight: 700; letter-spacing: .32em; }
 .campaign-brand { display: inline-flex; flex-direction: column; align-items: center; color: #fff; font-size: 1.35rem; font-weight: 850; line-height: .92; letter-spacing: .16em; }
 .campaign-brand span { margin-top: .34rem; font-size: .54rem; font-weight: 700; letter-spacing: .55em; }
+.campaign-brand-logo { display: block; width: auto; max-width: min(13rem, 68vw); height: auto; max-height: 4.5rem; object-fit: contain; }
 .campaign-kicker { color: rgba(224, 246, 255, .68); font-size: .68rem; font-weight: 700; letter-spacing: .23em; text-transform: uppercase; }
 .campaign-lead { color: rgba(235, 248, 255, .76); font-size: 1rem; line-height: 1.7; }
 .campaign-lead strong { color: #8cdeff; font-weight: 750; }
