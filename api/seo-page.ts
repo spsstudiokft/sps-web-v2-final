@@ -20,12 +20,20 @@ function readBuiltIndex() {
 }
 
 function queryValue(req: any, key: string) {
-  const value = req.query?.[key];
+  const query = req.query || Object.fromEntries(new URL(req.url || "/", "https://spsstudio.hu").searchParams.entries());
+  const value = query[key];
   return String(Array.isArray(value) ? value[0] : value || "").trim();
 }
 
 function requestLike(req: any) {
   return { protocol: "https", get: (header: string) => String(req.headers?.[header.toLowerCase()] || "") };
+}
+
+/** Direct Vercel functions receive Node's ServerResponse, not Express' response. */
+function send(res: any, status: number, contentType: string, body: string) {
+  res.statusCode = status;
+  res.setHeader("Content-Type", contentType);
+  res.end(body);
 }
 
 export default async function handler(req: any, res: any) {
@@ -34,7 +42,7 @@ export default async function handler(req: any, res: any) {
     if (!crawlerPattern.test(String(req.headers?.["user-agent"] || ""))) {
       res.setHeader("Vary", "User-Agent");
       res.setHeader("Vercel-CDN-Cache-Control", "no-store");
-      return res.status(200).type("html").send(readBuiltIndex());
+      return send(res, 200, "text/html; charset=utf-8", readBuiltIndex());
     }
 
     await setupDatabase();
@@ -64,11 +72,11 @@ export default async function handler(req: any, res: any) {
       page = staticPages[kind] || null;
     }
 
-    if (!page) return res.status(404).type("text/plain").send("Not found");
+    if (!page) return send(res, 404, "text/plain; charset=utf-8", "Not found");
     const origin = getCanonicalPublicUrl(requestLike(req));
     res.setHeader("Vary", "User-Agent");
     res.setHeader("Vercel-CDN-Cache-Control", "no-store");
-    return res.status(200).type("html").send(renderPublicSeoPage({
+    return send(res, 200, "text/html; charset=utf-8", renderPublicSeoPage({
       origin,
       path: page.path,
       title: page.title,
@@ -77,6 +85,6 @@ export default async function handler(req: any, res: any) {
     }));
   } catch (error) {
     console.error("Public SEO subpage generation error:", error);
-    return res.status(500).type("text/plain").send("Public page snapshot unavailable");
+    return send(res, 500, "text/plain; charset=utf-8", "Public page snapshot unavailable");
   }
 }

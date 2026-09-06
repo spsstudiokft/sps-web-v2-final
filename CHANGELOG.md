@@ -7,6 +7,10 @@
 - Added explicit crawler policies for major search, AI, and social-preview bots. Crawlers arriving through either public hostname receive the same safe public-route access and the canonical `www.spsstudio.hu` sitemap.
 - Aligned the server-rendered crawler HTML layer with those policies, so GPTBot, ChatGPT-User, and LinkedIn's preview crawler receive the same crawlable public-page snapshots as search bots.
 
+### [Fixed] Crawler page delivery
+
+- Replaced Express-only response helpers in the direct Vercel SEO-page function with native server-response handling, preventing crawler requests to public subpages from failing with `FUNCTION_INVOCATION_FAILED` / HTTP 500.
+
 ### [Updated] Translation audit coverage
 
 - Replaced the admin-only regex localization scan with an AST-based audit covering every public, authentication, client-portal, admin, and shared React surface, including visible JSX text and translatable `placeholder`, `title`, `aria-label`, and `alt` attributes while excluding content already passed through the translation runtime.
