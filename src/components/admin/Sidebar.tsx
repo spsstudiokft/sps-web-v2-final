@@ -83,7 +83,7 @@ export function Sidebar({ isMobileOpen = false, onMobileClose }: SidebarProps) {
   const { user, logout } = useAuth();
   const location = useLocation();
   const { mode, setMode, adminThemeToggleEnabled } = useTheme();
-  const { currentLang, setLang, supportedLangs, tUi } = useLanguage();
+  const { currentLang, setLang, enabledLangs, tUi } = useLanguage();
   const { permissions } = useAdminMenuPermissions();
   const { currency, setCurrency, updatedAt } = useAdminCurrency();
 
@@ -497,7 +497,7 @@ export function Sidebar({ isMobileOpen = false, onMobileClose }: SidebarProps) {
         <div className={cn("flex", isCollapsed ? "justify-center" : "justify-start")}><PortalNotificationBell portal="admin" compact={isCollapsed} /></div>
         
         {/* Language Selector Dropdown */}
-        {supportedLangs.length > 1 && (
+        {enabledLangs.length > 1 && (
           <div className={cn(
             "aero-sidebar-item aero-sidebar-footer-control relative flex items-center w-full py-1.5 text-xs rounded-xl bg-surface/50 border border-border transition-all",
             isCollapsed ? "justify-center px-1" : "px-3 justify-between"
@@ -518,18 +518,11 @@ export function Sidebar({ isMobileOpen = false, onMobileClose }: SidebarProps) {
               )}
               aria-label="Change Language"
             >
-              {supportedLangs.map((lang) => {
-                const isEnabled = lang.enabled !== false;
-                return (
-                  <option key={lang.code} value={lang.code} className="bg-background text-text">
-                    {isCollapsed 
-                      ? lang.code.toUpperCase() 
-                      : isEnabled 
-                        ? (lang.name || lang.code) 
-                        : `${lang.name || lang.code} (Disabled)`}
-                  </option>
-                );
-              })}
+              {enabledLangs.map((lang) => (
+                <option key={lang.code} value={lang.code} className="bg-background text-text">
+                  {isCollapsed ? lang.code.toUpperCase() : (lang.name || lang.code)}
+                </option>
+              ))}
             </select>
           </div>
         )}

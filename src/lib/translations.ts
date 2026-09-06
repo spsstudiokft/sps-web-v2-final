@@ -1,5 +1,8 @@
 import { newKeysTranslations } from "./newKeysTranslations.js";
 import { adminProjectsTranslations } from "./adminProjectsTranslations.js";
+import { adminInfoBarTranslations } from "./adminInfoBarTranslations.js";
+import { adminEmailEditorUiTranslations } from "./adminEmailEditorUiTranslations.js";
+import { adminCalendarTranslations } from "./adminCalendarTranslations.js";
 import { adminVisualIdeasTranslations } from "./adminVisualIdeasTranslations.js";
 import { adminThemesTranslations } from "./adminThemesTranslations.js";
 import { adminPricingPageTranslations } from "./adminPricingPageTranslations.js";
@@ -9183,6 +9186,9 @@ for (const locale of ["en", "hu", "de", "es", "fr"] as const) {
   if (defaultLocales[locale]) Object.assign(defaultLocales[locale], pricingUiTranslations[locale]);
   if (defaultLocales[locale]) Object.assign(defaultLocales[locale], publicPagesTranslations[locale]);
   if (defaultLocales[locale]) Object.assign(defaultLocales[locale], adminProjectsTranslations[locale]);
+  if (defaultLocales[locale]) Object.assign(defaultLocales[locale], adminInfoBarTranslations[locale]);
+  if (defaultLocales[locale]) Object.assign(defaultLocales[locale], adminEmailEditorUiTranslations[locale]);
+  if (defaultLocales[locale]) Object.assign(defaultLocales[locale], adminCalendarTranslations[locale]);
   if (defaultLocales[locale]) Object.assign(defaultLocales[locale], adminVisualIdeasTranslations[locale]);
   if (defaultLocales[locale]) Object.assign(defaultLocales[locale], adminThemesTranslations[locale]);
   if (defaultLocales[locale]) Object.assign(defaultLocales[locale], adminPricingPageTranslations[locale]);
@@ -9201,6 +9207,9 @@ for (const locale of ["en", "hu", "de", "es", "fr"] as const) {
   if (defaultLocales[locale]) Object.assign(defaultLocales[locale], adminEmbedVideoModalTranslations[locale]);
 }
 Object.assign(enTranslations, adminProjectsTranslations.en);
+Object.assign(enTranslations, adminInfoBarTranslations.en);
+Object.assign(enTranslations, adminEmailEditorUiTranslations.en);
+Object.assign(enTranslations, adminCalendarTranslations.en);
 Object.assign(enTranslations, adminVisualIdeasTranslations.en);
 Object.assign(enTranslations, adminThemesTranslations.en);
 Object.assign(enTranslations, adminPricingPageTranslations.en);

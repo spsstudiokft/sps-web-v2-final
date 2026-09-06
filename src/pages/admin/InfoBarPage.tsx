@@ -90,7 +90,7 @@ export default function InfoBarPage() {
       }
     } catch (err: any) {
       console.error("Failed to load info bar admin data:", err);
-      setFeedback({ type: "error", text: "Failed to load announcement bar data." });
+      setFeedback({ type: "error", text: tUi("admin.info_bar.load_failed") });
     } finally {
       setLoading(false);
     }
@@ -107,15 +107,15 @@ export default function InfoBarPage() {
 
   // Schedule status helper
   const getScheduleStatus = (msg: InfoBarMessage) => {
-    if (!msg.is_enabled) return { label: "Disabled", color: "bg-gray-500/15 text-gray-400 border-gray-500/20" };
+    if (!msg.is_enabled) return { label: tUi("admin.info_bar.status.disabled"), color: "bg-gray-500/15 text-gray-400 border-gray-500/20" };
     const now = new Date().getTime();
     if (msg.start_date && new Date(msg.start_date).getTime() > now) {
-      return { label: "Scheduled", color: "bg-sky-500/15 text-sky-400 border-sky-500/20" };
+      return { label: tUi("admin.info_bar.status.scheduled"), color: "bg-sky-500/15 text-sky-400 border-sky-500/20" };
     }
     if (msg.end_date && new Date(msg.end_date).getTime() < now) {
-      return { label: "Expired", color: "bg-rose-500/15 text-rose-400 border-rose-500/20" };
+      return { label: tUi("admin.info_bar.status.expired"), color: "bg-rose-500/15 text-rose-400 border-rose-500/20" };
     }
-    return { label: "Active Now", color: "bg-emerald-500/15 text-emerald-400 border-emerald-500/20" };
+    return { label: tUi("admin.info_bar.status.active"), color: "bg-emerald-500/15 text-emerald-400 border-emerald-500/20" };
   };
 
   // Toggle Message Enabled
@@ -126,9 +126,9 @@ export default function InfoBarPage() {
         headers: authHeaders,
         body: JSON.stringify({ is_enabled: !msg.is_enabled })
       });
-      if (!res.ok) throw new Error("Failed to update status");
+      if (!res.ok) throw new Error(tUi("admin.info_bar.update_status_failed"));
       setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, is_enabled: !m.is_enabled } : m));
-      showToast("success", `Announcement ${!msg.is_enabled ? "enabled" : "disabled"}.`);
+      showToast("success", tUi(!msg.is_enabled ? "admin.info_bar.enabled_success" : "admin.info_bar.disabled_success"));
     } catch (e: any) {
       showToast("error", e.message || "Failed to update announcement");
     }
@@ -136,15 +136,15 @@ export default function InfoBarPage() {
 
   // Delete Message
   const handleDeleteMessage = async (id: string) => {
-    if (!(await globalThis.appConfirm("Are you sure you want to delete this announcement?", { tone: "danger", confirmLabel: "Törlés" }))) return;
+    if (!(await globalThis.appConfirm(tUi("admin.info_bar.delete_confirm"), { tone: "danger", confirmLabel: tUi("admin.customers.delete") }))) return;
     try {
       const res = await fetch(`/api/admin/info-bar/messages/${id}`, {
         method: "DELETE",
         headers: authHeaders
       });
-      if (!res.ok) throw new Error("Failed to delete announcement");
+      if (!res.ok) throw new Error(tUi("admin.info_bar.delete_failed"));
       setMessages(prev => prev.filter(m => m.id !== id));
-      showToast("success", "Announcement deleted.");
+      showToast("success", tUi("admin.info_bar.deleted_success"));
     } catch (e: any) {
       showToast("error", e.message || "Failed to delete");
     }
@@ -154,7 +154,7 @@ export default function InfoBarPage() {
   const handleSaveMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingMessage || !editingMessage.category_id || !editingMessage.text?.trim()) {
-      showToast("error", "Category and announcement text are required.");
+      showToast("error", tUi("admin.info_bar.required_message"));
       return;
     }
 
@@ -171,16 +171,16 @@ export default function InfoBarPage() {
 
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error || "Failed to save announcement");
+        throw new Error(data.error || tUi("admin.info_bar.save_failed"));
       }
 
       const result = await res.json();
       if (isNew) {
         setMessages(prev => [result.message, ...prev]);
-        showToast("success", "Announcement created successfully.");
+        showToast("success", tUi("admin.info_bar.created_success"));
       } else {
         setMessages(prev => prev.map(m => m.id === editingMessage.id ? result.message : m));
-        showToast("success", "Announcement updated successfully.");
+        showToast("success", tUi("admin.info_bar.updated_success"));
       }
       setMessageModalOpen(false);
       setEditingMessage(null);
@@ -193,7 +193,7 @@ export default function InfoBarPage() {
   const handleDuplicateMessage = (msg: InfoBarMessage) => {
     setEditingMessage({
       category_id: msg.category_id,
-      text: `${msg.text} (Copy)`,
+      text: `${msg.text} (${tUi("admin.info_bar.copy_suffix")})`,
       link_url: msg.link_url || "",
       link_label: msg.link_label || "",
       link_target_blank: msg.link_target_blank || 0,
@@ -233,7 +233,7 @@ export default function InfoBarPage() {
   const handleSaveCategory = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingCategory || !editingCategory.name?.trim() || !editingCategory.label?.trim() || !editingCategory.bg_color) {
-      showToast("error", "Name, label, and background color are required.");
+      showToast("error", tUi("admin.info_bar.category_required"));
       return;
     }
 
@@ -250,18 +250,18 @@ export default function InfoBarPage() {
 
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error || "Failed to save category");
+        throw new Error(data.error || tUi("admin.info_bar.category_save_failed"));
       }
 
       const result = await res.json();
       if (isNew) {
         setCategories(prev => [...prev, result.category]);
-        showToast("success", "Category created successfully.");
+        showToast("success", tUi("admin.info_bar.category_created"));
       } else {
         setCategories(prev => prev.map(c => c.id === editingCategory.id ? { ...result.category, message_count: c.message_count } : c));
         // Also refresh messages so category metadata reflects immediately
         fetchData();
-        showToast("success", "Category updated successfully.");
+        showToast("success", tUi("admin.info_bar.category_updated"));
       }
       setCategoryModalOpen(false);
       setEditingCategory(null);
@@ -272,7 +272,7 @@ export default function InfoBarPage() {
 
   // Delete Category
   const handleDeleteCategory = async (id: string) => {
-    if (!(await globalThis.appConfirm("Are you sure you want to delete this category?", { tone: "danger", confirmLabel: "Törlés" }))) return;
+    if (!(await globalThis.appConfirm(tUi("admin.info_bar.category_delete_confirm"), { tone: "danger", confirmLabel: tUi("admin.customers.delete") }))) return;
     try {
       const res = await fetch(`/api/admin/info-bar/categories/${id}`, {
         method: "DELETE",
@@ -281,11 +281,11 @@ export default function InfoBarPage() {
 
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error || "Failed to delete category");
+        throw new Error(data.error || tUi("admin.info_bar.category_delete_failed"));
       }
 
       setCategories(prev => prev.filter(c => c.id !== id));
-      showToast("success", "Category deleted.");
+      showToast("success", tUi("admin.info_bar.category_deleted"));
     } catch (e: any) {
       showToast("error", e.message || "Failed to delete category");
     }
@@ -302,8 +302,8 @@ export default function InfoBarPage() {
         body: JSON.stringify(settings)
       });
 
-      if (!res.ok) throw new Error("Failed to save settings");
-      showToast("success", "Global Announcement Bar settings saved.");
+      if (!res.ok) throw new Error(tUi("admin.info_bar.settings_save_failed"));
+      showToast("success", tUi("admin.info_bar.settings_saved"));
     } catch (e: any) {
       showToast("error", e.message || "Failed to save settings");
     } finally {
@@ -331,10 +331,10 @@ export default function InfoBarPage() {
             </div>
             <div>
               <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-text">
-                Announcement Info Bar
+                {tUi("admin.info_bar.title")}
               </h1>
               <p className="text-sm text-muted-text mt-0.5">
-                Configure multi-category announcements, promotions, notices, and scheduled banners.
+                {tUi("admin.info_bar.description")}
               </p>
             </div>
           </div>
@@ -344,7 +344,7 @@ export default function InfoBarPage() {
         <div className="flex items-center gap-3">
           <button
             onClick={fetchData}
-            title="Refresh Data"
+            title={tUi("admin.info_bar.refresh")}
             className="p-2.5 rounded-xl border border-border bg-surface hover:bg-surface/80 text-muted-text hover:text-text transition-colors"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
@@ -356,7 +356,7 @@ export default function InfoBarPage() {
               : "bg-rose-500/10 text-rose-500 border-rose-500/20"
           }`}>
             <span className={`w-2 h-2 rounded-full ${settings.info_bar_enabled ? "bg-emerald-500 animate-pulse" : "bg-rose-500"}`} />
-            {settings.info_bar_enabled ? "Info Bar Live" : "Info Bar Disabled"}
+            {tUi(settings.info_bar_enabled ? "admin.info_bar.live" : "admin.info_bar.disabled")}
           </div>
         </div>
       </div>
@@ -378,7 +378,7 @@ export default function InfoBarPage() {
         <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-muted-text pb-1">
           <div className="flex items-center gap-2 font-semibold uppercase tracking-wider text-text">
             <Eye className="w-4 h-4 text-primary" />
-            <span>Live Info Bar Simulator</span>
+            <span>{tUi("admin.info_bar.simulator")}</span>
           </div>
 
           <div className="flex items-center gap-3">
@@ -388,7 +388,7 @@ export default function InfoBarPage() {
                 onChange={(e) => setSelectedPreviewMsgId(e.target.value || null)}
                 className="px-2.5 py-1 text-xs rounded-lg border border-border bg-background text-text focus:outline-none"
               >
-                <option value="">Cycle Active Messages ({messages.filter(m => m.is_enabled).length} active)</option>
+                <option value="">{tUi("admin.info_bar.cycle_messages", { count: messages.filter(m => m.is_enabled).length })}</option>
                 {messages.map((m, idx) => (
                   <option key={m.id} value={m.id}>
                     #{idx + 1}: {m.badge_text ? `[${m.badge_text}] ` : ""}{m.text.slice(0, 35)}...
@@ -399,11 +399,11 @@ export default function InfoBarPage() {
 
             <button
               onClick={() => setPreviewDarkBg(!previewDarkBg)}
-              title="Toggle preview background theme"
+              title={tUi("admin.info_bar.toggle_preview")}
               className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-border bg-background hover:bg-surface text-text transition-colors"
             >
               {previewDarkBg ? <Sun className="w-3.5 h-3.5 text-amber-400" /> : <Moon className="w-3.5 h-3.5 text-indigo-400" />}
-              <span>{previewDarkBg ? "Dark View" : "Light View"}</span>
+              <span>{tUi(previewDarkBg ? "admin.info_bar.dark_view" : "admin.info_bar.light_view")}</span>
             </button>
           </div>
         </div>
@@ -431,7 +431,7 @@ export default function InfoBarPage() {
                   </span>
                 ) : (
                   <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-white/20">
-                    {activePreviewMessage.category_label || activePreviewMessage.category_name || "Announcement"}
+                    {activePreviewMessage.category_label || activePreviewMessage.category_name || tUi("admin.info_bar.default_announcement")}
                   </span>
                 )}
 
@@ -441,7 +441,7 @@ export default function InfoBarPage() {
 
                 {activePreviewMessage.link_url && (
                   <span className="inline-flex items-center gap-1 font-bold text-[11px] uppercase tracking-wider py-0.5 px-2.5 rounded-full bg-white/25">
-                    <span>{activePreviewMessage.link_label || "Learn More"}</span>
+                    <span>{activePreviewMessage.link_label || tUi("admin.info_bar.learn_more")}</span>
                     <ExternalLink className="w-3 h-3" />
                   </span>
                 )}
@@ -455,7 +455,7 @@ export default function InfoBarPage() {
             </div>
           ) : (
             <div className="py-6 text-center text-sm text-muted-text">
-              No active announcements found. Create an announcement below to view it here.
+              {tUi("admin.info_bar.no_active")}
             </div>
           )}
         </div>
@@ -472,7 +472,7 @@ export default function InfoBarPage() {
           }`}
         >
           <Megaphone className="w-4 h-4" />
-          <span>Announcements ({messages.length})</span>
+          <span>{tUi("admin.info_bar.tab_announcements", { count: messages.length })}</span>
         </button>
 
         <button
@@ -484,7 +484,7 @@ export default function InfoBarPage() {
           }`}
         >
           <Layers className="w-4 h-4" />
-          <span>Categories ({categories.length})</span>
+          <span>{tUi("admin.info_bar.tab_categories", { count: categories.length })}</span>
         </button>
 
         <button
@@ -496,7 +496,7 @@ export default function InfoBarPage() {
           }`}
         >
           <Sliders className="w-4 h-4" />
-          <span>Global Settings</span>
+          <span>{tUi("admin.info_bar.tab_settings")}</span>
         </button>
       </div>
 
@@ -507,9 +507,9 @@ export default function InfoBarPage() {
         <div className="space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <h2 className="text-lg font-semibold text-text">Active Announcements & Banners</h2>
+              <h2 className="text-lg font-semibold text-text">{tUi("admin.info_bar.messages_title")}</h2>
               <p className="text-xs text-muted-text">
-                Manage your messages, promotional CTAs, and automated date-range schedules.
+                {tUi("admin.info_bar.messages_description")}
               </p>
             </div>
 
@@ -520,7 +520,7 @@ export default function InfoBarPage() {
                   category_id: defaultCat,
                   text: "",
                   link_url: "",
-                  link_label: "Learn More",
+                  link_label: tUi("admin.info_bar.learn_more"),
                   link_target_blank: 0,
                   badge_text: "",
                   is_enabled: 1,
@@ -533,16 +533,16 @@ export default function InfoBarPage() {
               className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-primary-foreground font-semibold text-sm hover:opacity-90 shadow-sm transition-opacity"
             >
               <Plus className="w-4 h-4" />
-              <span>Create Announcement</span>
+              <span>{tUi("admin.info_bar.create_announcement")}</span>
             </button>
           </div>
 
           {messages.length === 0 ? (
             <div className="p-12 text-center rounded-2xl border border-dashed border-border bg-surface/50">
               <Megaphone className="w-12 h-12 text-muted-text mx-auto mb-3 opacity-50" />
-              <h3 className="text-base font-semibold text-text">No Announcements Created Yet</h3>
+              <h3 className="text-base font-semibold text-text">{tUi("admin.info_bar.empty_title")}</h3>
               <p className="text-xs text-muted-text max-w-md mx-auto mt-1 mb-4">
-                Add an announcement or promotional banner to inform visitors about special offers, studio notices, or updates.
+                {tUi("admin.info_bar.empty_description")}
               </p>
               <button
                 onClick={() => {
@@ -550,7 +550,7 @@ export default function InfoBarPage() {
                     category_id: categories[0]?.id || "",
                     text: "",
                     link_url: "",
-                    link_label: "Learn More",
+                    link_label: tUi("admin.info_bar.learn_more"),
                     link_target_blank: 0,
                     is_enabled: 1,
                     is_dismissible: 1,
@@ -561,7 +561,7 @@ export default function InfoBarPage() {
                 }}
                 className="px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-semibold"
               >
-                Add Your First Announcement
+                {tUi("admin.info_bar.add_first")}
               </button>
             </div>
           ) : (
@@ -571,7 +571,7 @@ export default function InfoBarPage() {
                 const category = categories.find(c => c.id === msg.category_id);
                 const bg = msg.category_bg_color || category?.bg_color || "#0284c7";
                 const fg = msg.category_text_color || category?.text_color || "#ffffff";
-                const catLabel = msg.category_label || category?.label || "Notice";
+                const catLabel = msg.category_label || category?.label || tUi("admin.info_bar.notice");
                 const icon = msg.category_icon || category?.icon || "info";
 
                 return (
@@ -627,7 +627,7 @@ export default function InfoBarPage() {
                         <div className="flex flex-wrap items-center gap-3 text-xs text-muted-text">
                           {msg.link_url && (
                             <span className="flex items-center gap-1 text-primary hover:underline">
-                              <span>CTA: {msg.link_label || "Link"} ({msg.link_url})</span>
+                              <span>{tUi("admin.info_bar.cta")} {msg.link_label || tUi("admin.info_bar.link")} ({msg.link_url})</span>
                               <ExternalLink className="w-3 h-3" />
                             </span>
                           )}
@@ -635,12 +635,12 @@ export default function InfoBarPage() {
                           {(msg.start_date || msg.end_date) && (
                             <span className="flex items-center gap-1 text-muted-text">
                               <Calendar className="w-3 h-3" />
-                              {msg.start_date ? new Date(msg.start_date).toLocaleDateString() : "Anytime"} → {msg.end_date ? new Date(msg.end_date).toLocaleDateString() : "Ongoing"}
+                              {msg.start_date ? new Date(msg.start_date).toLocaleDateString(currentLang) : tUi("admin.info_bar.anytime")} → {msg.end_date ? new Date(msg.end_date).toLocaleDateString(currentLang) : tUi("admin.info_bar.ongoing")}
                             </span>
                           )}
 
                           <span className="text-[11px] text-muted-text/70">
-                            Dismissible: {msg.is_dismissible ? `Yes (${msg.dismiss_scope || "session"})` : "No"}
+                            {tUi("admin.info_bar.dismissible", { value: msg.is_dismissible ? `${tUi("admin.info_bar.yes")} (${tUi(msg.dismiss_scope === "permanent" ? "admin.info_bar.scope_permanent" : "admin.info_bar.scope_session")})` : tUi("admin.info_bar.no") })}
                           </span>
                         </div>
                       </div>
@@ -654,7 +654,7 @@ export default function InfoBarPage() {
 
                       <button
                         onClick={() => handleToggleMessage(msg)}
-                        title={msg.is_enabled ? "Disable announcement" : "Enable announcement"}
+                        title={tUi(msg.is_enabled ? "admin.info_bar.disable_action" : "admin.info_bar.enable_action")}
                         className={`p-2 rounded-xl border border-border text-xs font-semibold transition-colors ${
                           msg.is_enabled 
                             ? "bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20" 
@@ -666,7 +666,7 @@ export default function InfoBarPage() {
 
                       <button
                         onClick={() => handleDuplicateMessage(msg)}
-                        title="Duplicate announcement"
+                        title={tUi("admin.info_bar.duplicate_action")}
                         className="p-2 rounded-xl border border-border bg-surface hover:bg-surface/80 text-muted-text hover:text-text transition-colors"
                       >
                         <Copy className="w-4 h-4" />
@@ -677,7 +677,7 @@ export default function InfoBarPage() {
                           setEditingMessage({ ...msg });
                           setMessageModalOpen(true);
                         }}
-                        title="Edit announcement"
+                        title={tUi("admin.info_bar.edit_action")}
                         className="p-2 rounded-xl border border-border bg-surface hover:bg-surface/80 text-muted-text hover:text-text transition-colors"
                       >
                         <Edit className="w-4 h-4" />
@@ -685,7 +685,7 @@ export default function InfoBarPage() {
 
                       <button
                         onClick={() => handleDeleteMessage(msg.id)}
-                        title="Delete announcement"
+                        title={tUi("admin.info_bar.delete_action")}
                         className="p-2 rounded-xl border border-rose-500/20 bg-rose-500/10 text-rose-500 hover:bg-rose-500/20 transition-colors"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -706,9 +706,9 @@ export default function InfoBarPage() {
         <div className="space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <h2 className="text-lg font-semibold text-text">Announcement Categories</h2>
+              <h2 className="text-lg font-semibold text-text">{tUi("admin.info_bar.categories_title")}</h2>
               <p className="text-xs text-muted-text">
-                Manage color palettes, distinct badges, and icon indicators per announcement category.
+                {tUi("admin.info_bar.categories_description")}
               </p>
             </div>
 
@@ -728,7 +728,7 @@ export default function InfoBarPage() {
               className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-primary-foreground font-semibold text-sm hover:opacity-90 shadow-sm transition-opacity"
             >
               <Plus className="w-4 h-4" />
-              <span>Create New Category</span>
+              <span>{tUi("admin.info_bar.create_category")}</span>
             </button>
           </div>
 
@@ -757,22 +757,22 @@ export default function InfoBarPage() {
                   {/* Category Details */}
                   <div className="space-y-1 text-xs text-muted-text">
                     <div className="flex items-center justify-between">
-                      <span>Assigned Messages:</span>
+                      <span>{tUi("admin.info_bar.assigned_messages")}</span>
                       <span className="font-semibold text-text">{cat.message_count || 0}</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span>Icon:</span>
+                      <span>{tUi("admin.info_bar.icon")}</span>
                       <span className="font-mono text-text">{cat.icon}</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span>Background Color:</span>
+                      <span>{tUi("admin.info_bar.background_color")}</span>
                       <span className="font-mono font-bold flex items-center gap-1.5">
                         <span className="w-3 h-3 rounded-full inline-block border border-white/20" style={{ backgroundColor: cat.bg_color }} />
                         {cat.bg_color}
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span>Text Color:</span>
+                      <span>{tUi("admin.info_bar.text_color")}</span>
                       <span className="font-mono font-bold flex items-center gap-1.5">
                         <span className="w-3 h-3 rounded-full inline-block border border-black/20" style={{ backgroundColor: cat.text_color }} />
                         {cat.text_color}
@@ -815,17 +815,17 @@ export default function InfoBarPage() {
         <form onSubmit={handleSaveSettings} className="space-y-6 max-w-2xl">
           <div className="rounded-2xl border border-border bg-surface p-6 shadow-sm space-y-6">
             <div>
-              <h2 className="text-lg font-semibold text-text">Global Announcement Bar Configuration</h2>
+              <h2 className="text-lg font-semibold text-text">{tUi("admin.info_bar.settings_title")}</h2>
               <p className="text-xs text-muted-text mt-0.5">
-                Customize rotation intervals, hover behavior, transition style, and visibility.
+                {tUi("admin.info_bar.settings_description")}
               </p>
             </div>
 
             {/* Master Toggle */}
             <div className="flex items-center justify-between p-4 rounded-xl border border-border bg-background">
               <div>
-                <div className="font-semibold text-sm text-text">Enable Info Bar</div>
-                <div className="text-xs text-muted-text">Display active announcements below the main navbar.</div>
+                <div className="font-semibold text-sm text-text">{tUi("admin.info_bar.enable")}</div>
+                <div className="text-xs text-muted-text">{tUi("admin.info_bar.enable_hint")}</div>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
                 <input
@@ -841,8 +841,8 @@ export default function InfoBarPage() {
             {/* Rotation Interval */}
             <div className="space-y-2">
               <div className="flex items-center justify-between text-sm">
-                <label className="font-semibold text-text">Auto-Rotation Interval</label>
-                <span className="font-mono text-primary font-bold text-sm">{settings.info_bar_rotation_interval} seconds</span>
+                <label className="font-semibold text-text">{tUi("admin.info_bar.rotation_interval")}</label>
+                <span className="font-mono text-primary font-bold text-sm">{settings.info_bar_rotation_interval} {tUi("admin.info_bar.seconds")}</span>
               </div>
               <input
                 type="range"
@@ -854,17 +854,17 @@ export default function InfoBarPage() {
                 className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-primary"
               />
               <div className="flex justify-between text-[11px] text-muted-text">
-                <span>3s (Fast)</span>
-                <span>7s (Default)</span>
-                <span>25s (Slow)</span>
+                <span>{tUi("admin.info_bar.fast")}</span>
+                <span>{tUi("admin.info_bar.default_speed")}</span>
+                <span>{tUi("admin.info_bar.slow")}</span>
               </div>
             </div>
 
             {/* Pause on Hover */}
             <div className="flex items-center justify-between p-4 rounded-xl border border-border bg-background">
               <div>
-                <div className="font-semibold text-sm text-text">Pause on User Hover & Focus</div>
-                <div className="text-xs text-muted-text">Stops auto-rotation when visitor hovers or focuses on the announcement.</div>
+                <div className="font-semibold text-sm text-text">{tUi("admin.info_bar.pause_hover")}</div>
+                <div className="text-xs text-muted-text">{tUi("admin.info_bar.pause_hover_hint")}</div>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
                 <input
@@ -880,8 +880,8 @@ export default function InfoBarPage() {
             {/* Show Navigation Indicators */}
             <div className="flex items-center justify-between p-4 rounded-xl border border-border bg-background">
               <div>
-                <div className="font-semibold text-sm text-text">Show Controls & Counter</div>
-                <div className="text-xs text-muted-text">Display manual arrows, counter (e.g. "1/3"), and play/pause button.</div>
+                <div className="font-semibold text-sm text-text">{tUi("admin.info_bar.show_controls")}</div>
+                <div className="text-xs text-muted-text">{tUi("admin.info_bar.show_controls_hint")}</div>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
                 <input
@@ -896,7 +896,7 @@ export default function InfoBarPage() {
 
             {/* Animation Style */}
             <div className="space-y-2">
-              <label className="font-semibold text-sm text-text">Transition Animation</label>
+              <label className="font-semibold text-sm text-text">{tUi("admin.info_bar.transition")}</label>
               <div className="grid grid-cols-2 gap-3">
                 <button
                   type="button"
@@ -907,7 +907,7 @@ export default function InfoBarPage() {
                       : "border-border bg-background text-muted-text hover:text-text"
                   }`}
                 >
-                  <span>Horizontal Slide</span>
+                  <span>{tUi("admin.info_bar.slide")}</span>
                 </button>
 
                 <button
@@ -919,7 +919,7 @@ export default function InfoBarPage() {
                       : "border-border bg-background text-muted-text hover:text-text"
                   }`}
                 >
-                  <span>Smooth Fade</span>
+                  <span>{tUi("admin.info_bar.fade")}</span>
                 </button>
               </div>
             </div>
@@ -931,7 +931,7 @@ export default function InfoBarPage() {
               className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-bold text-sm hover:opacity-90 transition-opacity flex items-center justify-center gap-2 shadow-sm disabled:opacity-50"
             >
               {savingSettings ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-              <span>Save Info Bar Settings</span>
+              <span>{tUi("admin.info_bar.save_settings")}</span>
             </button>
           </div>
         </form>
@@ -945,7 +945,7 @@ export default function InfoBarPage() {
           <div className="bg-surface border border-border rounded-2xl p-6 max-w-xl w-full shadow-2xl space-y-5 my-8">
             <div className="flex items-center justify-between border-b border-border pb-3">
               <h3 className="text-lg font-bold text-text">
-                {editingMessage.id ? "Edit Announcement" : "Create New Announcement"}
+                {tUi(editingMessage.id ? "admin.info_bar.edit_announcement" : "admin.info_bar.new_announcement")}
               </h3>
               <button
                 onClick={() => {
@@ -961,7 +961,7 @@ export default function InfoBarPage() {
             <form onSubmit={handleSaveMessage} className="space-y-4">
               {/* Category Selector */}
               <div>
-                <label className="block text-xs font-semibold text-text mb-1.5">Category *</label>
+                <label className="block text-xs font-semibold text-text mb-1.5">{tUi("admin.info_bar.category_required_label")}</label>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {categories.map(c => {
                     const selected = editingMessage.category_id === c.id;
@@ -990,25 +990,25 @@ export default function InfoBarPage() {
 
               {/* Message Text */}
               <div>
-                <label className="block text-xs font-semibold text-text mb-1">Announcement Message *</label>
+                <label className="block text-xs font-semibold text-text mb-1">{tUi("admin.info_bar.message_required_label")}</label>
                 <textarea
                   required
                   rows={2}
                   value={editingMessage.text || ""}
                   onChange={(e) => setEditingMessage(m => ({ ...m, text: e.target.value }))}
-                  placeholder="e.g. ✨ Spring Studio Promotion: Book 2 photography shoots and get 20% off drone coverage!"
+                  placeholder={tUi("admin.info_bar.message_placeholder")}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-border bg-background text-text text-sm focus:ring-2 focus:ring-primary focus:outline-none"
                 />
               </div>
 
               {/* Badge Text */}
               <div>
-                <label className="block text-xs font-semibold text-text mb-1">Optional Highlight Badge</label>
+                <label className="block text-xs font-semibold text-text mb-1">{tUi("admin.info_bar.badge_label")}</label>
                 <input
                   type="text"
                   value={editingMessage.badge_text || ""}
                   onChange={(e) => setEditingMessage(m => ({ ...m, badge_text: e.target.value }))}
-                  placeholder="e.g. 20% OFF, LIMITED TIME, NEW, IMPORTANT"
+                  placeholder={tUi("admin.info_bar.badge_placeholder")}
                   className="w-full px-3.5 py-2 rounded-xl border border-border bg-background text-text text-sm focus:ring-2 focus:ring-primary focus:outline-none"
                 />
               </div>
@@ -1016,23 +1016,23 @@ export default function InfoBarPage() {
               {/* Link CTA */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-text mb-1">CTA Button Label</label>
+                  <label className="block text-xs font-semibold text-text mb-1">{tUi("admin.info_bar.cta_label")}</label>
                   <input
                     type="text"
                     value={editingMessage.link_label || ""}
                     onChange={(e) => setEditingMessage(m => ({ ...m, link_label: e.target.value }))}
-                    placeholder="e.g. View Packages, Book Studio"
+                    placeholder={tUi("admin.info_bar.cta_placeholder")}
                     className="w-full px-3.5 py-2 rounded-xl border border-border bg-background text-text text-sm focus:ring-2 focus:ring-primary focus:outline-none"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-text mb-1">CTA Target URL</label>
+                  <label className="block text-xs font-semibold text-text mb-1">{tUi("admin.info_bar.cta_url")}</label>
                   <input
                     type="text"
                     value={editingMessage.link_url || ""}
                     onChange={(e) => setEditingMessage(m => ({ ...m, link_url: e.target.value }))}
-                    placeholder="e.g. #pricing, #contact, /client/register"
+                    placeholder={tUi("admin.info_bar.cta_url_placeholder")}
                     className="w-full px-3.5 py-2 rounded-xl border border-border bg-background text-text text-sm focus:ring-2 focus:ring-primary focus:outline-none"
                   />
                 </div>
@@ -1047,7 +1047,7 @@ export default function InfoBarPage() {
                   className="rounded border-border text-primary focus:ring-primary"
                 />
                 <label htmlFor="target-blank" className="text-xs text-text cursor-pointer">
-                  Open CTA link in a new browser tab
+                  {tUi("admin.info_bar.open_new_tab")}
                 </label>
               </div>
 
@@ -1055,11 +1055,11 @@ export default function InfoBarPage() {
               <div className="p-3.5 rounded-xl border border-border bg-background/50 space-y-2">
                 <div className="text-xs font-semibold text-text flex items-center gap-1.5">
                   <Calendar className="w-3.5 h-3.5 text-primary" />
-                  <span>Scheduling & Visibility Window (Optional)</span>
+                  <span>{tUi("admin.info_bar.schedule_title")}</span>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[11px] text-muted-text mb-1">Start Date & Time</label>
+                    <label className="block text-[11px] text-muted-text mb-1">{tUi("admin.info_bar.start_date")}</label>
                     <input
                       type="datetime-local"
                       value={editingMessage.start_date ? editingMessage.start_date.slice(0, 16) : ""}
@@ -1069,7 +1069,7 @@ export default function InfoBarPage() {
                   </div>
 
                   <div>
-                    <label className="block text-[11px] text-muted-text mb-1">End Date & Time</label>
+                    <label className="block text-[11px] text-muted-text mb-1">{tUi("admin.info_bar.end_date")}</label>
                     <input
                       type="datetime-local"
                       value={editingMessage.end_date ? editingMessage.end_date.slice(0, 16) : ""}
@@ -1085,7 +1085,7 @@ export default function InfoBarPage() {
                     onClick={() => setEditingMessage(m => ({ ...m, start_date: null, end_date: null }))}
                     className="text-[11px] text-primary hover:underline"
                   >
-                    Clear dates (Always Active)
+                    {tUi("admin.info_bar.clear_dates")}
                   </button>
                 </div>
               </div>
@@ -1093,7 +1093,7 @@ export default function InfoBarPage() {
               {/* Dismissible & Enabled Settings */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                 <div className="flex items-center justify-between p-3 rounded-xl border border-border bg-background">
-                  <span className="text-xs font-medium text-text">Allow visitor to dismiss (X)</span>
+                  <span className="text-xs font-medium text-text">{tUi("admin.info_bar.allow_dismiss")}</span>
                   <input
                     type="checkbox"
                     checked={Boolean(editingMessage.is_dismissible)}
@@ -1103,7 +1103,7 @@ export default function InfoBarPage() {
                 </div>
 
                 <div className="flex items-center justify-between p-3 rounded-xl border border-border bg-background">
-                  <span className="text-xs font-medium text-text">Announcement Enabled</span>
+                  <span className="text-xs font-medium text-text">{tUi("admin.info_bar.announcement_enabled")}</span>
                   <input
                     type="checkbox"
                     checked={Boolean(editingMessage.is_enabled)}
@@ -1116,14 +1116,14 @@ export default function InfoBarPage() {
               {/* Dismiss Scope */}
               {Boolean(editingMessage.is_dismissible) && (
                 <div className="space-y-1">
-                  <label className="block text-xs font-semibold text-text">Dismiss Scope</label>
+                  <label className="block text-xs font-semibold text-text">{tUi("admin.info_bar.dismiss_scope")}</label>
                   <select
                     value={editingMessage.dismiss_scope || "session"}
                     onChange={(e) => setEditingMessage(m => ({ ...m, dismiss_scope: e.target.value as any }))}
                     className="w-full px-3 py-2 rounded-xl border border-border bg-background text-text text-xs focus:ring-2 focus:ring-primary focus:outline-none"
                   >
-                    <option value="session">Per Session (reappears on next visit / browser reopen)</option>
-                    <option value="permanent">Permanent (saved in localStorage until storage cleared)</option>
+                    <option value="session">{tUi("admin.info_bar.dismiss_session")}</option>
+                    <option value="permanent">{tUi("admin.info_bar.dismiss_permanent")}</option>
                   </select>
                 </div>
               )}
@@ -1143,7 +1143,7 @@ export default function InfoBarPage() {
                   type="submit"
                   className="px-5 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-bold hover:opacity-90 shadow-sm"
                 >
-                  {editingMessage.id ? "Update Announcement" : "Create Announcement"}
+                  {tUi(editingMessage.id ? "admin.info_bar.update_announcement" : "admin.info_bar.create_announcement")}
                 </button>
               </div>
             </form>
@@ -1159,7 +1159,7 @@ export default function InfoBarPage() {
           <div className="bg-surface border border-border rounded-2xl p-6 max-w-xl w-full shadow-2xl space-y-5 my-8">
             <div className="flex items-center justify-between border-b border-border pb-3">
               <h3 className="text-lg font-bold text-text">
-                {editingCategory.id ? "Edit Category" : "Create New Category"}
+                {tUi(editingCategory.id ? "admin.info_bar.edit_category" : "admin.info_bar.create_category")}
               </h3>
               <button
                 onClick={() => {
@@ -1175,25 +1175,25 @@ export default function InfoBarPage() {
             <form onSubmit={handleSaveCategory} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-text mb-1">Category Code / Slug *</label>
+                  <label className="block text-xs font-semibold text-text mb-1">{tUi("admin.info_bar.category_code")}</label>
                   <input
                     type="text"
                     required
                     value={editingCategory.name || ""}
                     onChange={(e) => setEditingCategory(c => ({ ...c, name: e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, "") }))}
-                    placeholder="e.g. discount, info, alert"
+                    placeholder={tUi("admin.info_bar.category_code_placeholder")}
                     className="w-full px-3.5 py-2 rounded-xl border border-border bg-background text-text text-sm focus:ring-2 focus:ring-primary focus:outline-none font-mono"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-text mb-1">Display Label *</label>
+                  <label className="block text-xs font-semibold text-text mb-1">{tUi("admin.info_bar.display_label")}</label>
                   <input
                     type="text"
                     required
                     value={editingCategory.label || ""}
                     onChange={(e) => setEditingCategory(c => ({ ...c, label: e.target.value }))}
-                    placeholder="e.g. Special Offer, Notice, Alert"
+                    placeholder={tUi("admin.info_bar.display_label_placeholder")}
                     className="w-full px-3.5 py-2 rounded-xl border border-border bg-background text-text text-sm focus:ring-2 focus:ring-primary focus:outline-none"
                   />
                 </div>
@@ -1201,7 +1201,7 @@ export default function InfoBarPage() {
 
               {/* Icon Selector */}
               <div>
-                <label className="block text-xs font-semibold text-text mb-1.5">Category Icon</label>
+                <label className="block text-xs font-semibold text-text mb-1.5">{tUi("admin.info_bar.category_icon")}</label>
                 <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 max-h-40 overflow-y-auto p-2 rounded-xl border border-border bg-background/50">
                   {AVAILABLE_CATEGORY_ICONS.map(({ id, label, icon: IconComponent }) => {
                     const isSelected = (editingCategory.icon || "info") === id;
@@ -1227,18 +1227,18 @@ export default function InfoBarPage() {
 
               {/* Color Presets & Pickers */}
               <div>
-                <label className="block text-xs font-semibold text-text mb-1.5">Background Color Preset</label>
+                <label className="block text-xs font-semibold text-text mb-1.5">{tUi("admin.info_bar.background_preset")}</label>
                 <div className="flex flex-wrap gap-2 mb-3">
                   {[
-                    { label: "Emerald", hex: "#059669" },
-                    { label: "Sky Blue", hex: "#0284c7" },
-                    { label: "Amber", hex: "#d97706" },
-                    { label: "Rose", hex: "#e11d48" },
-                    { label: "Violet", hex: "#7c3aed" },
-                    { label: "Indigo", hex: "#4f46e5" },
-                    { label: "Teal", hex: "#0d9488" },
-                    { label: "Slate", hex: "#334155" },
-                    { label: "Dark", hex: "#18181b" }
+                    { label: tUi("admin.info_bar.color.emerald"), hex: "#059669" },
+                    { label: tUi("admin.info_bar.color.sky"), hex: "#0284c7" },
+                    { label: tUi("admin.info_bar.color.amber"), hex: "#d97706" },
+                    { label: tUi("admin.info_bar.color.rose"), hex: "#e11d48" },
+                    { label: tUi("admin.info_bar.color.violet"), hex: "#7c3aed" },
+                    { label: tUi("admin.info_bar.color.indigo"), hex: "#4f46e5" },
+                    { label: tUi("admin.info_bar.color.teal"), hex: "#0d9488" },
+                    { label: tUi("admin.info_bar.color.slate"), hex: "#334155" },
+                    { label: tUi("admin.info_bar.color.dark"), hex: "#18181b" }
                   ].map(preset => (
                     <button
                       type="button"
@@ -1256,7 +1256,7 @@ export default function InfoBarPage() {
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[11px] text-muted-text mb-1">Custom Background Color</label>
+                    <label className="block text-[11px] text-muted-text mb-1">{tUi("admin.info_bar.custom_background")}</label>
                     <div className="flex items-center gap-2">
                       <input
                         type="color"
@@ -1274,7 +1274,7 @@ export default function InfoBarPage() {
                   </div>
 
                   <div>
-                    <label className="block text-[11px] text-muted-text mb-1">Text Color</label>
+                    <label className="block text-[11px] text-muted-text mb-1">{tUi("admin.info_bar.text_color_label")}</label>
                     <div className="flex items-center gap-2">
                       <input
                         type="color"
@@ -1295,7 +1295,7 @@ export default function InfoBarPage() {
 
               {/* Category Live Preview Badge */}
               <div className="p-3.5 rounded-xl border border-dashed border-border flex items-center justify-between">
-                <span className="text-xs text-muted-text">Live Category Badge Preview:</span>
+                <span className="text-xs text-muted-text">{tUi("admin.info_bar.badge_preview")}</span>
                 <div
                   style={{
                     backgroundColor: editingCategory.bg_color || "#0284c7",
@@ -1304,7 +1304,7 @@ export default function InfoBarPage() {
                   className="px-3 py-1.5 rounded-lg font-bold text-xs flex items-center gap-2 shadow-xs"
                 >
                   <CategoryIcon icon={editingCategory.icon || "info"} className="w-4 h-4" />
-                  <span>{editingCategory.label || "Sample Label"}</span>
+                  <span>{editingCategory.label || tUi("admin.info_bar.sample_label")}</span>
                 </div>
               </div>
 
@@ -1323,7 +1323,7 @@ export default function InfoBarPage() {
                   type="submit"
                   className="px-5 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-bold hover:opacity-90 shadow-sm"
                 >
-                  {editingCategory.id ? "Update Category" : "Create Category"}
+                  {tUi(editingCategory.id ? "admin.info_bar.update_category" : "admin.info_bar.create_category")}
                 </button>
               </div>
             </form>

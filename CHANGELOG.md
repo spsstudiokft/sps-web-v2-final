@@ -1,10 +1,18 @@
 # Modification Log
 
+## 2026-09-06
+
+### [Updated] Translation audit coverage
+
+- Replaced the admin-only regex localization scan with an AST-based audit covering every public, authentication, client-portal, admin, and shared React surface, including visible JSX text and translatable `placeholder`, `title`, `aria-label`, and `alt` attributes while excluding content already passed through the translation runtime.
+- Localized the complete admin calendar surface, including event tooltips, recurrence and status labels, accessibility text, validation feedback, and the full create/edit dialog in every supported locale.
+
 ## 2026-09-04
 
 ### [Fixed] Typography consistency
 
-- Audited Vercel's split serverless API handlers against the full local router. Campaign, public push, and exit-coupon routes now have matching production mounts; public handlers initialize pending database migrations before accessing schema-backed data; and dedicated admin handlers enforce the same menu permissions as the local API. Added a repeatable `npm run audit:vercel-routes` parity check to catch future production-only route omissions before deployment.
+- Fixed public-navbar and admin-sidebar language selectors resetting immediately to the default locale when preference-cookie consent is absent. Both selectors now use the same enabled-language list and retain the chosen locale for the active session.
+- Audited Vercel's split serverless API handlers against the full local router. Campaign, public push, and exit-coupon routes now have matching production mounts; public handlers initialize pending database migrations before accessing schema-backed data; and dedicated admin handlers enforce the same menu permissions as the local API. Added a repeatable `npm run audit:vercel-routes` parity check to catch future production-only route omissions before deployment without blocking the preview build.
 - Added the missing Vercel rewrite for nested public health endpoints, restoring production access to `/api/health/lou` and other routes below `/api/health`.
 - Enforced Plus Jakarta Sans as the single display and body font across the public site, installer page, admin interface, and portals; legacy theme records can no longer load Playfair Display or another heading font.
 - Fixed strict TypeScript inference in the public inquiry endpoint by explicitly typing selected plan IDs and bonus-code lookup collections, removing the three `unknown`-to-`string` build failures.

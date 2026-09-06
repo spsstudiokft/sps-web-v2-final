@@ -233,11 +233,11 @@ export function EmailTemplateEditorModal({
   // Save changes
   const handleSave = async () => {
     if (!subject.trim()) {
-      setFeedback({ type: "error", message: "Subject line cannot be empty." });
+      setFeedback({ type: "error", message: tUi("admin.email_editor.subject_required") });
       return;
     }
     if (!bodyHtml.trim()) {
-      setFeedback({ type: "error", message: "HTML body cannot be empty." });
+      setFeedback({ type: "error", message: tUi("admin.email_editor.html_required") });
       return;
     }
 
@@ -262,13 +262,13 @@ export function EmailTemplateEditorModal({
 
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || "Failed to save template");
+        throw new Error(data.error || tUi("admin.email_editor.save_failed"));
       }
 
-      setFeedback({ type: "success", message: `Template '${template.name}' saved successfully (v${data.template.version}).` });
+      setFeedback({ type: "success", message: tUi("admin.email_editor.saved", { name: template.name, version: data.template.version }) });
       onSaved(data.template);
     } catch (err: any) {
-      setFeedback({ type: "error", message: err.message || "Failed to save template changes." });
+      setFeedback({ type: "error", message: err.message || tUi("admin.email_editor.save_failed") });
     } finally {
       setSaving(false);
     }
@@ -276,7 +276,7 @@ export function EmailTemplateEditorModal({
 
   // Reset to default
   const handleReset = async () => {
-    if (!(await globalThis.appConfirm(`Are you sure you want to reset "${template.name}" back to the system factory default? All custom edits will be discarded.`, { tone: "danger", confirmLabel: "Visszaállítás" }))) {
+    if (!(await globalThis.appConfirm(tUi("admin.email_editor.reset_confirm", { name: template.name }), { tone: "danger", confirmLabel: tUi("admin.email_editor.reset") }))) {
       return;
     }
 
@@ -294,16 +294,16 @@ export function EmailTemplateEditorModal({
 
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || "Failed to reset template");
+        throw new Error(data.error || tUi("admin.email_editor.reset_failed"));
       }
 
       setSubject(data.template.subject);
       setBodyHtml(data.template.body_html);
       setBodyText(data.template.body_text);
-      setFeedback({ type: "success", message: `Template reset to pristine default.` });
+      setFeedback({ type: "success", message: tUi("admin.email_editor.reset_success") });
       onSaved(data.template);
     } catch (err: any) {
-      setFeedback({ type: "error", message: err.message || "Failed to reset template." });
+      setFeedback({ type: "error", message: err.message || tUi("admin.email_editor.reset_failed") });
     } finally {
       setResetting(false);
     }
@@ -313,7 +313,7 @@ export function EmailTemplateEditorModal({
   const handleSendTest = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!testRecipient || !testRecipient.includes("@")) {
-      setTestStatus({ success: false, message: "Please provide a valid recipient email address." });
+      setTestStatus({ success: false, message: tUi("admin.email_editor.invalid_recipient") });
       return;
     }
 
@@ -343,19 +343,19 @@ export function EmailTemplateEditorModal({
       if (!res.ok) {
         setTestStatus({
           success: false,
-          message: data.error || "Failed to dispatch test email."
+          message: data.error || tUi("admin.email_editor.test_failed")
         });
       } else {
         setTestStatus({
           success: true,
-          message: data.notice || "Test email dispatched successfully.",
+          message: data.notice || tUi("admin.email_editor.test_success"),
           messageId: data.messageId
         });
       }
     } catch (err: any) {
       setTestStatus({
         success: false,
-        message: err.message || "Network exception during test dispatch."
+        message: err.message || tUi("admin.email_editor.test_network_failed")
       });
     } finally {
       setSendingTest(false);
@@ -386,11 +386,11 @@ export function EmailTemplateEditorModal({
                 </span>
                 {template.is_customized ? (
                   <span className="px-2 py-0.5 rounded-md text-[11px] font-semibold bg-blue-500/10 text-blue-500 border border-blue-500/20">
-                    Customized v{template.version}
+                    {tUi("admin.email_editor.customized", { version: template.version })}
                   </span>
                 ) : (
                   <span className="px-2 py-0.5 rounded-md text-[11px] font-semibold bg-zinc-500/10 text-muted-text border border-zinc-500/20">
-                    System Default
+                    {tUi("admin.email_editor.system_default")}
                   </span>
                 )}
               </div>
@@ -410,10 +410,10 @@ export function EmailTemplateEditorModal({
                 onClick={handleReset}
                 disabled={resetting || saving}
                 className="text-xs h-8 text-amber-500 hover:text-amber-600 hover:bg-amber-500/10 border-amber-500/20 flex items-center gap-1.5"
-                title="Reset to factory default template"
+                title={tUi("admin.email_editor.reset_title")}
               >
                 <RotateCcw className={`w-3.5 h-3.5 ${resetting ? "animate-spin" : ""}`} />
-                <span>Reset Default</span>
+                <span>{tUi("admin.email_editor.reset_default")}</span>
               </Button>
             )}
 
@@ -425,7 +425,7 @@ export function EmailTemplateEditorModal({
               className="text-xs h-8 bg-primary hover:bg-primary/90 text-white font-medium flex items-center gap-1.5 shadow-sm"
             >
               {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-              <span>Save Template</span>
+              <span>{tUi("admin.email_editor.save_template")}</span>
             </Button>
 
             <button
@@ -472,7 +472,7 @@ export function EmailTemplateEditorModal({
               }`}
             >
               <Code className="w-3.5 h-3.5" />
-              <span>Editor & Variables</span>
+              <span>{tUi("admin.email_editor.tab_editor")}</span>
             </button>
 
             <button
@@ -485,7 +485,7 @@ export function EmailTemplateEditorModal({
               }`}
             >
               <Eye className="w-3.5 h-3.5" />
-              <span>Live Visual Preview</span>
+              <span>{tUi("admin.email_editor.tab_preview")}</span>
               {previewLoading && <Loader2 className="w-3 h-3 animate-spin text-primary" />}
             </button>
 
@@ -499,13 +499,13 @@ export function EmailTemplateEditorModal({
               }`}
             >
               <Send className="w-3.5 h-3.5" />
-              <span>Send Test Email</span>
+              <span>{tUi("admin.email_editor.tab_test")}</span>
             </button>
           </div>
 
           <div className="hidden sm:flex items-center gap-2 text-[11px] text-muted-text">
             <Clock className="w-3 h-3" />
-            <span>Updated: {new Date(template.last_updated_at).toLocaleDateString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
+            <span>{tUi("admin.email_editor.updated", { date: new Date(template.last_updated_at).toLocaleDateString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) })}</span>
           </div>
         </div>
 
@@ -523,11 +523,11 @@ export function EmailTemplateEditorModal({
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
                     <label className="text-xs font-semibold text-text flex items-center gap-1.5">
-                      <span>Email Subject Line</span>
-                      <span className="text-[10px] text-muted-text font-normal">(Dynamic tokens supported)</span>
+                      <span>{tUi("admin.email_editor.subject")}</span>
+                      <span className="text-[10px] text-muted-text font-normal">({tUi("admin.email_editor.dynamic_tokens")})</span>
                     </label>
                     <span className="text-[11px] text-muted-text font-mono">
-                      {subject.length} chars
+                      {subject.length} {tUi("admin.email_editor.characters")}
                     </span>
                   </div>
                   <input
@@ -536,7 +536,7 @@ export function EmailTemplateEditorModal({
                     value={subject}
                     onChange={(e) => setSubject(e.target.value)}
                     onFocus={() => { lastFocusedFieldRef.current = "subject"; }}
-                    placeholder="e.g. Update on {{project_name}} · {{studio_name}}"
+                    placeholder={tUi("admin.email_editor.subject_placeholder")}
                     className="w-full px-3.5 py-2.5 rounded-xl border border-border bg-background text-sm text-text focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-medium"
                   />
                 </div>
@@ -545,7 +545,7 @@ export function EmailTemplateEditorModal({
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <label className="text-xs font-semibold text-text">Email Body Content</label>
+                      <label className="text-xs font-semibold text-text">{tUi("admin.email_editor.body")}</label>
                       <div className="inline-flex rounded-lg p-0.5 bg-surface border border-border">
                         <button
                           type="button"
@@ -559,7 +559,7 @@ export function EmailTemplateEditorModal({
                               : "text-muted-text hover:text-text"
                           }`}
                         >
-                          Visual Editor
+                          {tUi("admin.email_editor.visual_editor")}
                         </button>
                         <button
                           type="button"
@@ -573,7 +573,7 @@ export function EmailTemplateEditorModal({
                               : "text-muted-text hover:text-text"
                           }`}
                         >
-                          Responsive HTML
+                          {tUi("admin.email_editor.responsive_html")}
                         </button>
                         <button
                           type="button"
@@ -587,28 +587,28 @@ export function EmailTemplateEditorModal({
                               : "text-muted-text hover:text-text"
                           }`}
                         >
-                          Plain Text Fallback
+                          {tUi("admin.email_editor.plain_text")}
                         </button>
                       </div>
                     </div>
 
                     <span className="text-[11px] text-muted-text">
-                      {bodyFormat === "visual" ? "Click directly into the email content" : bodyFormat === "html" ? "Advanced code editing" : "Fallback for legacy clients"}
+                      {tUi(bodyFormat === "visual" ? "admin.email_editor.click_content" : bodyFormat === "html" ? "admin.email_editor.advanced_editing" : "admin.email_editor.legacy_fallback")}
                     </span>
                   </div>
 
                   {bodyFormat === "visual" ? (
                     <div className="overflow-hidden rounded-xl border border-border bg-slate-100 shadow-inner">
                       <div className="flex flex-wrap items-center gap-1 border-b border-border bg-surface px-2 py-2">
-                        <button type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => runVisualCommand("bold")} className="rounded-md p-1.5 text-muted-text hover:bg-primary/10 hover:text-primary" title="Bold"><Bold className="h-3.5 w-3.5" /></button>
-                        <button type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => runVisualCommand("italic")} className="rounded-md p-1.5 text-muted-text hover:bg-primary/10 hover:text-primary" title="Italic"><Italic className="h-3.5 w-3.5" /></button>
-                        <button type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => runVisualCommand("formatBlock", "h1")} className="rounded-md p-1.5 text-muted-text hover:bg-primary/10 hover:text-primary" title="Headline"><Heading1 className="h-3.5 w-3.5" /></button>
-                        <button type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => runVisualCommand("formatBlock", "blockquote")} className="rounded-md p-1.5 text-muted-text hover:bg-primary/10 hover:text-primary" title="Quote"><Quote className="h-3.5 w-3.5" /></button>
-                        <button type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => runVisualCommand("insertUnorderedList")} className="rounded-md p-1.5 text-muted-text hover:bg-primary/10 hover:text-primary" title="Bullet list"><List className="h-3.5 w-3.5" /></button>
-                        <button type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => runVisualCommand("insertOrderedList")} className="rounded-md p-1.5 text-muted-text hover:bg-primary/10 hover:text-primary" title="Numbered list"><ListOrdered className="h-3.5 w-3.5" /></button>
-                        <button type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => { const url = window.prompt("Link URL:", "https://"); if (url?.trim()) runVisualCommand("createLink", url.trim()); }} className="rounded-md p-1.5 text-muted-text hover:bg-primary/10 hover:text-primary" title="Insert link"><Link className="h-3.5 w-3.5" /></button>
-                        <label className="ml-1 flex items-center gap-1 rounded-md px-1.5 py-1 text-[11px] text-muted-text hover:bg-primary/10" title="Text color"><Paintbrush className="h-3.5 w-3.5" /><input type="color" className="h-4 w-5 cursor-pointer border-0 bg-transparent p-0" onChange={(event) => runVisualCommand("foreColor", event.target.value)} /></label>
-                        <span className="ml-auto text-[10px] text-muted-text">Formatting is saved as email-safe HTML.</span>
+                        <button type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => runVisualCommand("bold")} className="rounded-md p-1.5 text-muted-text hover:bg-primary/10 hover:text-primary" title={tUi("admin.email_editor.bold")}><Bold className="h-3.5 w-3.5" /></button>
+                        <button type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => runVisualCommand("italic")} className="rounded-md p-1.5 text-muted-text hover:bg-primary/10 hover:text-primary" title={tUi("admin.email_editor.italic")}><Italic className="h-3.5 w-3.5" /></button>
+                        <button type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => runVisualCommand("formatBlock", "h1")} className="rounded-md p-1.5 text-muted-text hover:bg-primary/10 hover:text-primary" title={tUi("admin.email_editor.headline")}><Heading1 className="h-3.5 w-3.5" /></button>
+                        <button type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => runVisualCommand("formatBlock", "blockquote")} className="rounded-md p-1.5 text-muted-text hover:bg-primary/10 hover:text-primary" title={tUi("admin.email_editor.quote")}><Quote className="h-3.5 w-3.5" /></button>
+                        <button type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => runVisualCommand("insertUnorderedList")} className="rounded-md p-1.5 text-muted-text hover:bg-primary/10 hover:text-primary" title={tUi("admin.email_editor.bullet_list")}><List className="h-3.5 w-3.5" /></button>
+                        <button type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => runVisualCommand("insertOrderedList")} className="rounded-md p-1.5 text-muted-text hover:bg-primary/10 hover:text-primary" title={tUi("admin.email_editor.numbered_list")}><ListOrdered className="h-3.5 w-3.5" /></button>
+                        <button type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => { const url = window.prompt(tUi("admin.email_editor.link_url"), "https://"); if (url?.trim()) runVisualCommand("createLink", url.trim()); }} className="rounded-md p-1.5 text-muted-text hover:bg-primary/10 hover:text-primary" title={tUi("admin.email_editor.insert_link")}><Link className="h-3.5 w-3.5" /></button>
+                        <label className="ml-1 flex items-center gap-1 rounded-md px-1.5 py-1 text-[11px] text-muted-text hover:bg-primary/10" title={tUi("admin.email_editor.text_color")}><Paintbrush className="h-3.5 w-3.5" /><input type="color" className="h-4 w-5 cursor-pointer border-0 bg-transparent p-0" onChange={(event) => runVisualCommand("foreColor", event.target.value)} /></label>
+                        <span className="ml-auto text-[10px] text-muted-text">{tUi("admin.email_editor.formatting_hint")}</span>
                       </div>
                       <div className="max-h-[520px] overflow-y-auto bg-[#eef2f7] p-4 sm:p-7">
                         <div
@@ -616,7 +616,7 @@ export function EmailTemplateEditorModal({
                           contentEditable
                           suppressContentEditableWarning
                           role="textbox"
-                          aria-label="Visual email body editor"
+                          aria-label={tUi("admin.email_editor.visual_editor_aria")}
                           onFocus={() => { lastFocusedFieldRef.current = "visual"; rememberVisualSelection(); }}
                           onKeyUp={rememberVisualSelection}
                           onMouseUp={rememberVisualSelection}
@@ -634,12 +634,12 @@ export function EmailTemplateEditorModal({
                         value={bodyHtml}
                         onChange={(e) => setBodyHtml(e.target.value)}
                         onFocus={() => { lastFocusedFieldRef.current = "html"; }}
-                        placeholder="Write responsive email HTML with inline CSS styling..."
+                        placeholder={tUi("admin.email_editor.html_placeholder")}
                         className="w-full p-4 rounded-xl border border-border bg-slate-950 text-slate-100 font-mono text-xs leading-relaxed focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary shadow-inner resize-y"
                         spellCheck={false}
                       />
                       <div className="absolute bottom-3 right-3 text-[10px] font-mono text-slate-400 bg-slate-900/80 px-2 py-0.5 rounded border border-slate-800">
-                        HTML5 · {bodyHtml.split("\n").length} lines
+                        {tUi("admin.email_editor.html_format")} {bodyHtml.split("\n").length} {tUi("admin.email_editor.lines")}
                       </div>
                     </div>
                   ) : (
@@ -650,11 +650,11 @@ export function EmailTemplateEditorModal({
                         value={bodyText}
                         onChange={(e) => setBodyText(e.target.value)}
                         onFocus={() => { lastFocusedFieldRef.current = "text"; }}
-                        placeholder="Plain text version for accessibility and text-only email clients..."
+                        placeholder={tUi("admin.email_editor.text_placeholder")}
                         className="w-full p-4 rounded-xl border border-border bg-background text-text font-mono text-xs leading-relaxed focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-y"
                       />
                       <div className="absolute bottom-3 right-3 text-[10px] font-mono text-muted-text bg-surface px-2 py-0.5 rounded border border-border">
-                        TXT · {bodyText.length} chars
+                        {tUi("admin.email_editor.text_format")} {bodyText.length} {tUi("admin.email_editor.characters")}
                       </div>
                     </div>
                   )}
@@ -663,14 +663,14 @@ export function EmailTemplateEditorModal({
                 <div className="p-3 rounded-xl bg-surface border border-border text-xs text-muted-text flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Sparkles className="w-3.5 h-3.5 text-primary" />
-                    <span>Click any variable on the right to insert directly at your cursor position.</span>
+                    <span>{tUi("admin.email_editor.insert_hint")}</span>
                   </div>
                   <button
                     type="button"
                     onClick={() => setActiveTab("preview")}
                     className="text-xs text-primary font-semibold hover:underline flex items-center gap-1"
                   >
-                    <span>View Rendered</span>
+                    <span>{tUi("admin.email_editor.view_rendered")}</span>
                     <ChevronRight className="w-3 h-3" />
                   </button>
                 </div>
@@ -682,15 +682,15 @@ export function EmailTemplateEditorModal({
                   <div className="flex items-center justify-between pb-2.5 border-b border-border">
                     <div className="flex items-center gap-1.5">
                       <Sparkles className="w-4 h-4 text-primary" />
-                      <h3 className="text-xs font-bold text-text">Available Tokens</h3>
+                      <h3 className="text-xs font-bold text-text">{tUi("admin.email_editor.available_tokens")}</h3>
                     </div>
                     <span className="text-[10px] text-muted-text font-mono">
-                      {filteredTokens.length} variables
+                      {tUi("admin.email_editor.variables_count", { count: filteredTokens.length })}
                     </span>
                   </div>
 
                   <p className="text-[11px] text-muted-text mt-2">
-                    Variables are dynamically replaced with recipient and project details upon dispatch.
+                    {tUi("admin.email_editor.variables_hint")}
                   </p>
 
                   <div className="my-2.5">
@@ -698,7 +698,7 @@ export function EmailTemplateEditorModal({
                       type="text"
                       value={tokenSearch}
                       onChange={(e) => setTokenSearch(e.target.value)}
-                      placeholder="Search tokens..."
+                      placeholder={tUi("admin.email_editor.search_tokens")}
                       className="w-full px-2.5 py-1.5 rounded-lg border border-border bg-background text-xs text-text focus:outline-none focus:ring-1 focus:ring-primary"
                     />
                   </div>
@@ -707,7 +707,7 @@ export function EmailTemplateEditorModal({
                   <div className="space-y-2 max-h-[360px] overflow-y-auto pr-1">
                     {filteredTokens.length === 0 ? (
                       <div className="py-6 text-center text-xs text-muted-text">
-                        No matching variables found.
+                        {tUi("admin.email_editor.no_tokens")}
                       </div>
                     ) : (
                       filteredTokens.map((t) => (
@@ -722,11 +722,11 @@ export function EmailTemplateEditorModal({
                             </span>
                             {copiedToken === t.token ? (
                               <span className="text-[10px] text-emerald-500 font-semibold flex items-center gap-0.5">
-                                <Check className="w-3 h-3" /> Inserted
+                                <Check className="w-3 h-3" /> {tUi("admin.email_editor.inserted")}
                               </span>
                             ) : (
                               <span className="text-[10px] text-muted-text opacity-0 group-hover:opacity-100 transition-opacity">
-                                Click to insert
+                                {tUi("admin.email_editor.click_insert")}
                               </span>
                             )}
                           </div>
@@ -737,10 +737,10 @@ export function EmailTemplateEditorModal({
                             {t.description}
                           </div>
                           <div className="text-[10px] text-muted-text font-mono mt-1 opacity-80">
-                            Example: <span className="text-text">{t.example}</span>
+                            {tUi("admin.email_editor.example")} <span className="text-text">{t.example}</span>
                           </div>
                           <label className="block mt-2 text-[10px] font-semibold text-muted-text" onClick={(e) => e.stopPropagation()}>
-                            Default text
+                            {tUi("admin.email_editor.default_text")}
                             <input
                               type="text"
                               value={tokenDefaults[t.token.replace(/^{{|}}$/g, "")] ?? ""}
@@ -757,12 +757,12 @@ export function EmailTemplateEditorModal({
 
                   {/* Per-template master layout copy */}
                   <div className="mt-3 pt-3 border-t border-border space-y-2">
-                    <div className="text-[10px] font-bold uppercase tracking-wider text-muted-text">Header & Footer Text</div>
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-muted-text">{tUi("admin.email_editor.header_footer")}</div>
                     {[
-                      ["header_title", "Header title", "Configured studio name"],
-                      ["header_subtitle", "Header subtitle", "Visual Marketing & Photography"],
-                      ["footer_text", "Footer notice", "Configured email footer text"],
-                      ["footer_service_text", "Footer service line", "Sent securely via Resend Email Service · © {{current_year}} {{studio_name}}"]
+                      ["header_title", tUi("admin.email_editor.header_title"), tUi("admin.email_editor.studio_name_placeholder")],
+                      ["header_subtitle", tUi("admin.email_editor.header_subtitle"), tUi("admin.email_editor.header_subtitle_placeholder")],
+                      ["footer_text", tUi("admin.email_editor.footer_notice"), tUi("admin.email_editor.footer_placeholder")],
+                      ["footer_service_text", tUi("admin.email_editor.footer_service"), tUi("admin.email_editor.footer_service_placeholder")]
                     ].map(([key, label, placeholder]) => (
                       <label key={key} className="block text-[10px] font-semibold text-muted-text">
                         {label}
@@ -775,19 +775,19 @@ export function EmailTemplateEditorModal({
                         />
                       </label>
                     ))}
-                    <p className="text-[10px] text-muted-text">Empty fields inherit the global email settings. Template tokens can be used in these fields.</p>
+                    <p className="text-[10px] text-muted-text">{tUi("admin.email_editor.inherit_hint")}</p>
                   </div>
 
                   {/* Global Auto Tokens */}
                   <div className="mt-3 pt-3 border-t border-border">
                     <div className="text-[10px] font-bold uppercase tracking-wider text-muted-text mb-1.5">
-                      Global Tokens (Always Available)
+                      {tUi("admin.email_editor.global_tokens")}
                     </div>
                     <div className="space-y-1.5">
                       {["{{studio_name}}", "{{current_year}}", "{{from_email}}", "{{timestamp}}"].map((gt) => (
                         <div key={gt} className="flex items-center gap-1.5">
                           <button type="button" onClick={() => handleInsertToken(gt)} className="shrink-0 px-2 py-1 rounded-md text-[10px] font-mono bg-background border border-border text-muted-text hover:text-primary hover:border-primary/40 transition-colors">{gt}</button>
-                          <input type="text" value={tokenDefaults[gt.replace(/^{{|}}$/g, "")] ?? ""} onChange={(e) => { const key = gt.replace(/^{{|}}$/g, ""); setTokenDefaults(prev => ({ ...prev, [key]: e.target.value })); }} placeholder="System value" className="min-w-0 flex-1 px-2 py-1 rounded-md border border-border bg-background text-[10px] text-text focus:outline-none focus:ring-1 focus:ring-primary" />
+                          <input type="text" value={tokenDefaults[gt.replace(/^{{|}}$/g, "")] ?? ""} onChange={(e) => { const key = gt.replace(/^{{|}}$/g, ""); setTokenDefaults(prev => ({ ...prev, [key]: e.target.value })); }} placeholder={tUi("admin.email_editor.system_value")} className="min-w-0 flex-1 px-2 py-1 rounded-md border border-border bg-background text-[10px] text-text focus:outline-none focus:ring-1 focus:ring-primary" />
                         </div>
                       ))}
                     </div>
@@ -806,7 +806,7 @@ export function EmailTemplateEditorModal({
               {/* Preview Controls Bar */}
               <div className="p-3 rounded-xl bg-surface border border-border flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold text-text">Device Viewport:</span>
+                  <span className="text-xs font-semibold text-text">{tUi("admin.email_editor.device_viewport")}</span>
                   <div className="inline-flex rounded-lg p-0.5 bg-background border border-border">
                     <button
                       type="button"
@@ -818,7 +818,7 @@ export function EmailTemplateEditorModal({
                       }`}
                     >
                       <Monitor className="w-3.5 h-3.5" />
-                      <span>Desktop (600px)</span>
+                      <span>{tUi("admin.email_editor.desktop")}</span>
                     </button>
 
                     <button
@@ -831,7 +831,7 @@ export function EmailTemplateEditorModal({
                       }`}
                     >
                       <Smartphone className="w-3.5 h-3.5" />
-                      <span>Mobile (375px)</span>
+                      <span>{tUi("admin.email_editor.mobile")}</span>
                     </button>
 
                     <button
@@ -844,14 +844,14 @@ export function EmailTemplateEditorModal({
                       }`}
                     >
                       <FileText className="w-3.5 h-3.5" />
-                      <span>Plain Text</span>
+                      <span>{tUi("admin.email_editor.plain_text_view")}</span>
                     </button>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-muted-text">
-                    Rendered with live test tokens
+                    {tUi("admin.email_editor.rendered_tokens")}
                   </span>
                   <Button
                     type="button"
@@ -861,7 +861,7 @@ export function EmailTemplateEditorModal({
                     className="text-xs h-7 px-2.5"
                   >
                     <Send className="w-3 h-3 mr-1" />
-                    <span>Send Test</span>
+                    <span>{tUi("admin.email_editor.send_test_short")}</span>
                   </Button>
                 </div>
               </div>
@@ -869,7 +869,7 @@ export function EmailTemplateEditorModal({
               {/* Rendered Subject Banner */}
               <div className="p-3.5 rounded-xl bg-surface border border-border space-y-1">
                 <div className="text-[11px] font-semibold text-muted-text uppercase tracking-wider">
-                  Rendered Subject Line
+                  {tUi("admin.email_editor.rendered_subject")}
                 </div>
                 <div className="text-sm font-bold text-text">
                   {previewSubject || subject}
@@ -881,7 +881,7 @@ export function EmailTemplateEditorModal({
                 {previewLoading ? (
                   <div className="py-24 flex items-center justify-center text-muted-text text-sm gap-2">
                     <Loader2 className="w-5 h-5 animate-spin text-primary" />
-                    <span>Rendering email markup...</span>
+                    <span>{tUi("admin.email_editor.rendering")}</span>
                   </div>
                 ) : deviceView === "plaintext" ? (
                   <div className="w-full max-w-[620px] bg-background border border-border p-5 rounded-xl font-mono text-xs text-text whitespace-pre-wrap shadow-md">
@@ -894,7 +894,7 @@ export function EmailTemplateEditorModal({
                     }`}
                   >
                     <iframe
-                      title="Live Email Preview"
+                      title={tUi("admin.email_editor.preview_title")}
                       srcDoc={previewHtml}
                       className="w-full min-h-[580px] bg-white border-0"
                     />
@@ -911,30 +911,30 @@ export function EmailTemplateEditorModal({
               <div className="p-5 rounded-2xl border border-border bg-surface space-y-4">
                 <div className="flex items-center gap-2 pb-2 border-b border-border">
                   <Send className="w-4 h-4 text-primary" />
-                  <h3 className="text-sm font-bold text-text">Send Live Deliverability Test</h3>
+                  <h3 className="text-sm font-bold text-text">{tUi("admin.email_editor.deliverability_title")}</h3>
                 </div>
 
                 <p className="text-xs text-muted-text leading-relaxed">
-                  Dispatch a real email to test rendering, token interpolation, and deliverability across Outlook, Apple Mail, Gmail, and mobile clients before publishing.
+                  {tUi("admin.email_editor.deliverability_hint")}
                 </p>
 
                 <form onSubmit={handleSendTest} className="space-y-4">
                   <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-text">Recipient Email Address</label>
+                    <label className="text-xs font-semibold text-text">{tUi("admin.email_editor.recipient")}</label>
                     <input
                       type="email"
                       required
                       value={testRecipient}
                       onChange={(e) => setTestRecipient(e.target.value)}
-                      placeholder="e.g. yourname@domain.com"
+                      placeholder={tUi("admin.email_editor.recipient_placeholder")}
                       className="w-full px-3.5 py-2 rounded-xl border border-border bg-background text-sm text-text focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
                     />
                   </div>
 
                   <div className="p-3 rounded-xl bg-background border border-border text-xs space-y-1 text-muted-text">
-                    <div className="font-semibold text-text">Test Dispatch Details:</div>
-                    <div>• Template: <span className="font-mono text-text">{template.template_key}</span></div>
-                    <div>• Subject: <span className="font-medium text-text">{previewSubject || subject}</span></div>
+                    <div className="font-semibold text-text">{tUi("admin.email_editor.test_details")}</div>
+                    <div>• {tUi("admin.email_editor.template_label")} <span className="font-mono text-text">{template.template_key}</span></div>
+                    <div>• {tUi("admin.email_editor.subject_label")} <span className="font-medium text-text">{previewSubject || subject}</span></div>
                   </div>
 
                   <Button
@@ -943,7 +943,7 @@ export function EmailTemplateEditorModal({
                     className="w-full bg-primary hover:bg-primary/90 text-white font-semibold py-2.5 text-xs flex items-center justify-center gap-2"
                   >
                     {sendingTest ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                    <span>{sendingTest ? "Dispatching via Resend..." : "Send Test Email"}</span>
+                    <span>{tUi(sendingTest ? "admin.email_editor.dispatching" : "admin.email_editor.tab_test")}</span>
                   </Button>
                 </form>
 
@@ -959,7 +959,7 @@ export function EmailTemplateEditorModal({
                     </div>
                     {testStatus.messageId && (
                       <div className="mt-1 font-mono text-[11px] opacity-85">
-                        Resend ID: {testStatus.messageId}
+                        {tUi("admin.email_editor.resend_id")} {testStatus.messageId}
                       </div>
                     )}
                   </div>
@@ -973,7 +973,7 @@ export function EmailTemplateEditorModal({
         {/* Footer */}
         <div className="p-3.5 px-5 bg-surface border-t border-border flex items-center justify-between">
           <div className="flex items-center gap-2 text-xs text-muted-text">
-            <span>Version: <strong className="text-text">v{template.version}</strong></span>
+            <span>{tUi("admin.email_editor.version")} <strong className="text-text">v{template.version}</strong></span>
             <span>•</span>
             <span>{tUi("admin.faqs.categories_filter_label")}<strong className="text-text capitalize">{template.category}</strong></span>
           </div>
@@ -995,7 +995,7 @@ export function EmailTemplateEditorModal({
               className="text-xs h-8 bg-primary hover:bg-primary/90 text-white font-medium"
             >
               {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" /> : <Save className="w-3.5 h-3.5 mr-1" />}
-              <span>Save & Apply</span>
+              <span>{tUi("admin.email_editor.save_apply")}</span>
             </Button>
           </div>
         </div>

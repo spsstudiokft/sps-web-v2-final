@@ -1,5 +1,14 @@
 # Project TODO
 
+## Teljes weboldal fordítási audit
+
+- [x] `InfoBarPage.tsx` összes statikus feliratának bekötése a fordításkezelőbe.
+- [x] `EmailTemplateEditorModal.tsx` összes statikus feliratának bekötése a fordításkezelőbe.
+- [x] `CalendarPage.tsx` teljes lokalizálása, beleértve a modalt, tooltippeket, hibaüzeneteket és akadálymentes címkéket.
+- [x] A fordítási kulcsok szinkronizálása az EN, HU, DE, ES és FR fájlszótárak, valamint az adatbázis között; jelenlegi ellenőrzés szerint nincs hiányzó kulcs vagy placeholder-eltérés.
+- [ ] A statikus lokalizációs auditban megmaradt oldalak és komponensek fájlonkénti feldolgozása. Következőként: `SettingsPage.tsx`.
+- [ ] A teljes fájlonkénti feldolgozás után élő böngészős nyelvváltási ellenőrzés minden publikus, hitelesítési, ügyfélportál- és adminoldalon.
+
 ## Vercel build and Function optimization
 
 - [ ] Measure dependency installation, frontend build, Function bundling, checking, and deployment durations separately in Vercel Build Diagnostics.

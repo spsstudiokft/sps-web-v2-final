@@ -197,50 +197,39 @@ export function LanguageProvider({
     return found ? (found.enabled !== false) : false;
   }, [supportedLangs]);
 
-  // Sync active language selection with localStorage and HTML attribute,
-  // falling back gracefully if current language is disabled or not supported
+  // Sync the active language with the document. The chosen language remains
+  // active for this session even when preference-storage consent is absent;
+  // without this guard every selector change was immediately reset to default.
   useEffect(() => {
-    const saved = hasConsent("preferences") ? normalizeLanguageCode(localStorage.getItem("site_lang")) : null;
     const activeEnabled = supportedLangs.filter((l) => l.enabled !== false);
-    
-    // Check if the saved language is currently enabled
-    if (saved && activeEnabled.some((l) => l.code === saved)) {
-      if (currentLang !== saved) setCurrentLang(saved);
-      document.documentElement.lang = saved;
-    } 
-    // Otherwise fallback to default language if enabled
-    else if (defaultLang && activeEnabled.some((l) => l.code === defaultLang)) {
-      if (currentLang !== defaultLang) setCurrentLang(defaultLang);
-      document.documentElement.lang = defaultLang;
-      try {
-        if (hasConsent("preferences")) localStorage.setItem("site_lang", defaultLang);
-      } catch {}
-    } 
-    // Otherwise fallback to the first enabled language
-    else if (activeEnabled.length > 0) {
-      const firstEnabled = activeEnabled[0].code;
-      if (currentLang !== firstEnabled) setCurrentLang(firstEnabled);
-      document.documentElement.lang = firstEnabled;
-      try {
-        if (hasConsent("preferences")) localStorage.setItem("site_lang", firstEnabled);
-      } catch {}
+    if (activeEnabled.some((language) => language.code === currentLang)) {
+      document.documentElement.lang = currentLang;
+      return;
     }
-    // As last resort, defaultLang or "en"
-    else {
-      const fallback = defaultLang || "en";
-      if (currentLang !== fallback) setCurrentLang(fallback);
-      document.documentElement.lang = fallback;
-    }
+
+    const saved = hasConsent("preferences") ? normalizeLanguageCode(localStorage.getItem("site_lang")) : null;
+    const fallback = activeEnabled.find((language) => language.code === saved)?.code
+      || activeEnabled.find((language) => language.code === defaultLang)?.code
+      || activeEnabled[0]?.code
+      || defaultLang
+      || "en";
+
+    if (currentLang !== fallback) setCurrentLang(fallback);
+    document.documentElement.lang = fallback;
+    try {
+      if (hasConsent("preferences")) localStorage.setItem("site_lang", fallback);
+    } catch {}
   }, [supportedLangs, defaultLang, currentLang]);
 
   const setLang = useCallback((lang: string) => {
     const normalized = normalizeLanguageCode(lang) || "en";
+    if (!supportedLangs.some((language) => language.code === normalized && language.enabled !== false)) return;
     setCurrentLang(normalized);
     try {
       if (hasConsent("preferences")) localStorage.setItem("site_lang", normalized);
     } catch {}
     document.documentElement.lang = normalized;
-  }, []);
+  }, [supportedLangs]);
 
   const setCustomTranslationsMap = useCallback((translations: Record<string, Record<string, string>>) => {
     setCustomTranslationsState(translations);
