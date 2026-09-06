@@ -22,6 +22,7 @@
   },
   "functions": {
     "api/home.ts": { "maxDuration": 60, "includeFiles": "dist/app-shell.html" },
+    "api/seo-page.ts": { "maxDuration": 60, "includeFiles": "dist/app-shell.html" },
     "api/cron-calendar.ts": { "maxDuration": 60 },
     "api/public.ts": { "maxDuration": 60 },
     "api/auth.ts": { "maxDuration": 60 },
@@ -118,6 +119,30 @@
     {
       "source": "/sitemap.xml",
       "destination": "/api/public/sitemap.xml"
+    },
+    {
+      "source": "/properties",
+      "destination": "/api/seo-page?path=/properties"
+    },
+    {
+      "source": "/properties/:id",
+      "destination": "/api/seo-page?path=/properties/:id"
+    },
+    {
+      "source": "/portfolio/:slug",
+      "destination": "/api/seo-page?path=/portfolio/:slug"
+    },
+    {
+      "source": "/changelog",
+      "destination": "/api/seo-page?path=/changelog"
+    },
+    {
+      "source": "/open-source",
+      "destination": "/api/seo-page?path=/open-source"
+    },
+    {
+      "source": "/installers",
+      "destination": "/api/seo-page?path=/installers"
     },
     {
       "source": "/api/admin/budgets/:match*",

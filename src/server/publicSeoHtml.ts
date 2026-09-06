@@ -8,6 +8,8 @@ type PublicSeoData = {
   testimonials?: Array<Record<string, unknown>>;
 };
 
+type SeoLink = { href: string; label: string };
+
 const escapeHtml = (value: unknown) => String(value ?? "")
   .replace(/&/g, "&amp;")
   .replace(/</g, "&lt;")
@@ -82,6 +84,7 @@ export function renderPublicSeoHome(data: PublicSeoData, origin: string) {
     description: text(service.description),
   })).filter((service) => service.title || service.description);
   const portfolio = (data.portfolio || []).map((item) => ({
+    slug: String(item.slug || "").trim(),
     title: text(item.title, "SPS Studio projekt"),
     description: text(item.description),
   }));
@@ -130,7 +133,7 @@ export function renderPublicSeoHome(data: PublicSeoData, origin: string) {
   };
 
   const serviceMarkup = services.length ? `<section id="services"><h2>${escapeHtml(servicesHeading)}</h2><p>${escapeHtml(servicesDescription)}</p>${services.map((service) => `<article><h3>${escapeHtml(service.title)}</h3>${service.description ? `<p>${escapeHtml(service.description)}</p>` : ""}</article>`).join("")}</section>` : "";
-  const portfolioMarkup = portfolio.length ? `<section id="portfolio"><h2>${escapeHtml(portfolioHeading)}</h2>${portfolio.map((item) => `<article><h3>${escapeHtml(item.title)}</h3>${item.description ? `<p>${escapeHtml(item.description)}</p>` : ""}</article>`).join("")}</section>` : "";
+  const portfolioMarkup = portfolio.length ? `<section id="portfolio"><h2>${escapeHtml(portfolioHeading)}</h2>${portfolio.map((item) => `<article><h3>${item.slug ? `<a href="${escapeHtml(`${origin}/portfolio/${encodeURIComponent(item.slug)}`)}">${escapeHtml(item.title)}</a>` : escapeHtml(item.title)}</h3>${item.description ? `<p>${escapeHtml(item.description)}</p>` : ""}</article>`).join("")}</section>` : "";
   const pricingMarkup = pricing.length ? `<section id="pricing"><h2>${escapeHtml(pricingHeading)}</h2><p>Minden feltüntetett ár nettó, a végszámlán 27% ÁFA kerül felszámításra.</p>${pricing.map((item) => `<article><h3>${escapeHtml(item.title)}</h3>${item.description ? `<p>${escapeHtml(item.description)}</p>` : ""}${item.price > 0 ? `<p>Nettó ár: ${escapeHtml(new Intl.NumberFormat("hu-HU").format(item.price))} ${escapeHtml(item.currency)}</p>` : ""}</article>`).join("")}</section>` : "";
   const faqMarkup = faqs.length ? `<section id="faq"><h2>${escapeHtml(faqHeading)}</h2><p>${escapeHtml(faqDescription)}</p><dl>${faqs.map((faq) => `<div><dt>${escapeHtml(faq.question)}</dt><dd>${escapeHtml(faq.answer)}</dd></div>`).join("")}</dl></section>` : "";
   const visualIdeasMarkup = visualIdeas.length && settings.visual_ideas_enabled !== "0" && settings.visual_ideas_enabled !== "false"
@@ -142,5 +145,12 @@ export function renderPublicSeoHome(data: PublicSeoData, origin: string) {
 
   return `<!doctype html>
 <html lang="hu"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${escapeHtml(`${headline} | ${studioName}`)}</title><meta name="description" content="${escapeHtml(description)}"><meta name="robots" content="index, follow"><link rel="canonical" href="${escapeHtml(origin)}"><script type="application/ld+json">${jsonForScript(structuredData)}</script></head>
-<body><header><p>${escapeHtml(studioName)}</p><nav><a href="#home">Kezdőlap</a><a href="#vision">Küldetésünk</a><a href="#about">Rólunk</a><a href="#services">Szolgáltatások</a><a href="#portfolio">Portfólió</a><a href="#visual-ideas">Vizuális ötletek</a><a href="#pricing">Árak</a><a href="#testimonials">Vélemények</a><a href="#faq">GYIK</a><a href="#contact">Kapcsolat</a></nav></header><main><section id="home"><h1>${escapeHtml(headline)}</h1><p>${escapeHtml(subheadline)}</p></section><section id="vision"><h2>${escapeHtml(visionHeadline)}</h2><p>${escapeHtml(visionStatement)}</p></section><section id="about"><h2>${escapeHtml(aboutHeading)}</h2><p>${escapeHtml(aboutDescription)}</p></section>${serviceMarkup}${portfolioMarkup}${visualIdeasMarkup}${pricingMarkup}${testimonialsMarkup}${faqMarkup}<section id="contact"><h2>${escapeHtml(contactHeading)}</h2><p>${escapeHtml(contactDescription)}</p><p><a href="mailto:${escapeHtml(contactEmail)}">${escapeHtml(contactEmail)}</a> · <a href="tel:${escapeHtml(contactPhone.replace(/\s+/g, ""))}">${escapeHtml(contactPhone)}</a></p></section></main></body></html>`;
+<body><header><p>${escapeHtml(studioName)}</p><nav><a href="${escapeHtml(origin)}">Kezdőlap</a><a href="${escapeHtml(`${origin}/properties`)}">Ingatlanok</a><a href="${escapeHtml(`${origin}/changelog`)}">Változásnapló</a><a href="${escapeHtml(`${origin}/open-source`)}">Open Source</a><a href="${escapeHtml(`${origin}/installers`)}">Alkalmazások</a><a href="#services">Szolgáltatások</a><a href="#portfolio">Portfólió</a><a href="#contact">Kapcsolat</a></nav></header><main><section id="home"><h1>${escapeHtml(headline)}</h1><p>${escapeHtml(subheadline)}</p></section><section id="vision"><h2>${escapeHtml(visionHeadline)}</h2><p>${escapeHtml(visionStatement)}</p></section><section id="about"><h2>${escapeHtml(aboutHeading)}</h2><p>${escapeHtml(aboutDescription)}</p></section>${serviceMarkup}${portfolioMarkup}${visualIdeasMarkup}${pricingMarkup}${testimonialsMarkup}${faqMarkup}<section id="contact"><h2>${escapeHtml(contactHeading)}</h2><p>${escapeHtml(contactDescription)}</p><p><a href="mailto:${escapeHtml(contactEmail)}">${escapeHtml(contactEmail)}</a> · <a href="tel:${escapeHtml(contactPhone.replace(/\s+/g, ""))}">${escapeHtml(contactPhone)}</a></p></section></main></body></html>`;
+}
+
+/** Compact, crawlable snapshot for public SPA subpages. */
+export function renderPublicSeoPage({ origin, path, title, description, links }: { origin: string; path: string; title: string; description: string; links: SeoLink[] }) {
+  const canonical = `${origin.replace(/\/+$/, "")}${path.startsWith("/") ? path : `/${path}`}`;
+  const navigation = links.map((link) => `<li><a href="${escapeHtml(`${origin}${link.href}`)}">${escapeHtml(link.label)}</a></li>`).join("");
+  return `<!doctype html><html lang="hu"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${escapeHtml(title)} | SPS Studio</title><meta name="description" content="${escapeHtml(description)}"><meta name="robots" content="index, follow"><link rel="canonical" href="${escapeHtml(canonical)}"><meta property="og:url" content="${escapeHtml(canonical)}"></head><body><header><a href="${escapeHtml(origin)}">SPS Studio</a></header><main><article><h1>${escapeHtml(title)}</h1><p>${escapeHtml(description)}</p></article><nav aria-label="Kapcsolódó oldalak"><h2>Kapcsolódó oldalak</h2><ul>${navigation}</ul></nav></main></body></html>`;
 }

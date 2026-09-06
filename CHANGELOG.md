@@ -11,6 +11,7 @@
 
 ### [Fixed] Typography consistency
 
+- Added crawler-specific semantic HTML for sitemap-backed public subpages and real cross-page navigation links in the homepage snapshot, so JavaScript-independent SEO crawlers can discover outgoing links instead of seeing only the empty SPA shell.
 - Added centralized canonical URL management for indexable public pages, aligned browser canonical and Open Graph URLs with the canonical production host, and extended the sitemap with the Open Source, installer, and active campaign landing-page URLs. Private, transactional, and campaign thank-you routes remain excluded from indexing.
 - Made the unlisted Lou Goossens Easter egg page safe at narrow mobile widths: the bitmap scales within the available viewport, compact header controls no longer compete for space, and long developer-note headings wrap without horizontal overflow.
 - Fixed public-navbar and admin-sidebar language selectors resetting immediately to the default locale when preference-cookie consent is absent. Both selectors now use the same enabled-language list and retain the chosen locale for the active session.
