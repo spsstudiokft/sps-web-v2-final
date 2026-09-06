@@ -5,6 +5,13 @@ import { landingCampaignPublicRouter } from "../src/server/landingCampaignRouter
 import { publicPushRouter } from "../src/server/publicPushRouter.js";
 
 export default createVercelApp((app) => {
+  // These responses support the public SPA during crawler rendering. Allow
+  // fetching them in robots.txt, while ensuring the JSON itself is not indexed.
+  app.use((_, res, next) => {
+    res.set("X-Robots-Tag", "noindex, nofollow, noarchive");
+    next();
+  });
+
   // These specialized public routers are mounted before the core fallback to
   // keep the Vercel function equivalent to the full local API router.
   app.use("/api/public/campaigns", landingCampaignPublicRouter);

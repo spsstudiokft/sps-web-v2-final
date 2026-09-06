@@ -161,13 +161,13 @@ export function LanguageProvider({
   const reloadTranslations = useCallback(async () => {
     try {
       invalidateClientTranslationCache();
-      await loadTranslationsFromDatabase();
+      await loadTranslationsFromDatabase(currentLang);
       setTranslationsReady(true);
       setRenderTrigger((prev) => prev + 1);
     } catch (err) {
       console.error("Failed to reload translations from database", err);
     }
-  }, []);
+  }, [currentLang]);
 
   // Initial load: fetch settings and database translations
   useEffect(() => {
@@ -178,7 +178,11 @@ export function LanguageProvider({
     }
 
     // Load database translations asynchronously
-    loadTranslationsFromDatabase()
+    // Fetch only the active locale at startup. The full translation database
+    // can exceed 1 MB and caused cancelled (499) first-load requests on
+    // slower connections. Built-in dictionaries remain the fallback for the
+    // other locales until a visitor selects one.
+    loadTranslationsFromDatabase(currentLang)
       .then(() => {
         setTranslationsReady(true);
         setRenderTrigger((prev) => prev + 1);
@@ -214,7 +218,12 @@ export function LanguageProvider({
       || defaultLang
       || "en";
 
-    if (currentLang !== fallback) setCurrentLang(fallback);
+    if (currentLang !== fallback) {
+      setCurrentLang(fallback);
+      void loadTranslationsFromDatabase(fallback)
+        .then(() => setRenderTrigger((prev) => prev + 1))
+        .catch(() => undefined);
+    }
     document.documentElement.lang = fallback;
     try {
       if (hasConsent("preferences")) localStorage.setItem("site_lang", fallback);
@@ -229,6 +238,9 @@ export function LanguageProvider({
       if (hasConsent("preferences")) localStorage.setItem("site_lang", normalized);
     } catch {}
     document.documentElement.lang = normalized;
+    void loadTranslationsFromDatabase(normalized)
+      .then(() => setRenderTrigger((prev) => prev + 1))
+      .catch(() => undefined);
   }, [supportedLangs]);
 
   const setCustomTranslationsMap = useCallback((translations: Record<string, Record<string, string>>) => {

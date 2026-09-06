@@ -29,6 +29,22 @@ function requestLike(req: any) {
   return { protocol: "https", get: (header: string) => String(req.headers?.[header.toLowerCase()] || "") };
 }
 
+function localizedText(value: unknown, fallback: string): string {
+  const raw = String(value || "").trim();
+  if (!raw) return fallback;
+  try {
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === "object") {
+      const translations = parsed as Record<string, unknown>;
+      const preferred = translations.hu || translations.en || Object.values(translations).find((entry) => typeof entry === "string" && entry.trim());
+      if (typeof preferred === "string" && preferred.trim()) return preferred.trim();
+    }
+  } catch {
+    // Plain database text is already suitable for the public SEO snapshot.
+  }
+  return raw;
+}
+
 /** Direct Vercel functions receive Node's ServerResponse, not Express' response. */
 function send(res: any, status: number, contentType: string, body: string) {
   res.statusCode = status;
@@ -53,15 +69,15 @@ export default async function handler(req: any, res: any) {
     if (kind === "portfolio" && parameter) {
       const result = await db.execute({ sql: "SELECT title, description FROM portfolio_items WHERE slug = ? AND is_published = 1 LIMIT 1", args: [parameter] });
       const item: any = result.rows[0];
-      if (item) page = { path: `/portfolio/${encodeURIComponent(parameter)}`, title: String(item.title || "SPS Studio portfólió"), description: String(item.description || "SPS Studio portfóliómunka.") };
+      if (item) page = { path: `/portfolio/${encodeURIComponent(parameter)}`, title: localizedText(item.title, "SPS Studio portfólió"), description: localizedText(item.description, "SPS Studio portfóliómunka.") };
     } else if (kind === "property" && parameter) {
       const result = await db.execute({ sql: `SELECT pl.title, pl.description FROM property_listings pl JOIN properties p ON p.id = pl.property_id AND p.archived_at IS NULL WHERE pl.id = ? AND pl.is_enabled = 1 LIMIT 1`, args: [parameter] });
       const item: any = result.rows[0];
-      if (item) page = { path: `/properties/${encodeURIComponent(parameter)}`, title: String(item.title || "Ingatlanhirdetés"), description: String(item.description || "SPS Studio ingatlanhirdetés.") };
+      if (item) page = { path: `/properties/${encodeURIComponent(parameter)}`, title: localizedText(item.title, "Ingatlanhirdetés"), description: localizedText(item.description, "SPS Studio ingatlanhirdetés.") };
     } else if (kind === "campaign" && parameter) {
       const result = await db.execute({ sql: "SELECT title, description FROM landing_campaigns WHERE slug = ? AND is_active = 1 LIMIT 1", args: [parameter] });
       const item: any = result.rows[0];
-      if (item) page = { path: `/${encodeURIComponent(parameter)}`, title: String(item.title || "SPS Studio kampány"), description: String(item.description || "SPS Studio kampányoldal.") };
+      if (item) page = { path: `/${encodeURIComponent(parameter)}`, title: localizedText(item.title, "SPS Studio kampány"), description: localizedText(item.description, "SPS Studio kampányoldal.") };
     } else {
       const staticPages: Record<string, { path: string; title: string; description: string }> = {
         properties: { path: "/properties", title: "Ingatlanhirdetések", description: "Aktív, részletes ingatlanhirdetések az SPS Studio felületén." },

@@ -5,6 +5,7 @@
 ### [Updated] Crawler access
 
 - Added explicit crawler policies for major search, AI, and social-preview bots. Crawlers arriving through either public hostname receive the same safe public-route access and the canonical `www.spsstudio.hu` sitemap.
+- Allowed `/api/public/` render resources for crawlers while returning `X-Robots-Tag: noindex` from those JSON endpoints, so public pages can load completely without indexing API payloads.
 - Aligned the server-rendered crawler HTML layer with those policies, so GPTBot, ChatGPT-User, and LinkedIn's preview crawler receive the same crawlable public-page snapshots as search bots.
 
 ### [Fixed] Crawler page delivery
@@ -12,6 +13,7 @@
 - Replaced Express-only response helpers in the direct Vercel SEO-page function with native server-response handling, preventing crawler requests to public subpages from failing with `FUNCTION_INVOCATION_FAILED` / HTTP 500.
 - Resolved localized database titles and descriptions before rendering crawler snapshots, preventing JSON translation objects from appearing in public SEO titles and headings.
 - Restored the visible `Új kampány` action in the admin campaign header and made campaign landing and thank-you pages use the uploaded site logo with a safe text fallback.
+- Reduced the initial translation request from the complete database dictionary to the active locale only, while loading a selected language on demand. This avoids avoidable large first-load requests that could be aborted with HTTP 499 on slower connections.
 
 ### [Updated] Translation audit coverage
 

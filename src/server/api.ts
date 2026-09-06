@@ -2069,6 +2069,10 @@ router.get(["/public/robots.txt", "/robots.txt"], (req, res) => {
   // crawler group: a specific group otherwise overrides `User-agent: *`.
   const crawlRules = [
     "Allow: /",
+    // Public JSON is required while crawlers render the SPA.  The more
+    // specific Allow rule wins over the broader /api/ restriction below.
+    // Responses themselves are marked noindex by the public API middleware.
+    "Allow: /api/public/",
     "Disallow: /admin/",
     "Disallow: /admin/developer/",
     "Disallow: /client/",

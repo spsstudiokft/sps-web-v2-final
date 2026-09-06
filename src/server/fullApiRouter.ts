@@ -20,6 +20,12 @@ import { exitCouponAdminRouter, exitCouponPublicRouter } from "./exitCouponRoute
 const fullApiRouter = Router();
 
 fullApiRouter.use(systemRouter);
+// Crawlers may fetch public configuration while rendering a public page, but
+// JSON endpoints must never become standalone search results.
+fullApiRouter.use("/public", (_req, res, next) => {
+  res.set("X-Robots-Tag", "noindex, nofollow, noarchive");
+  next();
+});
 fullApiRouter.use(coreRouter);
 fullApiRouter.use("/public/invoices", publicInvoiceRouter);
 fullApiRouter.use("/public/referrals", publicReferralRouter);
