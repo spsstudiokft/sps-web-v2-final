@@ -140,6 +140,10 @@
       "destination": "/api/system.ts"
     },
     {
+      "source": "/api/health/:match*",
+      "destination": "/api/system.ts"
+    },
+    {
       "source": "/api/status-summary",
       "destination": "/api/system.ts"
     },

@@ -18,6 +18,10 @@ async function ensureExitCouponSchema() {
 }
 
 async function readConfig() {
+  // Config is the first endpoint the public page and admin screen call. Make
+  // it the migration gate as well, rather than deferring schema creation until
+  // the first issued coupon is queried or claimed.
+  await ensureExitCouponSchema();
   const result = await db.execute({ sql: "SELECT key, value FROM settings WHERE key IN ('exit_coupon_enabled', 'exit_coupon_expires_days', 'exit_coupon_repeat_days', 'exit_coupon_repeat_visits')", args: [] });
   const values = result.rows.reduce((acc: Record<string, string>, row: any) => ({ ...acc, [String(row.key)]: String(row.value || "") }), {});
   return { enabled: ["1", "true"].includes(values.exit_coupon_enabled?.toLowerCase() || ""), expiresDays: Math.min(90, Math.max(1, Number(values.exit_coupon_expires_days || 14) || 14)), repeatDays: Math.min(365, Math.max(1, Number(values.exit_coupon_repeat_days || 30) || 30)), repeatVisits: Math.min(100, Math.max(1, Number(values.exit_coupon_repeat_visits || 5) || 5)) };

@@ -275,6 +275,20 @@ export const generatedApiRoutes = [
   },
   {
     "method": "GET",
+    "path": "/api/admin/client-feedback/:id/typing",
+    "summary": "Reads the client feedback resource.",
+    "access": "Admin",
+    "source": "adminRouter.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/admin/client-feedback/:id/typing",
+    "summary": "Creates or triggers an action for the client feedback resource.",
+    "access": "Admin",
+    "source": "adminRouter.ts"
+  },
+  {
+    "method": "GET",
     "path": "/api/admin/clients",
     "summary": "Reads the clients resource.",
     "access": "Admin",
@@ -1359,8 +1373,29 @@ export const generatedApiRoutes = [
     "source": "adminRouter.ts"
   },
   {
+    "method": "DELETE",
+    "path": "/api/admin/notifications/:id",
+    "summary": "Deletes the notifications resource.",
+    "access": "Admin",
+    "source": "adminRouter.ts"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/admin/notifications/:id/archive",
+    "summary": "Partially updates the notifications resource.",
+    "access": "Admin",
+    "source": "adminRouter.ts"
+  },
+  {
     "method": "PATCH",
     "path": "/api/admin/notifications/:id/read",
+    "summary": "Partially updates the notifications resource.",
+    "access": "Admin",
+    "source": "adminRouter.ts"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/admin/notifications/:id/unarchive",
     "summary": "Partially updates the notifications resource.",
     "access": "Admin",
     "source": "adminRouter.ts"
@@ -2340,6 +2375,20 @@ export const generatedApiRoutes = [
   },
   {
     "method": "GET",
+    "path": "/api/admin/workspace-chat/staff/conversations/:id/typing",
+    "summary": "Reads the workspace chat resource.",
+    "access": "Admin",
+    "source": "adminRouter.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/admin/workspace-chat/staff/conversations/:id/typing",
+    "summary": "Creates or triggers an action for the workspace chat resource.",
+    "access": "Admin",
+    "source": "adminRouter.ts"
+  },
+  {
+    "method": "GET",
     "path": "/api/admin/workspace-chat/staff/members",
     "summary": "Reads the workspace chat resource.",
     "access": "Admin",
@@ -2508,6 +2557,20 @@ export const generatedApiRoutes = [
   },
   {
     "method": "GET",
+    "path": "/api/client/feedback/conversations/:id/typing",
+    "summary": "Reads the feedback resource.",
+    "access": "Client",
+    "source": "clientRouter.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/client/feedback/conversations/:id/typing",
+    "summary": "Creates or triggers an action for the feedback resource.",
+    "access": "Client",
+    "source": "clientRouter.ts"
+  },
+  {
+    "method": "GET",
     "path": "/api/client/help",
     "summary": "Reads the help resource.",
     "access": "Client",
@@ -2563,8 +2626,29 @@ export const generatedApiRoutes = [
     "source": "clientRouter.ts"
   },
   {
+    "method": "DELETE",
+    "path": "/api/client/notifications/:id",
+    "summary": "Deletes the notifications resource.",
+    "access": "Client",
+    "source": "clientRouter.ts"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/client/notifications/:id/archive",
+    "summary": "Partially updates the notifications resource.",
+    "access": "Client",
+    "source": "clientRouter.ts"
+  },
+  {
     "method": "PATCH",
     "path": "/api/client/notifications/:id/read",
+    "summary": "Partially updates the notifications resource.",
+    "access": "Client",
+    "source": "clientRouter.ts"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/client/notifications/:id/unarchive",
     "summary": "Partially updates the notifications resource.",
     "access": "Client",
     "source": "clientRouter.ts"
