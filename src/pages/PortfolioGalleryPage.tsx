@@ -10,6 +10,7 @@ import { t } from "../lib/i18n";
 import { getNormalizedGallery, isVideoMedia, parseVideoUrl } from "../lib/mediaUtils";
 import { getResponsiveImageAttributes } from "../lib/responsiveImage";
 import { ErrorPage } from "./ErrorPage";
+import { getCanonicalUrl } from "../lib/canonicalUrl";
 
 function setMeta(selector: string, attributes: Record<string, string>) {
   let element = document.head.querySelector<HTMLMetaElement>(selector);
@@ -95,7 +96,7 @@ function PortfolioGalleryContent({ settings, item, notFound }: { settings: SiteS
 
   useEffect(() => {
     const previousTitle = document.title;
-    const canonical = `${window.location.origin}/portfolio/${item?.slug || ""}`;
+    const canonical = getCanonicalUrl(`/portfolio/${item?.slug || ""}`);
     const cover = mediaItems.find((media) => !isVideoMedia(media));
     const coverUrl = cover?.compressed_url || cover?.thumbnail_url || cover?.url || item?.thumbnail_url || "";
     const seoTitle = item ? `${title} | ${tUi("portfolio.page.seo_suffix")}` : tUi("portfolio.page.not_found_title");

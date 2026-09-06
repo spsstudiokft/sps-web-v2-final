@@ -8,6 +8,7 @@ import { lazy, ReactNode, Suspense } from "react";
 import { AuthProvider, SESSION_ENDED_KEY, useAuth } from "./contexts/AuthContext";
 import { ThemeProvider } from "./components/ThemeProvider";
 import { LanguageProvider } from "./contexts/LanguageContext";
+import { CanonicalUrlManager } from "./components/CanonicalUrlManager";
 import PublicHome from "./pages/PublicHome";
 import { IncidentStatusWidget } from "./components/common/IncidentStatusWidget";
 import { WhatsAppChatBubble } from "./components/public/WhatsAppChatBubble";
@@ -163,6 +164,7 @@ const ProtectedPropertyRoute = ({ children }: { children: ReactNode }) => {
 export default function App() {
   return (
     <BrowserRouter>
+      <CanonicalUrlManager />
       <ThemeProvider>
         <AuthProvider><AdminCurrencyProvider><AppFeedbackProvider>
           <LanguageProvider>
