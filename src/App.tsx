@@ -19,6 +19,7 @@ import { BackgroundUploadProvider } from "./contexts/BackgroundUploadContext";
 import { AdminCurrencyProvider } from "./contexts/AdminCurrencyContext";
 import { CookieConsentProvider } from "./components/public/CookieConsent";
 import { AppFeedbackProvider } from "./components/common/AppFeedbackProvider";
+import { getPortalForHostname, getPortalLaunchPath } from "./lib/pwaPortal";
 
 const AdminLogin = lazy(() => import("./pages/AdminLogin"));
 const AdminSetup = lazy(() => import("./pages/AdminSetup"));
@@ -161,6 +162,12 @@ const ProtectedPropertyRoute = ({ children }: { children: ReactNode }) => {
   }
 };
 
+function PortalHostnameHome() {
+  if (typeof window === "undefined") return <PublicHome />;
+  const portal = getPortalForHostname(window.location.hostname);
+  return portal ? <Navigate to={getPortalLaunchPath(portal)} replace /> : <PublicHome />;
+}
+
 export default function App() {
   return (
     <BrowserRouter>
@@ -176,7 +183,7 @@ export default function App() {
               <Suspense fallback={<div className="min-h-screen bg-background" aria-busy="true" />}>
               <Routes>
               <Route element={<CookieConsentProvider><ComingSoonGate /></CookieConsentProvider>}>
-                <Route path="/" element={<PublicHome />} />
+                <Route path="/" element={<PortalHostnameHome />} />
                 <Route path="/changelog" element={<ChangelogPage />} />
                 <Route path="/contact/*" element={<Navigate to={{ pathname: "/", hash: "#contact" }} replace />} />
                 <Route path="/portfolio/:slug" element={<PortfolioGalleryPage />} />

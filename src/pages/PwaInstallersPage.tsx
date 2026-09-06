@@ -3,11 +3,12 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Download, ShieldCheck } from "lucide-react";
 import { Footer } from "../components/public/Footer";
 import { Header } from "../components/public/Header";
+import { getPortalLaunchUrl } from "../lib/pwaPortal";
 
 const apps = [
-  { title: "SPS Studio Admin", description: "Belső adminisztráció, projektek és csapatmunka.", href: "/admin/", scope: "/admin/" },
-  { title: "SPS Client Portal", description: "Ügyfélprojektek, számlák, fájlok és értesítések.", href: "/client/", scope: "/client/" },
-  { title: "SPS Property Manager", description: "Ingatlanos fiókok és hirdetési folyamatok.", href: "/property-listings/manager", scope: "/property-listings/" },
+  { title: "SPS Studio Admin", description: "Belső adminisztráció, projektek és csapatmunka.", href: getPortalLaunchUrl("admin"), scope: "admin.spsstudio.hu" },
+  { title: "SPS Client Portal", description: "Ügyfélprojektek, számlák, fájlok és értesítések.", href: getPortalLaunchUrl("client"), scope: "client.spsstudio.hu" },
+  { title: "SPS Property Manager", description: "Ingatlanos fiókok és hirdetési folyamatok.", href: getPortalLaunchUrl("property"), scope: "property.spsstudio.hu" },
 ];
 
 export default function PwaInstallersPage() {

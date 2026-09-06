@@ -3,11 +3,9 @@ import {createRoot} from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
 import { initBotId } from 'botid/client/core';
+import { getPwaPortalConfiguration } from './lib/pwaPortal.ts';
 
-const pwaConfiguration = window.location.pathname.startsWith('/admin/') ? { manifest: '/admin/manifest.webmanifest', worker: '/admin/pwa-sw.js', scope: '/admin/' }
-  : window.location.pathname.startsWith('/client/') ? { manifest: '/client/manifest.webmanifest', worker: '/client/pwa-sw.js', scope: '/client/' }
-  : window.location.pathname.startsWith('/property-listings/') ? { manifest: '/property-listings/manifest.webmanifest', worker: '/property-listings/pwa-sw.js', scope: '/property-listings/' }
-  : null;
+const pwaConfiguration = getPwaPortalConfiguration(window.location.pathname, window.location.hostname, window.location.origin);
 
 if (pwaConfiguration) {
   const manifest = document.createElement('link'); manifest.rel = 'manifest'; manifest.href = pwaConfiguration.manifest; document.head.appendChild(manifest);

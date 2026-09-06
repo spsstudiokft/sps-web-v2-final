@@ -2,6 +2,11 @@
 
 ## 2026-09-06
 
+### [Updated] PWA origin isolation
+
+- Prepared Admin, Client Portal, and Property Manager installations for the dedicated `admin.spsstudio.hu`, `client.spsstudio.hu`, and `property.spsstudio.hu` origins. Each installation now receives an independent browser-storage, service-worker, and cache boundary instead of sharing the main site's origin on Android Chrome.
+- Updated the installer links to open the dedicated portal origins and added a Cloudflare–Vercel DNS, TLS, verification, and rollback guide.
+
 ### [Updated] Crawler access
 
 - Added explicit crawler policies for major search, AI, and social-preview bots. Crawlers arriving through either public hostname receive the same safe public-route access and the canonical `www.spsstudio.hu` sitemap.
