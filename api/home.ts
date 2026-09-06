@@ -5,7 +5,7 @@ import { loadPublicSeoSnapshot } from "../src/server/api.js";
 import { getCanonicalPublicUrl } from "../src/server/appUrl.js";
 import { renderPublicSeoHome } from "../src/server/publicSeoHtml.js";
 
-const crawlerPattern = /(Googlebot|bingbot|Baiduspider|YandexBot|DuckDuckBot|facebookexternalhit|Twitterbot|Slackbot)/i;
+const crawlerPattern = /(Googlebot|bingbot|Baiduspider|YandexBot|DuckDuckBot|facebookexternalhit|Twitterbot|LinkedInBot|Slackbot|AhrefsBot|SemrushBot|OAI-SearchBot|GPTBot|ChatGPT-User)/i;
 
 function readBuiltIndex() {
   const file = path.join(process.cwd(), "dist", "app-shell.html");

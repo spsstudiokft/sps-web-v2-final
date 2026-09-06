@@ -1,11 +1,10 @@
 import fs from "node:fs";
 import path from "node:path";
-import { createVercelApp } from "../src/server/vercelApp.js";
+import { db, setupDatabase } from "../src/db.js";
 import { getCanonicalPublicUrl } from "../src/server/appUrl.js";
-import { db } from "../src/db.js";
 import { renderPublicSeoPage } from "../src/server/publicSeoHtml.js";
 
-const crawlerPattern = /(Googlebot|bingbot|Baiduspider|YandexBot|DuckDuckBot|facebookexternalhit|Twitterbot|Slackbot|AhrefsBot|SemrushBot)/i;
+const crawlerPattern = /(Googlebot|bingbot|Baiduspider|YandexBot|DuckDuckBot|facebookexternalhit|Twitterbot|LinkedInBot|Slackbot|AhrefsBot|SemrushBot|OAI-SearchBot|GPTBot|ChatGPT-User)/i;
 const relatedLinks = [
   { href: "/", label: "SPS Studio főoldal" },
   { href: "/properties", label: "Ingatlanhirdetések" },
@@ -20,48 +19,64 @@ function readBuiltIndex() {
   return fs.readFileSync(file, "utf8");
 }
 
-function requestedPath(req: any) {
-  const value = Array.isArray(req.query?.path) ? req.query.path[0] : req.query?.path;
-  const decoded = decodeURIComponent(String(value || "")).trim();
-  return decoded.startsWith("/") ? decoded.replace(/\/+$/, "") || "/" : "/";
+function queryValue(req: any, key: string) {
+  const value = req.query?.[key];
+  return String(Array.isArray(value) ? value[0] : value || "").trim();
 }
 
-export default createVercelApp((app) => {
-  app.get(["/api/seo-page", "/seo-page"], async (req: any, res: any) => {
-    try {
-      if (!crawlerPattern.test(String(req.get("user-agent") || ""))) return res.type("html").send(readBuiltIndex());
-      const route = requestedPath(req);
-      let title = "SPS Studio";
-      let description = "SPS Studio publikus oldal.";
+function requestLike(req: any) {
+  return { protocol: "https", get: (header: string) => String(req.headers?.[header.toLowerCase()] || "") };
+}
 
-      if (/^\/portfolio\/[^/]+$/.test(route)) {
-        const slug = route.split("/")[2];
-        const result = await db.execute({ sql: "SELECT title, description FROM portfolio_items WHERE slug = ? AND is_published = 1 LIMIT 1", args: [slug] });
-        if (!result.rows.length) return res.status(404).type("text/plain").send("Not found");
-        const item: any = result.rows[0]; title = String(item.title || "SPS Studio portfólió"); description = String(item.description || "SPS Studio portfóliómunka.");
-      } else if (/^\/properties\/[^/]+$/.test(route)) {
-        const id = route.split("/")[2];
-        const result = await db.execute({ sql: `SELECT pl.title, pl.description FROM property_listings pl JOIN properties p ON p.id = pl.property_id AND p.archived_at IS NULL WHERE pl.id = ? AND pl.is_enabled = 1 LIMIT 1`, args: [id] });
-        if (!result.rows.length) return res.status(404).type("text/plain").send("Not found");
-        const item: any = result.rows[0]; title = String(item.title || "Ingatlanhirdetés"); description = String(item.description || "SPS Studio ingatlanhirdetés.");
-      } else if (route === "/properties") {
-        title = "Ingatlanhirdetések"; description = "Aktív, részletes ingatlanhirdetések az SPS Studio felületén.";
-      } else if (route === "/changelog") {
-        title = "Változásnapló"; description = "Az SPS Studio nyilvános fejlesztési változásnaplója.";
-      } else if (route === "/open-source") {
-        title = "Open Source"; description = "Az SPS Studio nyílt forrású projektjei és fejlesztői eszközei.";
-      } else if (route === "/installers") {
-        title = "SPS Studio alkalmazások"; description = "Telepítési útmutató az SPS Studio alkalmazásaihoz.";
-      } else {
-        return res.status(404).type("text/plain").send("Not found");
-      }
-
-      res.set("Vary", "User-Agent").set("Vercel-CDN-Cache-Control", "no-store").type("html").send(
-        renderPublicSeoPage({ origin: getCanonicalPublicUrl(req), path: route, title, description, links: relatedLinks.filter((link) => link.href !== route) }),
-      );
-    } catch (error) {
-      console.error("Public SEO subpage generation error:", error);
-      res.status(500).type("text/plain").send("Public page snapshot unavailable");
+export default async function handler(req: any, res: any) {
+  try {
+    // Never let crawler-only data fetching affect the normal SPA response.
+    if (!crawlerPattern.test(String(req.headers?.["user-agent"] || ""))) {
+      res.setHeader("Vary", "User-Agent");
+      res.setHeader("Vercel-CDN-Cache-Control", "no-store");
+      return res.status(200).type("html").send(readBuiltIndex());
     }
-  });
-});
+
+    await setupDatabase();
+    const kind = queryValue(req, "kind");
+    const parameter = decodeURIComponent(queryValue(req, "value"));
+    let page: { path: string; title: string; description: string } | null = null;
+
+    if (kind === "portfolio" && parameter) {
+      const result = await db.execute({ sql: "SELECT title, description FROM portfolio_items WHERE slug = ? AND is_published = 1 LIMIT 1", args: [parameter] });
+      const item: any = result.rows[0];
+      if (item) page = { path: `/portfolio/${encodeURIComponent(parameter)}`, title: String(item.title || "SPS Studio portfólió"), description: String(item.description || "SPS Studio portfóliómunka.") };
+    } else if (kind === "property" && parameter) {
+      const result = await db.execute({ sql: `SELECT pl.title, pl.description FROM property_listings pl JOIN properties p ON p.id = pl.property_id AND p.archived_at IS NULL WHERE pl.id = ? AND pl.is_enabled = 1 LIMIT 1`, args: [parameter] });
+      const item: any = result.rows[0];
+      if (item) page = { path: `/properties/${encodeURIComponent(parameter)}`, title: String(item.title || "Ingatlanhirdetés"), description: String(item.description || "SPS Studio ingatlanhirdetés.") };
+    } else if (kind === "campaign" && parameter) {
+      const result = await db.execute({ sql: "SELECT title, description FROM landing_campaigns WHERE slug = ? AND is_active = 1 LIMIT 1", args: [parameter] });
+      const item: any = result.rows[0];
+      if (item) page = { path: `/${encodeURIComponent(parameter)}`, title: String(item.title || "SPS Studio kampány"), description: String(item.description || "SPS Studio kampányoldal.") };
+    } else {
+      const staticPages: Record<string, { path: string; title: string; description: string }> = {
+        properties: { path: "/properties", title: "Ingatlanhirdetések", description: "Aktív, részletes ingatlanhirdetések az SPS Studio felületén." },
+        changelog: { path: "/changelog", title: "Változásnapló", description: "Az SPS Studio nyilvános fejlesztési változásnaplója." },
+        "open-source": { path: "/open-source", title: "Open Source", description: "Az SPS Studio nyílt forrású projektjei és fejlesztői eszközei." },
+        installers: { path: "/installers", title: "SPS Studio alkalmazások", description: "Telepítési útmutató az SPS Studio alkalmazásaihoz." },
+      };
+      page = staticPages[kind] || null;
+    }
+
+    if (!page) return res.status(404).type("text/plain").send("Not found");
+    const origin = getCanonicalPublicUrl(requestLike(req));
+    res.setHeader("Vary", "User-Agent");
+    res.setHeader("Vercel-CDN-Cache-Control", "no-store");
+    return res.status(200).type("html").send(renderPublicSeoPage({
+      origin,
+      path: page.path,
+      title: page.title,
+      description: page.description,
+      links: relatedLinks.filter((link) => link.href !== page!.path),
+    }));
+  } catch (error) {
+    console.error("Public SEO subpage generation error:", error);
+    return res.status(500).type("text/plain").send("Public page snapshot unavailable");
+  }
+}

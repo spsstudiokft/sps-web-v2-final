@@ -2027,7 +2027,7 @@ const sitemapVideos = (origin: string, rawMedia: unknown, fallbackTitle: unknown
 router.get(["/public/sitemap.xml", "/sitemap.xml"], async (req, res) => {
   try {
     const origin = getCanonicalPublicUrl(req).replace(/\/$/, "");
-    const [portfolioResult, propertiesResult, campaignsResult] = await Promise.all([
+    const [portfolioResult, propertiesResult] = await Promise.all([
       db.execute(`SELECT slug, title, description, image_urls, COALESCE(updated_at, created_at) AS lastmod
                   FROM portfolio_items
                   WHERE is_published = 1 AND slug IS NOT NULL AND TRIM(slug) != ''
@@ -2040,10 +2040,6 @@ router.get(["/public/sitemap.xml", "/sitemap.xml"], async (req, res) => {
                   JOIN properties p ON p.id = pl.property_id AND p.archived_at IS NULL
                   WHERE pl.is_enabled = 1
                   ORDER BY pl.updated_at DESC, pl.created_at DESC`),
-      db.execute(`SELECT slug, COALESCE(updated_at, created_at) AS lastmod
-                  FROM landing_campaigns
-                  WHERE is_active = 1 AND slug IS NOT NULL AND TRIM(slug) != ''
-                  ORDER BY updated_at DESC, created_at DESC`),
     ]);
     const urls = [
       `<url><loc>${escapeXml(origin)}/</loc><changefreq>weekly</changefreq><priority>1.0</priority></url>`,
@@ -2053,7 +2049,6 @@ router.get(["/public/sitemap.xml", "/sitemap.xml"], async (req, res) => {
       `<url><loc>${escapeXml(origin)}/installers</loc><changefreq>monthly</changefreq><priority>0.4</priority></url>`,
       ...portfolioResult.rows.map((row: any) => `<url><loc>${escapeXml(origin)}/portfolio/${encodeURIComponent(String(row.slug))}</loc>${sitemapLastModified(row.lastmod)}<changefreq>monthly</changefreq><priority>0.8</priority>${sitemapImages(origin, row.image_urls, row.title)}${sitemapVideos(origin, row.image_urls, row.title, row.description)}</url>`),
       ...propertiesResult.rows.map((row: any) => `<url><loc>${escapeXml(origin)}/properties/${encodeURIComponent(String(row.id))}</loc>${sitemapLastModified(row.lastmod)}<changefreq>weekly</changefreq><priority>0.7</priority>${sitemapImages(origin, row.image_urls, row.title)}</url>`),
-      ...campaignsResult.rows.map((row: any) => `<url><loc>${escapeXml(origin)}/${encodeURIComponent(String(row.slug))}</loc>${sitemapLastModified(row.lastmod)}<changefreq>weekly</changefreq><priority>0.6</priority></url>`),
     ];
     res.set("Content-Type", "application/xml; charset=utf-8");
     res.set("Cache-Control", "public, max-age=300, s-maxage=3600, stale-while-revalidate=86400");
@@ -2069,8 +2064,10 @@ router.get(["/public/sitemap.xml", "/sitemap.xml"], async (req, res) => {
 // original rewritten path. Keep private application areas out of crawlers.
 router.get(["/public/robots.txt", "/robots.txt"], (req, res) => {
   const origin = getCanonicalPublicUrl(req).replace(/\/$/, "");
-  res.type("text/plain").set("Cache-Control", "public, max-age=300, s-maxage=3600").send([
-    "User-agent: *",
+  // Requests can reach Vercel through the apex alias before the canonical
+  // www host is selected. Duplicate the private-route policy in each explicit
+  // crawler group: a specific group otherwise overrides `User-agent: *`.
+  const crawlRules = [
     "Allow: /",
     "Disallow: /admin/",
     "Disallow: /admin/developer/",
@@ -2081,6 +2078,25 @@ router.get(["/public/robots.txt", "/robots.txt"], (req, res) => {
     "Disallow: /invoice/",
     "Disallow: /invoices/",
     "Disallow: /property-listings/",
+  ];
+  const crawlerGroups = [
+    "Googlebot",
+    "Googlebot-Image",
+    "bingbot",
+    "BingPreview",
+    "OAI-SearchBot",
+    "GPTBot",
+    "ChatGPT-User",
+    "facebookexternalhit",
+    "Twitterbot",
+    "LinkedInBot",
+    "Slackbot",
+  ];
+
+  res.type("text/plain").set("Cache-Control", "public, max-age=300, s-maxage=3600").send([
+    ...crawlerGroups.flatMap((crawler) => [`User-agent: ${crawler}`, ...crawlRules, ""]),
+    "User-agent: *",
+    ...crawlRules,
     "",
     `Sitemap: ${origin}/sitemap.xml`,
   ].join("\n"));

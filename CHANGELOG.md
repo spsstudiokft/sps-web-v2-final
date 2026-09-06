@@ -2,6 +2,11 @@
 
 ## 2026-09-06
 
+### [Updated] Crawler access
+
+- Added explicit crawler policies for major search, AI, and social-preview bots. Crawlers arriving through either public hostname receive the same safe public-route access and the canonical `www.spsstudio.hu` sitemap.
+- Aligned the server-rendered crawler HTML layer with those policies, so GPTBot, ChatGPT-User, and LinkedIn's preview crawler receive the same crawlable public-page snapshots as search bots.
+
 ### [Updated] Translation audit coverage
 
 - Replaced the admin-only regex localization scan with an AST-based audit covering every public, authentication, client-portal, admin, and shared React surface, including visible JSX text and translatable `placeholder`, `title`, `aria-label`, and `alt` attributes while excluding content already passed through the translation runtime.
@@ -11,7 +16,7 @@
 
 ### [Fixed] Typography consistency
 
-- Added real cross-page navigation links to the crawler-facing homepage snapshot, allowing JavaScript-independent SEO crawlers to discover the public sitemap sections from the site entry point without changing public SPA routing.
+- Extended the crawler-facing SEO layer from the homepage to sitemap-backed public detail pages, including real internal navigation links and per-page canonical metadata. Human requests bypass database work and receive the unchanged SPA shell, preventing crawler rendering from affecting normal routing. Added a repeatable SEO crawler-route audit.
 - Added centralized canonical URL management for indexable public pages, aligned browser canonical and Open Graph URLs with the canonical production host, and extended the sitemap with the Open Source, installer, and active campaign landing-page URLs. Private, transactional, and campaign thank-you routes remain excluded from indexing.
 - Made the unlisted Lou Goossens Easter egg page safe at narrow mobile widths: the bitmap scales within the available viewport, compact header controls no longer compete for space, and long developer-note headings wrap without horizontal overflow.
 - Fixed public-navbar and admin-sidebar language selectors resetting immediately to the default locale when preference-cookie consent is absent. Both selectors now use the same enabled-language list and retain the chosen locale for the active session.
