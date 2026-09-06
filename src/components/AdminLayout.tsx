@@ -1,6 +1,6 @@
 import { Outlet, Link, useLocation } from "react-router-dom";
 import { Sidebar } from "./admin/Sidebar";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useApi } from "../hooks/useApi";
 import { useLanguage } from "../contexts/LanguageContext";
 import { Menu, Globe } from "lucide-react";
@@ -8,6 +8,8 @@ import { useAuth } from "../contexts/AuthContext";
 import { canAccessAdminRoute } from "../lib/adminPermissions";
 import { useAdminMenuPermissions } from "../hooks/useAdminMenuPermissions";
 import { ErrorPage } from "../pages/ErrorPage";
+import { AdminWorkspacePanel } from "./admin/AdminWorkspacePanel";
+import { AdminQuickActionLauncher } from "./admin/AdminQuickActionLauncher";
 
 export default function AdminLayout() {
   const { tUi } = useLanguage();
@@ -81,8 +83,14 @@ export default function AdminLayout() {
 
       {/* Main App Content Viewport */}
       <main className={`aero-workspace-main min-h-0 min-w-0 flex-1 text-text ${location.pathname === "/admin/calendar" ? "overflow-hidden" : "overflow-auto"}`}>
-        {hasRouteAccess ? <Outlet /> : <ErrorPage status={403} embedded />}
+        {hasRouteAccess ? (
+          <Suspense fallback={<div className="flex min-h-full items-center justify-center" aria-busy="true"><div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" /></div>}>
+            <Outlet />
+          </Suspense>
+        ) : <ErrorPage status={403} embedded />}
       </main>
+      <AdminWorkspacePanel />
+      <AdminQuickActionLauncher />
     </div>
   );
 }

@@ -56,6 +56,8 @@ import { adminEmailRuntimeTranslations } from "./adminEmailRuntimeTranslations.j
 import { localDemoTranslations } from "./localDemoTranslations.js";
 import { pricingUiTranslations } from "./pricingUiTranslations.js";
 import { publicPagesTranslations } from "./publicPagesTranslations.js";
+import { campaignTranslations } from "./campaignTranslations.js";
+import { workspaceChatTranslations } from "./workspaceChatTranslations.js";
 
 export type TranslationDictionary = Record<string, string>;
 
@@ -1409,6 +1411,7 @@ export const enTranslations: Record<string, string> = {
   "contact.availability_past": "Start date and time cannot be in the past.",
   "contact.availability_required": "Please select both a start and end date and time.",
   "contact.availability_to": "Latest / To",
+  "contact.add_package": "Add a package or bundle",
   "contact.call_us": "Call Us",
   "contact.clear_plan": "Clear Selection",
   "contact.direct_contact": "Direct Inquiries",
@@ -1436,6 +1439,10 @@ export const enTranslations: Record<string, string> = {
   "contact.phone_optional": "Phone Number (Optional)",
   "contact.phone_placeholder": "+1 (555) 000-0000",
   "contact.phone_required": "Phone Number *",
+  "contact.package": "Package",
+  "contact.bundle": "Bundle",
+  "contact.package_subtotal": "Packages subtotal:",
+  "contact.plan_currency_mismatch": "Packages with different currencies cannot be combined.",
   "contact.property_address": "Property Address (Optional)",
   "contact.property_address_placeholder": "e.g. 124 Ocean Drive, Miami, FL",
   "contact.reset_template": "Reset to Default Template",
@@ -3219,6 +3226,7 @@ export const defaultLocales: Record<string, Record<string, string>> = {
   "contact.availability_past": "A kezdő dátum és időpont nem lehet a múltban.",
   "contact.availability_required": "Kérjük, válasszon kezdő és befejező dátumot és időpontot is.",
   "contact.availability_to": "Legkésőbb / -ig",
+  "contact.add_package": "Csomag vagy csomagajánlat hozzáadása",
   "contact.call_us": "Hívjon minket",
   "contact.clear_plan": "Kijelölés törlése",
   "contact.direct_contact": "Közvetlen Elérhetőségek",
@@ -3246,6 +3254,10 @@ export const defaultLocales: Record<string, Record<string, string>> = {
   "contact.phone_optional": "Telefonszám (Opcionális)",
   "contact.phone_placeholder": "+36 30 123 4567",
   "contact.phone_required": "Telefonszám *",
+  "contact.package": "Csomag",
+  "contact.bundle": "Csomagajánlat",
+  "contact.package_subtotal": "Csomagok részösszege:",
+  "contact.plan_currency_mismatch": "Eltérő pénznemű csomagok nem kombinálhatók.",
   "contact.property_address": "Ingatlan Címe (Opcionális)",
   "contact.property_address_placeholder": "pl. 1052 Budapest, Váci utca 12.",
   "contact.reset_template": "Visszaállítás az alapértelmezett sablonra",
@@ -5025,6 +5037,7 @@ export const defaultLocales: Record<string, Record<string, string>> = {
   "contact.availability_past": "Startdatum und -uhrzeit dürfen nicht in der Vergangenheit liegen.",
   "contact.availability_required": "Bitte wählen Sie sowohl Start- als auch Enddatum und -uhrzeit aus.",
   "contact.availability_to": "Spätestens / Bis",
+  "contact.add_package": "Paket oder Bundle hinzufügen",
   "contact.call_us": "Call Us",
   "contact.clear_plan": "Auswahl aufheben",
   "contact.direct_contact": "Direct Inquiries",
@@ -5052,6 +5065,10 @@ export const defaultLocales: Record<string, Record<string, string>> = {
   "contact.phone_optional": "Phone Number (Optional)",
   "contact.phone_placeholder": "+1 (555) 000-0000",
   "contact.phone_required": "Phone Number *",
+  "contact.package": "Paket",
+  "contact.bundle": "Bundle",
+  "contact.package_subtotal": "Zwischensumme der Pakete:",
+  "contact.plan_currency_mismatch": "Pakete mit unterschiedlichen Währungen können nicht kombiniert werden.",
   "contact.property_address": "Property Address (Optional)",
   "contact.property_address_placeholder": "e.g. 124 Ocean Drive, Miami, FL",
   "contact.reset_template": "Auf Standardvorlage zurücksetzen",
@@ -6831,6 +6848,7 @@ export const defaultLocales: Record<string, Record<string, string>> = {
   "contact.availability_past": "La fecha y hora de inicio no pueden estar en el pasado.",
   "contact.availability_required": "Por favor seleccione fecha y hora de inicio y fin.",
   "contact.availability_to": "Más tarde / Hasta",
+  "contact.add_package": "Añadir un paquete o bundle",
   "contact.call_us": "Call Us",
   "contact.clear_plan": "Borrar selección",
   "contact.direct_contact": "Direct Inquiries",
@@ -6858,6 +6876,10 @@ export const defaultLocales: Record<string, Record<string, string>> = {
   "contact.phone_optional": "Phone Number (Optional)",
   "contact.phone_placeholder": "+1 (555) 000-0000",
   "contact.phone_required": "Phone Number *",
+  "contact.package": "Paquete",
+  "contact.bundle": "Bundle",
+  "contact.package_subtotal": "Subtotal de paquetes:",
+  "contact.plan_currency_mismatch": "No se pueden combinar paquetes con diferentes monedas.",
   "contact.property_address": "Property Address (Optional)",
   "contact.property_address_placeholder": "e.g. 124 Ocean Drive, Miami, FL",
   "contact.reset_template": "Restablecer plantilla predeterminada",
@@ -8637,6 +8659,7 @@ export const defaultLocales: Record<string, Record<string, string>> = {
   "contact.availability_past": "La date et l'heure de début ne peuvent pas être dans le passé.",
   "contact.availability_required": "Veuillez sélectionner une date et heure de début et de fin.",
   "contact.availability_to": "Au plus tard / À",
+  "contact.add_package": "Ajouter un forfait ou un pack",
   "contact.call_us": "Call Us",
   "contact.clear_plan": "Effacer la sélection",
   "contact.direct_contact": "Direct Inquiries",
@@ -8664,6 +8687,10 @@ export const defaultLocales: Record<string, Record<string, string>> = {
   "contact.phone_optional": "Phone Number (Optional)",
   "contact.phone_placeholder": "+1 (555) 000-0000",
   "contact.phone_required": "Phone Number *",
+  "contact.package": "Forfait",
+  "contact.bundle": "Pack",
+  "contact.package_subtotal": "Sous-total des forfaits :",
+  "contact.plan_currency_mismatch": "Les forfaits utilisant des devises différentes ne peuvent pas être combinés.",
   "contact.property_address": "Property Address (Optional)",
   "contact.property_address_placeholder": "e.g. 124 Ocean Drive, Miami, FL",
   "contact.reset_template": "Réinitialiser le modèle par défaut",
@@ -9102,11 +9129,18 @@ export const defaultLocales: Record<string, Record<string, string>> = {
 // Merge supplemental translation keys
 Object.assign(enTranslations, newKeysTranslations.en || {});
 if (defaultLocales.en) Object.assign(defaultLocales.en, newKeysTranslations.en || {});
+for (const [locale, dictionary] of Object.entries(campaignTranslations)) {
+  if (defaultLocales[locale]) Object.assign(defaultLocales[locale], dictionary);
+}
+for (const [locale, dictionary] of Object.entries(workspaceChatTranslations)) {
+  if (defaultLocales[locale]) Object.assign(defaultLocales[locale], dictionary);
+}
 if (defaultLocales.hu) Object.assign(defaultLocales.hu, newKeysTranslations.hu || {});
 if (defaultLocales.de) Object.assign(defaultLocales.de, newKeysTranslations.de || {});
 if (defaultLocales.es) Object.assign(defaultLocales.es, newKeysTranslations.es || {});
 if (defaultLocales.fr) Object.assign(defaultLocales.fr, newKeysTranslations.fr || {});
 Object.assign(enTranslations, clientPortalTranslations.en);
+Object.assign(enTranslations, workspaceChatTranslations.en);
 for (const locale of ["en", "hu", "de", "es", "fr"] as const) {
   if (defaultLocales[locale]) Object.assign(defaultLocales[locale], clientPortalTranslations[locale]);
   if (defaultLocales[locale]) Object.assign(defaultLocales[locale], financialTranslations[locale]);

@@ -1,0 +1,14 @@
+import { FormEvent, useEffect, useState } from "react";
+import { CheckCircle2, Github } from "lucide-react";
+import { useApi } from "../../hooks/useApi";
+import { Button } from "../ui/Button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/Card";
+import { Input } from "../ui/Input";
+import { Label } from "../ui/Label";
+
+export function OpenSourceSettingsCard() {
+  const { fetchApi } = useApi(); const [config, setConfig] = useState({ enabled: false, owner: "" }); const [saving, setSaving] = useState(false); const [notice, setNotice] = useState("");
+  useEffect(() => { fetchApi("/api/admin/open-source-settings").then(response => response.ok ? response.json() : null).then(data => data && setConfig(data)).catch(() => setNotice("A beállítások nem tölthetők be.")); }, [fetchApi]);
+  const save = async (event: FormEvent) => { event.preventDefault(); setSaving(true); setNotice(""); try { const response = await fetchApi("/api/admin/open-source-settings", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(config) }); const data = await response.json().catch(() => ({})); if (!response.ok) throw new Error(data.error || "Mentési hiba."); setConfig(data); setNotice(data.enabled ? "Az Open Source oldal aktív." : "Az Open Source oldal kikapcsolva."); } catch (error: any) { setNotice(error.message || "Mentési hiba."); } finally { setSaving(false); } };
+  return <Card className="border-border overflow-hidden"><CardHeader className="border-b border-border bg-surface/60"><div className="flex items-start gap-3"><div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-slate-900 text-white"><Github className="h-5 w-5" /></div><div><CardTitle className="text-lg">Open Source szoftverek</CardTitle><CardDescription className="mt-1">A publikus aloldal a megadott GitHub szervezet vagy felhasználó publikus repóit listázza automatikusan.</CardDescription></div></div></CardHeader><CardContent className="p-5 sm:p-6"><form onSubmit={save} className="flex flex-wrap items-end gap-4"><label className="flex items-center gap-2 text-sm font-semibold"><input type="checkbox" checked={config.enabled} onChange={event => setConfig(current => ({ ...current, enabled: event.target.checked }))} className="h-4 w-4 accent-primary" />Oldal és menüpont engedélyezése</label><div className="min-w-64 flex-1"><Label>GitHub szervezet vagy felhasználónév</Label><Input value={config.owner} onChange={event => setConfig(current => ({ ...current, owner: event.target.value }))} required={config.enabled} maxLength={39} className="mt-1" placeholder="pl. spsstudio" /></div><Button type="submit" disabled={saving}>{saving ? "Mentés…" : "Mentés"}</Button>{notice && <span className="inline-flex items-center gap-1.5 text-sm text-muted-text"><CheckCircle2 className="h-4 w-4 text-emerald-500" />{notice}</span>}</form></CardContent></Card>;
+}

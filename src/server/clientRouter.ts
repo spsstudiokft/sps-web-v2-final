@@ -15,7 +15,8 @@ import { getAppUrl } from "./appUrl.js";
 import { archivePublishedListing } from "./services/internetArchiveService.js";
 import bcrypt from "bcryptjs";
 import { deleteMedia } from "./storage/index.js";
-import { createPortalNotification, ensurePortalNotificationSchema, notifyAllAdmins } from "./services/portalNotificationService.js";
+import { createPortalNotification, ensurePortalNotificationSchema, getPortalPushPublicKey, notifyAllAdmins, removePortalPushSubscription, savePortalPushSubscription } from "./services/portalNotificationService.js";
+import { getChatTyping, setChatTyping } from "./services/chatTypingService.js";
 
 const clientRouter = Router();
 const JWT_SECRET = process.env.JWT_SECRET || "supersecretjwtstring";
@@ -46,17 +47,21 @@ async function ensureFeedbackSchema() {
   )`);
   await db.execute(`CREATE TABLE IF NOT EXISTS client_feedback_messages (
     id TEXT PRIMARY KEY, conversation_id TEXT NOT NULL, sender_id TEXT NOT NULL, sender_role TEXT NOT NULL,
-    body TEXT NOT NULL, read_at DATETIME DEFAULT NULL, created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    body TEXT NOT NULL, read_at DATETIME DEFAULT NULL, delivered_at DATETIME DEFAULT NULL, created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   )`);
+  try { await db.execute("ALTER TABLE client_feedback_messages ADD COLUMN delivered_at DATETIME DEFAULT NULL"); } catch { /* Existing installations already have the column. */ }
   await db.execute("CREATE INDEX IF NOT EXISTS idx_feedback_conversations_client ON client_feedback_conversations(client_id, last_message_at)");
   await db.execute("CREATE INDEX IF NOT EXISTS idx_feedback_messages_conversation ON client_feedback_messages(conversation_id, created_at)");
   feedbackSchemaReady = true;
 }
 
 clientRouter.get("/notifications", async (req: any, res) => {
-  try { await ensurePortalNotificationSchema(); const rows = await db.execute({ sql: "SELECT * FROM portal_notifications WHERE recipient_id = ? AND recipient_portal = 'client' ORDER BY created_at DESC LIMIT 50", args: [req.user.id] }); res.json(rows.rows); }
+  try { await ensurePortalNotificationSchema(); const archived = String(req.query?.archived || "") === "1"; const rows = await db.execute({ sql: `SELECT * FROM portal_notifications WHERE recipient_id = ? AND recipient_portal = 'client' AND archived_at IS ${archived ? "NOT " : ""}NULL ORDER BY created_at DESC LIMIT 50`, args: [req.user.id] }); res.json(rows.rows); }
   catch (error: any) { res.status(500).json({ error: error.message || "Failed to load notifications" }); }
 });
+clientRouter.get("/push/public-key", async (_req, res) => { try { res.json({ publicKey: await getPortalPushPublicKey() }); } catch { res.status(503).json({ error: "Push notifications are unavailable." }); } });
+clientRouter.post("/push/subscribe", async (req: any, res) => { try { await savePortalPushSubscription(String(req.user.id), "client", req.body?.subscription); res.status(201).json({ success: true }); } catch (error: any) { res.status(400).json({ error: error.message || "Invalid push subscription." }); } });
+clientRouter.post("/push/unsubscribe", async (req: any, res) => { try { await removePortalPushSubscription(String(req.user.id), "client", String(req.body?.endpoint || "")); res.json({ success: true }); } catch { res.status(400).json({ error: "Invalid push subscription." }); } });
 clientRouter.patch("/notifications/read-all", async (req: any, res) => {
   try { await ensurePortalNotificationSchema(); await db.execute({ sql: "UPDATE portal_notifications SET read_at = CURRENT_TIMESTAMP WHERE recipient_id = ? AND recipient_portal = 'client' AND read_at IS NULL", args: [req.user.id] }); res.json({ success: true }); }
   catch (error: any) { res.status(500).json({ error: error.message || "Failed to update notifications" }); }
@@ -65,23 +70,43 @@ clientRouter.patch("/notifications/:id/read", async (req: any, res) => {
   try { await ensurePortalNotificationSchema(); await db.execute({ sql: "UPDATE portal_notifications SET read_at = CURRENT_TIMESTAMP WHERE id = ? AND recipient_id = ? AND recipient_portal = 'client'", args: [req.params.id, req.user.id] }); res.json({ success: true }); }
   catch (error: any) { res.status(500).json({ error: error.message || "Failed to update notification" }); }
 });
+clientRouter.patch("/notifications/:id/archive", async (req: any, res) => {
+  try { await ensurePortalNotificationSchema(); await db.execute({ sql: "UPDATE portal_notifications SET archived_at = CURRENT_TIMESTAMP, read_at = COALESCE(read_at, CURRENT_TIMESTAMP) WHERE id = ? AND recipient_id = ? AND recipient_portal = 'client'", args: [req.params.id, req.user.id] }); res.json({ success: true }); }
+  catch (error: any) { res.status(500).json({ error: error.message || "Failed to archive notification" }); }
+});
+clientRouter.patch("/notifications/:id/unarchive", async (req: any, res) => {
+  try { await ensurePortalNotificationSchema(); await db.execute({ sql: "UPDATE portal_notifications SET archived_at = NULL WHERE id = ? AND recipient_id = ? AND recipient_portal = 'client'", args: [req.params.id, req.user.id] }); res.json({ success: true }); }
+  catch (error: any) { res.status(500).json({ error: error.message || "Failed to restore notification" }); }
+});
+clientRouter.delete("/notifications/:id", async (req: any, res) => {
+  try { await ensurePortalNotificationSchema(); await db.execute({ sql: "DELETE FROM portal_notifications WHERE id = ? AND recipient_id = ? AND recipient_portal = 'client'", args: [req.params.id, req.user.id] }); res.json({ success: true }); }
+  catch (error: any) { res.status(500).json({ error: error.message || "Failed to delete notification" }); }
+});
 clientRouter.get("/sps-raw/access", async (req: any, res) => { try { res.json(await getSpsRawAccess(req.user.id)); } catch (error: any) { res.status(500).json({ error: error.message || "Failed to check SPS RAW access" }); } });
 clientRouter.get("/sps-raw/feed", async (req: any, res) => { try { const access = await getSpsRawAccess(req.user.id); if (!access.enabled || !access.vip) return res.status(403).json({ error: "Az SPS RAW jelenleg csak meghívott VIP ügyfelek számára érhető el." }); const rows = await db.execute("SELECT id, title, caption, video_url, poster_url, created_at FROM sps_raw_posts WHERE is_published = 1 ORDER BY sort_order ASC, created_at DESC"); res.json(rows.rows); } catch (error: any) { res.status(500).json({ error: error.message || "Failed to load SPS RAW" }); } });
 
 clientRouter.get("/feedback/conversations", async (req: any, res) => {
-  try { await ensureFeedbackSchema(); const user = req.user; const rows = await db.execute({ sql: `SELECT c.*, (SELECT body FROM client_feedback_messages WHERE conversation_id = c.id ORDER BY created_at DESC LIMIT 1) AS last_message, (SELECT COUNT(*) FROM client_feedback_messages WHERE conversation_id = c.id AND sender_role = 'admin' AND read_at IS NULL) AS unread_count FROM client_feedback_conversations c WHERE c.client_id = ? ORDER BY c.last_message_at DESC`, args: [user.id] }); res.json(rows.rows); }
+  try { await ensureFeedbackSchema(); const user = req.user; await db.execute({ sql: "UPDATE client_feedback_messages SET delivered_at = CURRENT_TIMESTAMP WHERE sender_role = 'admin' AND delivered_at IS NULL AND conversation_id IN (SELECT id FROM client_feedback_conversations WHERE client_id = ?)", args: [user.id] }); const rows = await db.execute({ sql: `SELECT c.*, (SELECT body FROM client_feedback_messages WHERE conversation_id = c.id ORDER BY created_at DESC LIMIT 1) AS last_message, (SELECT COUNT(*) FROM client_feedback_messages WHERE conversation_id = c.id AND sender_role = 'admin' AND read_at IS NULL) AS unread_count FROM client_feedback_conversations c WHERE c.client_id = ? ORDER BY c.last_message_at DESC`, args: [user.id] }); res.json(rows.rows); }
   catch (error: any) { res.status(500).json({ error: error.message || "Failed to load feedback conversations" }); }
 });
 clientRouter.post("/feedback/conversations", async (req: any, res) => {
-  try { await ensureFeedbackSchema(); const user = req.user; const subject = String(req.body?.subject || "").trim().slice(0, 160); const body = String(req.body?.message || "").trim().slice(0, 5000); if (!subject || !body) return res.status(400).json({ error: "Subject and message are required" }); const id = crypto.randomUUID(); await db.execute({ sql: "INSERT INTO client_feedback_conversations (id, client_id, subject) VALUES (?, ?, ?)", args: [id, user.id, subject] }); await db.execute({ sql: "INSERT INTO client_feedback_messages (id, conversation_id, sender_id, sender_role, body) VALUES (?, ?, ?, 'client', ?)", args: [crypto.randomUUID(), id, user.id, body] }); await notifyAllAdmins({ type: "client_feedback", title: "Új ügyfél-visszajelzés", body: `${user.name || user.email || "Egy ügyfél"}: ${subject}`, link: "/admin/client-feedback" }); res.status(201).json({ id, subject, status: "open" }); }
+  try { await ensureFeedbackSchema(); const user = req.user; const subject = String(req.body?.subject || "").trim().slice(0, 160); const body = String(req.body?.message || "").trim().slice(0, 5000); if (!subject || !body) return res.status(400).json({ error: "Subject and message are required" }); const id = crypto.randomUUID(); await db.execute({ sql: "INSERT INTO client_feedback_conversations (id, client_id, subject) VALUES (?, ?, ?)", args: [id, user.id, subject] }); await db.execute({ sql: "INSERT INTO client_feedback_messages (id, conversation_id, sender_id, sender_role, body) VALUES (?, ?, ?, 'client', ?)", args: [crypto.randomUUID(), id, user.id, body] }); await notifyAllAdmins({ type: "client_feedback", title: "Új ügyfél-visszajelzés", body: `${user.name || user.email || "Egy ügyfél"}: ${subject}`, link: `/admin?workspaceChat=${encodeURIComponent(id)}` }); res.status(201).json({ id, subject, status: "open" }); }
   catch (error: any) { res.status(500).json({ error: error.message || "Failed to create feedback conversation" }); }
 });
 clientRouter.get("/feedback/conversations/:id/messages", async (req: any, res) => {
-  try { await ensureFeedbackSchema(); const user = req.user; const own = await db.execute({ sql: "SELECT id FROM client_feedback_conversations WHERE id = ? AND client_id = ?", args: [req.params.id, user.id] }); if (!own.rows.length) return res.status(404).json({ error: "Conversation not found" }); await db.execute({ sql: "UPDATE client_feedback_messages SET read_at = CURRENT_TIMESTAMP WHERE conversation_id = ? AND sender_role = 'admin' AND read_at IS NULL", args: [req.params.id] }); const messages = await db.execute({ sql: "SELECT * FROM client_feedback_messages WHERE conversation_id = ? ORDER BY created_at ASC", args: [req.params.id] }); res.json(messages.rows); }
+  try { await ensureFeedbackSchema(); const user = req.user; const own = await db.execute({ sql: "SELECT id FROM client_feedback_conversations WHERE id = ? AND client_id = ?", args: [req.params.id, user.id] }); if (!own.rows.length) return res.status(404).json({ error: "Conversation not found" }); await db.execute({ sql: "UPDATE client_feedback_messages SET delivered_at = COALESCE(delivered_at, CURRENT_TIMESTAMP), read_at = CURRENT_TIMESTAMP WHERE conversation_id = ? AND sender_role = 'admin' AND read_at IS NULL", args: [req.params.id] }); const messages = await db.execute({ sql: "SELECT * FROM client_feedback_messages WHERE conversation_id = ? ORDER BY created_at ASC", args: [req.params.id] }); res.json(messages.rows); }
   catch (error: any) { res.status(500).json({ error: error.message || "Failed to load messages" }); }
 });
+clientRouter.get("/feedback/conversations/:id/typing", async (req: any, res) => {
+  try { await ensureFeedbackSchema(); const own = await db.execute({ sql: "SELECT id FROM client_feedback_conversations WHERE id = ? AND client_id = ?", args: [req.params.id, req.user.id] }); if (!own.rows.length) return res.status(404).json({ error: "Conversation not found" }); res.json({ actors: getChatTyping("client", req.params.id, String(req.user.id)) }); }
+  catch (error: any) { res.status(500).json({ error: error.message || "Failed to load typing status" }); }
+});
+clientRouter.post("/feedback/conversations/:id/typing", async (req: any, res) => {
+  try { await ensureFeedbackSchema(); const own = await db.execute({ sql: "SELECT id FROM client_feedback_conversations WHERE id = ? AND client_id = ?", args: [req.params.id, req.user.id] }); if (!own.rows.length) return res.status(404).json({ error: "Conversation not found" }); setChatTyping("client", req.params.id, String(req.user.id), "client", Boolean(req.body?.typing)); res.json({ success: true }); }
+  catch (error: any) { res.status(500).json({ error: error.message || "Failed to update typing status" }); }
+});
 clientRouter.post("/feedback/conversations/:id/messages", async (req: any, res) => {
-  try { await ensureFeedbackSchema(); const user = req.user; const body = String(req.body?.message || "").trim().slice(0, 5000); if (!body) return res.status(400).json({ error: "Message is required" }); const own = await db.execute({ sql: "SELECT id, status, subject FROM client_feedback_conversations WHERE id = ? AND client_id = ?", args: [req.params.id, user.id] }); if (!own.rows.length) return res.status(404).json({ error: "Conversation not found" }); await db.execute({ sql: "INSERT INTO client_feedback_messages (id, conversation_id, sender_id, sender_role, body) VALUES (?, ?, ?, 'client', ?)", args: [crypto.randomUUID(), req.params.id, user.id, body] }); await db.execute({ sql: "UPDATE client_feedback_conversations SET status = 'open', updated_at = CURRENT_TIMESTAMP, last_message_at = CURRENT_TIMESTAMP WHERE id = ?", args: [req.params.id] }); await notifyAllAdmins({ type: "client_feedback_reply", title: "Új ügyfélüzenet", body: `${user.name || user.email || "Egy ügyfél"}: ${String(own.rows[0].subject)}`, link: "/admin/client-feedback" }); res.status(201).json({ success: true }); }
+  try { await ensureFeedbackSchema(); const user = req.user; const body = String(req.body?.message || "").trim().slice(0, 5000); if (!body) return res.status(400).json({ error: "Message is required" }); const own = await db.execute({ sql: "SELECT id, status, subject FROM client_feedback_conversations WHERE id = ? AND client_id = ?", args: [req.params.id, user.id] }); if (!own.rows.length) return res.status(404).json({ error: "Conversation not found" }); await db.execute({ sql: "INSERT INTO client_feedback_messages (id, conversation_id, sender_id, sender_role, body) VALUES (?, ?, ?, 'client', ?)", args: [crypto.randomUUID(), req.params.id, user.id, body] }); await db.execute({ sql: "UPDATE client_feedback_conversations SET status = 'open', updated_at = CURRENT_TIMESTAMP, last_message_at = CURRENT_TIMESTAMP WHERE id = ?", args: [req.params.id] }); await notifyAllAdmins({ type: "client_feedback_reply", title: "Új ügyfélüzenet", body: `${user.name || user.email || "Egy ügyfél"}: ${String(own.rows[0].subject)}`, link: `/admin?workspaceChat=${encodeURIComponent(req.params.id)}` }); res.status(201).json({ success: true }); }
   catch (error: any) { res.status(500).json({ error: error.message || "Failed to send message" }); }
 });
 
@@ -1114,6 +1139,56 @@ clientRouter.get("/invoices/:id", async (req, res) => {
 
 // Redeem an issued referral/bonus voucher against the authenticated client's
 // own outstanding invoice. The client never supplies the discount amount.
+clientRouter.post("/bonus-codes/redeem", async (req, res) => {
+  try {
+    const user: any = (req as any).user;
+    const code = String(req.body?.code || "").trim().toUpperCase();
+    const invoiceId = String(req.body?.invoice_id || "").trim();
+    if (!user?.id || !user?.email) return res.status(401).json({ error: "Unauthorized" });
+    if (!code || !invoiceId) return res.status(400).json({ error: "Bonus code and invoice are required." });
+
+    const [codeResult, invoiceResult] = await Promise.all([
+      db.execute({ sql: `SELECT * FROM custom_bonus_codes WHERE UPPER(code) = ? AND is_active = 1
+                         AND (starts_at IS NULL OR starts_at <= CURRENT_TIMESTAMP)
+                         AND (expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP)
+                         AND (issued_to_email IS NULL OR LOWER(TRIM(issued_to_email)) = ?) LIMIT 1`, args: [code, String(user.email).trim().toLowerCase()] }),
+      db.execute({ sql: "SELECT * FROM invoices WHERE id = ? AND LOWER(TRIM(client_email)) = ? AND LOWER(TRIM(status)) NOT IN ('draft', 'cancelled', 'paid') LIMIT 1", args: [invoiceId, String(user.email).trim().toLowerCase()] })
+    ]);
+    const bonus: any = codeResult.rows[0];
+    const invoice: any = invoiceResult.rows[0];
+    if (!bonus) return res.status(404).json({ error: "This bonus code is unavailable, expired, or inactive." });
+    if (!invoice) return res.status(404).json({ error: "The selected outstanding invoice was not found for your account." });
+    if (String(bonus.currency || invoice.currency).toUpperCase() !== String(invoice.currency || "").toUpperCase()) return res.status(400).json({ error: "The bonus code currency does not match this invoice." });
+    if (Number(bonus.usage_limit) > 0 && Number(bonus.usage_count) >= Number(bonus.usage_limit)) return res.status(409).json({ error: "This bonus code has reached its usage limit." });
+
+    const used = await db.execute({ sql: "SELECT id FROM custom_bonus_code_redemptions WHERE bonus_code_id = ? AND invoice_id = ? LIMIT 1", args: [bonus.id, invoiceId] });
+    if (used.rows.length) return res.status(409).json({ error: "This bonus code has already been applied to this invoice." });
+
+    const amountDue = Math.max(0, Number(invoice.total_amount || 0) - Number(invoice.amount_paid || 0));
+    if (amountDue <= 0) return res.status(400).json({ error: "This invoice has already been settled." });
+    const appliedAmount = bonus.reward_type === "discount_percent"
+      ? Math.min(amountDue, Math.round(amountDue * Math.max(0, Number(bonus.reward_value || 0)) * 100) / 10000)
+      : Math.min(amountDue, Math.max(0, Number(bonus.reward_value || 0)));
+    if (appliedAmount <= 0) return res.status(400).json({ error: "This bonus code has no applicable value." });
+
+    // Conditional increment is the authoritative usage-limit check, including concurrent redemptions.
+    const consumed = await db.execute({ sql: "UPDATE custom_bonus_codes SET usage_count = usage_count + 1, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND is_active = 1 AND (usage_limit IS NULL OR usage_count < usage_limit)", args: [bonus.id] });
+    if (Number((consumed as any).rowsAffected || 0) !== 1) return res.status(409).json({ error: "This bonus code was just used up or disabled. Please try another code." });
+
+    try {
+      await db.execute({ sql: "INSERT INTO custom_bonus_code_redemptions (id, bonus_code_id, user_id, invoice_id, applied_amount, currency) VALUES (?, ?, ?, ?, ?, ?)", args: [crypto.randomUUID(), bonus.id, user.id, invoiceId, appliedAmount, invoice.currency] });
+      const nextTotal = Math.max(Number(invoice.amount_paid || 0), Number(invoice.total_amount || 0) - appliedAmount);
+      const paid = Number(invoice.amount_paid || 0) >= nextTotal;
+      await db.execute({ sql: "UPDATE invoices SET discount_amount = COALESCE(discount_amount, 0) + ?, total_amount = ?, status = CASE WHEN ? THEN 'paid' ELSE status END, paid_at = CASE WHEN ? THEN CURRENT_TIMESTAMP ELSE paid_at END, updated_at = CURRENT_TIMESTAMP WHERE id = ?", args: [appliedAmount, nextTotal, paid ? 1 : 0, paid ? 1 : 0, invoiceId] });
+    } catch (error) {
+      await db.execute({ sql: "DELETE FROM custom_bonus_code_redemptions WHERE bonus_code_id = ? AND invoice_id = ?", args: [bonus.id, invoiceId] });
+      await db.execute({ sql: "UPDATE custom_bonus_codes SET usage_count = CASE WHEN usage_count > 0 THEN usage_count - 1 ELSE 0 END, updated_at = CURRENT_TIMESTAMP WHERE id = ?", args: [bonus.id] });
+      throw error;
+    }
+    res.json({ success: true, applied_amount: appliedAmount, currency: invoice.currency, invoice_id: invoiceId, code });
+  } catch (error: any) { console.error("Custom bonus code redemption failed", error); res.status(500).json({ error: error.message || "Failed to redeem bonus code" }); }
+});
+
 clientRouter.post("/rewards/redeem", async (req, res) => {
   try {
     const user: any = (req as any).user;

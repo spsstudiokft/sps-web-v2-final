@@ -26,12 +26,9 @@ import {
   FolderTree,
   ChevronDown,
   ChevronRight,
-  PanelLeftClose,
-  PanelLeftOpen,
+  ChevronLeft,
   X,
-  Menu,
   Languages,
-  Palette,
   Share2,
   Tag,
   Megaphone,
@@ -85,7 +82,7 @@ interface SidebarProps {
 export function Sidebar({ isMobileOpen = false, onMobileClose }: SidebarProps) {
   const { user, logout } = useAuth();
   const location = useLocation();
-  const { mode, setMode } = useTheme();
+  const { mode, setMode, adminThemeToggleEnabled } = useTheme();
   const { currentLang, setLang, supportedLangs, tUi } = useLanguage();
   const { permissions } = useAdminMenuPermissions();
   const { currency, setCurrency, updatedAt } = useAdminCurrency();
@@ -113,73 +110,97 @@ export function Sidebar({ isMobileOpen = false, onMobileClose }: SidebarProps) {
   const navSections: NavSectionConfig[] = [
     {
       id: "overview",
-      title: "Dashboard & Finance",
+      title: "Overview",
       translationKey: "admin.nav.dashboard",
       icon: LayoutDashboard,
       items: [
         { to: "/admin", label: "Dashboard", translationKey: "admin.nav.dashboard", icon: LayoutDashboard, permissionKey: "dashboard" },
+        { to: "/admin/google-analytics", label: "Google Analytics", translationKey: "admin.nav.google_analytics", icon: BarChart3, permissionKey: "dashboard" },
+      ]
+    },
+    {
+      id: "finance",
+      title: "Finance",
+      translationKey: "admin.nav.budget",
+      icon: Wallet,
+      items: [
         { to: "/admin/budget", label: "Budget Manager", translationKey: "admin.nav.budget", icon: Wallet, permissionKey: "budget" },
         { to: "/admin/budget?tab=invoices", label: "Invoices & Payments", translationKey: "admin.nav.invoices", icon: Receipt, permissionKey: "invoices" },
         { to: "/admin/budget?tab=payment-requests", label: "Payment Requests", translationKey: "admin.nav.payment_requests", icon: Send, permissionKey: "payment_requests" }
       ]
     },
     {
-      id: "content",
-      title: "Content",
+      id: "clients-sales",
+      title: "Clients & Sales",
+      translationKey: "admin.nav.users_clients",
+      icon: Users,
+      items: [
+        { to: "/admin/leads", label: "Leads Pipeline", translationKey: "admin.nav.leads", icon: Target, permissionKey: "leads" },
+        { to: "/admin/contacts", label: "Submissions", translationKey: "admin.nav.submissions", icon: MessageSquare, permissionKey: "submissions" },
+        { to: "/admin/customers", label: "Customers", translationKey: "admin.nav.customers", icon: UserCheck, permissionKey: "customers" },
+        { to: "/admin/clients", label: "Client Portal Users", translationKey: "admin.nav.clients", icon: Users, permissionKey: "clients" },
+        { to: "/admin/referrals", label: "VIP Referral Program", translationKey: "admin.nav.referrals", icon: Gift, permissionKey: "referrals" },
+      ]
+    },
+    {
+      id: "production",
+      title: "Production",
+      translationKey: "admin.nav.projects",
+      icon: FolderKanban,
+      items: [
+        { to: "/admin/projects", label: "Projects", translationKey: "admin.nav.projects", icon: FolderKanban, permissionKey: "projects" },
+        { to: "/admin/calendar", label: "Calendar", translationKey: "admin.nav.calendar", icon: CalendarDays, permissionKey: "calendar" },
+        { to: "/admin/property-listings", label: "Property Listings", translationKey: "admin.nav.property_listings", icon: Building2, permissionKey: "properties" },
+        { to: "/admin/sps-raw", label: "SPS RAW VIP", translationKey: "admin.nav.sps_raw", icon: Crown, permissionKey: "clients" },
+      ]
+    },
+    {
+      id: "website-content",
+      title: "Website Content",
       translationKey: "admin.nav.content",
       icon: ImageIcon,
       items: [
         { to: "/admin/portfolio", label: "Portfolio", translationKey: "admin.nav.portfolio", icon: ImageIcon, permissionKey: "portfolio" },
-        { to: "/admin/media-library", label: "Közös médiatár", translationKey: "admin.nav.media_library", icon: HardDrive, permissionKey: "media_library" },
-        { to: "/admin/property-listings", label: "Property Listings", translationKey: "admin.nav.property_listings", icon: Building2, permissionKey: "properties" },
-        { to: "/admin/projects", label: "Projects", translationKey: "admin.nav.projects", icon: FolderKanban, permissionKey: "projects" },
-        { to: "/admin/calendar", label: "Naptár", translationKey: "admin.nav.calendar", icon: CalendarDays, permissionKey: "calendar" },
+        { to: "/admin/media-library", label: "Shared Media Library", translationKey: "admin.nav.media_library", icon: HardDrive, permissionKey: "media_library" },
         { to: "/admin/services", label: "Services", translationKey: "admin.nav.services", icon: Sparkles, permissionKey: "services" },
-        { to: "/admin/visual-ideas", label: "Visual Ideas", translationKey: "admin.nav.visual_ideas", icon: PanelsTopLeft, permissionKey: "visual_ideas" },
         { to: "/admin/pricing", label: "Pricing & Packages", translationKey: "admin.nav.pricing", icon: Tag, permissionKey: "pricing" },
-        { to: "/admin/info-bar", label: "Announcement Bar", translationKey: "admin.nav.info_bar", icon: Megaphone, permissionKey: "announcements" },
-        { to: "/admin/changelog", label: "Változásnapló", translationKey: "admin.nav.changelog", icon: Megaphone, permissionKey: "changelog" },
-        { to: "/admin/social-links", label: "Social Popup Tree", translationKey: "admin.nav.social_links", icon: Share2, permissionKey: "social_links" },
-        { 
-          to: "/admin/faqs", 
-          label: "FAQs & Help", 
+        { to: "/admin/visual-ideas", label: "Visual Ideas", translationKey: "admin.nav.visual_ideas", icon: PanelsTopLeft, permissionKey: "visual_ideas" },
+        { to: "/admin/social-links", label: "Social Links", translationKey: "admin.nav.social_links", icon: Share2, permissionKey: "social_links" },
+        { to: "/admin/changelog", label: "Changelog", translationKey: "admin.nav.changelog", icon: Megaphone, permissionKey: "changelog" },
+        {
+          to: "/admin/faqs",
+          label: "FAQs & Help",
           translationKey: "admin.nav.faqs",
           icon: HelpCircle, permissionKey: "faqs",
           subItems: [
             { to: "/admin/faqs", label: "Questions & Answers", translationKey: "admin.nav.faq_questions", icon: HelpCircle },
             { to: "/admin/faqs/categories", label: "FAQ Categories", translationKey: "admin.nav.faq_categories", icon: FolderTree },
-            { to: "/admin/client-help", label: "Ügyfélportál súgó", translationKey: "admin.nav.client_help", icon: HelpCircle },
-            { to: "/admin/testimonials", label: "Rólunk mondták", translationKey: "admin.nav.testimonials", icon: MessageSquare },
+            { to: "/admin/client-help", label: "Client Portal Help", translationKey: "admin.nav.client_help", icon: HelpCircle },
+            { to: "/admin/testimonials", label: "Testimonials", translationKey: "admin.nav.testimonials", icon: MessageSquare },
           ]
         },
       ]
     },
     {
-      id: "users-clients",
-      title: "Users & Clients",
-      translationKey: "admin.nav.users_clients",
-      icon: Users,
+      id: "marketing",
+      title: "Marketing & Campaigns",
+      translationKey: "admin.nav.marketing_emails",
+      icon: Megaphone,
       items: [
-        { to: "/admin/team", label: "Team & Invites", translationKey: "admin.nav.team_invites", icon: UserPlus, permissionKey: "team" },
-        { to: "/admin/referrals", label: "VIP Referral Program", translationKey: "admin.nav.referrals", icon: Gift, permissionKey: "referrals" },
-        { to: "/admin/leads", label: "Leads Pipeline", translationKey: "admin.nav.leads", icon: Target, permissionKey: "leads" },
-        { to: "/admin/customers", label: "Customers", translationKey: "admin.nav.customers", icon: UserCheck, permissionKey: "customers" },
-        { to: "/admin/clients", label: "Client Portal Users", translationKey: "admin.nav.clients", icon: Users, permissionKey: "clients" },
-        { to: "/admin/client-feedback", label: "Ügyfél visszajelzések", translationKey: "admin.nav.clients", icon: MessageSquare, permissionKey: "clients" },
-        { to: "/admin/google-analytics", label: "Google Analytics", translationKey: "admin.nav.dashboard", icon: BarChart3, permissionKey: "dashboard" },
-        { to: "/admin/sps-raw", label: "SPS RAW VIP", translationKey: "admin.nav.clients", icon: Crown, permissionKey: "clients" },
-        { to: "/admin/contacts", label: "Submissions", translationKey: "admin.nav.submissions", icon: MessageSquare, permissionKey: "submissions" },
         { to: "/admin/marketing-emails", label: "Marketing Emails", translationKey: "admin.nav.marketing_emails", icon: Mail, permissionKey: "marketing_emails" },
+        { to: "/admin/campaigns", label: "Campaign Landing Pages", translationKey: "admin.nav.campaigns", icon: Megaphone, permissionKey: "marketing_emails" },
+        { to: "/admin/exit-coupons", label: "Exit-Intent Coupons", translationKey: "admin.nav.exit_coupons", icon: Gift, permissionKey: "marketing_emails" },
+        { to: "/admin/info-bar", label: "Announcement Bar", translationKey: "admin.nav.info_bar", icon: Megaphone, permissionKey: "announcements" },
       ]
     },
     {
-      id: "settings",
-      title: "Settings & System",
+      id: "administration",
+      title: "Administration",
       translationKey: "admin.nav.settings_system",
       icon: SettingsIcon,
       items: [
-        { to: "/admin/account", label: "Saját fiók", translationKey: "admin.nav.account", icon: UserCheck },
-        { to: "/admin/themes", label: "Theme & Branding", translationKey: "admin.nav.themes", icon: Palette, permissionKey: "themes" },
+        { to: "/admin/team", label: "Team & Invites", translationKey: "admin.nav.team_invites", icon: UserPlus, permissionKey: "team" },
+        { to: "/admin/account", label: "My Account", translationKey: "admin.nav.account", icon: UserCheck },
         { to: "/admin/settings", label: "Site Settings", translationKey: "admin.nav.settings", icon: SettingsIcon, permissionKey: "settings" },
       ]
     }
@@ -199,7 +220,8 @@ export function Sidebar({ isMobileOpen = false, onMobileClose }: SidebarProps) {
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>(() => {
     const activeSection = navSections.find((section) => section.items.some((item) => {
       const [path, query] = item.to.split("?");
-      return location.pathname === path && (!query || location.search.includes(query));
+      const parentMatches = location.pathname === path && (!query || location.search.includes(query));
+      return parentMatches || Boolean(item.subItems?.some((sub) => location.pathname === sub.to || location.pathname.startsWith(`${sub.to}/`)));
     }));
     return { [activeSection?.id || "overview"]: true };
   });
@@ -223,7 +245,8 @@ export function Sidebar({ isMobileOpen = false, onMobileClose }: SidebarProps) {
   useEffect(() => {
     const activeSection = navSections.find((section) => section.items.some((item) => {
       const [path, query] = item.to.split("?");
-      return location.pathname === path || (location.pathname.startsWith(`${path}/`) && (!query || location.search.includes(query)));
+      const parentMatches = location.pathname === path || (location.pathname.startsWith(`${path}/`) && (!query || location.search.includes(query)));
+      return parentMatches || Boolean(item.subItems?.some((sub) => location.pathname === sub.to || location.pathname.startsWith(`${sub.to}/`)));
     }));
     if (activeSection) {
       setExpandedSections((previous) => previous[activeSection.id] ? previous : { ...previous, [activeSection.id]: true });
@@ -302,21 +325,6 @@ export function Sidebar({ isMobileOpen = false, onMobileClose }: SidebarProps) {
           )}
         </Link>
 
-        {/* Desktop Collapse Toggle */}
-        <button
-          type="button"
-          onClick={toggleCollapsed}
-          className="hidden md:flex p-1.5 rounded-lg text-muted-text hover:text-text hover:bg-surface transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-          title={isCollapsed ? (tUi("admin.nav.expand_sidebar") || "Expand Sidebar") : (tUi("admin.nav.collapse_sidebar") || "Collapse Sidebar")}
-          aria-label={isCollapsed ? (tUi("admin.nav.expand_sidebar") || "Expand Sidebar") : (tUi("admin.nav.collapse_sidebar") || "Collapse Sidebar")}
-        >
-          {isCollapsed ? (
-            <PanelLeftOpen className="w-4 h-4" aria-hidden="true" />
-          ) : (
-            <PanelLeftClose className="w-4 h-4" aria-hidden="true" />
-          )}
-        </button>
-
         {/* Mobile Close Button */}
         {onMobileClose && (
           <button
@@ -332,11 +340,11 @@ export function Sidebar({ isMobileOpen = false, onMobileClose }: SidebarProps) {
 
       {/* Category tabs keep the complete menu quickly scannable without hiding routes. */}
       <nav 
-        className="flex-1 px-3 py-3 space-y-2 overflow-y-auto overflow-x-hidden scrollbar-thin" 
+        className="aero-sidebar-scroll flex-1 px-3 py-3 space-y-2 overflow-y-auto overflow-x-hidden" 
         aria-label="Admin Categorized Navigation"
       >
         {filteredSections.map((section, sIdx) => {
-          const sectionTitle = tUi(section.translationKey) || section.title;
+          const sectionTitle = section.title;
           const SectionIcon = section.icon;
           const isSectionExpanded = expandedSections[section.id] ?? false;
           const hasActiveItem = section.items.some((item) => isLinkActive(item.to) || Boolean(item.subItems?.some((sub) => isLinkActive(sub.to))));
@@ -363,7 +371,7 @@ export function Sidebar({ isMobileOpen = false, onMobileClose }: SidebarProps) {
                 sIdx > 0 && <div className="my-2 border-t border-border/60 mx-2" />
               )}
 
-              <div id={`admin-nav-section-${section.id}`} className={cn("space-y-1", !isCollapsed && "px-1 pb-1", !isCollapsed && !isSectionExpanded && "hidden")}>
+              <div id={`admin-nav-section-${section.id}`} className={cn("space-y-1", !isCollapsed && "mt-1.5 px-1 pb-1", !isCollapsed && !isSectionExpanded && "hidden")}>
                 {section.items.map((link) => {
                   const hasSubItems = Boolean(link.subItems && link.subItems.length > 0);
                   const isExpanded = expandedMenus[link.to] ?? false;
@@ -371,7 +379,8 @@ export function Sidebar({ isMobileOpen = false, onMobileClose }: SidebarProps) {
                   const isParentActive = isLinkActive(link.to);
 
                   const Icon = link.icon;
-                  const itemLabel = tUi(link.translationKey) || link.label;
+                  const translatedItemLabel = tUi(link.translationKey);
+                  const itemLabel = !translatedItemLabel || translatedItemLabel === link.translationKey ? link.label : translatedItemLabel;
 
                   return (
                     <div key={link.to} className="space-y-1">
@@ -445,7 +454,8 @@ export function Sidebar({ isMobileOpen = false, onMobileClose }: SidebarProps) {
                           {link.subItems.map((sub) => {
                             const isSubActive = isLinkActive(sub.to);
                             const SubIcon = sub.icon;
-                            const subLabel = tUi(sub.translationKey) || sub.label;
+                            const translatedSubLabel = tUi(sub.translationKey);
+                            const subLabel = !translatedSubLabel || translatedSubLabel === sub.translationKey ? sub.label : translatedSubLabel;
 
                             return (
                               <Link
@@ -527,7 +537,7 @@ export function Sidebar({ isMobileOpen = false, onMobileClose }: SidebarProps) {
         {!isCollapsed && <div className="rounded-xl border border-border bg-surface p-2"><label className="block text-[10px] font-bold uppercase tracking-wider text-muted-text">Megjelenítési pénznem</label><select aria-label="Admin megjelenítési pénznem" value={currency} onChange={(e) => setCurrency(e.target.value)} className="mt-1 w-full rounded-lg border border-border bg-background px-2 py-1.5 text-sm text-text"><option value="HUF">HUF (Ft)</option><option value="EUR">EUR (€)</option><option value="USD">USD ($)</option><option value="GBP">GBP (£)</option><option value="CHF">CHF (Fr)</option></select><p className="mt-1 text-[10px] text-muted-text">Referenciaárfolyam: {updatedAt || "betöltés…"}</p></div>}
 
         {/* Theme Mode Toggle Button */}
-        <button
+        {adminThemeToggleEnabled && <button
           id="theme-toggle-btn"
           type="button"
           onClick={() => setMode(mode === "dark" ? "light" : "dark")}
@@ -556,7 +566,7 @@ export function Sidebar({ isMobileOpen = false, onMobileClose }: SidebarProps) {
               {mode}
             </span>
           )}
-        </button>
+        </button>}
 
         {/* View Site Link */}
         <Link
@@ -599,12 +609,36 @@ export function Sidebar({ isMobileOpen = false, onMobileClose }: SidebarProps) {
       <aside 
         id="admin-sidebar" 
         className={cn(
-          "hidden md:flex flex-col h-full border-r border-border transition-[width] duration-200 shrink-0",
-          isCollapsed ? "w-18" : "w-64"
+          "hidden md:flex relative flex-col h-full overflow-visible border-r border-border bg-surface/90 backdrop-blur-xl transition-[width] duration-300 shrink-0",
+          isCollapsed ? "w-12" : "w-64"
         )}
         aria-label="Admin Navigation Sidebar"
       >
-        {sidebarContent}
+        <button
+          type="button"
+          onClick={toggleCollapsed}
+          className="absolute -right-3 top-5 z-20 flex h-7 w-7 items-center justify-center rounded-full border border-border bg-surface text-muted-text shadow hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          title={isCollapsed ? (tUi("admin.nav.expand_sidebar") || "Expand Sidebar") : (tUi("admin.nav.collapse_sidebar") || "Collapse Sidebar")}
+          aria-label={isCollapsed ? (tUi("admin.nav.expand_sidebar") || "Expand Sidebar") : (tUi("admin.nav.collapse_sidebar") || "Collapse Sidebar")}
+        >
+          {isCollapsed ? <ChevronRight className="h-4 w-4" aria-hidden="true" /> : <ChevronLeft className="h-4 w-4" aria-hidden="true" />}
+        </button>
+        {isCollapsed ? (
+          <nav className="aero-sidebar-scroll flex flex-1 flex-col items-center gap-1 overflow-y-auto overflow-x-hidden px-1 py-14" aria-label="Összecsukott admin navigáció">
+            {filteredSections.map((section, sectionIndex) => <React.Fragment key={section.id}>
+              {sectionIndex > 0 && <span className="my-1 h-px w-6 bg-border/80" aria-hidden="true" />}
+              {section.items.map((item) => {
+                const Icon = item.icon;
+                const translatedLabel = tUi(item.translationKey);
+                const label = !translatedLabel || translatedLabel === item.translationKey ? item.label : translatedLabel;
+                const active = isLinkActive(item.to) || Boolean(item.subItems?.some((sub) => isLinkActive(sub.to)));
+                return <Link key={item.to} to={item.to} title={label} aria-label={label} aria-current={active ? "page" : undefined} className="aero-sidebar-item relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+                  <Icon className="h-4 w-4" aria-hidden="true" />
+                </Link>;
+              })}
+            </React.Fragment>)}
+          </nav>
+        ) : sidebarContent}
       </aside>
 
       {/* Mobile Slide-Over Drawer with Backdrop */}

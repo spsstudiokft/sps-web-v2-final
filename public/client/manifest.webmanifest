@@ -1,0 +1,1 @@
+{"name":"SPS Studio Client Portal","short_name":"SPS Client","start_url":"/client/","scope":"/client/","display":"standalone","background_color":"#061526","theme_color":"#0b2138","icons":[{"src":"/pwa-icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]}

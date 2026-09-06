@@ -1,4 +1,5 @@
 import React from "react";
+import { useLocation } from "react-router-dom";
 import { Sun, Moon } from "lucide-react";
 import { useTheme } from "../ThemeProvider";
 import { useLanguage } from "../../contexts/LanguageContext";
@@ -18,7 +19,9 @@ export function ThemeToggle({
   size = "md",
   id = "navbar-theme-toggle"
 }: ThemeToggleProps) {
-  const { mode, toggleTheme } = useTheme();
+  const { mode, toggleTheme, publicThemeToggleEnabled, adminThemeToggleEnabled } = useTheme();
+  const isAdmin = useLocation().pathname.startsWith("/admin");
+  if (isAdmin ? !adminThemeToggleEnabled : !publicThemeToggleEnabled) return null;
   const { currentLang, defaultLang } = useLanguage();
 
   const isDark = mode === "dark";

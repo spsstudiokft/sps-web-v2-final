@@ -47,6 +47,14 @@ async function startServer() {
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok" });
   });
+  // The developer reference is intentionally unlisted. The client route also
+  // requires a superadmin session, while this header protects SPA responses
+  // from indexing at the HTTP layer in local and non-Vercel environments.
+  app.use("/admin/developer", (_req, res, next) => {
+    res.setHeader("X-Robots-Tag", "noindex, nofollow, noarchive");
+    res.setHeader("Cache-Control", "private, no-store");
+    next();
+  });
 
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {

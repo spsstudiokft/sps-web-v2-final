@@ -210,8 +210,70 @@ export const db = {
   }
 };
 
+const ensureCustomBonusCodeSchema = async (client: ReturnType<typeof createClient>) => {
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS custom_bonus_codes (
+      id TEXT PRIMARY KEY,
+      code TEXT UNIQUE NOT NULL,
+      title TEXT NOT NULL,
+      description TEXT DEFAULT '',
+      reward_type TEXT NOT NULL,
+      reward_value REAL NOT NULL,
+      currency TEXT DEFAULT 'USD',
+      usage_limit INTEGER DEFAULT NULL,
+      usage_count INTEGER NOT NULL DEFAULT 0,
+      starts_at DATETIME DEFAULT NULL,
+      expires_at DATETIME DEFAULT NULL,
+      is_active INTEGER NOT NULL DEFAULT 1,
+      created_by_user_id TEXT DEFAULT NULL,
+      issued_to_email TEXT DEFAULT NULL,
+      campaign_id TEXT DEFAULT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+  await client.execute(`CREATE TABLE IF NOT EXISTS landing_campaigns (
+    id TEXT PRIMARY KEY, slug TEXT UNIQUE NOT NULL, title TEXT NOT NULL,
+    eyebrow TEXT DEFAULT '', description TEXT DEFAULT '', background_image_url TEXT DEFAULT '',
+    reward_type TEXT NOT NULL DEFAULT 'discount_percent', reward_value REAL NOT NULL DEFAULT 25,
+    currency TEXT NOT NULL DEFAULT 'HUF', coupon_prefix TEXT NOT NULL DEFAULT 'SPS',
+    assigned_bonus_code_id TEXT DEFAULT NULL,
+    expires_in_days INTEGER NOT NULL DEFAULT 30, primary_cta_url TEXT DEFAULT '/', secondary_cta_url TEXT DEFAULT '',
+    is_active INTEGER NOT NULL DEFAULT 1, created_by_user_id TEXT DEFAULT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )`);
+  await client.execute(`CREATE TABLE IF NOT EXISTS landing_campaign_submissions (
+    id TEXT PRIMARY KEY, campaign_id TEXT NOT NULL, full_name TEXT NOT NULL, email TEXT NOT NULL,
+    phone TEXT DEFAULT '', identity_type TEXT NOT NULL, interest TEXT NOT NULL, city TEXT DEFAULT '',
+    marketing_consent INTEGER NOT NULL DEFAULT 0, privacy_accepted INTEGER NOT NULL DEFAULT 0,
+    coupon_code TEXT UNIQUE NOT NULL, coupon_expires_at DATETIME, email_status TEXT NOT NULL DEFAULT 'pending',
+    email_message_id TEXT DEFAULT '', created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(campaign_id, email)
+  )`);
+  await client.execute("CREATE INDEX IF NOT EXISTS idx_landing_campaign_submissions_campaign ON landing_campaign_submissions(campaign_id, created_at DESC)");
+  try { await client.execute("ALTER TABLE landing_campaigns ADD COLUMN assigned_bonus_code_id TEXT DEFAULT NULL"); } catch {}
+  try { await client.execute("ALTER TABLE custom_bonus_codes ADD COLUMN issued_to_email TEXT DEFAULT NULL"); } catch {}
+  try { await client.execute("ALTER TABLE custom_bonus_codes ADD COLUMN campaign_id TEXT DEFAULT NULL"); } catch {}
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS custom_bonus_code_redemptions (
+      id TEXT PRIMARY KEY,
+      bonus_code_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      invoice_id TEXT NOT NULL,
+      applied_amount REAL NOT NULL,
+      currency TEXT NOT NULL,
+      redeemed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(bonus_code_id, invoice_id)
+    )
+  `);
+  try { await client.execute("ALTER TABLE contact_submissions ADD COLUMN bonus_codes TEXT DEFAULT '[]'"); } catch {}
+};
+
 export const setupDatabase = async () => {
   const client = getDb();
+  // This migration is intentionally run before the fast-path marker too, so
+  // existing local databases receive new campaign tables and columns.
+  await ensureCustomBonusCodeSchema(client);
 
   // Authentication factors are scoped to the portal context because one
   // users row may represent both a client account and a secondary admin
@@ -648,6 +710,9 @@ export const setupDatabase = async () => {
   try {
     const initCheck = await client.execute("SELECT value FROM settings WHERE key = '__db_initialized_v8'");
     if (initCheck.rows.length > 0 && initCheck.rows[0].value === "1") {
+      // Post-v8 migrations must run even where the original initialization
+      // marker is already present. Both statements are safe to repeat.
+      await ensureCustomBonusCodeSchema(client);
       await ensureLocalDemoAdmin(client);
       return;
     }
@@ -881,10 +946,12 @@ export const setupDatabase = async () => {
           customer_id TEXT DEFAULT NULL,
           plan_id TEXT DEFAULT NULL,
           plan_name TEXT DEFAULT '',
+          selected_plans TEXT DEFAULT '[]',
           extra_services TEXT DEFAULT '[]',
           fee_details TEXT DEFAULT '{}',
           estimated_total REAL DEFAULT 0,
           currency TEXT DEFAULT 'USD',
+          bonus_codes TEXT DEFAULT '[]',
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )`,
         `CREATE TABLE IF NOT EXISTS crm_records (
@@ -1189,6 +1256,10 @@ export const setupDatabase = async () => {
   } catch (e) {
     // Column might already exist
   }
+
+  try {
+    await client.execute("ALTER TABLE contact_submissions ADD COLUMN selected_plans TEXT DEFAULT '[]'");
+  } catch (e) {}
 
   try {
     await client.execute("ALTER TABLE contact_submissions ADD COLUMN extra_services TEXT DEFAULT '[]'");
@@ -4158,6 +4229,43 @@ export const setupDatabase = async () => {
         redeemed_invoice_id TEXT DEFAULT NULL,
         redeemed_notes TEXT DEFAULT '',
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Admin-managed promo codes are deliberately separate from personal
+    // referral rewards: a single code may be used by multiple eligible clients.
+    await client.execute(`
+      CREATE TABLE IF NOT EXISTS custom_bonus_codes (
+        id TEXT PRIMARY KEY,
+        code TEXT UNIQUE NOT NULL,
+        title TEXT NOT NULL,
+        description TEXT DEFAULT '',
+        reward_type TEXT NOT NULL,
+        reward_value REAL NOT NULL,
+        currency TEXT DEFAULT 'USD',
+        usage_limit INTEGER DEFAULT NULL,
+        usage_count INTEGER NOT NULL DEFAULT 0,
+        starts_at DATETIME DEFAULT NULL,
+        expires_at DATETIME DEFAULT NULL,
+        is_active INTEGER NOT NULL DEFAULT 1,
+        created_by_user_id TEXT DEFAULT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Retain a redemption audit trail and prevent a code being applied twice
+    // to the same invoice even if a client retries a request.
+    await client.execute(`
+      CREATE TABLE IF NOT EXISTS custom_bonus_code_redemptions (
+        id TEXT PRIMARY KEY,
+        bonus_code_id TEXT NOT NULL,
+        user_id TEXT NOT NULL,
+        invoice_id TEXT NOT NULL,
+        applied_amount REAL NOT NULL,
+        currency TEXT NOT NULL,
+        redeemed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(bonus_code_id, invoice_id)
       )
     `);
 

@@ -13,6 +13,9 @@ import systemRouter from "./systemRouter.js";
 import { db } from "../db.js";
 import { requireAdminOrListingUpload } from "./listingUploadAuth.js";
 import { requireAdminMenuPermission } from "./adminMenuAuthorization.js";
+import { landingCampaignAdminRouter, landingCampaignPublicRouter } from "./landingCampaignRouter.js";
+import { publicPushRouter } from "./publicPushRouter.js";
+import { exitCouponAdminRouter, exitCouponPublicRouter } from "./exitCouponRouter.js";
 
 const fullApiRouter = Router();
 
@@ -20,10 +23,15 @@ fullApiRouter.use(systemRouter);
 fullApiRouter.use(coreRouter);
 fullApiRouter.use("/public/invoices", publicInvoiceRouter);
 fullApiRouter.use("/public/referrals", publicReferralRouter);
+fullApiRouter.use("/public/campaigns", landingCampaignPublicRouter);
+fullApiRouter.use("/public/push", publicPushRouter);
+fullApiRouter.use("/public/exit-coupons", exitCouponPublicRouter);
 fullApiRouter.use("/admin/budgets", requireAdmin, requireAdminMenuPermission("budget"), budgetRouter);
 fullApiRouter.use("/admin/invoices", requireAdmin, requireAdminMenuPermission("invoices"), invoiceRouter);
 fullApiRouter.use("/admin/payment-requests", requireAdmin, requireAdminMenuPermission("payment_requests"), paymentRequestRouter);
 fullApiRouter.use("/admin/referrals", requireAdmin, requireAdminMenuPermission("referrals"), referralRouter);
+fullApiRouter.use("/admin/campaigns", requireAdmin, requireAdminMenuPermission("marketing_emails"), landingCampaignAdminRouter);
+fullApiRouter.use("/admin/exit-coupons", requireAdmin, requireAdminMenuPermission("marketing_emails"), exitCouponAdminRouter);
 fullApiRouter.use("/admin", requireAdminOrListingUpload, requireAdminMenuPermission(), adminRouter);
 fullApiRouter.use("/property-manager", (req: any, res, next) => requireAuth(req, res, async () => {
   if (req.user?.role !== "property_client" || req.user?.scope !== "property-listings" || !req.user?.propertyAccountId) {

@@ -10,11 +10,11 @@
   },
   "type": "module",
   "scripts": {
-    "dev": "tsx server.ts",
-    "build:client": "vite build",
+    "dev": "node scripts/dev-with-logs.mjs",
+    "build:client": "node scripts/generate-api-route-index.mjs && vite build",
     "build:server": "esbuild server.ts --bundle --platform=node --format=cjs --packages=external --minify --legal-comments=none --sourcemap --log-level=error --outfile=dist/server.cjs",
-    "build:vercel": "vite build && node scripts/prepare-vercel-output.mjs",
-    "build": "vite build && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --minify --legal-comments=none --sourcemap --log-level=error --outfile=dist/server.cjs",
+    "build:vercel": "node scripts/generate-api-route-index.mjs && vite build && node scripts/prepare-vercel-output.mjs",
+    "build": "node scripts/generate-api-route-index.mjs && vite build && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --minify --legal-comments=none --sourcemap --log-level=error --outfile=dist/server.cjs",
     "start": "node dist/server.cjs",
     "migrate:translations": "tsx scripts/migrate-translations.ts",
     "audit:i18n": "tsx scripts/audit-i18n.ts",
@@ -59,7 +59,8 @@
     "resend": "^6.20.0",
     "sharp": "^0.35.3",
     "tailwind-merge": "^3.6.0",
-    "vite": "^6.2.3"
+    "vite": "^6.2.3",
+    "web-push": "^3.6.7"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",

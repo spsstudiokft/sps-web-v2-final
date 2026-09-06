@@ -410,11 +410,15 @@ export const translationService = {
       };
     }
 
-    // Non-force mode: find only missing keys per locale in DB and insert them
-    const existingRecordsRes = await db.execute("SELECT locale, key FROM translations");
-    const existingSet = new Set<string>();
+    // Non-force mode: fill missing keys and accidental blank defaults without
+    // replacing any existing, non-empty translation maintained in the admin UI.
+    const existingRecordsRes = await db.execute("SELECT locale, key, value FROM translations");
+    const existingValues = new Map<string, string>();
     for (const row of existingRecordsRes.rows) {
-      existingSet.add(`${String(row.locale).toLowerCase()}:${String(row.key)}`);
+      existingValues.set(
+        `${String(row.locale).toLowerCase()}:${String(row.key)}`,
+        String(row.value ?? "")
+      );
     }
 
     const missingRowsToInsert: Array<{ locale: string; key: string; value: string; group_name: string }> = [];
@@ -424,7 +428,7 @@ export const translationService = {
 
       for (const key of allUniqueKeys) {
         const lookup = `${loc.toLowerCase()}:${key}`;
-        if (!existingSet.has(lookup)) {
+        if (!existingValues.has(lookup) || !existingValues.get(lookup)?.trim()) {
           const value = locDict[key] !== undefined ? locDict[key] : (baseDict[key] || "");
           const group_name = extractGroupFromKey(key);
           missingRowsToInsert.push({

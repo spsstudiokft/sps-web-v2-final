@@ -53,6 +53,8 @@ export default function ClientReferralsPage() {
   const [inviteError, setInviteError] = useState<string | null>(null);
   const [openInvoices, setOpenInvoices] = useState<Array<{ id: string; invoice_number: string; total_amount: number; amount_paid: number; currency: string }>>([]);
   const [redeemingVoucher, setRedeemingVoucher] = useState<string | null>(null);
+  const [redemptionKind, setRedemptionKind] = useState<"reward" | "custom">("reward");
+  const [customBonusCode, setCustomBonusCode] = useState("");
   const [selectedInvoiceId, setSelectedInvoiceId] = useState("");
   const [redeemMessage, setRedeemMessage] = useState<string | null>(null);
 
@@ -103,8 +105,8 @@ export default function ClientReferralsPage() {
     setTimeout(() => setCopiedVoucher(null), 2000);
   };
 
-  const openRedemption = async (code: string) => {
-    setRedeemMessage(null); setRedeemingVoucher(code); setSelectedInvoiceId("");
+  const openRedemption = async (code: string, kind: "reward" | "custom" = "reward") => {
+    setRedeemMessage(null); setRedeemingVoucher(code.trim().toUpperCase()); setRedemptionKind(kind); setSelectedInvoiceId("");
     try {
       const res = await fetchApi("/api/client/invoices");
       const invoices = res.ok ? await res.json() : [];
@@ -116,11 +118,13 @@ export default function ClientReferralsPage() {
     if (!redeemingVoucher || !selectedInvoiceId) return;
     setRedeemMessage(null);
     try {
-      const res = await fetchApi("/api/client/rewards/redeem", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ voucher_code: redeemingVoucher, invoice_id: selectedInvoiceId }) });
+      const endpoint = redemptionKind === "custom" ? "/api/client/bonus-codes/redeem" : "/api/client/rewards/redeem";
+      const payload = redemptionKind === "custom" ? { code: redeemingVoucher, invoice_id: selectedInvoiceId } : { voucher_code: redeemingVoucher, invoice_id: selectedInvoiceId };
+      const res = await fetchApi(endpoint, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || "A bónuszkód nem váltható be.");
       setRedeemMessage(`A bónuszkód beváltva: ${formatMoney(data.applied_amount, data.currency)}.`);
-      setRedeemingVoucher(null); await fetchProfile();
+      setRedeemingVoucher(null); setCustomBonusCode(""); await fetchProfile();
     } catch (error: any) { setRedeemMessage(error.message || "A bónuszkód beváltása nem sikerült."); }
   };
 
@@ -616,6 +620,19 @@ export default function ClientReferralsPage() {
           </CardContent>
         </Card>
       </div>
+
+      <Card className="border-border shadow-xs">
+        <CardContent className="p-5">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+            <div className="min-w-0 flex-1 space-y-1.5">
+              <Label htmlFor="custom-bonus-code" className="text-sm font-semibold">Promóciós kód</Label>
+              <Input id="custom-bonus-code" value={customBonusCode} onChange={(event) => setCustomBonusCode(event.target.value.toUpperCase())} placeholder="PL. SPSWELCOME" maxLength={64} />
+              <p className="text-xs text-muted-text">Az SPS Studio által megosztott promóciós kódot itt használhatod fel egy nyitott számládra.</p>
+            </div>
+            <Button disabled={customBonusCode.trim().length < 3} onClick={() => openRedemption(customBonusCode, "custom")}>Kód alkalmazása</Button>
+          </div>
+        </CardContent>
+      </Card>
 
       {redeemingVoucher && <Card className="border-primary/30 shadow-xs"><CardContent className="p-5"><div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="font-bold text-text">Bónuszkód beváltása</h2><p className="mt-1 text-xs text-muted-text">{redeemingVoucher} csak a saját, nyitott számládra használható fel.</p></div><Button variant="ghost" size="sm" onClick={() => setRedeemingVoucher(null)}>Mégse</Button></div>{openInvoices.length ? <div className="mt-4 flex flex-col gap-3 sm:flex-row"><select value={selectedInvoiceId} onChange={event => setSelectedInvoiceId(event.target.value)} className="min-w-0 flex-1 rounded-xl border border-border bg-background px-3 py-2 text-sm text-text"><option value="">Válassz nyitott számlát…</option>{openInvoices.map(invoice => <option key={invoice.id} value={invoice.id}>{invoice.invoice_number} · {formatMoney(Number(invoice.total_amount) - Number(invoice.amount_paid), invoice.currency)}</option>)}</select><Button disabled={!selectedInvoiceId} onClick={redeemVoucher}>Bónuszkód alkalmazása</Button></div> : <p className="mt-4 text-sm text-muted-text">Nincs olyan nyitott számlád, amelyre a kód felhasználható.</p>}</CardContent></Card>}
       {redeemMessage && <div role="status" className="rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-text">{redeemMessage}</div>}

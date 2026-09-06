@@ -31,7 +31,6 @@ export const ADMIN_MENU_PERMISSIONS: AdminMenuPermission[] = [
   { id: "clients", label: "Client portal users", description: "Client portal accounts, feedback and access", defaultRoles: ["admin", "editor"], matches: (path) => route("/admin/clients")(path) || route("/admin/client-feedback")(path) || route("/admin/sps-raw")(path) },
   { id: "submissions", label: "Submissions", description: "Contact-form requests and notes", defaultRoles: ["admin", "editor", "viewer"], matches: route("/admin/contacts") },
   { id: "marketing_emails", label: "Marketing emails", description: "Campaign templates and sends", defaultRoles: ["admin", "editor"], matches: route("/admin/marketing-emails") },
-  { id: "themes", label: "Theme & branding", description: "Theme editor and visual identity", defaultRoles: ["admin"], matches: route("/admin/themes") },
   { id: "settings", label: "Site settings", description: "Site configuration, SEO and legal documents", defaultRoles: ["admin"], matches: route("/admin/settings") },
 ];
 

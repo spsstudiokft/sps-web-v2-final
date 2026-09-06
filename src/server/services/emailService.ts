@@ -628,6 +628,26 @@ export const DEFAULT_EMAIL_TEMPLATES: Record<string, {
     sample_data: { "user.name": "Alexander Sterling", "reward_title": "Welcome benefit", "reward_value_label": "15% discount", "voucher_code": "BONUS-A1B2C3D4", "reward_description": "Valid for your next booking.", "expires_at": "2026. 09. 30.", "action_url": "https://spsstudio.com/client/referrals", "action_text": "View VIP Benefits", "studio_name": "SPS Studio" }
   },
 
+  campaign_coupon_claimed: {
+    template_key: "campaign_coupon_claimed",
+    name: "Campaign Coupon Claimed",
+    category: "marketing",
+    description: "Automatically sent to a campaign visitor after successfully claiming a personal campaign coupon.",
+    subject: "Your {{reward_value_label}} SPS Studio coupon code",
+    body_html: `<p style="color:#1e293b;font-size:15px;line-height:1.6;">Kedves <strong>{{recipient_name}}</strong>!</p><p style="color:#1e293b;font-size:15px;line-height:1.6;">Köszönjük az érdeklődésedet. A(z) <strong>{{campaign_title}}</strong> kampányhoz tartozó személyes kedvezményed elkészült.</p><div style="background:#eff6ff;border:1px solid #93c5fd;border-radius:10px;padding:20px;margin:22px 0;text-align:center;"><div style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#1e3a8a;">A te egyedi kuponkódod</div><div style="margin-top:10px;font-family:monospace;font-size:24px;font-weight:800;letter-spacing:.08em;color:#0369a1;">{{coupon_code}}</div><div style="margin-top:10px;font-size:14px;font-weight:700;color:#0f172a;">{{reward_value_label}} kedvezmény</div></div><p style="color:#475569;font-size:14px;line-height:1.6;">A kód egyszer használható, személyhez kötött, <strong>{{expires_at}}</strong> napjáig érvényes, és az <strong>SPS Studio weboldalán, valamint a webshopban is felhasználható.</strong></p><p style="text-align:center;margin:28px 0;"><a href="{{action_url}}" style="display:inline-block;background:#0f172a;color:#fff;text-decoration:none;padding:14px 28px;border-radius:8px;font-weight:700;">{{action_text}}</a></p>`,
+    body_text: `Kedves {{recipient_name}}!\n\nKöszönjük az érdeklődésedet. A(z) {{campaign_title}} kampány személyes kedvezményed elkészült.\n\nKuponkód: {{coupon_code}}\nKedvezmény: {{reward_value_label}}\nÉrvényes: {{expires_at}}\n\n{{action_text}}: {{action_url}}`,
+    available_tokens: [
+      { token: "{{recipient_name}}", label: "Recipient name", description: "Campaign form full name", example: "Kovács Bence" },
+      { token: "{{campaign_title}}", label: "Campaign title", description: "The campaign name", example: "Őszi kedvezmény" },
+      { token: "{{coupon_code}}", label: "Coupon code", description: "Personal issued coupon", example: "SPS-7K4X9P" },
+      { token: "{{reward_value_label}}", label: "Discount value", description: "Formatted campaign discount", example: "25%" },
+      { token: "{{expires_at}}", label: "Expiry date", description: "Coupon validity date", example: "2026. 10. 04." },
+      { token: "{{action_url}}", label: "Campaign URL", description: "Public campaign page URL", example: "https://spsstudio.hu/campaign-1" },
+      { token: "{{action_text}}", label: "CTA label", description: "Campaign action label", example: "Megnézem a kampányt" }
+    ],
+    sample_data: { recipient_name: "Kovács Bence", campaign_title: "Őszi kedvezmény", coupon_code: "SPS-7K4X9P", reward_value_label: "25%", expires_at: "2026. 10. 04.", action_url: "https://spsstudio.hu/campaign-1", action_text: "Megnézem a kampányt" }
+  },
+
   admin_invitation: {
     template_key: "admin_invitation",
     name: "Admin & Team Member Invitation",

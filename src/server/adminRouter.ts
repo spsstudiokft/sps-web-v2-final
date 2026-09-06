@@ -45,10 +45,22 @@ import {
 } from "./services/emailService.js";
 import { issuePortalInviteCoupon } from "./services/referralService.js";
 import { getNormalizedGallery } from "../lib/mediaUtils.js";
-import { createPortalNotification, ensurePortalNotificationSchema } from "./services/portalNotificationService.js";
+import { broadcastPublicPush, createPortalNotification, ensurePortalNotificationSchema, getPortalPushPublicKey, notifyAllAdmins, removePortalPushSubscription, savePortalPushSubscription } from "./services/portalNotificationService.js";
 import { getGoogleAnalyticsOverview } from "./services/googleAnalyticsService.js";
+import { getChatTyping, setChatTyping } from "./services/chatTypingService.js";
 
 const adminRouter = Router();
+
+async function notifyProjectClient(projectId: string, type: string, title: string, body: string) {
+  const project = await db.execute({ sql: "SELECT client_id FROM projects WHERE id = ? LIMIT 1", args: [projectId] });
+  const clientId = String(project.rows[0]?.client_id || "").trim();
+  if (clientId) await createPortalNotification({ recipientId: clientId, portal: "client", type, title, body, link: "/client/projects" });
+}
+
+async function notifyPortfolioClients(portfolioId: string, title: string) {
+  const clients = await db.execute({ sql: `SELECT DISTINCT p.client_id FROM projects p JOIN project_portfolio_items ppi ON ppi.project_id = p.id WHERE ppi.portfolio_item_id = ? AND p.client_id IS NOT NULL`, args: [portfolioId] });
+  await Promise.all((clients.rows as any[]).map(client => createPortalNotification({ recipientId: String(client.client_id), portal: "client", type: "portfolio_update", title: "Portfólió frissítés", body: title, link: "/client/projects" })));
+}
 
 /**
  * Counts the actual media files delivered through the project's linked
@@ -905,6 +917,7 @@ adminRouter.get("/verify", (req, res) => {
 const ROLE_MENU_PERMISSION_KEY = "admin_role_menu_permissions";
 let feedbackAdminSchemaReady = false;
 let spsRawAdminSchemaReady = false;
+let workspaceChatSchemaReady = false;
 async function ensureSpsRawAdminSchema() {
   if (spsRawAdminSchemaReady) return;
   await db.execute(`CREATE TABLE IF NOT EXISTS sps_raw_posts (id TEXT PRIMARY KEY, title TEXT NOT NULL, caption TEXT NOT NULL DEFAULT '', video_url TEXT NOT NULL, poster_url TEXT DEFAULT '', is_published INTEGER NOT NULL DEFAULT 0, sort_order INTEGER NOT NULL DEFAULT 0, created_by TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
@@ -914,15 +927,84 @@ async function ensureSpsRawAdminSchema() {
 async function ensureFeedbackAdminSchema() {
   if (feedbackAdminSchemaReady) return;
   await db.execute(`CREATE TABLE IF NOT EXISTS client_feedback_conversations (id TEXT PRIMARY KEY, client_id TEXT NOT NULL, subject TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'open', created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, last_message_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
-  await db.execute(`CREATE TABLE IF NOT EXISTS client_feedback_messages (id TEXT PRIMARY KEY, conversation_id TEXT NOT NULL, sender_id TEXT NOT NULL, sender_role TEXT NOT NULL, body TEXT NOT NULL, read_at DATETIME DEFAULT NULL, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
+  await db.execute(`CREATE TABLE IF NOT EXISTS client_feedback_messages (id TEXT PRIMARY KEY, conversation_id TEXT NOT NULL, sender_id TEXT NOT NULL, sender_role TEXT NOT NULL, body TEXT NOT NULL, read_at DATETIME DEFAULT NULL, delivered_at DATETIME DEFAULT NULL, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
+  try { await db.execute("ALTER TABLE client_feedback_messages ADD COLUMN delivered_at DATETIME DEFAULT NULL"); } catch { /* Existing installations already have the column. */ }
   await db.execute("CREATE INDEX IF NOT EXISTS idx_feedback_conversations_client ON client_feedback_conversations(client_id, last_message_at)");
   await db.execute("CREATE INDEX IF NOT EXISTS idx_feedback_messages_conversation ON client_feedback_messages(conversation_id, created_at)");
   feedbackAdminSchemaReady = true;
 }
 
+const workspaceAdminRoleSql = `LOWER(REPLACE(REPLACE(TRIM(COALESCE(admin_role, role, '')), '_', ''), '-', '')) IN ('admin','editor','videoeditor','realestateagent','advertiser','viewer','superadmin')
+  AND CASE WHEN admin_role IS NOT NULL THEN COALESCE(admin_is_active, 1) ELSE COALESCE(is_active, 1) END = 1`;
+
+async function ensureWorkspaceChatSchema() {
+  if (workspaceChatSchemaReady) return;
+  await db.execute(`CREATE TABLE IF NOT EXISTS admin_staff_conversations (
+    id TEXT PRIMARY KEY, member_a_id TEXT NOT NULL, member_b_id TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    last_message_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(member_a_id, member_b_id)
+  )`);
+  await db.execute(`CREATE TABLE IF NOT EXISTS admin_staff_messages (
+    id TEXT PRIMARY KEY, conversation_id TEXT NOT NULL, sender_id TEXT NOT NULL,
+    body TEXT NOT NULL, read_at DATETIME DEFAULT NULL, delivered_at DATETIME DEFAULT NULL, created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )`);
+  try { await db.execute("ALTER TABLE admin_staff_messages ADD COLUMN delivered_at DATETIME DEFAULT NULL"); } catch { /* Existing installations already have the column. */ }
+  await db.execute("CREATE INDEX IF NOT EXISTS idx_staff_chat_members ON admin_staff_conversations(member_a_id, member_b_id, last_message_at)");
+  await db.execute("CREATE INDEX IF NOT EXISTS idx_staff_chat_messages ON admin_staff_messages(conversation_id, created_at)");
+  workspaceChatSchemaReady = true;
+}
+
 adminRouter.get("/notifications", async (req: any, res) => {
-  try { await ensurePortalNotificationSchema(); const rows = await db.execute({ sql: "SELECT * FROM portal_notifications WHERE recipient_id = ? AND recipient_portal = 'admin' ORDER BY created_at DESC LIMIT 50", args: [req.user.id] }); res.json(rows.rows); }
+  try { await ensurePortalNotificationSchema(); const archived = String(req.query?.archived || "") === "1"; const rows = await db.execute({ sql: `SELECT * FROM portal_notifications WHERE recipient_id = ? AND recipient_portal = 'admin' AND archived_at IS ${archived ? "NOT " : ""}NULL ORDER BY created_at DESC LIMIT 50`, args: [req.user.id] }); res.json(rows.rows); }
   catch (error: any) { res.status(500).json({ error: error.message || "Failed to load notifications" }); }
+});
+adminRouter.get("/push/public-key", async (_req, res) => { try { res.json({ publicKey: await getPortalPushPublicKey() }); } catch { res.status(503).json({ error: "Push notifications are unavailable." }); } });
+adminRouter.post("/push/subscribe", async (req: any, res) => { try { await savePortalPushSubscription(String(req.user.id), "admin", req.body?.subscription); res.status(201).json({ success: true }); } catch (error: any) { res.status(400).json({ error: error.message || "Invalid push subscription." }); } });
+adminRouter.post("/push/unsubscribe", async (req: any, res) => { try { await removePortalPushSubscription(String(req.user.id), "admin", String(req.body?.endpoint || "")); res.json({ success: true }); } catch { res.status(400).json({ error: "Invalid push subscription." }); } });
+adminRouter.get("/whatsapp-settings", async (req: any, res) => {
+  if (String(req.user?.role || "").toLowerCase() !== "superadmin") return res.status(403).json({ error: "Only Superadmin can view WhatsApp configuration." });
+  try { const rows = await db.execute({ sql: "SELECT key, value FROM settings WHERE key IN ('whatsapp_chat_enabled', 'whatsapp_chat_phone', 'whatsapp_chat_message')", args: [] }); const values = rows.rows.reduce((acc: Record<string, string>, row: any) => ({ ...acc, [String(row.key)]: String(row.value || "") }), {}); res.json({ enabled: ["1", "true"].includes(values.whatsapp_chat_enabled?.toLowerCase() || ""), phone: values.whatsapp_chat_phone || "", message: values.whatsapp_chat_message || "" }); }
+  catch (error: any) { res.status(500).json({ error: error.message || "Failed to load WhatsApp settings." }); }
+});
+adminRouter.put("/whatsapp-settings", async (req: any, res) => {
+  if (String(req.user?.role || "").toLowerCase() !== "superadmin") return res.status(403).json({ error: "Only Superadmin can configure WhatsApp." });
+  const enabled = Boolean(req.body?.enabled); const phone = String(req.body?.phone || "").trim(); const message = String(req.body?.message || "").trim().slice(0, 1000); const normalized = phone.replace(/\D/g, "");
+  if (enabled && (normalized.length < 6 || normalized.length > 15)) return res.status(400).json({ error: "Provide a valid WhatsApp phone number." });
+  try { await Promise.all([["whatsapp_chat_enabled", enabled ? "1" : "0"], ["whatsapp_chat_phone", phone.slice(0, 30)], ["whatsapp_chat_message", message]].map(([key, value]) => db.execute({ sql: "INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)", args: [key, value] }))); res.json({ enabled, phone, message }); }
+  catch (error: any) { res.status(500).json({ error: error.message || "Failed to save WhatsApp settings." }); }
+});
+adminRouter.get("/open-source-settings", async (req: any, res) => {
+  if (String(req.user?.role || "").toLowerCase() !== "superadmin") return res.status(403).json({ error: "Only Superadmin can view Open Source configuration." });
+  try {
+    const rows = await db.execute({ sql: "SELECT key, value FROM settings WHERE key IN ('open_source_enabled', 'open_source_github_owner')", args: [] });
+    const values = rows.rows.reduce((acc: Record<string, string>, row: any) => ({ ...acc, [String(row.key)]: String(row.value || "") }), {});
+    res.json({ enabled: ["1", "true"].includes((values.open_source_enabled || "").toLowerCase()), owner: values.open_source_github_owner || "" });
+  } catch (error: any) { res.status(500).json({ error: error.message || "Failed to load Open Source settings." }); }
+});
+adminRouter.put("/open-source-settings", async (req: any, res) => {
+  if (String(req.user?.role || "").toLowerCase() !== "superadmin") return res.status(403).json({ error: "Only Superadmin can configure Open Source." });
+  const enabled = Boolean(req.body?.enabled);
+  const owner = String(req.body?.owner || "").trim();
+  const ownerPattern = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?$/;
+  if (enabled && !ownerPattern.test(owner)) return res.status(400).json({ error: "Provide a valid GitHub organization or username." });
+  try {
+    await Promise.all([
+      db.execute({ sql: "INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)", args: ["open_source_enabled", enabled ? "1" : "0"] }),
+      db.execute({ sql: "INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)", args: ["open_source_github_owner", owner] }),
+    ]);
+    res.json({ enabled, owner });
+  } catch (error: any) { res.status(500).json({ error: error.message || "Failed to save Open Source settings." }); }
+});
+adminRouter.post("/public-notifications/broadcast", async (req: any, res) => {
+  if (String(req.user?.role || "").toLowerCase() !== "superadmin") return res.status(403).json({ error: "Only Superadmin can broadcast public notifications." });
+  const category = String(req.body?.category || "maintenance").toLowerCase();
+  const title = String(req.body?.title || "").trim().slice(0, 160);
+  const body = String(req.body?.body || "").trim().slice(0, 500);
+  const link = String(req.body?.link || "/").trim().slice(0, 1000);
+  if (!['maintenance', 'incident', 'general'].includes(category) || !title || !body || !link.startsWith('/')) return res.status(400).json({ error: "Invalid public notification data." });
+  try { res.status(201).json({ success: true, ...(await broadcastPublicPush({ type: `public_${category}`, title, body, link })) }); }
+  catch (error: any) { res.status(503).json({ error: error.message || "Public notification could not be sent." }); }
 });
 adminRouter.patch("/notifications/read-all", async (req: any, res) => {
   try { await ensurePortalNotificationSchema(); await db.execute({ sql: "UPDATE portal_notifications SET read_at = CURRENT_TIMESTAMP WHERE recipient_id = ? AND recipient_portal = 'admin' AND read_at IS NULL", args: [req.user.id] }); res.json({ success: true }); }
@@ -932,6 +1014,18 @@ adminRouter.patch("/notifications/:id/read", async (req: any, res) => {
   try { await ensurePortalNotificationSchema(); await db.execute({ sql: "UPDATE portal_notifications SET read_at = CURRENT_TIMESTAMP WHERE id = ? AND recipient_id = ? AND recipient_portal = 'admin'", args: [req.params.id, req.user.id] }); res.json({ success: true }); }
   catch (error: any) { res.status(500).json({ error: error.message || "Failed to update notification" }); }
 });
+adminRouter.patch("/notifications/:id/archive", async (req: any, res) => {
+  try { await ensurePortalNotificationSchema(); await db.execute({ sql: "UPDATE portal_notifications SET archived_at = CURRENT_TIMESTAMP, read_at = COALESCE(read_at, CURRENT_TIMESTAMP) WHERE id = ? AND recipient_id = ? AND recipient_portal = 'admin'", args: [req.params.id, req.user.id] }); res.json({ success: true }); }
+  catch (error: any) { res.status(500).json({ error: error.message || "Failed to archive notification" }); }
+});
+adminRouter.patch("/notifications/:id/unarchive", async (req: any, res) => {
+  try { await ensurePortalNotificationSchema(); await db.execute({ sql: "UPDATE portal_notifications SET archived_at = NULL WHERE id = ? AND recipient_id = ? AND recipient_portal = 'admin'", args: [req.params.id, req.user.id] }); res.json({ success: true }); }
+  catch (error: any) { res.status(500).json({ error: error.message || "Failed to restore notification" }); }
+});
+adminRouter.delete("/notifications/:id", async (req: any, res) => {
+  try { await ensurePortalNotificationSchema(); await db.execute({ sql: "DELETE FROM portal_notifications WHERE id = ? AND recipient_id = ? AND recipient_portal = 'admin'", args: [req.params.id, req.user.id] }); res.json({ success: true }); }
+  catch (error: any) { res.status(500).json({ error: error.message || "Failed to delete notification" }); }
+});
 adminRouter.get("/sps-raw", async (_req, res) => { try { await ensureSpsRawAdminSchema(); const settings = await db.execute({ sql: "SELECT value FROM settings WHERE key = 'sps_raw_enabled' LIMIT 1", args: [] }); const posts = await db.execute("SELECT * FROM sps_raw_posts ORDER BY sort_order ASC, created_at DESC"); res.json({ enabled: ["1", "true"].includes(String(settings.rows[0]?.value || "").toLowerCase()), posts: posts.rows }); } catch (error: any) { res.status(500).json({ error: error.message || "Failed to load SPS RAW" }); } });
 adminRouter.put("/sps-raw/settings", async (req: any, res) => { const role = String(req.user?.role || "").toLowerCase().replace(/[_-]/g, ""); if (role !== "superadmin") return res.status(403).json({ error: "Only Superadmin can change SPS RAW availability" }); try { await ensureSpsRawAdminSchema(); await db.execute({ sql: "INSERT OR REPLACE INTO settings (key, value) VALUES ('sps_raw_enabled', ?)", args: [req.body?.enabled ? "true" : "false"] }); res.json({ success: true }); } catch (error: any) { res.status(500).json({ error: error.message || "Failed to update SPS RAW" }); } });
 adminRouter.post("/sps-raw/posts", async (req: any, res) => { try { await ensureSpsRawAdminSchema(); const title = String(req.body?.title || "").trim().slice(0, 160); const videoUrl = String(req.body?.video_url || "").trim().slice(0, 2000); if (!title || !videoUrl) return res.status(400).json({ error: "Title and video URL are required" }); const id = crypto.randomUUID(); await db.execute({ sql: "INSERT INTO sps_raw_posts (id, title, caption, video_url, poster_url, is_published, sort_order, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", args: [id, title, String(req.body?.caption || "").trim().slice(0, 3000), videoUrl, String(req.body?.poster_url || "").trim().slice(0, 2000), req.body?.is_published ? 1 : 0, Number(req.body?.sort_order || 0), req.user.id] }); res.status(201).json({ id }); } catch (error: any) { res.status(500).json({ error: error.message || "Failed to create SPS RAW post" }); } });
@@ -939,12 +1033,20 @@ adminRouter.patch("/sps-raw/posts/:id", async (req: any, res) => { try { await e
 adminRouter.delete("/sps-raw/posts/:id", async (req: any, res) => { try { await ensureSpsRawAdminSchema(); await db.execute({ sql: "DELETE FROM sps_raw_posts WHERE id = ?", args: [req.params.id] }); res.json({ success: true }); } catch (error: any) { res.status(500).json({ error: error.message || "Failed to delete SPS RAW post" }); } });
 
 adminRouter.get("/client-feedback", async (_req: any, res) => {
-  try { await ensureFeedbackAdminSchema(); const rows = await db.execute(`SELECT c.*, COALESCE(NULLIF(u.name, ''), u.email) AS client_name, u.email AS client_email, (SELECT body FROM client_feedback_messages WHERE conversation_id = c.id ORDER BY created_at DESC LIMIT 1) AS last_message, (SELECT COUNT(*) FROM client_feedback_messages WHERE conversation_id = c.id AND sender_role = 'client' AND read_at IS NULL) AS unread_count FROM client_feedback_conversations c JOIN users u ON u.id = c.client_id ORDER BY CASE c.status WHEN 'open' THEN 0 WHEN 'pending' THEN 1 ELSE 2 END, c.last_message_at DESC`); res.json(rows.rows); }
+  try { await ensureFeedbackAdminSchema(); await db.execute("UPDATE client_feedback_messages SET delivered_at = CURRENT_TIMESTAMP WHERE sender_role = 'client' AND delivered_at IS NULL"); const rows = await db.execute(`SELECT c.*, COALESCE(NULLIF(u.name, ''), u.email) AS client_name, u.email AS client_email, (SELECT body FROM client_feedback_messages WHERE conversation_id = c.id ORDER BY created_at DESC LIMIT 1) AS last_message, (SELECT COUNT(*) FROM client_feedback_messages WHERE conversation_id = c.id AND sender_role = 'client' AND read_at IS NULL) AS unread_count FROM client_feedback_conversations c JOIN users u ON u.id = c.client_id ORDER BY CASE c.status WHEN 'open' THEN 0 WHEN 'pending' THEN 1 ELSE 2 END, c.last_message_at DESC`); res.json(rows.rows); }
   catch (error: any) { res.status(500).json({ error: error.message || "Failed to load client feedback" }); }
 });
 adminRouter.get("/client-feedback/:id/messages", async (req: any, res) => {
-  try { await ensureFeedbackAdminSchema(); const exists = await db.execute({ sql: "SELECT id FROM client_feedback_conversations WHERE id = ?", args: [req.params.id] }); if (!exists.rows.length) return res.status(404).json({ error: "Conversation not found" }); await db.execute({ sql: "UPDATE client_feedback_messages SET read_at = CURRENT_TIMESTAMP WHERE conversation_id = ? AND sender_role = 'client' AND read_at IS NULL", args: [req.params.id] }); const messages = await db.execute({ sql: "SELECT * FROM client_feedback_messages WHERE conversation_id = ? ORDER BY created_at ASC", args: [req.params.id] }); res.json(messages.rows); }
+  try { await ensureFeedbackAdminSchema(); const exists = await db.execute({ sql: "SELECT id FROM client_feedback_conversations WHERE id = ?", args: [req.params.id] }); if (!exists.rows.length) return res.status(404).json({ error: "Conversation not found" }); await db.execute({ sql: "UPDATE client_feedback_messages SET delivered_at = COALESCE(delivered_at, CURRENT_TIMESTAMP), read_at = CURRENT_TIMESTAMP WHERE conversation_id = ? AND sender_role = 'client' AND read_at IS NULL", args: [req.params.id] }); const messages = await db.execute({ sql: "SELECT * FROM client_feedback_messages WHERE conversation_id = ? ORDER BY created_at ASC", args: [req.params.id] }); res.json(messages.rows); }
   catch (error: any) { res.status(500).json({ error: error.message || "Failed to load feedback messages" }); }
+});
+adminRouter.get("/client-feedback/:id/typing", async (req: any, res) => {
+  try { await ensureFeedbackAdminSchema(); const exists = await db.execute({ sql: "SELECT id FROM client_feedback_conversations WHERE id = ?", args: [req.params.id] }); if (!exists.rows.length) return res.status(404).json({ error: "Conversation not found" }); res.json({ actors: getChatTyping("client", req.params.id, String(req.user.id)) }); }
+  catch (error: any) { res.status(500).json({ error: error.message || "Failed to load typing status" }); }
+});
+adminRouter.post("/client-feedback/:id/typing", async (req: any, res) => {
+  try { await ensureFeedbackAdminSchema(); const exists = await db.execute({ sql: "SELECT id FROM client_feedback_conversations WHERE id = ?", args: [req.params.id] }); if (!exists.rows.length) return res.status(404).json({ error: "Conversation not found" }); setChatTyping("client", req.params.id, String(req.user.id), "admin", Boolean(req.body?.typing)); res.json({ success: true }); }
+  catch (error: any) { res.status(500).json({ error: error.message || "Failed to update typing status" }); }
 });
 adminRouter.post("/client-feedback/:id/messages", async (req: any, res) => {
   try { await ensureFeedbackAdminSchema(); const body = String(req.body?.message || "").trim().slice(0, 5000); if (!body) return res.status(400).json({ error: "Message is required" }); const conversation = await db.execute({ sql: "SELECT id, client_id, subject FROM client_feedback_conversations WHERE id = ?", args: [req.params.id] }); if (!conversation.rows.length) return res.status(404).json({ error: "Conversation not found" }); await db.execute({ sql: "INSERT INTO client_feedback_messages (id, conversation_id, sender_id, sender_role, body) VALUES (?, ?, ?, 'admin', ?)", args: [crypto.randomUUID(), req.params.id, req.user.id, body] }); await db.execute({ sql: "UPDATE client_feedback_conversations SET status = 'pending', updated_at = CURRENT_TIMESTAMP, last_message_at = CURRENT_TIMESTAMP WHERE id = ?", args: [req.params.id] }); await createPortalNotification({ recipientId: String(conversation.rows[0].client_id), portal: "client", type: "feedback_reply", title: "Válasz érkezett az ügyedre", body: String(conversation.rows[0].subject), link: "/client/help" }); res.status(201).json({ success: true }); }
@@ -954,6 +1056,75 @@ adminRouter.patch("/client-feedback/:id", async (req: any, res) => {
   const status = String(req.body?.status || ""); if (!["open", "pending", "resolved", "closed"].includes(status)) return res.status(400).json({ error: "Invalid conversation status" });
   try { await ensureFeedbackAdminSchema(); await db.execute({ sql: "UPDATE client_feedback_conversations SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", args: [status, req.params.id] }); res.json({ success: true }); }
   catch (error: any) { res.status(500).json({ error: error.message || "Failed to update conversation" }); }
+});
+
+// Persistent admin workspace chat.  Members are canonicalised before storage so
+// a pair can only ever have one direct conversation, regardless of who starts it.
+adminRouter.get("/workspace-chat/staff/members", async (req: any, res) => {
+  try {
+    const members = await db.execute({ sql: `SELECT id, email, COALESCE(NULLIF(TRIM(name), ''), email) AS name
+      FROM users WHERE id <> ? AND ${workspaceAdminRoleSql} ORDER BY name COLLATE NOCASE, email COLLATE NOCASE`, args: [req.user.id] });
+    res.json(members.rows);
+  } catch (error: any) { res.status(500).json({ error: error.message || "Failed to load staff members" }); }
+});
+adminRouter.get("/workspace-chat/staff/conversations", async (req: any, res) => {
+  try {
+    await ensureWorkspaceChatSchema();
+    await db.execute({ sql: "UPDATE admin_staff_messages SET delivered_at = CURRENT_TIMESTAMP WHERE sender_id <> ? AND delivered_at IS NULL AND conversation_id IN (SELECT id FROM admin_staff_conversations WHERE member_a_id = ? OR member_b_id = ?)", args: [req.user.id, req.user.id, req.user.id] });
+    const conversations = await db.execute({ sql: `SELECT c.*, COALESCE(NULLIF(TRIM(u.name), ''), u.email) AS member_name, u.email AS member_email,
+      (SELECT body FROM admin_staff_messages WHERE conversation_id = c.id ORDER BY created_at DESC LIMIT 1) AS last_message,
+      (SELECT COUNT(*) FROM admin_staff_messages WHERE conversation_id = c.id AND sender_id <> ? AND read_at IS NULL) AS unread_count
+      FROM admin_staff_conversations c JOIN users u ON u.id = CASE WHEN c.member_a_id = ? THEN c.member_b_id ELSE c.member_a_id END
+      WHERE c.member_a_id = ? OR c.member_b_id = ? ORDER BY c.last_message_at DESC`, args: [req.user.id, req.user.id, req.user.id, req.user.id] });
+    res.json(conversations.rows);
+  } catch (error: any) { res.status(500).json({ error: error.message || "Failed to load staff conversations" }); }
+});
+adminRouter.post("/workspace-chat/staff/conversations", async (req: any, res) => {
+  try {
+    await ensureWorkspaceChatSchema();
+    const memberId = String(req.body?.member_id || "").trim();
+    if (!memberId || memberId === String(req.user.id)) return res.status(400).json({ error: "Choose another staff member" });
+    const member = await db.execute({ sql: `SELECT id FROM users WHERE id = ? AND ${workspaceAdminRoleSql} LIMIT 1`, args: [memberId] });
+    if (!member.rows.length) return res.status(404).json({ error: "Staff member not found" });
+    const [memberA, memberB] = [String(req.user.id), memberId].sort();
+    const existing = await db.execute({ sql: "SELECT id FROM admin_staff_conversations WHERE member_a_id = ? AND member_b_id = ? LIMIT 1", args: [memberA, memberB] });
+    if (existing.rows.length) return res.json({ id: existing.rows[0].id });
+    const id = crypto.randomUUID();
+    await db.execute({ sql: "INSERT INTO admin_staff_conversations (id, member_a_id, member_b_id) VALUES (?, ?, ?)", args: [id, memberA, memberB] });
+    res.status(201).json({ id });
+  } catch (error: any) { res.status(500).json({ error: error.message || "Failed to create staff conversation" }); }
+});
+adminRouter.get("/workspace-chat/staff/conversations/:id/messages", async (req: any, res) => {
+  try {
+    await ensureWorkspaceChatSchema();
+    const conversation = await db.execute({ sql: "SELECT id FROM admin_staff_conversations WHERE id = ? AND (member_a_id = ? OR member_b_id = ?) LIMIT 1", args: [req.params.id, req.user.id, req.user.id] });
+    if (!conversation.rows.length) return res.status(404).json({ error: "Conversation not found" });
+    await db.execute({ sql: "UPDATE admin_staff_messages SET delivered_at = COALESCE(delivered_at, CURRENT_TIMESTAMP), read_at = CURRENT_TIMESTAMP WHERE conversation_id = ? AND sender_id <> ? AND read_at IS NULL", args: [req.params.id, req.user.id] });
+    const messages = await db.execute({ sql: "SELECT * FROM admin_staff_messages WHERE conversation_id = ? ORDER BY created_at ASC", args: [req.params.id] });
+    res.json(messages.rows);
+  } catch (error: any) { res.status(500).json({ error: error.message || "Failed to load staff messages" }); }
+});
+adminRouter.get("/workspace-chat/staff/conversations/:id/typing", async (req: any, res) => {
+  try { await ensureWorkspaceChatSchema(); const conversation = await db.execute({ sql: "SELECT id FROM admin_staff_conversations WHERE id = ? AND (member_a_id = ? OR member_b_id = ?) LIMIT 1", args: [req.params.id, req.user.id, req.user.id] }); if (!conversation.rows.length) return res.status(404).json({ error: "Conversation not found" }); res.json({ actors: getChatTyping("staff", req.params.id, String(req.user.id)) }); }
+  catch (error: any) { res.status(500).json({ error: error.message || "Failed to load typing status" }); }
+});
+adminRouter.post("/workspace-chat/staff/conversations/:id/typing", async (req: any, res) => {
+  try { await ensureWorkspaceChatSchema(); const conversation = await db.execute({ sql: "SELECT id FROM admin_staff_conversations WHERE id = ? AND (member_a_id = ? OR member_b_id = ?) LIMIT 1", args: [req.params.id, req.user.id, req.user.id] }); if (!conversation.rows.length) return res.status(404).json({ error: "Conversation not found" }); setChatTyping("staff", req.params.id, String(req.user.id), "staff", Boolean(req.body?.typing)); res.json({ success: true }); }
+  catch (error: any) { res.status(500).json({ error: error.message || "Failed to update typing status" }); }
+});
+adminRouter.post("/workspace-chat/staff/conversations/:id/messages", async (req: any, res) => {
+  try {
+    await ensureWorkspaceChatSchema();
+    const body = String(req.body?.message || "").trim().slice(0, 5000);
+    if (!body) return res.status(400).json({ error: "Message is required" });
+    const conversation = await db.execute({ sql: "SELECT * FROM admin_staff_conversations WHERE id = ? AND (member_a_id = ? OR member_b_id = ?) LIMIT 1", args: [req.params.id, req.user.id, req.user.id] });
+    if (!conversation.rows.length) return res.status(404).json({ error: "Conversation not found" });
+    const recipientId = String(conversation.rows[0].member_a_id) === String(req.user.id) ? String(conversation.rows[0].member_b_id) : String(conversation.rows[0].member_a_id);
+    await db.execute({ sql: "INSERT INTO admin_staff_messages (id, conversation_id, sender_id, body) VALUES (?, ?, ?, ?)", args: [crypto.randomUUID(), req.params.id, req.user.id, body] });
+    await db.execute({ sql: "UPDATE admin_staff_conversations SET updated_at = CURRENT_TIMESTAMP, last_message_at = CURRENT_TIMESTAMP WHERE id = ?", args: [req.params.id] });
+    await createPortalNotification({ recipientId, portal: "admin", type: "staff_message", title: "Új belső üzenet", body: body.slice(0, 140), link: "/admin" });
+    res.status(201).json({ success: true });
+  } catch (error: any) { res.status(500).json({ error: error.message || "Failed to send staff message" }); }
 });
 adminRouter.get("/google-analytics", async (req, res) => {
   try { const days = Number(req.query.days || 30); res.json(await getGoogleAnalyticsOverview(days)); }
@@ -980,7 +1151,7 @@ adminRouter.get("/exchange-rates", async (req, res) => {
     res.json({ ...payload, cached: false });
   } catch (error) { res.status(503).json({ error: "Az árfolyamforrás átmenetileg nem érhető el." }); }
 });
-const ROLE_MENU_IDS = new Set(["dashboard", "budget", "invoices", "payment_requests", "portfolio", "media_library", "properties", "projects", "services", "visual_ideas", "pricing", "announcements", "changelog", "social_links", "faqs", "team", "referrals", "leads", "customers", "clients", "submissions", "marketing_emails", "themes", "settings"]);
+const ROLE_MENU_IDS = new Set(["dashboard", "budget", "invoices", "payment_requests", "portfolio", "media_library", "properties", "projects", "calendar", "services", "visual_ideas", "pricing", "announcements", "changelog", "social_links", "faqs", "team", "referrals", "leads", "customers", "clients", "submissions", "marketing_emails", "settings"]);
 adminRouter.get("/role-menu-permissions", async (_req, res) => {
   try { const result = await db.execute({ sql: "SELECT value FROM settings WHERE key = ? LIMIT 1", args: [ROLE_MENU_PERMISSION_KEY] }); res.json({ value: result.rows[0]?.value || null }); }
   catch { res.status(500).json({ error: "Failed to load role menu permissions" }); }
@@ -1017,6 +1188,9 @@ adminRouter.post("/settings", async (req, res) => {
     const settings = req.body;
     for (const [key, value] of Object.entries(settings)) {
       if (typeof value === 'string') {
+        // Detailed public/admin theme configurations are intentionally fixed.
+        // The Settings palette is persisted through theme_colors only.
+        if (key === 'theme_public_config' || key === 'theme_admin_config') continue;
         let finalValue = value;
         // Validate theme_colors
         if (key === 'theme_colors') {
@@ -1245,6 +1419,10 @@ adminRouter.put("/cookie-catalog", async (req, res) => {
 // ==========================================
 // THEME MANAGEMENT ENDPOINTS
 // ==========================================
+
+// The legacy Theme Studio is intentionally retired. Its detailed theme APIs
+// are blocked as well, so styling can only be changed through theme_colors.
+adminRouter.use("/themes", (_req, res) => res.status(410).json({ error: "The Theme Studio has been retired. Use Settings to edit website base colours." }));
 
 // Get all themes (presets and custom)
 adminRouter.get("/themes", async (req, res) => {
@@ -1657,6 +1835,7 @@ adminRouter.post("/portfolio", async (req, res) => {
         keywords || ""
       ]
     });
+    if (is_published !== false) await notifyAllAdmins({ type: "portfolio_published", title: "Új portfólió elem", body: String(title || "Új portfólió elem"), link: "/admin/portfolio" });
     res.json({ success: true, id, slug });
   } catch (error) {
     console.error("Failed to create portfolio item", error);
@@ -1750,6 +1929,7 @@ adminRouter.put("/portfolio/:id", async (req, res) => {
     const cleanup = removedUrls.length > 0
       ? await deletePortfolioMediaUrls(removedUrls)
       : { deletedFiles: 0, untrackedUrls: 0 };
+    if (is_published) await notifyPortfolioClients(String(req.params.id), String(title || "Portfólió frissítés"));
     res.json({ success: true, ...cleanup });
   } catch (error) {
     console.error("Failed to update portfolio item", error);
@@ -4747,6 +4927,7 @@ adminRouter.post("/projects", async (req, res) => {
         });
       }
     }
+    if (normalizedClientId) await createPortalNotification({ recipientId: normalizedClientId, portal: "client", type: "project_created", title: "Új projekt érkezett", body: String(name).trim(), link: "/client/projects" });
     
     res.json({ success: true, id });
   } catch (error) {
@@ -4788,6 +4969,7 @@ adminRouter.put("/projects/:id", async (req, res) => {
         });
       }
     }
+    if (normalizedClientId) await createPortalNotification({ recipientId: normalizedClientId, portal: "client", type: "project_updated", title: "Projekt frissítve", body: String(name).trim(), link: "/client/projects" });
     
     res.json({ success: true });
   } catch (error) {
@@ -4845,6 +5027,8 @@ adminRouter.post("/projects/:id/notify-client", async (req, res) => {
       templateId: isGalleryDelivery ? "gallery_ready" : "project_update",
       templateData
     });
+
+    if (result.success && project.client_id) await createPortalNotification({ recipientId: String(project.client_id), portal: "client", type: isGalleryDelivery ? "gallery_ready" : "project_update", title: isGalleryDelivery ? "Elkészült a galériád" : "Projektfrissítés érkezett", body: String(project.name), link: "/client/projects" });
 
     if (result.success && isGalleryDelivery) {
       const pinHash = crypto.createHmac("sha256", process.env.JWT_SECRET || "supersecretjwtstring")
@@ -4906,6 +5090,7 @@ adminRouter.post("/projects/:id/milestones", async (req, res) => {
       if (emailResult.success) await db.execute({ sql: "UPDATE project_milestones SET client_notified_at = CURRENT_TIMESTAMP WHERE id = ?", args: [id] });
     }
     const created = await db.execute({ sql: "SELECT * FROM project_milestones WHERE id = ?", args: [id] });
+    await notifyProjectClient(String(req.params.id), "project_milestone", "Új projektmérföldkő", String(title).trim());
     res.json({ milestone: created.rows[0], email: emailResult });
   } catch (error: any) {
     res.status(500).json({ error: error.message || "Failed to create milestone" });
@@ -4928,6 +5113,7 @@ adminRouter.put("/projects/:id/milestones/:milestoneId", async (req, res) => {
       if (emailResult.success) await db.execute({ sql: "UPDATE project_milestones SET client_notified_at = CURRENT_TIMESTAMP WHERE id = ?", args: [req.params.milestoneId] });
     }
     const updated = await db.execute({ sql: "SELECT * FROM project_milestones WHERE id = ? AND project_id = ?", args: [req.params.milestoneId, req.params.id] });
+    await notifyProjectClient(String(req.params.id), "project_milestone_updated", "Projektmérföldkő frissült", String(title).trim());
     res.json({ milestone: updated.rows[0], email: emailResult });
   } catch (error: any) {
     res.status(500).json({ error: error.message || "Failed to update milestone" });
@@ -4961,6 +5147,7 @@ adminRouter.post("/projects/:id/updates", async (req, res) => {
       });
     }
     const created = await db.execute({ sql: "SELECT * FROM project_updates WHERE id = ?", args: [id] });
+    await notifyProjectClient(String(req.params.id), "project_update", String(title).trim(), String(message).trim());
     res.json({ update: created.rows[0], email: emailResult });
   } catch (error: any) {
     res.status(500).json({ error: error.message || "Failed to publish project update" });

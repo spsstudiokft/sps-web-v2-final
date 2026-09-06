@@ -91,6 +91,11 @@ export type SiteSettings = {
   seo_default_description?: string;
   seo_default_keywords?: string;
   seo_pages_meta?: string; // JSON string mapping page key to PageSeoMeta
+  whatsapp_chat_enabled?: string;
+  whatsapp_chat_phone?: string;
+  whatsapp_chat_message?: string;
+  open_source_enabled?: string;
+  open_source_github_owner?: string;
 };
 
 export type PageSeoMeta = {

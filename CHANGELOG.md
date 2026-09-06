@@ -1,83 +1,391 @@
 # Modification Log
 
+## 2026-09-04
+
+### [Fixed] Typography consistency
+
+- Enforced Plus Jakarta Sans as the single display and body font across the public site, installer page, admin interface, and portals; legacy theme records can no longer load Playfair Display or another heading font.
+- Replaced the generic device glyphs on the PWA installer guidance with recognisable Android, Chrome, Apple, Safari, Windows, and macOS platform logos.
+- Routed admin client-feedback notifications directly into the matching persistent chat tray without changing the workspace sidebar state; legacy notifications now open the most recent client conversation instead of the retired feedback page.
+- Added per-user notification archive and irreversible delete controls to both admin and client portal notification panels, with recipient-scoped API authorization and archived items removed from the active list.
+- Added a dedicated Archived tab to notification panels, including a restore action that moves an archived item back to the active feed.
+- Closed the notification popover before opening its irreversible-delete confirmation, preventing two active-looking overlays at once.
+
+### [Updated] Unified notification feedback
+
+- Redesigned shared action toasts and confirmation dialogs as tone-aware blurred glass surfaces, with matching success, error, warning, information, and destructive-action color treatments.
+- Added motion-aware toast entrance, icon-pop, glass-shine, and graceful exit animations, with a reduced-motion fallback.
+- Extended the shared light-sweep treatment to confirmation dialogs, with a matching glass-dialog entrance animation.
+- Added live unread-message badges to minimized chat trays and to the workspace Chat selector in both expanded and collapsed sidebar states.
+- Added transient typing indicators, recipient-delivered and recipient-read states, and full date-and-time message timestamps to client and staff chats.
+- Opening a workspace conversation now immediately clears that conversation's local unread indicator while the server records the read state.
+- Added a mobile workspace chat launcher and full-screen conversation switcher, including client/staff tabs, internal-chat creation, unread badges, message states, and safe-area-aware input controls.
+- Localized all newly added workspace-chat and client-help UI copy through the database-backed translation manager, then synchronized the full key set across supported locales.
+
+### [New] Separate installable portal PWAs
+
+- Added separately scoped Admin, Client Portal and Property Manager PWA manifests and service workers with isolated cache namespaces.
+- Kept authenticated API responses out of offline caches while retaining each portal's app-shell fallback.
+- Added the public `/installers` page with separate portal launch cards and Android, Apple and desktop installation guidance.
+
+### [Fixed] Mobile legal documents
+
+- Made legal-document modal content independently scrollable within the mobile dynamic viewport while keeping the header and close control accessible.
+
+### [New] Unlinked Lou Goossens Easter egg endpoint
+
+- Added the public, raw-JSON-only `GET /api/health/lou` endpoint with a selected filmography reference; it has no website UI consumer or navigation entry.
+- Expanded the unlinked endpoint with a professional biography and a raw monochrome name bitmap grid, without introducing a website UI dependency.
+- Added the intentionally unlisted `/easter-lg` visual companion page, including a rendered bitmap name, professional portrait attribution, biography, and selected credits; its URL and noindex metadata are exposed by the raw endpoint without adding a navigation or sitemap entry. The previous address redirects to the new route for existing known links.
+- Added a bilingual developer note to the unlisted visual companion page, explaining the personal tribute and congratulating visitors who discovered it independently.
+- Added the endpoint-provided research sources as clickable links to the unlisted companion page, and positioned the portrait alongside the biography content.
+- Removed the duplicate conventional name heading so the bitmap is the page's sole name treatment.
+- Made the bilingual developer note an accessible collapsible section.
+- Added a Hungarian-English switcher to the unlisted companion page, localizing the biography, professional labels, selected-work media types, source heading, and developer note.
+- Removed the duplicate Client Feedback entry from the admin sidebar; client conversations remain available in the persistent workspace chat panel.
+- Unified the desktop admin side panels: the left navigation now uses the workspace-style edge toggle and compact closed rail, both navigation surfaces share animated hover and active states, and their scrollbars are visually hidden while remaining scrollable.
+- Restored icon-only navigation in the compact left sidebar rail, retaining active states, tooltips, and scrolling access to every permitted main menu entry.
+- Standardized every expanded admin navigation group on the Overview card treatment: glass-backed blue border, compact group header, individually surfaced links, and a reinforced active-row indicator.
+- Reduced navigation-group emphasis to match the original Overview treatment, retaining its subtle glass border while removing the stronger category glow and nested-card styling.
+- Made the navigation-group glass fill hover-only, leaving the default group surface transparent.
+- Added multi-package and bundle selection to the public inquiry calculator, including combined server-validated pricing, persisted package selections, and coupon-adjusted totals.
+- Localized the multi-package contact-calculator labels, package/bundle badges, subtotal, and currency-compatibility message in the supported language dictionaries.
+- Added an unlisted, superadmin-only `/admin/developer/api-docs` reference page with SPS Studio styling, searchable endpoint-family operations, method and access badges, clipboard route copying, and noindex safeguards.
+
+### [Fixed] Translation default synchronization
+
+- Filled accidentally blank default translation records during normal synchronization without replacing non-empty administrator-managed translations.
+
+### [New] Persistent admin workspace chat sidebar
+
+- Added a collapsible, persistent right-side admin workspace with Chat and Analytics selectors.
+- Reused the existing client-feedback conversations in the customer chat tab and added server-authorized direct internal staff conversations, messages, unread counts, and recipient notifications.
+- Added draggable-style chat trays that can be minimized beside the workspace and remain available while navigating between admin pages.
+
+### [Fixed] Admin workspace chat layering
+
+- Isolated the right workspace and its open chat trays above dashboard drag-and-drop layers, preventing card handles and comparable background controls from rendering over conversations.
+- Anchored open and minimized chat trays flush to the admin viewport edge and hid the adjacent main-content scrollbar without disabling scrolling.
+- Scoped lazy-loading feedback to the changing admin content outlet and retained workspace chat state in the browser session, so route changes do not reload the right sidebar or open conversations.
+
+### [Updated] Dashboard quick actions
+
+- Converted dashboard quick actions to in-place modal launchers for client accounts, projects, portfolio items, calendar entries, and payment requests, removing route navigation from these creation workflows.
+
+### [Updated] Admin settings information architecture
+
+- Reorganized the settings dashboard into responsive category navigation, contextual group summaries, and a structured bento-card layout for clearer scanning at every viewport size.
+- Added named nested subcategories with separated setting tiles; configurable groups retain their dedicated editor modals, while complex management tools remain inline.
+- Made every modal-backed settings tile clickable and keyboard-operable, with an explicit open state in its header.
+- Replaced the dense settings overview with compact, single-purpose quick-setting tiles; each supported setting now opens in its dedicated modal.
+- Prevented hidden legacy settings panels from mounting in the background and issuing duplicate administration API requests.
+- Fixed the compact settings page crash by importing the contact-settings icon used by its quick tile.
+- Wrapped each Settings modal subsetting tab in a collapsible accordion section to reduce visual density while preserving the existing save flow.
+- Fixed the shared compact-settings modal close action by importing its close icon.
+
+### [Fixed] Internal calendar current-time guide
+
+- Rendered the live time guide as one continuous overlay across the entire weekly schedule, rather than only inside the current day's column.
+
+### [Updated] Admin Navigation Information Architecture
+
+- Reorganized the admin sidebar into Overview, Finance, Clients & Sales, Production, Website Content, Marketing & Campaigns, and Administration while retaining the current visual system, role filters, and active-state behaviour.
+- Moved analytics, client feedback, campaigns, finance, website content, and team controls into their relevant working groups so related tasks are no longer scattered across the sidebar.
+- Added deliberate spacing between expanded group headers and their first navigation item for a clearer sidebar hierarchy.
+
+### [Updated] Simplified Website Palette Controls
+
+- Removed the standalone Theme & Branding Studio from the admin navigation and redirected legacy theme-editor links to Settings.
+- Limited editable styling to the public website's light and dark base colours; typography, UI-shape settings, shadows, saved theme libraries, and the admin-panel theme are no longer exposed for editing.
+
+### [New] Public Open Source Directory
+
+- Added a configurable public Open Source page that lists non-forked, active public GitHub repositories for a selected organization or user, including project metadata, topics, stars, forks, and last-update information.
+- Added Superadmin-only configuration under Settings → Content & SEO and a cached server-side GitHub proxy; an optional `GITHUB_TOKEN` can raise the public GitHub API rate limit without exposing it to visitors.
+- Added repository detail pages with safely rendered README documentation and a root-level CHANGELOG or HISTORY file when available.
+- Added category-aware changelog styling: New uses a plus, Fixed a key, Updated a return-arrow circle, and Removed a minus for every change entry.
+
+### [Fixed] Adaptive Public Navigation
+
+- Prevented desktop menu labels from wrapping before the navigation shell widens; width is now calculated from the actual brand and one-line menu content, then contracts again whenever it fits the original width.
+- Moved the full desktop navigation to the mobile drawer below 1360px, preserving intentional spacing between the SPS Studio brand and menu rather than compressing the desktop row.
+
+### [New] Campaign Landing Pages and Coupon Delivery
+
+- Added admin-managed public campaign landing pages with editable external slugs, campaign content, background image URL, CTA destinations, discount terms, and activation state.
+- Added the requested lead form, a branded thank-you view with copyable personal coupon code, customer-only coupon email delivery, and admin-side submission tracking without admin email notifications.
+- Issued campaign coupons are one-time, expire on the campaign schedule, and are bound server-side to the email address that claimed them.
+
+### [Updated] Campaign Admin Interface Consistency
+
+- Rebuilt the campaign manager around the existing admin page header, cards, controls, data-table styling, and modal patterns for a consistent portal experience.
+
+### [Updated] Campaign Public Visual System
+
+- Restyled both campaign and thank-you pages to use the public site's Plus Jakarta Sans typography, cinematic title treatment, Aero dark palette, glass cards, form interaction states, and primary/secondary CTA language.
+- Matched the supplied campaign references more closely with full-screen property photography, a centered narrow form composition, reference-style coupon panel, thank-you header, benefit row, and onward-navigation area.
+- Added the complete reference thank-you content set: four icon-led coupon terms, website and optional webshop CTAs, email/contact/Instagram follow-up links, and SPS Studio closing line.
+- Completed the campaign-form reference details, including the Hungarian phone prefix treatment, visual select markers, and a directional primary CTA affordance.
+- Added animated coupon-copy confirmation and provider-aware inbox opening for Gmail, Outlook/Hotmail/Live, Yahoo, and other configured email addresses.
+- Moved the coupon copy confirmation into the coupon field itself, temporarily replacing the displayed code with an animated confirmation label.
+- Kept the reference-style secondary webshop CTA visible for every campaign; its admin-configured destination overrides the safe public-site fallback.
+- Switched campaign form contact-field icons to Font Awesome for consistency with the public site's icon set.
+
+### [Fixed] Campaign Form Field Alignment
+
+- Removed decorative pseudo-elements that compressed and visually shifted the phone and selection fields, restoring a consistent input grid.
+- Reset campaign field icons from absolute-style transforms to flex alignment and normalized select sizing, line-height, padding, and option colors to match text inputs.
+- Corrected the campaign editor modal layout so only the form body scrolls, while the header and save/cancel actions remain inside the viewport.
+
+### [New] Dedicated Campaign Coupon Email Template
+
+- Added a campaign-specific transactional email template derived from the existing coupon layout, with Hungarian campaign copy, personal code, discount, expiry, and campaign CTA tokens.
+- Clarified in the campaign coupon email that the code can be used on both the SPS Studio website and webshop.
+
+### [Updated] Campaign-Assigned Coupon Codes
+
+- Added campaign support for assigning an existing active custom coupon; assigned campaigns distribute that code without generating a replacement campaign coupon.
+
+### [Fixed] Campaign Coupon Email Retry
+
+### [Fixed] Campaign Administration Actions
+- Activated the current local server build so campaign activation changes reach the new API endpoint.
+- Disabled the delete action in the campaign list when the campaign already has recorded leads; the server continues to enforce this protection as well.
+- Restored the campaign editor: the primary create action and per-campaign edit control now open the full configuration modal.
+
+### [Updated] Campaign Thank-You Page
+- Rebuilt the coupon presentation with a glowing discount ticket, a clearly dominant primary CTA, a smaller secondary webshop CTA, and the campaign visual glow treatment.
+- Attached an SVG-shaped, perforated discount ticket to the coupon field edge for a more authentic voucher presentation.
+- Replaced the thank-you and action icons with the matching Font Awesome treatment and a single enlarged circular checkmark.
+- Simplified the thank-you panel surface and added a subtle hover shine instead of a persistent raised background.
+
+### [Fixed] Campaign Editor Access
+- Restored a visible labeled Edit action for each campaign in the administration list.
+
+### [Updated] Campaign Editor Modal
+- Restored the SPS Studio admin visual system for the campaign editor, including the glass surface, focused fields, fixed action bar, and branded close control.
+
+### [Fixed] Campaign Admin Layout
+- Applied the standard responsive admin page padding to the campaign landing page management view.
+
+### [Updated] Campaign Form Surface
+- Removed the permanent raised campaign form treatment, retaining only hover shine and full-field focus highlighting for text inputs and selects.
+
+### [New] Campaign Translation Management
+- Added campaign landing and thank-you page copy to the Translation Manager under the Campaign landing pages group.
+- Connected all public campaign labels, form fields, consent text, coupon details, CTAs, and thank-you messages to the database-backed translation keys.
+
+### [Fixed] Admin Notification Panel
+- Rendered the notification panel above the sidebar layer and isolated its pointer events, preventing it from closing immediately after opening.
+- Clamped its horizontal position to the viewport so the complete panel remains visible from the sidebar trigger.
+
+### [New] Offline Portal Push Notifications
+- Added browser and mobile Web Push delivery for portal notifications, including an offline service worker and per-device subscriptions.
+- Connected new admin and client portal notifications to push delivery while retaining the in-app notification history.
+- Added project creation, project changes, timeline milestones, progress updates, gallery delivery, portfolio publication, and linked portfolio-update notifications.
+- Added admin and offline push alerts for recorded invoice payments and newly submitted colleague payment requests, with direct links to the relevant budget view.
+- Added a portal notification for the requesting colleague when their payment request is reviewed.
+
+### [Updated] Notification Audience Layers
+
+- Separated notification delivery into independent admin, client, and anonymous-public browser layers.
+- Added account-free public opt-in for maintenance, incident, and general service-status alerts; anonymous subscriptions are not tied to a user account or email address.
+- Added a Superadmin-only public alert broadcast endpoint for these service communications.
+
+### [New] Configurable WhatsApp Chat
+
+- Added an optional floating WhatsApp chat bubble for public pages, including campaign and public invoice views.
+- Added Superadmin-only WhatsApp number, opening message, and enabled-state management under Settings → Contact & Email.
+
+### [Updated] Floating Contact Controls
+
+- Raised the WhatsApp chat bubble above the bottom status widget so both controls remain accessible.
+
+### [Updated] Public Navigation Layout
+
+- Preserved the established default navigation width and expand it only when the rendered menu content would otherwise overflow, while keeping a viewport-safe maximum width.
+
+### [Fixed] Facebook Social Icon
+
+- Corrected the Facebook Font Awesome brand definition and made known platform values take precedence over legacy generic icon fallbacks.
+
+### [New] Exit-Intent Coupon Recovery
+
+- Added an optional, exit-intent-only public coupon modal that issues one tracked, one-time code per browser visitor.
+- Each issued code receives a cryptographically random 5–25% discount and configurable 1–90 day validity.
+- Added a marketing administration view for Superadmin activation and expiry configuration, plus the full issued-code and redemption-tracking list.
+
+### [Fixed] Exit Coupon Typography
+
+- Applied the active public body and heading font settings to the exit-intent coupon modal.
+
+### [Updated] Exit Coupon Frequency Control
+
+- Replaced the browser-storage frequency marker with first-party cookies and added configurable repeat thresholds by elapsed days or new visits.
+
+### [Fixed] Push Permission Enrollment
+- Requested notification permission directly from the notification-button click and revalidated already approved devices, ensuring subscriptions can be created for offline delivery.
+
+- Existing campaign claims with a failed or locally logged email delivery now retry the dedicated campaign email instead of silently returning the previously issued coupon.
+
+### [New] Admin-Managed Custom Bonus Codes
+
+- Added Shopify-style reusable bonus codes with configurable percentage or fixed discounts, currency, availability dates, usage limits, activation controls, and a redemption audit trail.
+- Added secure client-side code redemption against the account owner's open invoices, with server-side ownership, currency, expiry, activation, and usage-limit validation.
+
+### [Fixed] Custom Bonus Code Local Migration
+
+- Run the custom bonus-code schema migration even when an existing local database already has the legacy initialization marker.
+
+### [Updated] Contact Quote Bonus-Code Preview
+
+- Added a live custom bonus-code field to the public contact quote calculator, showing validity, discount terms, estimated savings, and the discounted gross estimate before submission.
+- Expanded the contact quote calculator to accept up to three distinct custom bonus codes and calculate their combined savings in entry order.
+- Display combined coupon savings directly in the estimated gross total, retaining the original amount as a struck-through reference.
+
+### [Updated] Custom Bonus Code Management
+
+- Added modal-based create and edit workflows, protected deletion for unused codes, and full server-side CRUD validation for custom bonus codes.
+
+## 2026-09-03
+
+### [New] Gmail-Compatible Email Template
+
+- Added a standalone SPS Studio HTML email template with the existing dark header, logo area, blue CTA, support line, and branded footer for use in Gmail-compatible send workflows.
+
+### Shopify SPS Blue kategóriás összehasonlító
+
+- Added an optional, interactive comparison section with configurable category tabs, selectable project thumbnails, per-example RAW/SPS Edit imagery, touch and keyboard-accessible before/after sliders, and editable benefits.
+- Shortened the section and preset name to comply with Shopify's 25-character schema-name limit, ensuring it appears in the Add section picker.
+- Included the new comparison section in the home-page template in a disabled state, so it is always visible in the theme editor sidebar after the updated theme is uploaded.
+- Removed that static template registration after it prevented Shopify from recognizing the Home page in the uploaded draft; the comparison remains a reusable optional section.
+- Rebuilt the comparison section schema with Shopify's minimal preset structure and explicitly targeted it to the Home page after Shopify omitted the first version from the Add section picker.
+- Updated the SPS Compare gallery so category selection also filters the thumbnail gallery, keeping each category's RAW/SPS Edit examples separate.
+- Reworked the gallery editor so each category is its own independently editable block, with an individual title and up to five dedicated RAW/SPS Edit image pairs.
+- Raised the SPS Compare gallery category limit from four to twelve independently editable category galleries.
+
+### Shopify SPS statistics
+
+- Raised the statistic block limit from four to twelve, retained a four-column desktop and two-column mobile layout for additional rows, and added house, clock, download, chart, and check icon choices.
+
+### Shopify SPS community testimonials
+
+- Replaced the single community testimonial display with an editable testimonial-block carousel featuring arrows, progress dots, optional auto-advance, reduced-motion support, and a legacy fallback for existing themes.
+
+### Shopify footer links
+
+- Added editable Social link and Legal link footer blocks with real URL fields, safe external handling for social destinations, and linked-text styling while retaining legacy text as a fallback.
+
+### Shopify brand lockup
+
+- Added a configurable static text lockup beside the uploaded theme logo in both the header and footer, retaining the existing text-only SPS mark as the no-logo fallback.
+- Fixed the Shopify theme-information schema identifier so the Brand, Colors, and Typography groups are recognized and displayed in Theme settings instead of only the fallback Theme style panel.
+
+### Shopify theme colors and typography
+
+- Connected the global Colors and Typography values to the SPS Blue design tokens; changing background, surface, text, muted text, primary, border, or font settings now changes the rendered storefront rather than unused legacy variables.
+
+### Shopify product compatibility
+
+- Added a product-template compatibility module driven by product metafields for creative software, operating systems, tested camera brands/models, package contents, and guarantees, with platform and software badges plus responsive camera groups.
+- Added the compatibility module to the default product template so it is discoverable in the product editor without manually adding the section.
+- Made the compatibility module accept both the documented metafield keys and the existing `custom.custom_*` product metafield keys, so current product data renders without recreating definitions.
+
+### Shopify product media sizing
+
+- Constrained the product-media frame to a responsive editorial aspect ratio, so the product image ends with the purchase panel instead of continuing beneath its assurance divider; mobile receives a taller image ratio for legibility.
+
+### Shopify home-page quick product panel
+
+- Added an accessible right-side quick product panel for homepage product-card image clicks, with an overlay, Escape/close controls, product summary, add-to-cart action, purchase assurances, and a route to the full product page.
+- The panel reads the same software, operating-system, package-content, guarantee, and tested-camera metafields as the product compatibility section, including existing `custom.custom_*` keys; it becomes a full-width drawer on mobile.
+
+### Shopify product-card cart controls
+
+- Replaced the wrapping product-card “Add to cart” copy with a consistently sized cart-plus icon button, preserving a translated screen-reader label and adding visible focus and hover states across home and collection grids.
+
+### Shopify typography baseline
+
+- Restored Plus Jakarta Sans as the SPS Blue default by preventing Shopify’s default Assistant picker value from overriding the website font; selecting a different font in Theme settings still deliberately overrides it.
+
 ## 2026-09-02
 
-### Open-Source License
+### [New] Open-Source License
 
 - Added an MIT `LICENSE` file and updated the project documentation to reflect the repository's open-source licensing.
 - Added a GitHub warning callout at the top of the README to disclose that the repository contains machine-generated code.
 - Added a Contributor Covenant 2.1 Code of Conduct and linked it from the README.
 
-### Local Development Logs
+### [New] Local Development Logs
 
 - Moved local development-server output and error logs into the dedicated, ignored `logs/` directory.
 
-### Shopify SPS Storefront Composition
+### [Updated] Shopify SPS Storefront Composition
 
 - Rebuilt the Aero Glow homepage into an SPS-coloured, commerce-first storefront with a promotional strip, full-bleed editorial hero, category gallery, five-column featured-products band, metrics, lead capture, social gallery, and refined footer.
 - Preserved theme-editor ownership of images, collections, copy, links, and form labels so the composition is fully configurable without code edits.
 
-### Shopify SPS Blue Baseline
+### [Updated] Shopify SPS Blue Baseline
 
 - Renamed the theme to SPS Blue and replaced the default Aero Glow visual treatment with a flat SPS-blue baseline, leaving future glow enhancements as an optional layer.
 
-### Shopify Promotional Header CTA
+### [Fixed] Shopify Promotional Header CTA
 
 - Restored the promotional-bar button even when no custom destination has been selected in Shopify. It now safely links to the product catalogue by default, while the theme editor's custom link still takes precedence.
 
 ## 2026-09-01
 
-### Google Analytics Admin Dashboard
+### [New] Google Analytics Admin Dashboard
 
 - Added a server-side GA4 dashboard in the admin panel with user, session, page-view, new-user, top-page, and acquisition-channel summaries.
 - The integration uses a Google service account and property ID stored only in server environment variables; the UI presents safe setup guidance until configured.
 
-### Local Database Connection
+### [Fixed] Local Database Connection
 
 - Switched local development to the existing `file:local.db` database so the local server no longer depends on an unavailable remote Turso connection.
 
-### SPS RAW VIP Platform
+### [New] SPS RAW VIP Platform
 
 - Added a switchable, VIP-only SPS RAW short-form behind-the-scenes video feed and a separate admin panel for publishing, ordering, editing, and removing videos.
 
-### Unified Notifications and Confirmations
+### [New] Unified Notifications and Confirmations
 
 - Added an application-wide toast and confirmation-dialog foundation with consistent SPS Studio styling, status colors, keyboard focus, and modal behavior.
 - Replaced every remaining native browser confirmation prompt with the shared asynchronous confirmation dialog across admin, client, and property-management workflows.
 
-### Internal Portal Notifications
+### [New] Internal Portal Notifications
 
 - Added persistent, account-scoped in-app notifications to both the admin panel and client portal, including unread counters, individual or bulk read actions, and automatic refresh.
 - Linked feedback conversations to the notification center: new client messages alert each eligible admin, while an admin reply alerts only the client who owns that conversation.
 - Fixed notification popovers to stay inside the viewport on both portals, selecting the available opening direction and constraining the scrollable message area.
 - Removed the outside-click close handler that caused the notification panel to close immediately after opening; the bell toggle and notification selection now control closing.
 
-### Client Feedback Conversations
+### [New] Client Feedback Conversations
 
 - Added client-owned feedback conversations with separate threads, status tracking, unread state, and live-style polling for new messages.
 - Added an admin feedback inbox to view each client separately, reply, and manage conversations through open, pending, resolved, and closed states.
 
-### Client Bonus-Code Redemption
+### [New] Client Bonus-Code Redemption
 
 - Connected available referral and bonus vouchers to client accounts: clients can now select one of their own outstanding invoices and redeem eligible percentage, fixed-discount, or account-credit codes.
 - Added server-side ownership, expiry, currency, invoice-ownership, and availability checks; successful redemptions update the invoice discount or payment balance and record the voucher against that invoice.
 
-### Sitemap Canonical URL Audit
+### [Fixed] Sitemap Canonical URL Audit
 
 - Aligned property sitemap eligibility with the public property-detail endpoint: listings whose linked Property is archived are no longer emitted as URLs that resolve to a public 404 and client-side homepage redirect.
 
-### Admin Dashboard Quick Actions
+### [New] Admin Dashboard Quick Actions
 
 - Added a permission-aware quick-actions panel to the admin dashboard for creating a client, project, or portfolio item and opening calendar or payment-request workflows.
 - Added direct create-query handling on the client, project, and portfolio pages so dashboard create actions open the respective form immediately.
 
-### Stripe Test Billing
+### [New] Stripe Test Billing
 
 - Added server-side Stripe Checkout for unpaid invoice balances, using only `STRIPE_SECRET_KEY` test credentials and server-authoritative amount calculations.
 - Added a durable Superadmin Stripe enable/disable setting; checkout and return confirmation are blocked when disabled or no valid `sk_test_` key is available.
 - Added Stripe-return verification and idempotent payment recording so sandbox payments update the existing invoice balance and status.
 
-### Shopify Aero Glow Theme
+### [New] Shopify Aero Glow Theme
 
 - Added a standalone Shopify Online Store 2.0 theme in `shopify-aero-glow-theme`, using the existing blue glass, cyan glow, rounded-card visual system.
 - Included editable homepage modules plus product, collection, cart, search, page, collection-list, and 404 templates with native Shopify Liquid commerce flows.
@@ -88,7 +396,7 @@
 - Added Aero Glow implementations for contact, blog, article, password-protected storefront, gift-card, and legacy customer account templates, including account activation, password reset, orders, and addresses.
 - Added Shopify's modern `shopify-account` header component for stores using new customer accounts; static and policy content remains covered by the shared page template.
 
-### Shopify Fulfillment Request Notification
+### [New] Shopify Fulfillment Request Notification
 
 - Added an SPS Studio-branded Shopify Fulfillment Request email source with dynamic service, order, fulfillment-line, shipping-address, note, and configured-logo support, plus copy/paste subject and setup notes.
 - Added the matching customer-facing Shopify Order Confirmation email source with order-status CTA, product summary, totals, discounts, delivery method, addresses, and configured-logo support.
@@ -96,62 +404,62 @@
 - Added a complete copy/paste-ready `.liquid` version of the supplied Shopify Order Confirmation source, verified to retain all original Liquid logic outside the SPS visual style block.
 - Added an SPS Studio-styled full Liquid version of the supplied Shopify Draft Order Invoice template, retaining its original payment-term and inventory-reservation logic.
 
-### Shopify Navigation Motion
+### [Updated] Shopify Navigation Motion
 
 - Updated Shopify desktop navigation links with the client-portal-inspired glass sweep, cyan glow underline, responsive hover lift, active state, and reduced-motion fallback.
 
-### Shopify Commerce Emphasis
+### [Updated] Shopify Commerce Emphasis
 
 - Added quick add-to-cart actions, sale and sold-out states, vendor metadata, and clearer product-card purchase affordances.
 - Added an editable homepage commerce-benefits strip and product-detail purchase assurances to make the Aero Glow theme feel explicitly commerce-led while retaining its visual system.
 - Refined the homepage commerce benefits into elevated individual trust cards and softened the hero-to-content transition for a less technical, more premium storefront presentation.
 
-### Shopify Cart and Responsive Refinements
+### [Fixed] Shopify Cart and Responsive Refinements
 
 - Added a dedicated, padded cart-update action area so the update button no longer rests against the cart card edge.
 - Corrected mobile hero spacing and floating benefit-card borders that were being overridden by older responsive strip styles.
 
-### Shopify Theme Visual Audit
+### [Fixed] Shopify Theme Visual Audit
 
 - Fixed the rich-content image-position setting so the configured right-side layout now renders correctly on desktop while retaining the intended mobile reading order.
 - Normalized placeholder-media sizing and added Aero Glow styling for Shopify's accelerated checkout control.
 - Restored the shared visually-hidden utility so assistive labels no longer create unintended visible spacing in forms.
 
-### Shopify Theme Localization
+### [New] Shopify Theme Localization
 
 - Added the missing English and Hungarian storefront translation keys for commerce actions, empty states, product details, search, contact forms, customer authentication, password pages, blog and gift-card copy.
 - Replaced the corresponding hard-coded customer-facing template copy with Shopify translation filters, including count and named-value interpolation.
 
-### Shopify Contact Layout
+### [Updated] Shopify Contact Layout
 
 - Applied dedicated contact-section spacing, aligned the introduction with the form card, and increased the form card's internal padding for a more balanced contact layout.
 
-### Shopify Before and After Module
+### [New] Shopify Before and After Module
 
 - Added an editable Aero Glow Before / After image-comparison section with image upload controls, responsive styling, a keyboard-accessible range control, and a full-size clipped before layer that preserves image alignment while dragging.
 
-### Shopify Commerce Home Redesign
+### [Updated] Shopify Commerce Home Redesign
 
 - Added the Aero Glow commerce-first homepage system: promotional bar, editorial category showcase, featured-product band, store metrics, newsletter capture, and editable social gallery.
 - Kept every image- and link-dependent module editable through the Shopify theme editor while retaining the existing blue-glass visual identity.
 
-### Legacy Contact URL Indexing
+### [Fixed] Legacy Contact URL Indexing
 
 - Added explicit permanent redirects for both `/contact` and `/contact/` to the homepage contact section, preventing the legacy standalone URL from remaining a valid indexable page.
 
 ## 2026-08-31
 
-### Changelog Language Convention
+### [Updated] Changelog Language Convention
 
 - New changelog entries are written in English using concise, past-tense descriptions. Historical Hungarian entries are retained unchanged for traceability.
 
-### Mobile Public Website Layout
+### [Updated] Mobile Public Website Layout
 
 - Reworked the compact header so language and theme controls move into the navigation drawer on narrow screens, preserving space for the brand, account control, and menu button.
 - Constrained the mobile logo and flex layout to prevent header collisions on small devices.
 - Set public inquiry form controls to a 16px mobile font size to prevent automatic iOS page zoom when an input receives focus.
 
-### Mobile Scroll Rendering Performance
+### [Updated] Mobile Scroll Rendering Performance
 
 - Disabled section reveal animations on touch and narrow-screen devices so fast scrolling never exposes transparent, apparently unloaded sections.
 - Kept desktop section content visible during its entrance transition, eliminating blank states while retaining a subtle positional reveal.
@@ -159,26 +467,26 @@
 - Forced lightweight rendering for every viewport up to 767 px instead of relying on inconsistent mobile pointer detection.
 - Disabled mobile `content-visibility` placeholders and the fixed ambient blur so fast flick scrolling cannot expose an unpainted section frame.
 
-### Maintenance Script Cleanup
+### [Removed] Maintenance Script Cleanup
 
 - Removed historical one-off translation fixes and data generators, stale reports, and the temporary MFA test from `scripts`.
 - Retained the translation migration and audit tools used by the project npm commands: full i18n audit, admin static-text audit, comparison audit, existing-key wiring, and manual translation migration.
 
-### Translation Database Loading and Missing-Key Reporting
+### [Fixed] Translation Database Loading and Missing-Key Reporting
 
 - Normalized locale codes and translation keys during loading, preventing inconsistent casing or surrounding whitespace from appearing as empty locale dictionaries.
 - Updated the admin translation editor to calculate missing keys only after a successful database response; failed loads show a clear state and retry action instead of falsely reporting thousands of missing keys.
 - Switched translation status reporting to the server-side missing-key report so the admin UI reflects the actual database state.
 
-### Admin Account Error Handling
+### [Fixed] Admin Account Error Handling
 
 - Updated the admin profile and password pages to handle platform-level non-JSON errors safely. They now show the actual HTTP failure state instead of a misleading `Unexpected token` parsing error.
 
-### Vercel Module Resolution
+### [Fixed] Vercel Module Resolution
 
 - Fixed the server-side media utility import so Vercel's native ESM runtime resolves `mediaUtils`. The missing extension could previously prevent every API function using the shared `utils` helper from starting.
 
-### One-Page Organic Search Indexing
+### [New] One-Page Organic Search Indexing
 
 - Preserved the public one-page experience while serving search crawlers a database-backed semantic HTML snapshot of homepage content, services, portfolio, pricing, and FAQ data.
 - Standardized `robots.txt` and the sitemap on the `https://www.spsstudio.hu` canonical domain in Vercel environments, preventing redirected non-www URLs from entering the sitemap.
@@ -190,200 +498,200 @@
 
 ## 2026-08-30
 
-### Árlista nettó árak és ÁFA-jelölés
+### [Updated] Price List Net Prices and VAT Labels
 
-- A publikus árlistán minden összeg nettó árként jelenik meg, a szakasz fejlécében pedig egyértelmű tájékoztató jelzi a végszámlán felszámított 27% ÁFÁ-t.
-- A csomag- és fix összegű kiegészítő szolgáltatáskártyák közvetlenül az ár alatt is mutatják: „Nettó ár · +27% ÁFA”.
-- Ugyanezek a kártyák most a 27%-os ÁFÁ-val számolt bruttó összeget is külön sorban kiírják, miközben a fő ár továbbra is a nettó érték marad.
+- All public price-list amounts are displayed as net prices, with a clear notice in the section header that final invoices include 27% VAT.
+- Package and fixed-price add-on cards now show “Net price · +27% VAT” directly below the price.
+- The same cards now also show the VAT-inclusive gross total in a separate row while retaining the net amount as the primary price.
 
-### Portfólió futósor kattinthatósága
+### [Fixed] Portfolio Marquee Clickability
 
-- A végtelen portfólió futósor második, vizuális ismétlődését adó kártyái érintéssel és egérkattintással is ugyanazt a galériát nyitják meg. Korábban a futósor körbefordulásakor ezek a kártyák dekorációként viselkedtek, ezért a látható kép nem volt kattintható.
-- Az ismétlődő kártyák továbbra sem kerülnek a billentyűzetes fókuszsorrendbe és nem indítanak külön videólejátszást, így a javítás nem növeli a média- vagy fókuszterhelést.
+- The visual duplicate cards in the infinite portfolio marquee now open the same gallery by touch or mouse click. Previously, they behaved as decoration after the marquee looped, leaving the visible image unclickable.
+- Duplicate cards remain outside the keyboard focus order and do not start separate video playback, so the fix does not increase media or focus overhead.
 
-### Publikus útvonalak, SEO és ajánlatkérési adatintegritás
+### [Fixed] Public Routes, SEO, and Inquiry Data Integrity
 
-- A régi `/contact/` útvonal a kapcsolatfelvételi szakaszra irányít át; a Vercel is tartós átirányítást küld hozzá. A kliensoldali hibaoldalak `noindex, follow` jelölést kapnak, így nem jelennek meg keresőtalálatként.
-- Az ajánlatkérési összeg, extra szolgáltatások és díjtételek a szerveren, az aktuális aktív árlistából számítódnak újra. A böngésző csak a választott csomagot és kiegészítőket küldi, nem tekintjük árforrásnak.
-- A százalékos díjszabályok a csomag és a kiválasztott extrák nettó részösszegére számítódnak a webes kalkulátorban és a szerveren is.
-- A publikus ingatlan- és változásnapló-oldal önálló SEO-címet/leírást kapott, a változásnapló pedig bekerült a sitemapbe.
-- Az ingatlanos katalógus és részletező felület fő statikus feliratai a fordítási rétegből érkeznek; a hibásan duplikált `/auth/verify` route eltávolítva.
+- The legacy `/contact/` route now redirects to the contact section, with a permanent Vercel redirect. Client-side error pages use `noindex, follow` so they do not appear in search results.
+- Inquiry totals, add-ons, and fee items are recalculated on the server from the active price list. The browser sends only the selected package and add-ons and is never treated as a price source.
+- Percentage-based fees are calculated from the net subtotal of the selected package and add-ons in both the web calculator and the server.
+- Public property and changelog pages received dedicated SEO titles and descriptions, and the changelog was added to the sitemap.
+- Core static labels in the property catalogue and detail pages now use the translation layer; the accidentally duplicated `/auth/verify` route was removed.
 
-### Ajánlatkérő e-mailek ÁFA-bontása
+### [Updated] Inquiry Email VAT Breakdown
 
-- Az adminnak küldött új ajánlatkérés és az ügyfél automatikus visszaigazoló e-mailje is külön mutatja a becsült nettó összeget, a 27%-os ÁFÁ-t és a becsült bruttó végösszeget.
-- A szerver a tárolt nettó becslésből számolja az ÁFÁ-t és a bruttó értéket, így a két e-mail minden esetben ugyanazt a bontást kapja.
-- A két sablon szerkesztőjében új nettó, ÁFA-kulcs, ÁFA-összeg és bruttó végösszeg tokenek érhetők el; a korábbi `{{estimated_total}}` token nettó kompatibilitási aliasként megmarad.
-- A még nem kézzel módosított adatbázis-sablonok automatikusan az új bontást használják; már szerkesztett sablonok tartalmát a rendszer nem írja felül.
+- New-inquiry emails to administrators and automatic client confirmations now show the estimated net amount, 27% VAT, and estimated gross total separately.
+- The server calculates VAT and the gross amount from the stored net estimate, so both emails always use the same breakdown.
+- Both template editors now provide net amount, VAT rate, VAT amount, and gross-total tokens; `{{estimated_total}}` remains as a net-price compatibility alias.
+- Database templates that have not been manually edited automatically use the new breakdown; already customized templates are not overwritten.
 
-### Ár-kalkulátor ÁFA-bontás
+### [Updated] Price Calculator VAT Breakdown
 
-- A kapcsolatfelvételi űrlap élő költségbecslése a nettó összeget, a 27%-os ÁFÁ-t és a fizetendő becsült bruttó végösszeget külön sorban mutatja.
-- A kalkulátor összecsukott fejlécében is a bruttó becsült összeg látható, miközben a részletező sorok nettó árakon maradnak követhetők.
+- The contact form's live estimate now shows the net amount, 27% VAT, and estimated gross total payable in separate rows.
+- The calculator's collapsed header also shows the estimated gross total while detail rows remain traceable at net prices.
 
-### Főoldal animáció és portfólió teljesítmény
+### [Updated] Homepage Animation and Portfolio Performance
 
-- A Pricing kártyaszűrés Motion-kezelése már több kártya egyidejű belépését és kilépését támogatja, így megszűnik a `mode="wait"` figyelmeztetés és a késleltetett váltás.
-- A portfólió futósora kisebb összeállításoknál statikus, érintéssel is görgethető sávra vált; az animált sor kevesebb belső kártyamásolatot épít fel.
-- A csak vizuális, második futósor kártyái nem fókuszolhatók, nem indítanak videólejátszást, és nem regisztrálnak a globális videókezelőbe.
-- A Pricing kiegészítő szolgáltatásainak korábban fix angol állapot- és típusfeliratai az öt támogatott nyelv fordítási rétegéből érkeznek.
+- Pricing-card filtering now supports multiple cards entering and leaving at once, removing the `mode="wait"` warning and delayed transitions.
+- The portfolio marquee switches to a static, touch-scrollable strip for smaller collections; animated rows create fewer internal card duplicates.
+- Cards in the visual-only second marquee row are not focusable, do not start video playback, and do not register with the global video manager.
+- Previously fixed English status and type labels for Pricing add-ons now come from the translation layer for all five supported languages.
 
-### Jogi dokumentum modal animáció
+### [Fixed] Legal Document Modal Animation
 
-- Javítva a jogi dokumentumok modal bezárásakor tapasztalható visszaugrás: a Motion átmenet többé nem ütközik az összes dialógusra érvényes CSS-belépő animációval.
+- Fixed the visual jump when closing legal-document modals: the Motion transition no longer conflicts with the CSS entrance animation applied to all dialogs.
 
-### E-mail kézbesítési napló
+### [Updated] Email Delivery Log
 
-- Az admin e-mail kézbesítési naplója nem korlátozódik többé az utolsó 50 eseményre. A szerver 100-as oldalanként, stabil rendezéssel és teljes darabszámmal szolgálja ki a naplót; a felületen további események tölthetők be.
+- The admin email-delivery log is no longer limited to the latest 50 events. The server now provides stable pagination in batches of 100 with a total count, and the interface can load additional events.
 
-### Szerkeszthető kliensportál-súgó
+### [New] Editable Client Portal Help
 
-- Új, külön Súgó oldal készült a kliensportálra, amely lenyitható topikokban mutatja a leírást, opcionális segédképet és a számozott, egymás után következő lépéseket.
-- Az adminpanelen a GYIK és súgó menücsoportban új „Ügyfélportál súgó” szerkesztő érhető el: topikok létrehozhatók, átrendezhetők, elrejthetők, törölhetők, és mindegyikhez több lépés, képfeltöltés vagy kép URL állítható be.
-- A súgó publikálása központilag be- és kikapcsolható; az ügyféloldali API csak a látható, szerveroldalon megtisztított topikokat adja ki.
+- Added a dedicated Help page to the client portal, presenting expandable topics with descriptions, optional helper images, and ordered steps.
+- Added a “Client Portal Help” editor under the admin FAQ and help section. Topics can be created, reordered, hidden, or deleted, with multiple steps and image uploads or URLs per topic.
+- Help publication can be enabled or disabled centrally; the client API returns only visible, server-sanitized topics.
 
-### Végleges projekt galéria PIN-email
+### [Fixed] Final Project Gallery PIN Email
 
-- Javítva a `gallery_ready` e-mail képes/videós darabszáma: a rendszer már nem a kapcsolt portfólió-bejegyzéseket, hanem az azok galériáiban ténylegesen szereplő egyes médiaelemeket számolja.
-- A régebbi, egyetlen médiát tartalmazó portfólió-bejegyzések továbbra is beleszámítanak a kiküldött összesítésbe.
+- Fixed the image/video count in the `gallery_ready` email: the system now counts individual media items actually present in linked galleries rather than linked portfolio entries.
+- Older portfolio entries that contain a single media item remain included in the sent summary.
 
-### Synology médiatár munkamenet
+### [Updated] Synology Media Library Session
 
-- Javítva a File Station 119-es („SID not found”) válasza: a médiatár most a Synology dokumentált, SID-alapú bejelentkezési módját használja, és nem keveri a session-cookie és `_sid` továbbítását.
-- A sikeres NAS-oldali reprodukcióhoz igazítva a csak olvasó mappalistázás már nem kér vagy továbbít CSRF `SynoToken` értéket; ez kizárólag későbbi módosító fájlműveletekhez szükséges.
-- A Közös médiatár immár az aktuálisan megnyitott, engedélyezett mappába közvetlen feltöltést is támogat; a szerver minden célmappa-jogosultságot újraellenőriz, nem ír felül meglévő fájlt, és Vercel-kompatibilis, 4 MB-os egyszeri feltöltési korlátot jelez a felületen.
-- A médiatári fájlokhoz lejáró, közvetlen Synology-letöltési link kérhető, így a letöltött adat nem halad át a Vercelen. Az adminok mappánként menthetnek Synology File Request linket is, amely a nagy fájlok böngészőből a NAS-ra történő, közvetlen feltöltését biztosítja.
-- A Közös médiatárban immár az aktuális engedélyezett mappán belül új almappa is létrehozható; a mappanév tiltott karaktereit és az útvonaljogosultságot a szerver ellenőrzi.
-- A közvetlen Synology File Request linkek mappánként adatbázisban, ütközés esetén frissítéssel tárolódnak, és a mentés sikerét a rendszer azonnali visszaolvasással ellenőrzi; a legközelebbi szülőmappa linkje az almappákban is elérhető.
-- Javítva a Synology-letöltési linkek érvényessége: a rendszer a Sharing API által adott teljes, eredeti publikus URL-t használja, ezért a QuickConnect/DDNS hosztnév és a Synology megosztási tokenje változatlan marad.
-- Elkészült a külön Dockeres NAS-letöltő átjáró integrációja: a Vercel öt percig érvényes, HMAC-aláírt fájlútvonalat ad ki, a NAS-on futó konténer pedig csak ezt ellenőrizve, közvetlen fájlcsatolmány-válasszal streameli az állományt. A QuickConnect megosztási oldal csak konfiguráció nélküli tartalékútvonal marad.
+- Fixed File Station's 119 (“SID not found”) response: the media library now uses Synology's documented SID-based login and does not mix session-cookie and `_sid` forwarding.
+- Following successful NAS-side reproduction, read-only folder listing no longer requests or forwards a CSRF `SynoToken`; it is required only for later modifying operations.
+- The shared media library now supports direct uploads to the open, authorized folder. The server rechecks every target-folder permission, never overwrites an existing file, and shows a Vercel-compatible 4 MB one-shot upload limit.
+- Expiring direct Synology download links can be requested for media-library files, so download data does not pass through Vercel. Administrators can also save per-folder Synology File Request links for direct browser-to-NAS large-file uploads.
+- A new subfolder can now be created within the current authorized folder; the server validates forbidden name characters and path permissions.
+- Direct Synology File Request links are stored per folder in the database and updated on collision, with immediate read-back verification. The nearest parent-folder link is also available from subfolders.
+- Fixed Synology download-link validity by using the complete original public URL returned by the Sharing API, preserving the QuickConnect/DDNS hostname and sharing token.
+- Added a separate Docker NAS download-gateway integration: Vercel issues an HMAC-signed file path valid for five minutes, and the NAS container validates it before streaming a direct attachment response. The QuickConnect sharing page remains a configuration-free fallback.
 
-### Vizuális email-sablonszerkesztő
+### [Updated] Visual Email Template Editor
 
-- Az email-sablon modal kapott egy alapértelmezett vizuális szerkesztőnézetet: a levéltörzs közvetlenül formázható, a címsor, félkövér/dőlt, idézet, listák, hivatkozás és szövegszín eszközökkel.
-- A változók a vizuális vászon aktuális kurzorpozíciójába is beilleszthetők; az eredmény ugyanabba a korábbi, szerveroldalon tisztított HTML mezőbe mentődik. A haladó HTML- és a sima szöveges szerkesztő továbbra is elérhető.
+- The email-template modal now has a default visual editing view: the message body can be formatted directly with heading, bold/italic, quote, list, link, and text-color tools.
+- Variables can also be inserted at the visual canvas's current cursor position. The result saves to the existing server-sanitized HTML field, while advanced HTML and plain-text editors remain available.
 
-### Biztonságos helyi Turso használat
+### [Updated] Safe Local Turso Usage
 
-- A helyi fejlesztői szerver alapértelmezésben nem indít ütemezett email- vagy naptári emlékeztető-feldolgozást akkor sem, ha a `.env` éles Turso-adatbázisra mutat. Helyi környezetben ez csak az explicit `ENABLE_LOCAL_BACKGROUND_WORKERS=1` kapcsolóval engedélyezhető.
+- The local development server no longer starts scheduled email or calendar-reminder processing by default, even when `.env` points to a production Turso database. In local environments this requires the explicit `ENABLE_LOCAL_BACKGROUND_WORKERS=1` flag.
 
 ## 2026-08-29
 
-### Synology közös médiatár API-alap
+### [New] Synology Shared Media Library API Foundation
 
-- Elkészült a szerveroldali Synology Drive / File Station API-réteg a közös médiatár állapotának és engedélyezett mappáinak lekérdezéséhez, valamint a mappaböngészéshez.
-- A hozzáférés szerveroldalon csak superadmin, admin és vágó szerepkörnek engedélyezett; a vágók kizárólag környezeti változóban explicit megadott mappákat érhetnek el.
-- A NAS bejelentkezési adatai kizárólag szerveroldali környezeti változókban maradnak.
-- Elkészült az admin felület Közös médiatár oldala, amely csak a felhasználóhoz engedélyezett mappákat böngészi; a fájlok feltöltése és megosztása még nem része ennek a lépésnek.
-- Hiányzó Synology konfiguráció vagy átmenetileg elérhetetlen NAS esetén a felület egyértelmű, nem használható állapotot mutat, és nem indít fájlműveletet.
-- A környezeti változó mintája immár több mappát és e-mailes vagy belső felhasználói azonosítós vágói hozzárendelést bemutató JSON példát is tartalmaz.
-- Az adminok immár a Közös médiatár oldalon kezelhetik a vágók mappajogosultságait; a mentett adatbázis-szabály elsőbbséget kap, a szabály visszaállítható a környezeti JSON-ra.
-- A Synology mappalistázás első kérése 200 elemre korlátozott, így nagy médiagyökérnél sem próbálja a teljes fájltárat egyszerre betölteni; a hálózati időtúllépés most célzott hibaüzenettel jelenik meg.
-- Javítva a régebbi Turso adatbázisokon futó portálmeghívó-emlékeztető cron: a hiányzó emlékeztető-oszlop a futás előtt automatikusan, idempotens módon létrejön.
-- A Synology File Station API-kérések formázott POST törzsbe kerültek; így a szolgáltatási jelszó nem URL-paraméter, és a NAS-proxy POST útvonalát használja a fájllista lekéréséhez is.
-- A Synology gyökérmappa első listázása 50 elemre és alap fájladatokra szűkült, hogy ne kérjen költséges fájlméret- és időbélyeg-metaadatokat a NAS-tól.
-- A Synology hitelesítési munkamenet neve a File Station által használt `FileStation` értékre módosult a fájllistázó API-kompatibilitás érdekében.
-- A Synology integráció a közvetlen File Station-listázást használja; a külön API-útvonal-felderítés el lett távolítva, mert egyes NAS-proxyk ezt a felderítő végpontot nem szolgálják ki külső kérésre.
-- A DSM 7 File Station-listázás most a Synology által jelzett JSON-paraméterformátummal és a bejelentkezéskor kapott `SynoToken` értékkel fut, ami a védett DSM API-k követelménye lehet.
-- A Synology File Station munkamenet most a DSM által kiadott session-cookie-t is továbbviszi az API-kérésekben, nem csak az opcionális `_sid` azonosítót.
-- A Synology médiatár hibajelzése most megmutatja a DSM API konkrét hibakódját, így a kapcsolódás utáni File Station-elutasítások célzottan diagnosztizálhatók.
-- A Synology/Cloudflare HTTP-hibák most a rövid, csonkolt válaszszöveget is visszaadják, így a File Station 403 tiltás eredete elkülöníthető.
-- Javítva a Synology File Station mappalistázás 400-as hibája: a JSON-formátumú mappaútvonal mellett a rendezési mezők immár a DSM által elvárt sima `name` és `asc` értékként mennek ki.
+- Added a server-side Synology Drive / File Station API layer for shared-media-library status, authorized folders, and folder browsing.
+- Server-side access is limited to Superadmin, Admin, and Editor roles; editors can access only folders explicitly assigned through environment variables.
+- NAS credentials remain exclusively in server-side environment variables.
+- Added an admin Shared Media Library page that browses only folders authorized for the current user; uploads and sharing were not included in this initial step.
+- Missing Synology configuration or a temporarily unavailable NAS now produces a clear unavailable state without attempting file operations.
+- The environment-variable example now demonstrates multiple folders and editor assignment by email or internal user ID.
+- Administrators can manage editor folder permissions from the Shared Media Library page; saved database rules take precedence and can be reset to the environment JSON.
+- Initial Synology folder listing is limited to 200 items, avoiding full loading for large media roots; network timeouts now display targeted error messages.
+- Fixed the portal-invitation reminder cron on older Turso databases: the missing reminder column is created automatically and idempotently before execution.
+- Synology File Station API requests now use a structured POST body, keeping the service password out of URL parameters and using the NAS proxy's POST route for file listing.
+- Initial root-folder listing is limited to 50 items with basic file data to avoid costly file-size and timestamp metadata requests.
+- The Synology authentication-session name now uses File Station's `FileStation` value for API compatibility.
+- The integration uses direct File Station listing; separate API-route discovery was removed because some NAS proxies do not expose that discovery endpoint externally.
+- DSM 7 File Station listing now uses Synology's indicated JSON parameter format and the login `SynoToken`, which protected DSM APIs may require.
+- File Station sessions now forward the DSM-issued session cookie in API requests as well as the optional `_sid` identifier.
+- Media-library errors now include the concrete DSM API code, allowing targeted diagnosis of File Station rejections after connection.
+- Synology/Cloudflare HTTP errors now return short, truncated response text, helping distinguish the source of File Station 403 blocks.
+- Fixed the Synology File Station folder-listing 400 error: sort fields now use the plain `name` and `asc` values required by DSM alongside the JSON-formatted folder path.
 
 ## 2026-08-28
 
-### Ügyfélportál meghívók kuponkóddal
+### [New] Client Portal Invitations with Coupon Codes
 
-- Az admin ügyfélmeghívója most normál vagy kuponkódos módban küldhető; a kuponkód a biztonságos regisztrációs hivatkozáshoz is kapcsolódik.
-- Új, teljesen szerkeszthető „Client Portal Invitation with Coupon Code” email-sablon került a sablonkezelőbe, saját `{{coupon_code}}` tokennel.
+- Administrators can now send client invitations in standard or coupon-code mode; the code is also linked to the secure registration URL.
+- Added a fully editable “Client Portal Invitation with Coupon Code” email template with its own `{{coupon_code}}` token.
 
-### Automatikus VIP-kupon és 0 értékű pénzügyi tételek
+### [New] Automatic VIP Coupon and Zero-Value Financial Entries
 
-- A kuponkódos portálmeghívó most automatikusan egyedi, egyszer használható VIP-üdvözlő kupont hoz létre; sikeres regisztráció után a jutalom a VIP-jutalmak közé kerül.
-- Költségvetési tételnél az összeg opcionális: üresen hagyva 0 értékű, ingyenes vagy természetbeni tételként menthető.
-- Javítva az adminos automatikus VIP-kupon kiadásának Express/TypeScript típusa.
-- Javítva a portálmeghívó státuszikonjának hiányzó importja és a számlamodul buildet blokkoló gombváltozata.
+- Coupon-code portal invitations now create a unique, single-use VIP welcome coupon automatically; successful registration adds the reward to VIP benefits.
+- Budget-entry amounts are optional: blank values save as zero-value, free, or in-kind entries.
+- Fixed the Express/TypeScript type for automatic administrator-issued VIP coupons.
+- Fixed a missing portal-invitation status-icon import and a button variant that blocked the invoice-module build.
 
-### Portálmeghívó lejárati emlékeztető
+### [New] Portal Invitation Expiry Reminder
 
-- A még nem aktivált, 48 órás ügyfélportál-meghívókhoz a rendszer kb. 36 óra után egyszeri emlékeztető emailt küld; a levél csak érvényes és fel nem használt linkhez megy ki.
-- Az emlékeztető külön, szerkeszthető email-sablont kapott, és a meglévő Vercel cron futtatja.
+- The system sends a one-time reminder after approximately 36 hours for unactivated, 48-hour client-portal invitations; it is sent only for valid, unused links.
+- The reminder has a separate editable email template and runs through the existing Vercel cron.
 
-### Kézzel kiadott VIP-kupon email
+### [New] Manually Issued VIP Coupon Email
 
-- Az admin által ügyfélfiókhoz manuálisan kiadott VIP-kupon most automatikusan emailben is megérkezik a kóddal, kedvezménnyel, leírással és lejárati dátummal.
-- A „VIP Coupon Assigned by Admin” külön, szerkeszthető email-sablonként elérhető.
-- A VIP-kupon email a meglévő értesítési sablonkategóriában jelenik meg, így megfelel a sablonrendszer típusainak.
+- VIP coupons manually issued by administrators now arrive by email with their code, discount, description, and expiry date.
+- “VIP Coupon Assigned by Admin” is available as a separate editable email template.
+- The VIP-coupon email appears in the existing notification-template category and conforms to the template system's types.
 
-### Meghívó küldési visszajelzés
+### [Fixed] Invitation Delivery Feedback
 
-- A portálmeghívó modal csak sikeres küldés után záródik be; hiba vagy aktív korábbi meghívó esetén a szerver válasza közvetlenül a modalban jelenik meg.
-- Javítva a Turso/LibSQL-kompatibilis aktív meghívó ellenőrzés a normál és tömeges küldésnél.
-- A VIP-portálmeghívó a futáskor is biztonságosan létrehozza a kuponok tábláját, ezért meglévő Turso-adatbázison sem akad el hiányzó migráció miatt.
+- The portal-invitation modal now closes only after successful delivery; errors or an existing active invitation are shown directly in the modal.
+- Fixed the Turso/LibSQL-compatible active-invitation check for standard and bulk delivery.
+- VIP portal invitations now safely create the coupons table at runtime, preventing missing-migration failures on existing Turso databases.
 
-### Opcionális projektügyfél
+### [New] Optional Project Client
 
-- Projektek ügyfél hozzárendelése nélkül is létrehozhatók önálló belső munkatérként; ügyfél nélküli projekthez ingatlan csak később, az ügyfél kiválasztása után kapcsolható.
+- Projects can be created without a client assignment as standalone internal workspaces; a property can be linked to a clientless project later, after selecting a client.
 
-### Rólunk szekció opcionális videója
+### [New] Optional About-Section Video
 
-- A Rólunk szekció képkerete most opcionális MP4, WebM vagy MOV videót is megjelenít lekerekített sarkokkal és megtartott hover animációval.
-- Az admin felületen 9:16 álló vagy 16:9 fekvő képarány választható a feltöltött videóhoz.
-- A Rólunk videó hanggal, kizárólag a látogató indítására játszható le; nincs automatikus lejátszás.
-- A videó saját, minimalista indítás/szüneteltetés vezérlőt kapott; a lejátszás hangereje rögzítetten 50%.
+- The About-section image frame can now display an optional MP4, WebM, or MOV video with rounded corners and the existing hover animation.
+- Administrators can select a 9:16 portrait or 16:9 landscape aspect ratio for the uploaded video.
+- The About video plays with sound only when initiated by the visitor; autoplay is disabled.
+- The video has its own minimal play/pause control and a fixed 50% volume.
 
-### Magyar publikus számla és világos márkajelzés
+### [Updated] Localized Public Invoice and Light Branding
 
-- A publikus számlaoldal teljes ügyféloldali felületét magyar számlanyelvre állítottuk át, beleértve a fizetési állapotot, tételsort, összegeket, nyugtákat és fizetés-visszajelzést.
-- A számlafejléc most a branding beállítások világos módhoz tartozó fejléc-logóját használja, így a nyomtatható felületen is a megfelelő SPS logó jelenik meg.
-- A publikus számlaoldal az aktív webhelynyelven (EN/HU/DE/ES/FR) jelenik meg, saját nyelvválasztóval és `lang` URL paraméteres megnyitási lehetőséggel; a fejléc a világos logó mellett a stúdió nevét is mutatja.
+- The public invoice page's complete client-facing interface was localized, including payment status, line items, amounts, receipts, and payment feedback.
+- The invoice header now uses the light-mode header logo from branding settings, ensuring the correct SPS logo appears in printable views.
+- Public invoices render in the active website language (EN/HU/DE/ES/FR), with their own language selector and `lang` URL parameter; the header shows the studio name beside the light logo.
 
-### VIP program szüneteltetése
+### [Updated] VIP Program Pause
 
-- Szünetelő VIP meghívóprogramnál az ügyfélportál külön tájékoztató állapotot mutat, és elrejti az új meghívásokhoz, kedvezményekhez és jutalmakhoz tartozó műveleteket.
-- A regisztrációs meghívókód mezője jelzi a szünetet, a szerver pedig ilyenkor nem hoz létre ajánlási kapcsolatot, kupont vagy jutalmat, és új emailes meghívót sem enged küldeni.
+- When the VIP invitation program is paused, the client portal shows a dedicated informational state and hides actions for new invitations, discounts, and rewards.
+- The registration invite-code field indicates the pause, and the server does not create referrals, coupons, or rewards or permit new invitation emails.
 
-### Client registration coupon code
+### [Fixed] Client registration coupon code
 
 - Elevated the optional coupon/invite-code entry into a clear, benefit-led registration card and made the expanded input visually distinct, while preserving the existing referral validation and registration flow.
 
-### Shared button type compatibility
+### [Fixed] Shared button type compatibility
 
 - Restored the shared button component's `outline` variant and explicit children support, resolving its TypeScript errors across client registration and other existing button uses.
 
-### Account security email notifications
+### [New] Account security email notifications
 
 - Added editable transactional templates and live delivery for successful account registration, two-factor authentication enable/disable events, and completed password resets with a new password.
 - Applied the account-registration confirmation to both completed magic-link and password registrations while respecting the existing client welcome-email setting.
 
-### Public changelog and feature announcements
+### [New] Public changelog and feature announcements
 
 - Added an admin-managed public `/changelog` page with publishable release notes, release types, summaries, and detailed descriptions.
 - Added configurable one-time feature announcements that display as either a modal or a lower-page banner after publication.
 
-### Public header layering
+### [Updated] Public header layering
 
 - Raised the navigation layer above the announcement bar so the account sign-in dropdown remains fully visible and clickable.
 
-### Client portal sidebar interactions
+### [Updated] Client portal sidebar interactions
 
 - Matched the client portal navigation hover and active states to the admin sidebar's accent rail, highlight sweep, icon glow, and horizontal motion while retaining the client palette.
 
 ## 2026-08-27
 
-### Public data loading resilience
+### [Fixed] Public Data Loading Resilience
 
 - Isolated the optional testimonial query from the core homepage bootstrap, so an older database without the new testimonials table can no longer prevent settings, portfolio, services, pricing, and FAQ content from loading.
 
-### Testimonial schema migration
+### [Fixed] Testimonial Schema Migration
 
 - Added an idempotent testimonial-table guard for public and admin endpoints, so independently started serverless functions create the new optional table before reading or updating it.
 
-### MFA verification compatibility
+### [Fixed] MFA Verification Compatibility
 
 - Narrowed the shared OTP verification result to a TOTP result before storing its replay-protection time step, restoring TypeScript build compatibility without weakening authenticator-code validation.
 
-### Hero gallery
+### [New] Hero Gallery
 
 - Added an editable hero image gallery to the existing Section Media settings, using the same direct-storage upload pipeline, accepted image formats, and optimized variants as other section media.
 - Hero images now accept source files up to 1 GB, matching the portfolio image limit, while the upload flow automatically generates and uses a browser-facing variant below 10 MB.
@@ -394,7 +702,7 @@
 - Stabilized the parsed hero-gallery references across slideshow state updates so the active and outgoing layers are not remounted or have their cross-fade timer cancelled mid-transition.
 - Switched the hero-gallery opacity handoff to a GSAP timeline: the current and preloaded-next images now animate from 1→0 and 0→1 at the same timeline position, with cleanup when the component is reset or unmounted.
 
-### Public scroll-animation performance
+### [Updated] Public Scroll-Animation Performance
 
 - Replaced the continuous CSS view-timeline section reveal with a single GSAP ScrollTrigger reveal per opted-in public section; each reveal animates only opacity and transform once, then stops observing work for that section.
 - Migrated the simple About, Vision, Featured Work, Visual Ideas, and testimonial section entrances from individual Motion viewport observers to the shared GSAP controller.
@@ -404,24 +712,24 @@
 - Preserved existing single hero background settings as a compatible first gallery image until additional images are added.
 - Optimized gallery rendering so only the current and preloaded-next slides stay mounted (with one short-lived outgoing layer during a cross-fade); animation pauses in background tabs and honors reduced-motion preferences.
 
-### Client portal navigation
+### [Updated] Client Portal Navigation
 
 - Reworked the client portal into an admin-style, structured left sidebar with an account section and clear navigation for projects, invoices, referrals, property listings, and settings.
 - Added a touch-friendly mobile header and off-canvas menu, with large controls, backdrop dismissal, active-page states, and automatic closing after navigation.
 
-### Public testimonials
+### [New] Public Testimonials
 
-- Added a public “Rólunk mondták” testimonial section directly before the FAQ; it appears automatically once at least one published testimonial exists.
+- Added a public “What They Say About Us” testimonial section directly before the FAQ; it appears automatically once at least one published testimonial exists.
 - Added an admin testimonial manager with create, edit, publish/draft, ordering, and deletion controls, available under the FAQ menu.
 - Added protected admin and public API endpoints plus the persistent testimonials table and homepage bootstrap delivery.
 
-### Team roles
+### [New] Team Roles
 
 - Added Video Editor, Real-estate Agent, and Advertiser roles to team-member creation, invitations, invitation acceptance, filters, badges, and editing.
 - Added server-side role validation, login recognition, and menu authorization for the new roles, with configurable default access profiles in admin settings.
 - Added localized role labels and invitation descriptions in English, Hungarian, German, Spanish, and French.
 
-### Two-factor authentication foundation
+### [New] Two-Factor Authentication Foundation
 
 - Added portal-scoped authentication-factor, challenge, recovery-code, and security-event database foundations for separate client and admin identities.
 - Added short-lived pre-authentication sessions, hashed eight-digit email challenges, five-minute expiry, single-use verification, attempt limits, resend cooldown, and hourly account limits.
@@ -448,7 +756,7 @@
 
 ## 2026-08-26
 
-### Ingatlanhirdetési és welcome e-mail sablonok
+### [New] Property-Listing and Welcome Email Templates
 
 - Added five built-in, editable Hungarian marketing email templates for new property announcements, price updates, viewing invitations, new property seekers, and new sellers/partners.
 - Made all built-in templates available from the manual Marketing Emails send flow; custom copies remain removable while factory templates remain safely restorable.
@@ -457,52 +765,52 @@
 - Added a toggleable automatic client-welcome email setting, enabled by default; it controls post-registration welcome delivery without disabling essential magic-link sign-in emails.
 - Added the editable Client Portal Welcome template for first-time magic-link client registrations, alongside the existing password-registration welcome template.
 
-### Internet Archive integration
+### [New] Internet Archive Integration
 
 - Added an opt-in Internet Archive / Wayback Machine integration for public property listings.
 - When enabled, published listings are submitted after publication and subsequent public updates; local or otherwise non-public URLs are never sent.
 - Recorded snapshot-request success or failure in the related Property activity log.
 
-### Admin account settings
+### [Updated] Admin Account Settings
 
-- Added a dedicated Admin → Saját fiók page with editable display name, account email visibility, and secure current-password-verified password changes.
+- Added a dedicated Admin → My Account page with editable display name, account email visibility, and secure current-password-verified password changes.
 - Added account endpoints that correctly update the active admin credential for both standard admin accounts and dual client-plus-admin accounts.
 - Fixed the admin account endpoints being registered before the admin router instance was initialized, which caused server error responses instead of JSON.
 
-### Invoicing
+### [Updated] Invoicing
 
 - Made the invoice client-account filter searchable by client email, with account names available as autocomplete hints.
 
-### Budget refresh reliability
+### [Fixed] Budget Refresh Reliability
 
 - Marked all private Budget API responses as non-cacheable and made the client request fresh entries, summaries, settings, and administrator data after every save.
 - Budget entry creation and editing now wait for the refreshed list and analytics totals before completing, so new expenses appear in the table and update cashflow metrics immediately.
 - Fixed Budget totals and analytics for mixed-currency entries: all stored entry currencies are now converted to the administrator's selected display currency before aggregation, rather than being silently excluded when they differ from the budget default.
 - Extended the shared administrator exchange-rate feed to cover every currency available in Budget entry creation, including CAD and AUD.
 
-### Theme templates
+### [New] Theme Templates
 
 - Reframed the theme editor around curated style templates and tucked the granular color, typography, and UI controls behind an explicit advanced-editor action.
 - Added Aero Glass, Electric Glow, and Warm Estate templates alongside the existing SPS visual presets.
 
-### Portal invitations
+### [Updated] Portal Invitations
 
 - Added active portal-invitation status and expiry visibility to customer rows.
 - Prevented single and bulk portal invitation dispatch while a customer's latest unused invitation remains valid; a new invite is allowed after use or expiry.
 - Fixed the customer-list and invitation checks for installations with an older `magic_links` schema by deriving the active invitation from its expiry timestamp instead of relying on an optional creation-time column.
 
-### Vision section
+### [Updated] Vision Section
 
 - Made the public Vision headline responsive to the entered text length, retaining the large display treatment for short copy while reducing long headlines to a balanced, readable size.
 
-### Vercel image optimization
+### [Fixed] Vercel Image Optimization
 
 - Added Vercel Image Optimization configuration restricted to public Appwrite Storage image URLs, with responsive widths, permitted quality levels, AVIF/WebP output, and a one-day minimum cache lifetime.
 - Routed public portfolio cards, portfolio views, and property-listing cards, detail images, and gallery thumbnails through Vercel's production image endpoint while preserving Appwrite previews during local development.
 - Kept videos, download URLs, SVG files, and non-Appwrite external images outside the new Vercel image path; a client-side fallback restores the original image if optimization is unavailable.
 - Added an administrator-controlled public image-delivery mode: Vercel optimization remains the default, while Appwrite preview mode restores the prior direct image path across public portfolios and property listings.
 
-### Cookie consent and registry
+### [Updated] Cookie Consent and Registry
 
 - Added an administrator-managed cookie and browser-storage catalog, seeded with the currently used consent, language, theme, and public-cache entries.
 - Added per-entry consent classification (essential, necessary-only, or full-consent) and made the visitor popup show each active entry's purpose, storage, provider, retention, and required/optional status.
@@ -518,175 +826,175 @@
 - Added the official `botid` npm dependency and npm lockfile entry so the next Vercel build can enable the project-specific BotID setup.
 - Connected Vercel BotID Basic protection to public contact, registration, passwordless login, password login, and password-reset requests, with the documented Vercel proxy rewrites and server-side verification.
 
-### Public pricing category selector
+### [New] Public Pricing Category Selector
 
 - Normalized legacy plan category values for the Plans/Bundles selector, reset an unavailable filter safely, and gave newly selected category cards their own enter/exit animation so they render reliably after switching.
 
-### Local demo administrator
+### [New] Local Demo Administrator
 
 - Added an idempotent local-only demo superadmin account when the application uses a file-based development database.
 - Displayed the demo credentials and a one-click form-fill action on the admin login page only in local demo mode; remote Turso and production environments return no test-account data.
 - Added English, Hungarian, German, Spanish, and French translations for the local test-account panel.
 - Used the authenticated local browser audit to find and localize residual referral conversion-rate and team invitation empty-state copy that the source-only audit had missed.
 
-### Database translation refresh
+### [Fixed] Database Translation Refresh
 
 - Prevented browser and Vercel edge caches from serving stale public translation dictionaries after database edits.
 - Rotated the client translation-cache namespace while preserving fast cached startup, then forced a fresh database response on every page load and manual translation reload.
 
-### Admin email-settings localization
+### [Updated] Admin Email-Settings Localization
 
 - Replaced 75 unique static email-settings strings with translation keys across templates, sender configuration, test delivery, DNS guidance, logs, and quick previews.
 - Completed five-language coverage for the Resend status header, template navigation, catalog search, loading/empty states, variables, sender and domain configuration, live tests, DNS guidance, logs, quick previews, editor actions, confirmations, and runtime feedback.
 - Added targeted local-database synchronization for the consolidated email-settings translation set.
 
-### Admin site-settings modal localization
+### [Updated] Admin Site-Settings Modal Localization
 
 - Completed five-language localization for general settings, storage providers, Appwrite diagnostics, HTTP 413 infrastructure guidance, Cloudflare R2, contact forms, Hero/About content, and Google-review automation.
 - Removed 57 inline English translation fallbacks, localized runtime diagnostic/save failures, and added database synchronization for the consolidated settings-modal translation set.
 
 ## 2026-08-25
 
-### Admin site-settings modal localization groundwork
+### [Updated] Admin site-settings modal localization groundwork
 
 - Replaced 76 unique static settings-modal strings with translation keys across general settings, storage diagnostics, contact content, hero/about content, and review automation.
 - Completed five-language coverage for general settings, branding/SEO/contact navigation, footer metadata, version labels, and social-link guidance; remaining sections are being migrated incrementally.
 
-### Admin team-management localization groundwork
+### [Updated] Admin team-management localization groundwork
 
 - Replaced 101 unique static team-management strings with translation keys across invitations, members, teams, template previews, and account dialogs.
 - Completed five-language coverage for the overview, invitation table, teams, members, template preview, invitation/account dialogs, member editor, confirmations, validation, and runtime feedback.
 - Added database synchronization for the consolidated team-management translation set.
 
-### Admin referrals page localization groundwork
+### [Updated] Admin referrals page localization groundwork
 
 - Replaced 121 unique static referral-management strings with translation keys across the overview, logs, tiers, rewards, settings, and reward dialogs.
 - Completed the English, Hungarian, German, Spanish, and French dictionaries for the overview, logs, tiers, rewards, settings, editor dialogs, confirmations, and runtime feedback.
 - Added database synchronization for the consolidated referrals-page translation set and throttled/key-extraction modes to the localization helper.
 
-### Admin portfolio page localization
+### [Updated] Admin portfolio page localization
 
 - Completed five-language coverage for portfolio tabs, category management, search, confirmations, table headings, empty states, success feedback, and API failure messages.
 - Added localized unnamed-category handling and database synchronization for the portfolio page translation set.
 
-### Admin portfolio editor modal localization
+### [Updated] Admin portfolio editor modal localization
 
 - Localized portfolio details, gallery cover, SEO preview, counters, validation, upload progress and failure states across all five supported languages.
 - Added database synchronization for the portfolio editor modal translation set and removed its remaining inline interface copy.
 
-### Admin embedded-video modal localization
+### [Updated] Admin embedded-video modal localization
 
 - Localized video-category assignment, URL detection, previews, poster uploads, metadata placeholders, validation, and fallback titles across all five supported languages.
 - Added accessible labels for the modal close action, players, posters, and thumbnails.
 
-### Admin gallery media-card localization
+### [Updated] Admin gallery media-card localization
 
 - Localized filename validation, optimized-file controls, media typing, metadata editing, fallback descriptions, and video preview labels across all five supported languages.
 - Added accessible labels for media previews and icon-only actions, and localized storage filename synchronization errors.
 
-### Admin image gallery manager localization
+### [Updated] Admin image gallery manager localization
 
 - Localized gallery filters, upload guidance, filename restructuring, video-poster generation, bulk media typing, pagination, feedback, and empty states across all five supported languages.
 - Replaced mixed Hungarian and English runtime processing messages with parameterized translation keys.
 
-### Admin portfolio sortable-card localization
+### [Updated] Admin portfolio sortable-card localization
 
 - Localized portfolio-card media badges, tooltips, fallback labels, publishing controls, and quick-edit actions across all five supported languages.
 - Added accessible labels to icon-only save, cancel, and delete actions and corrected translated category rendering.
 
-### Admin portfolio gallery localization
+### [Updated] Admin portfolio gallery localization
 
 - Completed five-language localization for gallery counters, media and status filters, bulk actions, selection counts, and empty states.
 - Replaced the remaining inline selection and empty-result messages with database-backed translation keys.
 
-### Admin portfolio category modal localization
+### [Updated] Admin portfolio category modal localization
 
 - Completed five-language localization for the portfolio-category editor, including headers, hierarchy fields, slug guidance, validation, accessibility labels, and actions.
 - Corrected parent-category rendering so translated content is displayed directly instead of being treated as another translation key.
 
-### Admin social links page localization
+### [Updated] Admin social links page localization
 
 - Localized the social-link tree controls, tooltips, group states, empty/loading states, success feedback, and API error fallbacks across all five supported languages.
 - Added a targeted local-database synchronization script for the page translation set.
 
-### Admin social node modal localization
+### [Updated] Admin social node modal localization
 
 - Localized the social-node editor's placeholders, accessibility label, preview defaults, platform presets, suggested badges, group icons, and color preset tooltips across all five supported languages.
 - Added a targeted local-database synchronization script for the modal translation set.
 
-### Admin extra service modal localization
+### [Updated] Admin extra service modal localization
 
 - Replaced static add-on modal copy, option lists, role labels, icon tooltips, placeholders, hints, and runtime save errors with translation keys.
 - Added reviewed English, Hungarian, German, Spanish, and French translations plus a targeted local-database synchronization script.
 
-### Fee rule editor localization
+### [Updated] Fee rule editor localization
 
 - Localized the fee-rule editor's calculation types, distance tiers, thresholds, plan restrictions, simulator, status controls, help text, placeholders, and validation feedback across all five supported languages.
 
-### Pricing fees tab localization
+### [Updated] Pricing fees tab localization
 
 - Completed five-language localization for fee-rule filters, types, badges, calculations, status actions, notifications, empty states, and deletion confirmation.
 
-### Pricing add-ons tab localization
+### [Updated] Pricing add-ons tab localization
 
 - Completed five-language localization for the Pricing add-ons tab, including filters, empty states, price and billing badges, visibility/status actions, notifications, and deletion confirmation.
 
-### Pricing editor modal localization
+### [Updated] Pricing editor modal localization
 
 - Localized the Pricing editor modal's remaining component builder, billing, bundle-value, feature, quantity, and accessibility copy across all five supported languages.
 - Removed embedded English UI fallbacks and localized runtime catalog fallback names while preserving editable pricing content defaults.
 
-### Pricing admin page localization
+### [Updated] Pricing Admin Page Localization
 
 - Removed embedded English fallbacks from the Pricing admin page so its complete existing translation registry is authoritative.
 - Added five-language labels for bundle item types and unnamed tier/service entries, and replaced runtime English error fallbacks with existing localized messages.
 
-### Themes admin localization
+### [Updated] Themes admin localization
 
 - Localized the remaining Themes admin tooltips and runtime save, update, create, and delete errors across all five supported languages.
 - Localized generated custom-theme names/descriptions and the imported-theme fallback name instead of storing English-only copy.
 
-### Visual Ideas admin localization
+### [Updated] Visual Ideas admin localization
 
 - Completed the Visual Ideas admin page localization by adding translated load/save errors and delete-card accessibility text in all five supported languages.
 - Removed embedded Hungarian and English UI fallbacks so the page now consistently uses the translation registry and database.
 
-### Projects admin localization
+### [Updated] Projects admin localization
 
 - Completed the Projects admin page translation set in English, Hungarian, German, Spanish, and French, including statuses, empty states, errors, portfolio fallbacks, and the timeline action.
 - Replaced the remaining static tooltip and runtime-only English fallbacks with translation keys.
 
-### Admin panel existing translation wiring
+### [Updated] Admin panel existing translation wiring
 
 - Replaced 252 static admin-panel labels, placeholders, titles, and accessible labels across 52 pages and modals with their already available translation keys.
 - Added reusable AST-based audit and migration scripts to distinguish existing-key matches from genuinely new admin translation copy and safely wire existing records into React components.
 - Extended the admin localization audit with per-file key, missing-locale, English-fallback, and remaining-static-copy counts.
 - Preserved reactive language switching by adding `useLanguage().tUi` only at component scope; verified the resulting client bundle with a production build.
 
-### Admin translation audit and editor
+### [Updated] Admin translation audit and editor
 
 - Localized the translation editor's controls, filters, pagination, database actions, confirmations, and result messages with dedicated English and Hungarian keys.
 - Added a reusable admin static-copy audit command that reports untranslated JSX text and literal accessibility attributes by module and line.
 - Completed every file-backed locale dictionary with safe English fallback values, added the missing common publish/title keys, and kept raw translation keys from leaking into partially translated locales.
 - Synchronized missing hardcoded translations into the local database without overwriting existing editor customizations; all five locales now have equal key counts with no missing records, placeholder mismatches, or JSON-shaped values.
 
-### Budget manager localization
+### [Updated] Budget manager localization
 
 - Replaced the remaining static budget-manager copy with translation keys across the financial page header, notifications, filters, table, Kanban view, charts, statistics, consolidated admin banner, entry editor, preferences, and audit-log modal.
 - Added complete English and Hungarian financial labels for date presets, statuses, actions, empty states, help text, validation feedback, and all predefined income/expense categories; German, Spanish, and French continue to receive the module's complete English fallback instead of raw keys.
 - Centralized translation of stored legacy budget category values so existing database records remain unchanged while their labels follow the selected interface language.
 
-### Admin list performance
+### [New] Admin list performance
 
 - Added backward-compatible server-side pagination, server filtering, and compact pagination controls to the CRM customer/lead, contact submission, project, property listing, budget, and invoice admin views, limiting each request and rendered list to 24–25 records.
 - Limited the sortable admin portfolio gallery to 24 mounted cards per page while retaining the complete dataset for global filtering and ordering, reducing drag-and-drop DOM and media work.
 - Added window-count metadata to paginated LibSQL queries while preserving the original unpaginated response formats for existing callers and modal data sources.
 
-### Public homepage performance
+### [Updated] Public homepage performance
 
 - Reduced hero paint cost by eliminating the duplicated background image and generated noise layer, replaced the portfolio's large blur filter with a radial gradient, capped each marquee row to eight representative previews, and instantiate video players only on actual hover while preserving existing Appwrite/WebP media URLs.
 
-### Shared internal calendar
+### [Updated] Shared internal calendar
 
 - Separated calendar event titles from automatically created project and portfolio-gallery names, with an independently required and editable linked-resource name.
 - Moved all-day entries into a dedicated sticky lane below the day headers, keeping them visible independently of vertical timeline scrolling.
@@ -702,26 +1010,26 @@
 - Made all team events visible to every admin-portal user while enforcing owner-only editing and deletion on the server.
 - Added week navigation, a mini month picker, current-time highlighting, event colours, details, and direct links to linked projects.
 
-### Financial role access
+### [Fixed] Financial role access
 
 - Fixed the production dashboard's obsolete `/api/admin/budget/entries` request by using the Vercel-routed `/api/admin/budgets` endpoint and its `{ entries }` response shape; roles without budget access no longer request or display that dashboard card.
 - Restricted editors to the Payment Requests financial view, removed Budget Manager and invoicing selectors from their sidebar and page header, normalized direct financial links to Payment Requests, and enforced the restriction on the related APIs.
 
-### CRM route compatibility
+### [New] CRM route compatibility
 
 - Added backward-compatible CRM list aliases so cached or older clients requesting `/api/admin/crm/leads` or `/api/admin/crm/customers` are normalized to the supported lead/customer types instead of receiving HTTP 400.
 
-### Serverless media restructuring
+### [Fixed] Serverless Media Restructuring
 
 - Removed duplicate temporary-disk writes from gallery batch restructuring: downloaded videos and generated image variants now upload directly from memory to R2/Appwrite, preventing Vercel `/tmp` exhaustion (`ENOSPC`) while preserving sequential processing.
 
 ## 2026-08-24
 
-### Portfolio admin translations
+### [New] Portfolio admin translations
 
 - Added reusable Portfolio Manager UI translation keys and localized the gallery controls and external-video modal, including validation and confirmation messages.
 
-### Business object chain and deletion safety
+### [New] Business Object Chain and Deletion Safety
 
 - Added optional project references to projects, invoices, budget entries, and payment requests, plus an optional property reference on invoices.
 - Made client selection mandatory for new and updated projects; the project editor now offers the selected client's properties.
@@ -733,7 +1041,7 @@
 - Extended the relation audit to detect invoice-property, payment-request, and gallery-link inconsistencies.
 - Aligned fresh-database table definitions with the migrations, so project and property relationship columns are available from first startup.
 
-### Property Core
+### [New] Property Core
 
 - Added independent, archivable Properties with optional many-client ownership and linked every listing to a Property.
 - Preserved legacy property and listing records during the migration; archived Properties now automatically hide their listings from the public catalog.
@@ -741,174 +1049,174 @@
 - Added an admin Property detail page and automatic activity records for Property archiving and Listing lifecycle changes.
 - Added archive and restore controls to the Property detail page, with the refreshed activity timeline visible immediately after each action.
 
-### Customer 360
+### [New] Customer 360
 
 - Added a consolidated customer profile with account metadata, calculated project and financial KPIs, a unified activity timeline, financial summaries, and per-property operational and financial context.
 - Added CRM-managed VIP status and an optional custom price-list label, available in the customer editor and Customer 360 profile.
 
-### Admin currency conversion
+### [New] Admin currency conversion
 
 - Added a global admin display-currency selector and a cached Frankfurter reference-rate proxy; Customer 360 financial values now convert from their stored currency without changing accounting records.
 
-### Public homepage performance
+### [Fixed] Public Homepage Performance
 
 - Removed duplicate hero and eager portfolio-media preloads, preventing startup image-decoding contention and reducing first-load jank.
 - Kept only small pricing and FAQ previews in the bootstrap response; their complete datasets now load near the relevant section without altering Appwrite image handling.
 - Fixed the public-home runtime failure caused by the deferred pricing and FAQ loading flag not being passed into its components.
 
-### About and cookie glass blur
+### [Fixed] About and cookie glass blur
 
 - Restored the frosted blur surface behind the About copy and reinforced the cookie banner and cookie-settings backdrop blur directly in the rendered components so production CSS optimisation cannot remove it.
 
-### Sidebar footer controls
+### [Fixed] Sidebar footer controls
 
 - Fixed the Sign Out button incorrectly treating its click event as an expired-session request.
 - Unified the language selector with the sidebar menu treatment and restored stable hover animation for all footer controls without blocking clicks.
 
-### Dashboard operational cards
+### [Fixed] Dashboard operational cards
 
 - Added reorderable and toggleable payment-request status, project-status, and recent-project cards to the Admin Dashboard.
 - Added a superadmin-only recent-client-accounts card, backed by the existing protected client-management data.
 
-### Dashboard clock and calendar preferences
+### [Fixed] Dashboard clock and calendar preferences
 
 - Added persistent 12/24-hour clock formatting and Monday/Sunday week-start options to the Dashboard card manager.
 
-### Personalizable Admin Dashboard
+### [Fixed] Personalizable Admin Dashboard
 
 - Added clock, monthly calendar, and persistent personal-notes cards to the Admin Dashboard.
 - Made every dashboard card sortable with drag and drop, aligned to a consistent card size, and added a card manager for toggling individual cards on or off.
 
-### Facebook icon namespace compatibility
+### [Fixed] Facebook icon namespace compatibility
 
 - Normalized legacy `fa-fab-facebook`, `fa-fab-facebook-f`, and `fa-fab-f` style social-icon values to the Facebook brand icon, so existing saved settings render correctly.
 
-### Toggleable Hero production-areas card
+### [Fixed] Toggleable Hero production-areas card
 
 - Added a Site Settings switch for the complete Hero Production Areas card, keeping its Photography, Cinematic film, and Drone & aerial entries together.
 - Left the card enabled by default and added a TODO marker for future menu-item configuration.
 
-### Invoice client-account filter
+### [Fixed] Invoice client-account filter
 
 - Added an invoice filter for selecting a client account by its linked email address, backed by the existing CRM and client-portal lookup.
 - Applied the selected client filter to both the invoice list and invoice summary figures.
 
-### Unified Admin tab selectors
+### [Fixed] Unified Admin tab selectors
 
 - Standardized the visual states of tab selectors across Admin pages and modals, including legacy underline controls.
 - Active tabs now use the same primary filled state, while inactive tabs share consistent rounded hover and keyboard-focus feedback.
 
-### Hero image readability overlay
+### [Fixed] Hero image readability overlay
 
 - Added a dedicated Hero image readability slider to Site Settings, including an explicit percentage and contrast guidance.
 - The dark overlay now applies to both uploaded and built-in Hero backgrounds, keeping foreground copy readable on bright photos.
 - Added an independent 0–24 px Hero background blur control that leaves foreground copy and controls sharp.
 
-### Stable sidebar footer controls
+### [Fixed] Stable sidebar footer controls
 
 - Prevented the Admin sidebar's bottom controls from shifting on hover or visible keyboard focus, eliminating the pointer/focus "shake" while preserving their existing styling.
 
-### Categorized Site Settings modal
+### [Fixed] Categorized Site Settings modal
 
 - Reworked the Site Settings modal into Site & Brand, Content & SEO, and Contact & Email categories with focused sub-tabs, retaining all existing fields and save behaviour.
 
-### Team and pricing page spacing
+### [Fixed] Team and pricing page spacing
 
 - Added responsive outer spacing and a shared maximum content width to Team & Admin Invitations and Pricing & Packages, aligning both pages with the rest of the Admin workspace.
 - Matched the exact `p-4 sm:p-8` spacing convention used by the primary wide Admin pages.
 
-### Admin responsive layout audit
+### [Fixed] Admin responsive layout audit
 
 - Corrected the Team & Admin Invitations tab row so its three controls stack cleanly on narrow screens instead of causing horizontal overflow and clipped labels.
 
-### Categorized Site Settings workspace
+### [Fixed] Categorized Site Settings workspace
 
 - Grouped the Site Settings workspace into focused Site & Brand, Content & SEO, Contact & Email, and Legal & Access tabs while retaining every existing settings card and editor flow.
 
-### Categorized Admin navigation tabs
+### [Fixed] Categorized Admin navigation tabs
 
 - Reorganized the Admin sidebar into compact, collapsible category tabs for Dashboard & Finance, Content, Users & Clients, and Settings & System.
 - The category containing the active page opens automatically, while the existing role-based menu and direct-route permissions remain unchanged.
 
-### Team login and activity tracking
+### [Fixed] Team login and activity tracking
 
 - Fixed team-member login timestamps across password login, magic-link login, invitation activation, client registration, and property-account login.
 - Added throttled last-activity tracking for authenticated requests and displayed it separately from the last successful login in Team & Invitations.
 - Moved the timestamp schema updates into the always-run lightweight migration phase so existing databases receive them before authentication begins.
 
-### Backfill missing video posters
+### [Fixed] Backfill missing video posters
 
 - Added an Admin Gallery action that generates and saves poster frames for existing direct-upload video items without posters, while leaving existing manual and embedded-video thumbnails untouched.
 
-### Automatic video poster frames
+### [Fixed] Automatic video poster frames
 
 - Video uploads now extract a representative frame in the browser, upload it as a poster image, and automatically use it for the gallery item and portfolio feature cover.
 - If a browser cannot decode a particular video codec, the video upload still completes normally and remains editable with an optional manual poster.
 
-### Persistent background media uploads
+### [Fixed] Persistent background media uploads
 
 - Moved the media upload queue and its live status window to the application root, so uploads and progress remain available while navigating away from Admin pages.
 - Extended reuse of the direct Appwrite upload session for long-running, backgrounded upload batches to avoid unnecessary session recreation.
 
-### Automatic error-page redirect
+### [Fixed] Automatic error-page redirect
 
 - All application error pages now display a three-second countdown and automatically return visitors to the homepage.
 
-### Session-end portal chooser
+### [Fixed] Session-end portal chooser
 
 - Added a dedicated session-end screen for automatic sign-outs, allowing users to choose Admin or Client login and highlighting the portal used most recently.
 - Stored the last successful portal context for password, magic-link, and registration-based sign-ins, while keeping manual logout behaviour unchanged.
 
-### Info bar category colours and single dismiss
+### [Fixed] Info bar category colours and single dismiss
 
 - The public info bar now renders each announcement using its configured category background and text colours instead of a fixed blue override.
 - Dismissing one announcement now closes the complete rotating info bar for the applicable session or permanent dismissal scope.
 
-### Gallery item-type selector layout
+### [New] Gallery item-type selector layout
 
 - Reworked the per-item gallery type selector into a responsive two-column grid, keeping every option inside its media card without horizontal overflow.
 
-### Superadmin-managed admin menu permissions
+### [New] Superadmin-managed admin menu permissions
 
 - Added a polished role-permission manager to Site Settings so Superadmins can choose each Admin, Editor, and Viewer menu/page access level.
 - Centralized menu access rules with safe defaults, persistent database configuration, sidebar filtering, direct-route 403 protection, and server-side API enforcement; Superadmins retain unrestricted access.
 
 ## 2026-08-20
 
-### SEO-complete dynamic sitemap and robots policy
+### [Updated] SEO-complete dynamic sitemap and robots policy
 
 - Expanded `/sitemap.xml` with the public properties index, enabled property detail pages, published portfolio pages, image sitemap entries, canonical public URLs, validated last-modified dates, crawl priorities, and refresh hints.
 - Added a dynamic `/robots.txt` that points crawlers to the canonical sitemap and excludes private admin, client, authentication, invitation, invoice, API, and listing-management areas.
 
-### Sitemap production routing fix
+### [New] Sitemap production routing fix
 
 - Added a sitemap route alias for Vercel's rewritten request path so `/sitemap.xml` no longer returns a 404 in production.
 
-### Hungarian translation completion
+### [Updated] Hungarian translation completion
 
 - Translated 100 remaining English admin and customer-facing strings in the Hungarian dictionary, including branding, customer invitations, FAQ categories, leads, settings, and contact submissions.
 
-### Translation language section markers
+### [Updated] Translation language section markers
 
 - Marked the starting point of each English, Hungarian, German, Spanish, and French translation section in `src/lib/translations.ts`.
 
-### Required privacy and terms acceptance for contact inquiries
+### [New] Required privacy and terms acceptance for contact inquiries
 
 - Added separate required checkboxes for the Privacy Policy and Terms and Conditions to the public contact form.
 - Each policy name opens its current public legal document, and the contact API now rejects submissions that do not include both acceptances.
 
-### Deleted default team no longer returns
+### [Removed] Deleted default team no longer returns
 
 - Removed the database startup seed and automatic member/invitation reassignment for the `Main Studio` team.
 - Administrators can now delete that team permanently; it is not recreated when the server initializes again.
 
-### Font Awesome-only social tree icons
+### [Updated] Font Awesome-only social tree icons
 
 - Standardized every social-tree platform glyph on Font Awesome Brands across the admin tree, editor previews, public social popup, footer, and Coming Soon page.
 - Removed the remaining Lucide brand-icon imports from the shared social renderer and marked rendered glyphs with a consistent Font Awesome icon-family contract.
 - Kept non-brand concepts such as groups, website, email, and phone on Font Awesome Solid, and switched LinkedIn to the correctly proportioned `linkedin-in` brand glyph.
 
-### Team invitations and role display reliability
+### [Fixed] Team invitations and role display reliability
 
 - Fixed the team member query so existing legacy `superadmin`, `super_admin`, uppercase, Admin, Editor, and Viewer role values are normalized and displayed consistently.
 - Added a dedicated Superadmin badge and role filter instead of incorrectly rendering unknown roles as Editor.
@@ -916,27 +1224,27 @@
 - Protected Superadmin role assignment, editing, and deletion while preserving at least one active administrative account.
 - Normalized accepted invitation roles server-side to prevent invalid stored role values from being activated.
 
-### Role-aware admin navigation
+### [Fixed] Role-aware admin navigation
 
 - Added one shared admin route permission map for Superadmin, Admin, Editor, and Viewer accounts.
 - Superadmin and Admin retain complete management access; Editors receive operational content, CRM, marketing, and scoped finance access; Viewers see only read-oriented dashboard and content sections.
 - Hid unauthorized sidebar entries and added matching embedded 403 protection for direct admin URLs, including restricted invoice tabs.
 - Normalized legacy role spellings before menu and route permission checks.
 
-### Client and admin dual-account invitations
+### [Fixed] Client and admin dual-account invitations
 
 - Existing active client email addresses can now receive and accept admin-panel invitations instead of being rejected as existing team members.
 - Added independent secondary admin role, password, active status, workspace, and team fields so accepting an admin invitation does not overwrite the client portal identity or password.
 - Admin and client login now explicitly select their account context while continuing to use the same email address.
 - Team member listings and admin authorization recognize secondary admin access records.
 
-### Editable team categories
+### [Fixed] Editable team categories
 
 - Added inline rename, save, cancel, and delete controls to every team category in Team Management.
 - Renaming a category also refreshes assigned member workspace labels.
 - Empty categories can be deleted directly; categories with assigned members remain protected until their members are moved.
 
-### Team category rename compatibility
+### [Fixed] Team category rename compatibility
 
 - Fixed team category renaming on databases created by older deployments where optional team metadata columns may be missing.
 - Rename operations now update the required name field first and synchronize member, secondary-admin, and pending-invitation workspace labels safely.
@@ -944,13 +1252,13 @@
 
 ## 2026-08-19
 
-### Social brand icon rendering fix
+### [Updated] Social brand icon rendering fix
 
 - Reworked the shared social icon renderer to use a stable square wrapper and explicit SVG sizing across the footer, Coming Soon page, social popup, and admin previews.
 - Switched Facebook to the correct standalone `f` brand glyph so it no longer appears as an incorrectly nested or distorted emblem inside rounded controls.
 - Added compatibility aliases for legacy Font Awesome/platform values such as `facebook-f`, `facebook-square`, `fb`, `linkedin-in`, `youtube-play`, and `telegram-plane`.
 
-### Admin-controlled Coming Soon mode
+### [New] Admin-controlled Coming Soon mode
 
 - Added a Coming Soon configuration card to Site & System Settings with multilingual title/description, target date, enable switch, footer/social visibility controls, blur strength, and overlay opacity.
 - Added direct Appwrite/R2 upload support for optimized background images and MP4/WebM background videos, including progress, preview, direct URL, replacement, and removal controls.
@@ -959,7 +1267,7 @@
 - Scoped the mode to public marketing routes (home, portfolio galleries, and properties) while keeping admin, client portal, advertiser manager, authentication, invitations, invoices, and error pages accessible.
 - Added editable Coming Soon translations for English, Hungarian, German, Spanish, and French.
 
-### Context-aware Aero error pages
+### [New] Context-aware Aero error pages
 
 - Added responsive, light/dark-aware 401, 403, 404, 500, and 503 pages matching the public Aero visual system.
 - Unknown public, admin, and client routes now render a real 404 view instead of silently redirecting to the homepage; nested admin/client 404s remain inside their respective layouts.
@@ -967,32 +1275,32 @@
 - Added a route-level React error boundary for unexpected rendering failures and status-aware errors for missing portfolio galleries, property listings, and unavailable public invoices.
 - Added editable error-page translations for all five supported locales.
 
-### Section media and property translation completion
+### [Updated] Section media and property translation completion
 
 - Replaced the section media editor's identity translation callback and hard-coded Hungarian labels with editable `admin.section_media.*` translation keys.
 - Added complete English, Hungarian, German, Spanish, and French values for section names, image controls, positions, overlays, defaults, and upload previews.
 - Synchronized all missing built-in translation rows, including the recently added property-listing navigation and client account settings keys, into the translation database without overwriting existing admin customizations.
 
-### Built-in section image previews
+### [Updated] Built-in section image previews
 
 - Section media cards now display their hard-coded public-site background or content image before an admin uploads an override.
 - Built-in previews are clearly labelled and remain separate from saved media, so they do not incorrectly mark a section as configured or expose a clear action.
 
-### Section image upload pipeline fix
+### [Updated] Section image upload pipeline fix
 
 - Replaced section background/content-image uploads through the legacy 5 MB branding endpoint with the direct Appwrite/R2 media pipeline.
 - Section images now use the configured storage provider without sending image bytes through the Vercel serverless function and automatically prefer the generated optimized image URL.
 - Resolved the UI/server mismatch where section cards accepted files up to 15 MB but the branding endpoint rejected anything above 5 MB.
 - Improved branding-upload error parsing so non-JSON and HTTP 413 responses no longer collapse into the generic `Upload failed` message.
 
-### Client property-listing media upload authorization
+### [Fixed] Client property-listing media upload authorization
 
 - Fixed Vercel property-client image uploads returning `Forbidden: Admin access required` from `/api/admin/media/upload/*`.
 - Added a shared upload authorization middleware used by both the full Node server and the Vercel admin function.
 - Limited the exception strictly to media-upload routes and require a valid `property-listings` scope plus a matching, active linked listing account for property-client sessions.
 - Preserved normal admin-role and active-account validation for every admin request, including uploads.
 
-### Unified property-site and client-manager design
+### [Updated] Unified property-site and client-manager design
 
 - Replaced the separate property-page navbar with the same responsive Header component used by the public homepage, including configured light/dark logos, brand display mode, language selector, theme switch, account menu, and mobile drawer.
 - Made homepage section links route correctly from standalone property, login, and manager pages instead of targeting missing local anchors.
@@ -1000,19 +1308,19 @@
 - Redesigned the property login as a responsive branded two-panel experience with clearer authentication guidance and mobile-first form controls.
 - Redesigned the client listing manager header, search/status toolbar, loading/empty states, listing cards, publication badges, and actions to match the public Aero visual language in both themes.
 
-### Immediate public property visibility
+### [Updated] Immediate public property visibility
 
 - Disabled browser and Vercel CDN caching for the public property list and detail endpoints so newly enabled listings appear immediately instead of leaving a cached empty catalog visible.
 - Forced the `/properties` client to bypass its HTTP cache whenever it loads or revisits the catalog.
 - Verified against the production API that the enabled listing exists and identified the previous response as an aged Vercel cache hit.
 
-### Vercel property login and manager routing
+### [New] Vercel property login and manager routing
 
 - Added the missing `/api/property-auth/*` Vercel rewrite to the authentication serverless function, fixing the text 404 response that caused the `Unexpected token 'T'` JSON parsing error.
 - Added a dedicated `/api/property-manager/*` serverless function and rewrite with the same scoped-token and active-account checks as the full Node server.
 - Hardened the property login and manager clients against non-JSON infrastructure responses so they now show an actionable message instead of leaking a JSON parser exception.
 
-### Public property catalog and advertiser contact
+### [New] Public property catalog and advertiser contact
 
 - Added the public `/properties` catalog and `/properties/:id` detail routes for enabled property listings.
 - Added responsive property cards with optimized thumbnail media, title, price, description, sale/rental and status labels, plus icon badges for enabled amenity switches.
@@ -1021,18 +1329,18 @@
 - Replaced the former disabled “Coming soon” navigation item with a working Properties link on desktop and mobile.
 - Added an admin listing-page switch that controls whether the Properties link appears in the main navigation while keeping `/properties` directly accessible.
 
-### Linked listing-account deletion integrity
+### [Fixed] Linked Listing-Account Deletion Integrity
 
 - Extended admin client deletion to remove the linked property-listing account, all owned listings, and their tracked original/optimized/thumbnail media before deleting the portal user.
 - Prevented orphaned listing-account and ownership records when a migrated client is removed.
 
-### English property-manager URLs
+### [New] English property-manager URLs
 
 - Added `/property-listings/login` as the canonical direct property-account login URL.
 - Added `/property-listings/manager` as the canonical protected listing-manager URL.
 - Kept the previous Hungarian paths as redirect-only compatibility aliases so existing bookmarks remain valid.
 
-### Dedicated property-manager email/password login
+### [New] Dedicated property-manager email/password login
 
 - Added a direct `/ingatlanos/bejelentkezes` login page and `/api/property-auth/login` endpoint for previously migrated property-listing accounts.
 - The login validates the migrated email against the linked portal user's current bcrypt password and requires password sign-in to be enabled; magic-link users must add a password before migration.
@@ -1041,7 +1349,7 @@
 - Removed direct switching from the client portal. The portal now only performs and reports the one-time migration; users subsequently sign in through the dedicated property-manager login.
 - Every property-manager request revalidates both the linked listing account and original portal user as active, while scoped sessions are rejected by unrelated client/admin endpoints.
 
-### Linked client property-listing accounts
+### [New] Linked client property-listing accounts
 
 - Added a separate `property_listing_accounts` table linked one-to-one to existing client-portal users, with an idempotent one-time migration that copies the registered email address and display name.
 - Added a client-portal migration gateway and an explicit transition into a dedicated personal property-listing manager; reverse migration/switching remains reserved for the later phase.
@@ -1052,7 +1360,7 @@
 - Client display-name changes synchronize to the linked listing account while the original portal and listing-account records remain separate.
 - Added the client navigation entry in English, Hungarian, German, Spanish, and French; the public property website remains locked.
 
-### Admin property listing and management system
+### [New] Admin property listing and management system
 
 - Added a dedicated admin Property Listings area with searchable responsive cards, listing status/type badges, edit/delete actions, and an independent publication switch.
 - Added a production-safe `property_listings` schema and authenticated admin CRUD endpoints for core details, pricing, dimensions, room counts, description, construction details, orientation, view, bathroom/WC arrangement, multiple heating types, amenities, media, and visibility.
@@ -1062,27 +1370,27 @@
 - The public real-estate page remains locked and unchanged; only enabled listings are prepared for its later implementation.
 - Added the property-listing navigation label in English, Hungarian, German, Spanish, and French.
 
-### Client settings endpoint production migration fix
+### [Updated] Client settings endpoint production migration fix
 
 - Moved the client profile/password/TFA compatibility columns into the lightweight migration phase that always runs before the initialized-database fast path.
 - Fixed existing Vercel/Turso databases returning `Failed to load account settings` because the settings endpoint selected columns that had not been added after an earlier initialization.
 - Added a rolling-deployment compatibility query so the registered email address remains available while additive schema migration finishes.
 - Reduced repeated Turso cold-start migration traffic by checking the user schema once and batching only genuinely missing columns.
 
-### Admin client account creation date display
+### [Fixed] Admin client account creation date display
 
 - Fixed SQLite UTC timestamps being interpreted as local timestamps in the admin client portal list.
 - Account creation now shows a stable localized date and time in the Budapest timezone, with safe handling for missing, invalid, ISO, and numeric timestamp values.
 - Zero-valued timestamps are treated as missing data, preventing the Unix epoch (`1970-01-01`) from appearing as an account creation date.
 
-### Client account change notification emails
+### [New] Client account change notification emails
 
 - Added an editable `client_account_changed` security email template to the admin email template manager.
 - Client display-name changes, password changes, and first-password setup for magic-link accounts now send a security notification email.
 - Notifications include a safe change summary, timestamp, request IP address, and direct account-settings link; passwords are never included.
 - Unchanged profile submissions do not produce duplicate notification emails.
 
-### Client account settings and password onboarding
+### [New] Client account settings and password onboarding
 
 - Added a dedicated `/client/settings` portal page and responsive navigation entry for profile and account-security management.
 - Clients can save a 2–100 character display name; the authenticated session updates immediately, future password/magic-link sessions include the name, and admin client search/list/detail responses now expose it independently from the CRM name.
@@ -1093,7 +1401,7 @@
 - Added a disabled two-factor authentication settings card and API status contract so TFA enrollment can be added later without redesigning account settings.
 - Added editable English, Hungarian, German, Spanish, and French translation keys; the existing missing-key synchronizer persists them to the database during setup.
 
-### Client password-registration email audit
+### [Fixed] Client password-registration email audit
 
 - Prevented duplicate public signup/login magic-link emails with a synchronous client submit lock plus an atomic 45-second server-side idempotency window keyed by normalized email and link type.
 - Only the request that inserts the fresh magic-link record may dispatch an email; Vercel retries and simultaneous instances now return success without generating or sending a second token.
@@ -1104,7 +1412,7 @@
 - Kept account creation successful when the email provider reports a delivery failure, while recording the delivery result in email logs and returning a non-sensitive delivery status with the registration response.
 - Preserved the existing `account_verification` template and admin invitation workflow unchanged.
 
-### Persistent admin gallery background uploads
+### [Updated] Persistent admin gallery background uploads
 
 - Portfolio records can now be created and saved before any gallery media is attached, providing the persistent gallery id required for subsequent background uploads.
 - Published-but-empty portfolio records remain available in the admin CMS but are excluded from the public portfolio and its navigation until they receive media.
@@ -1114,7 +1422,7 @@
 - Kept uploads sequential across batches to protect Appwrite/R2 endpoints from avoidable concurrent rate-limit pressure, and added a browser-tab close warning while transfers are active.
 - New, not-yet-saved portfolio records retain the foreground workflow because no persistent gallery id exists until their first save.
 
-### Vercel build pipeline optimization
+### [New] Vercel build pipeline optimization
 
 - Split the frontend and standalone Express server builds into explicit `build:client` and `build:server` tasks while preserving the complete local/standalone `npm run build` workflow.
 - Added a Vercel-specific build task that emits only the Vite frontend because Vercel packages the `api/*.ts` serverless entrypoints independently.
@@ -1122,9 +1430,9 @@
 - Removed the unused direct `uuid` and `zod` dependencies from the npm manifest and lockfile, reducing installation and dependency-tracing work without changing application behavior.
 - Regenerated `package-lock.json` from a clean npm state after dependency pruning so optional Tailwind WASI packages (`@emnapi/core` and `@emnapi/wasi-threads`) remain represented and Vercel's strict `npm ci` validation succeeds.
 
-### Portfolio media lifecycle, optimized delivery, and showcase refinements
+### [Updated] Portfolio media lifecycle, optimized delivery, and showcase refinements
 
-### Upload and storage reliability
+### [Updated] Upload and storage reliability
 
 - Replaced repeated client-side Appwrite account-session creation with short-lived API-key-authenticated upload sessions to avoid the per-IP and per-user session endpoint rate limit during multi-file and video uploads.
 - Kept gallery transfers direct from the browser to Appwrite so Vercel does not proxy large file bodies, and added retry handling for temporary rate-limit responses.
@@ -1132,12 +1440,12 @@
 - Added automatic optimized-image creation during upload: each image retains its original master and receives a high-quality JPEG derivative constrained below 10 MB, with adaptive dimensions and quality when needed.
 - Preserved optimized JPEG delivery for client downloads while using derivatives for admin and public previews to prevent large source images from slowing the interface.
 
-### Email branding
+### [New] Email branding
 
 - Added an email-header branding selector for uploaded logo only, uploaded logo with studio name, or studio name only.
 - Connected transactional, marketing, preview, and test-email layouts to the uploaded light header logo, with the dark logo as fallback and the public header mode used until an email-specific mode is saved.
 
-### Portfolio data and media cleanup
+### [Fixed] Portfolio Data and Media Cleanup
 
 - Fixed the admin customer editor's remaining `null.trim()` failure in the full CRM update route by normalizing every optional customer field before persistence.
 - Customer-editor saves now atomically synchronize the complete property and listing-link collections, use the linked portal user as the canonical owner when present, and remove stale duplicate CRM/portal rows so newly added addresses appear in both admin and client views.
@@ -1149,7 +1457,7 @@
 - Added URL-based Appwrite bucket/file detection so older objects not present in `media_uploads` can also be removed safely.
 - Cleared stale `media_url` and `thumbnail_url` references when their corresponding gallery items are removed.
 
-### Public showcase and visual fixes
+### [Fixed] Public showcase and visual fixes
 
 - Fixed Social Tree group/link creation and editing with null-safe request normalization, validated parent groups, normalized platform/icon identifiers, and explicit create responses.
 - Restored the missing Social Tree header controls by passing them through the supported `PageHeader.action` slot instead of the ignored `actions` prop; Add Group and Add Social Link are now always visible and expand appropriately on mobile.
@@ -1159,7 +1467,7 @@
 - Optimized the mobile Visual Ideas section with contained, non-blurred, transition-free cards and deferred grid painting, reducing main-thread and compositing work while the section is visible.
 - Corrected mobile Portfolio gesture handling so horizontal gallery interaction no longer captures vertical page scrolling; disabled smooth-scroll work, fixed mobile background attachment, and contained each row's paint area.
 - Reduced mobile Portfolio media pressure by mounting two cards per row initially, adding further cards in smaller batches, using a lighter viewport observer, and showing image posters instead of initializing video decoders during touch scrolling.
-- Added the admin-managed “Miről lehet jó ingatlan vizuált készíteni?” section directly before pricing, with a responsive five-column desktop grid, a hard 15-card/three-row limit, localized title and description fields, ordering controls, visibility control, and no public navigation entry.
+- Added the admin-managed “What Makes a Good Real-Estate Visual?” section directly before pricing, with a responsive five-column desktop grid, a hard 15-card/three-row limit, localized title and description fields, ordering controls, visibility control, and no public navigation entry.
 - Integrated the new section into the existing section-background media manager while excluding it from scroll-driven navigation and page-title state.
 - Added unified content-aware rendering for Services, Portfolio, Pricing, Visual Ideas, and FAQ: empty or fully hidden sections and their desktop/mobile/floating navigation anchors are no longer rendered.
 - Removed legacy public fallback cards that kept empty Services and FAQ sections visible, and added per-card visibility controls to Visual Ideas.
@@ -1177,7 +1485,7 @@
 - Corrected the light-theme Portfolio header by replacing the generic pale glass panel with a section-specific dark glass surface and high-contrast white/cyan heading content.
 - Split public and admin light/dark state into independent `public-theme-mode` and `admin-theme-mode` preferences; route-aware theme scope now switches the corresponding mode, configuration, CSS variables, and document color scheme without changing the other area.
 
-### Public loading and low-end device performance
+### [Fixed] Public Loading and Low-End Device Performance
 
 - Removed the floating section-navigation rail from mobile layouts and made the primary mobile navbar permanently visible; desktop scroll-aware navbar hiding and floating navigation remain unchanged.
 - Aligned `package.json#packageManager` with the pnpm 10.x generator expected by the version 9 lockfile and supported by Vercel, removing the pnpm 11 lockfile mismatch during deployment.
@@ -1221,7 +1529,7 @@
 - Fixed pricing cards remaining transparent on mobile when lightweight `content-visibility` prevented their viewport animation from completing; lite mode now renders pricing immediately with a CSS visibility fallback, tighter card spacing, responsive padding, and a compact three-column filter bar.
 - In lightweight mode, portfolio marquees become non-duplicated touch-scroll rows, continuous GPU effects and costly blur/3D layers are disabled, Motion animations are reduced, and off-screen public sections use deferred rendering.
 
-### Vercel serverless architecture
+### [New] Vercel serverless architecture
 
 - Split the combined billing Function into independent budget, invoice, payment-request, and referral Functions with domain-specific duration limits.
 - Moved public invoice routes and public referral-code validation into dedicated read-oriented Functions.
@@ -1229,19 +1537,19 @@
 - Removed public invoice/referral imports from the general public/auth router bundle and restored their mounts explicitly in the local full-server router.
 - Removed the all-in-one `api/index.ts` compatibility Function and its catch-all rewrite after auditing every active API prefix, preventing Vercel from packaging the complete backend again on every deployment.
 
-### Pricing bundles
+### [Updated] Pricing bundles
 
 - Bundle cards now hydrate referenced base tiers from current catalog data rather than retaining stale embedded snapshots.
 - Expanded tier content shows the complete, current feature list and included items without truncation.
 
-### Verification
+### [Updated] Verification
 
 - All 11 Vercel Function entry points were bundled independently after the serverless domain split, alongside successful production frontend and full local-server bundles.
 - Production Vite builds and server ESBuild bundles completed successfully after the portfolio, upload, storage, pricing, and public-interface changes.
 
 ## 2026-08-18 — Platform expansion, client delivery, finance, email automation, and Vercel architecture
 
-### Public website and AERO/GLOW visual consistency
+### [New] Public website and AERO/GLOW visual consistency
 
 - Added independent header and footer brand-display controls for logo only, logo with the studio name, or studio name only, including live branding previews and localized admin labels.
 - Extended the frosted-glass AERO/GLOW theme to the information bar, incident widget, contact information cards, pricing elements, authentication menus, and dark-mode dropdowns.
@@ -1254,19 +1562,19 @@
 - Added editable footer social links, website-version badge, AI-generated-code disclosure, and the configurable “Created with React & love in Hungary” attribution.
 - Added the active public design to the branding/theme editor.
 
-### Contact form, pricing estimate, and travel calculation
+### [Updated] Contact form, pricing estimate, and travel calculation
 
 - Bundle cards now resolve referenced tiers from the current pricing catalog instead of stale embedded snapshots; expanding a tier shows its complete current feature and included-item content without text truncation, and pricing endpoints bypass stale browser/CDN caches.
 - Reordered the inquiry journey to collect identity, property city/address, and preferred photography time before package selection, add-ons, estimate, message, and submission.
 - Property city is now required before package/add-on interaction and is clearly identified as an input for the travel and final-price calculation; property address remains optional.
-- Added automatic round-trip travel-distance calculation from Hódmezővásárhely and integrated distance fee rules into the live package estimate.
+- Added automatic round-trip travel-distance calculation from Hódmezővásárhely, Hungary, and integrated distance fee rules into the live package estimate.
 - Standardized input-group spacing, responsive gaps, card padding, helper text, and error-state layout throughout the form.
 - Contact submissions persist package, add-on, calculated fee, distance, total, and currency data.
 - Both inquiry email templates now include a structured package summary, database-verified base price, selected items, calculated fees, explanations, currency, and estimated total in HTML and text form.
 - Added editable inquiry-template tokens for package price, selected-item rows/text, calculated-fee rows/text, currency, and final estimate; existing customized templates inherit newly introduced token definitions without being overwritten.
 - Updated the preferred-date label to “When I would like the photography” consistently in the public form and admin interface.
 
-### Cookie consent and legal content
+### [New] Cookie consent and legal content
 
 - Added a frosted-glass cookie banner with preference controls, localized text, translation-manager keys, and a direct Cookie Policy action.
 - The contact form remains locked until the required cookie consent has been granted.
@@ -1274,7 +1582,7 @@
 - Added full-page WYSIWYG editing with formatting tools in the admin panel and rendered formatted document modals on the public website.
 - Added footer links that open the corresponding public legal-document modals.
 
-### Client authentication, accounts, and project portal
+### [New] Client authentication, accounts, and project portal
 
 - Added direct password registration and login alongside magic-link authentication for client and admin workflows.
 - Corrected client account creation, magic-link registration/login, invitation handling, and active-account validation.
@@ -1283,7 +1591,7 @@
 - Fixed project preview images, attached-gallery counts, and invoice/customer matching by normalized email address in the client portal.
 - Archived paid invoices remain visible to clients as paid records while admins can manually archive completed invoices.
 
-### Secure gallery delivery and downloads
+### [New] Secure gallery delivery and downloads
 
 - Added project-gallery downloads to the client portal, including individual selection, multi-select, and generated ZIP archives.
 - Added four-digit gallery PIN delivery in the gallery-ready email, PIN verification, forgotten-PIN resend, and automatic PIN rotation on every resend.
@@ -1294,7 +1602,7 @@
 - Removed the obsolete gallery-level type selector because media type is managed per gallery item.
 - Corrected structured gallery filenames so restructuring updates both the bucket object name and database metadata.
 
-### Portfolio and media storage performance
+### [Updated] Portfolio and media storage performance
 
 - Portfolio gallery deletion now removes every tracked original, thumbnail, poster, preview, and optimized asset from Appwrite, R2, or local storage before deleting database records; failed storage cleanup prevents a false-success gallery deletion.
 - Reduced portfolio memory pressure by preventing all videos from autoplaying while keeping motion-rich portfolio rows and hover playback.
@@ -1303,7 +1611,7 @@
 - Retained R2 multipart support and moved Vercel-only temporary work to the writable system temporary directory.
 - Removed obsolete root-level patch and manual test scripts after verifying they were unreferenced development artifacts.
 
-### Finance, invoices, budgets, and payment requests
+### [Fixed] Finance, Invoices, Budgets, and Payment Requests
 
 - Removed automatic demo budget-entry and payment-request seeding, and added narrowly matched legacy-demo cleanup so deleted sample finance data cannot reappear while genuine records remain untouched.
 - Corrected invoice-to-client association and portal visibility using normalized email matching.
@@ -1315,7 +1623,7 @@
 - Fixed budget-entry persistence and “Budget entry not found” update failures.
 - Corrected payment email conditionals and beneficiary-account token handling.
 
-### Email system and automation
+### [Updated] Email system and automation
 
 - Expanded the editable transactional-template catalog with gallery PIN recovery, admin verification, invoice/payment, payment-request status, and Google review templates.
 - Removed internal template names from rendered email bodies.
@@ -1326,14 +1634,14 @@
 - Corrected marketing-template creation and missing admin translation values.
 - All generated email action URLs now use canonical `APP_URL`; the request host is only a local-development fallback.
 
-### Localization and translation management
+### [Updated] Localization and translation management
 
 - Audited public, admin, client-portal, budget, invoice/payment, and payment-request UI strings and repaired missing or invalid translation keys.
 - Added missing database translation records and expanded the translation manager to include client-portal and newly introduced cookie/contact strings.
 - Reorganized localization dropdown groups so editable strings appear under their owning product area.
 - Added English, Hungarian, German, Spanish, and French contact travel/calculator guidance.
 
-### Vercel and server architecture
+### [Fixed] Vercel and server architecture
 
 - Fixed Node/TypeScript build issues across Express response/request types, LibSQL client typing, Node crypto, Sharp imports, AWS S3 clients, referral unions, and ESM translation imports.
 - Removed runtime creation of `/var/task/uploads`; Vercel uses writable temporary storage only for short-lived processing.
@@ -1343,7 +1651,7 @@
 - Added canonical application URL resolution and forwarded-host fallback handling.
 - Production frontend, local server, and each Vercel function entry were independently bundled and verified.
 
-### Verification
+### [Updated] Verification
 
 - Repeated Vite production builds completed successfully after the public UI, contact, localization, and email changes.
 - Server and individual Vercel function bundles completed successfully with ESBuild.
@@ -1351,13 +1659,13 @@
 
 ## 2026-08-17 — AERO/GLOW design integration for 2.0
 
-### Visual foundation
+### [Updated] Visual foundation
 
 - `src/index.css` — integrated the complete blue-white AERO/GLOW design system, section-aware ambient gradients, themed photographic section backgrounds, frosted-glass surfaces, responsive breakpoints, reduced-motion handling, and separate light/dark WCAG-oriented color variables.
 - `public/images/*.png` — added four locally served thematic backgrounds for hero, services, portfolio, contact, authentication, and workspace surfaces.
 - `png-k/*.png` — retained standalone source copies of the four generated image assets in the project root.
 
-### Shared UI and workspaces
+### [Updated] Shared UI and workspaces
 
 - `src/components/ui/Card.tsx` — added the shared `aero-ui-card` glass surface hook.
 - `src/components/ui/Button.tsx` — added the shared animated `aero-ui-button` hook.
@@ -1366,18 +1674,18 @@
 - `src/components/ClientLayout.tsx` — applied the client glass workspace, responsive spacing, animated navigation items, and active-page semantics while retaining the new projects, invoices, and referrals navigation.
 - `src/components/admin/Sidebar.tsx` — applied frosted sidebar styling, glow hover highlighting, active states, submenu styling, and danger-action treatment while retaining all 2.0 permissions and routes.
 
-### Public and authentication surfaces
+### [Updated] Public and authentication surfaces
 
 - `src/pages/PublicHome.tsx` — added stable intersection-based active-section tracking and a smooth ambient color layer; retained the new Pricing section and all existing content/API flows.
 - `src/pages/AdminLogin.tsx`, `AdminSetup.tsx` — added the photography-themed admin authentication background.
 - `src/pages/ClientLogin.tsx`, `ClientRegister.tsx`, `ForgotPasswordPage.tsx`, `ResetPasswordPage.tsx`, `VerifyMagicLinkPage.tsx` — added the matching client authentication design.
 
-### Development reliability and documentation
+### [Updated] Development reliability and documentation
 
 - `server.ts` — replaced the fixed port with `process.env.PORT` support while retaining port `3000` as the default.
 - `README.md` — documented the design system, image locations, i18n audit script, and configurable local port.
 
-### Verification
+### [Updated] Verification
 
 - Installed all declared dependencies successfully.
 - Production build completed successfully before and after the design integration.
@@ -1385,14 +1693,14 @@
 - Browser console contained no warning or error entries on the inspected public view.
 - The existing production APIs, Turso/local LibSQL selection, storage providers, email integration, and external connections were not removed or replaced.
 
-### Color consistency follow-up
+### [Updated] Color consistency follow-up
 
 - Locked public, admin, client, and authentication chrome to separate WCAG-oriented AERO light/dark palettes so legacy database theme colors cannot reintroduce an amber primary color.
 - Converted non-semantic public purple, violet, amber, and orange accents to blue/cyan equivalents.
 - Retained orange/yellow for genuine warning, incident, overdue, and attention states where color communicates status.
 - Recolored the announcement bar to a blue-cyan gradient and replaced the hero's amber key light with a cyan rim light.
 
-### Exact original-design synchronization
+### [Updated] Exact original-design synchronization
 
 - Replaced the generic 2.0 hero markup with the original cinematic hero structure, including its exact full-height composition, locally served background image, title treatment, CTA buttons, Production Scope glass card, service rows, noise layer, and footer metadata.
 - Synchronized the original Vision, About, Services, FAQ, and Footer component structures and animation timings.
@@ -1403,7 +1711,7 @@
 - Disabled automatic opening of the social popup so the initial page state matches the original site.
 - Compared the original site on port 3002 and the advanced site on port 3003 using rendered computed styles. Hero height, corner radius, title size/weight, Production Scope surface, CTA dimensions, and core typography now match the original values.
 
-### Contact contrast and portfolio conveyor fix
+### [Updated] Contact contrast and portfolio conveyor fix
 
 - Forced the Contact section's left-column heading and information text to the original near-white values in dark mode; the rendered heading now resolves to `rgb(247, 252, 255)`.
 - Added the missing continuous left/right marquee keyframes used by the advanced portfolio rows.

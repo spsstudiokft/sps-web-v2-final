@@ -10,6 +10,8 @@ import { ThemeProvider } from "./components/ThemeProvider";
 import { LanguageProvider } from "./contexts/LanguageContext";
 import PublicHome from "./pages/PublicHome";
 import { IncidentStatusWidget } from "./components/common/IncidentStatusWidget";
+import { WhatsAppChatBubble } from "./components/public/WhatsAppChatBubble";
+import { ExitIntentCoupon } from "./components/public/ExitIntentCoupon";
 import { ErrorPage, RouteErrorBoundary } from "./pages/ErrorPage";
 import { ComingSoonGate } from "./components/public/ComingSoonGate";
 import { BackgroundUploadProvider } from "./contexts/BackgroundUploadContext";
@@ -22,7 +24,6 @@ const AdminSetup = lazy(() => import("./pages/AdminSetup"));
 const AdminLayout = lazy(() => import("./components/AdminLayout"));
 const DashboardHome = lazy(() => import("./pages/admin/DashboardHome"));
 const SettingsPage = lazy(() => import("./pages/admin/SettingsPage"));
-const ThemesPage = lazy(() => import("./pages/admin/ThemesPage"));
 const PortfolioPage = lazy(() => import("./pages/admin/PortfolioPage"));
 const ContactsPage = lazy(() => import("./pages/admin/ContactsPage"));
 const ClientsPage = lazy(() => import("./pages/admin/ClientsPage"));
@@ -74,6 +75,14 @@ const ChangelogPage = lazy(() => import("./pages/ChangelogPage"));
 const AdminChangelogPage = lazy(() => import("./pages/admin/ChangelogPage"));
 const MediaLibraryPage = lazy(() => import("./pages/admin/MediaLibraryPage"));
 const ClientHelpAdminPage = lazy(() => import("./pages/admin/ClientHelpAdminPage"));
+const CampaignLandingPage = lazy(() => import("./pages/CampaignLandingPage"));
+const CampaignsPage = lazy(() => import("./pages/admin/CampaignsPage"));
+const ExitCouponsPage = lazy(() => import("./pages/admin/ExitCouponsPage"));
+const OpenSourcePage = lazy(() => import("./pages/OpenSourcePage"));
+const OpenSourceRepositoryPage = lazy(() => import("./pages/OpenSourceRepositoryPage"));
+const LouGoossensArchivePage = lazy(() => import("./pages/LouGoossensArchivePage"));
+const PwaInstallersPage = lazy(() => import("./pages/PwaInstallersPage"));
+const DeveloperApiDocumentationPage = lazy(() => import("./pages/admin/DeveloperApiDocumentationPage"));
 
 const ProtectedClientRoute = ({ children }: { children: ReactNode }) => {
   const { token, user } = useAuth();
@@ -124,6 +133,19 @@ const ProtectedRoute = ({ children }: { children: ReactNode }) => {
   return children;
 };
 
+const DeveloperRoute = ({ children }: { children: ReactNode }) => {
+  const { token, user } = useAuth();
+  let role = user?.role;
+  if (!role && token) {
+    try {
+      role = JSON.parse(atob(token.split('.')[1] || '')).role;
+    } catch {
+      role = undefined;
+    }
+  }
+  return String(role).toLowerCase() === "superadmin" ? children : <ErrorPage status={403} embedded />;
+};
+
 const ProtectedPropertyRoute = ({ children }: { children: ReactNode }) => {
   const token = localStorage.getItem("property_listing_token");
   try {
@@ -146,6 +168,8 @@ export default function App() {
           <LanguageProvider>
             <BackgroundUploadProvider>
               <IncidentStatusWidget />
+              <WhatsAppChatBubble />
+              <ExitIntentCoupon />
               <RouteErrorBoundary>
               <Suspense fallback={<div className="min-h-screen bg-background" aria-busy="true" />}>
               <Routes>
@@ -156,6 +180,11 @@ export default function App() {
                 <Route path="/portfolio/:slug" element={<PortfolioGalleryPage />} />
                 <Route path="/properties" element={<PropertiesPage />} />
                 <Route path="/properties/:id" element={<PropertiesPage />} />
+                <Route path="/open-source/:repository" element={<OpenSourceRepositoryPage />} />
+                <Route path="/open-source" element={<OpenSourcePage />} />
+                <Route path="/installers" element={<PwaInstallersPage />} />
+                <Route path="/:campaignSlug/thank-you" element={<CampaignLandingPage thankYou />} />
+                <Route path="/:campaignSlug" element={<CampaignLandingPage />} />
               </Route>
               <Route path="/admin/setup" element={<AdminSetup />} />
               <Route path="/admin/login" element={<AdminLogin />} />
@@ -171,6 +200,8 @@ export default function App() {
               {/* Public Invoices */}
               <Route path="/invoice/:id" element={<PublicInvoicePage />} />
               <Route path="/invoices/:id" element={<PublicInvoicePage />} />
+              <Route path="/easter-lg" element={<LouGoossensArchivePage />} />
+              <Route path="/archive/lou-goossens" element={<Navigate to="/easter-lg" replace />} />
 
               <Route path="/client/login" element={<ClientLogin />} />
               <Route path="/session-ended" element={<SessionEndedPage />} />
@@ -211,7 +242,7 @@ export default function App() {
                 <Route path="invoices" element={<Navigate to="/admin/budget?tab=invoices" replace />} />
                 <Route path="team" element={<TeamManagementPage />} />
                 <Route path="referrals" element={<ReferralsPage />} />
-                <Route path="themes" element={<ThemesPage />} />
+                <Route path="themes" element={<Navigate to="/admin/settings" replace />} />
                 <Route path="settings" element={<SettingsPage />} />
                 <Route path="account" element={<AdminAccountSettingsPage />} />
                 <Route path="portfolio" element={<PortfolioPage />} />
@@ -239,7 +270,10 @@ export default function App() {
                 <Route path="projects" element={<ProjectsPage />} />
                 <Route path="calendar" element={<CalendarPage />} />
                 <Route path="marketing-emails" element={<MarketingEmailsPage />} />
+                <Route path="campaigns" element={<CampaignsPage />} />
+                <Route path="exit-coupons" element={<ExitCouponsPage />} />
                 <Route path="changelog" element={<AdminChangelogPage />} />
+                <Route path="developer/api-docs" element={<DeveloperRoute><DeveloperApiDocumentationPage /></DeveloperRoute>} />
                 <Route path="*" element={<ErrorPage status={404} embedded />} />
               </Route>
 

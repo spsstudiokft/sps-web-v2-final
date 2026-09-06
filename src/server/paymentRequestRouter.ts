@@ -13,6 +13,7 @@ import {
   sendTransactionalEmail
 } from "./services/emailService.js";
 import { getAppUrl } from "./appUrl.js";
+import { createPortalNotification, notifyAllAdmins } from "./services/portalNotificationService.js";
 
 export const paymentRequestRouter = Router();
 
@@ -1230,6 +1231,13 @@ paymentRequestRouter.post("/", async (req: any, res) => {
       }
     );
 
+    await notifyAllAdmins({
+      type: "payment_request_created",
+      title: "Új fizetési kérelem",
+      body: `${userCtx.name || userCtx.email || "Munkatárs"} · ${title.trim()} · ${new Intl.NumberFormat("hu-HU", { style: "currency", currency: String(currency || "HUF").toUpperCase() }).format(numAmount)}`,
+      link: "/admin/budget?tab=payment-requests"
+    });
+
     // Dispatch "Payment request – approval needed" email to Superadmins
     try {
       const origin = getAppUrl(req);
@@ -1718,6 +1726,17 @@ paymentRequestRouter.post("/:id/review", async (req: any, res) => {
       }
     } catch (emailErr) {
       console.warn("Requester notification warning:", emailErr);
+    }
+
+    if (row.requester_id !== userCtx.id) {
+      await createPortalNotification({
+        recipientId: String(row.requester_id),
+        portal: "admin",
+        type: "payment_request_reviewed",
+        title: "Fizetési kérelem frissítve",
+        body: `${row.request_number} · ${row.title} · ${targetStatus}`,
+        link: "/admin/budget?tab=payment-requests"
+      });
     }
 
     res.json({

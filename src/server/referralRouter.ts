@@ -116,6 +116,117 @@ referralRouter.get("/rewards", async (req: any, res) => {
 });
 
 // =========================================================================
+// 4a. Custom bonus / promo codes (Shopify-style, reusable codes)
+// =========================================================================
+const normalizeBonusCode = (value: unknown) => String(value || "").trim().toUpperCase();
+const isValidBonusCode = (value: string) => /^[A-Z0-9][A-Z0-9_-]{2,63}$/.test(value);
+
+referralRouter.get("/custom-codes", async (_req: any, res) => {
+  try {
+    const result = await db.execute({
+      sql: `SELECT c.*, COALESCE((SELECT COUNT(*) FROM custom_bonus_code_redemptions r WHERE r.bonus_code_id = c.id), 0) AS redemptions
+            FROM custom_bonus_codes c WHERE c.campaign_id IS NULL ORDER BY c.created_at DESC`
+    });
+    res.json(result.rows);
+  } catch (error: any) {
+    console.error("Failed to fetch custom bonus codes:", error);
+    res.status(500).json({ error: error.message || "Failed to fetch custom bonus codes" });
+  }
+});
+
+referralRouter.post("/custom-codes", async (req: any, res) => {
+  try {
+    const code = normalizeBonusCode(req.body?.code);
+    const title = String(req.body?.title || "").trim();
+    const rewardType = String(req.body?.reward_type || "");
+    const rewardValue = Number(req.body?.reward_value);
+    const usageLimit = req.body?.usage_limit === "" || req.body?.usage_limit === null || req.body?.usage_limit === undefined
+      ? null : Number(req.body.usage_limit);
+    const startsAt = req.body?.starts_at ? new Date(req.body.starts_at) : null;
+    const expiresAt = req.body?.expires_at ? new Date(req.body.expires_at) : null;
+
+    if (!isValidBonusCode(code)) return res.status(400).json({ error: "Use 3–64 letters, numbers, hyphens, or underscores for the code." });
+    if (!title) return res.status(400).json({ error: "A title is required." });
+    if (!["discount_percent", "discount_fixed"].includes(rewardType)) return res.status(400).json({ error: "Unsupported discount type." });
+    if (!Number.isFinite(rewardValue) || rewardValue <= 0 || (rewardType === "discount_percent" && rewardValue > 100)) return res.status(400).json({ error: "Enter a valid discount value." });
+    if (usageLimit !== null && (!Number.isInteger(usageLimit) || usageLimit < 1)) return res.status(400).json({ error: "Usage limit must be a positive whole number." });
+    if ((startsAt && Number.isNaN(startsAt.getTime())) || (expiresAt && Number.isNaN(expiresAt.getTime())) || (startsAt && expiresAt && startsAt >= expiresAt)) return res.status(400).json({ error: "Enter a valid availability period." });
+
+    const id = crypto.randomUUID();
+    await db.execute({
+      sql: `INSERT INTO custom_bonus_codes (id, code, title, description, reward_type, reward_value, currency, usage_limit, starts_at, expires_at, is_active, created_by_user_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)`,
+      args: [id, code, title, String(req.body?.description || "").trim(), rewardType, rewardValue, String(req.body?.currency || "USD").trim().toUpperCase(), usageLimit, startsAt ? startsAt.toISOString().slice(0, 19).replace("T", " ") : null, expiresAt ? expiresAt.toISOString().slice(0, 19).replace("T", " ") : null, req.user?.id || null]
+    });
+    const created = await db.execute({ sql: "SELECT * FROM custom_bonus_codes WHERE id = ?", args: [id] });
+    res.status(201).json({ success: true, code: created.rows[0] });
+  } catch (error: any) {
+    if (/unique/i.test(String(error?.message || ""))) return res.status(409).json({ error: "This bonus code already exists." });
+    console.error("Failed to create custom bonus code:", error);
+    res.status(500).json({ error: error.message || "Failed to create custom bonus code" });
+  }
+});
+
+referralRouter.put("/custom-codes/:id", async (req: any, res) => {
+  try {
+    const currentResult = await db.execute({ sql: "SELECT * FROM custom_bonus_codes WHERE id = ?", args: [req.params.id] });
+    const current: any = currentResult.rows[0];
+    if (!current) return res.status(404).json({ error: "Bonus code not found." });
+
+    const code = normalizeBonusCode(req.body?.code);
+    const title = String(req.body?.title || "").trim();
+    const rewardType = String(req.body?.reward_type || "");
+    const rewardValue = Number(req.body?.reward_value);
+    const currency = String(req.body?.currency || "USD").trim().toUpperCase();
+    const usageLimit = req.body?.usage_limit === "" || req.body?.usage_limit === null || req.body?.usage_limit === undefined ? null : Number(req.body.usage_limit);
+    const startsAt = req.body?.starts_at ? new Date(req.body.starts_at) : null;
+    const expiresAt = req.body?.expires_at ? new Date(req.body.expires_at) : null;
+    if (!isValidBonusCode(code)) return res.status(400).json({ error: "Use 3–64 letters, numbers, hyphens, or underscores for the code." });
+    if (!title) return res.status(400).json({ error: "A title is required." });
+    if (!["discount_percent", "discount_fixed"].includes(rewardType)) return res.status(400).json({ error: "Unsupported discount type." });
+    if (!Number.isFinite(rewardValue) || rewardValue <= 0 || (rewardType === "discount_percent" && rewardValue > 100)) return res.status(400).json({ error: "Enter a valid discount value." });
+    if (usageLimit !== null && (!Number.isInteger(usageLimit) || usageLimit < Number(current.usage_count || 0))) return res.status(400).json({ error: "Usage limit cannot be lower than the current usage count." });
+    if ((startsAt && Number.isNaN(startsAt.getTime())) || (expiresAt && Number.isNaN(expiresAt.getTime())) || (startsAt && expiresAt && startsAt >= expiresAt)) return res.status(400).json({ error: "Enter a valid availability period." });
+    if (Number(current.usage_count || 0) > 0 && (code !== String(current.code).toUpperCase() || rewardType !== current.reward_type || rewardValue !== Number(current.reward_value) || currency !== String(current.currency).toUpperCase())) return res.status(409).json({ error: "A redeemed code cannot change its code, discount, or currency. You can still change its title, schedule, status, and description." });
+
+    await db.execute({
+      sql: `UPDATE custom_bonus_codes SET code = ?, title = ?, description = ?, reward_type = ?, reward_value = ?, currency = ?, usage_limit = ?, starts_at = ?, expires_at = ?, is_active = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+      args: [code, title, String(req.body?.description || "").trim(), rewardType, rewardValue, currency, usageLimit, startsAt ? startsAt.toISOString().slice(0, 19).replace("T", " ") : null, expiresAt ? expiresAt.toISOString().slice(0, 19).replace("T", " ") : null, req.body?.is_active === false ? 0 : 1, req.params.id],
+    });
+    res.json({ success: true });
+  } catch (error: any) {
+    if (/unique/i.test(String(error?.message || ""))) return res.status(409).json({ error: "This bonus code already exists." });
+    console.error("Failed to update custom bonus code:", error);
+    res.status(500).json({ error: error.message || "Failed to update custom bonus code" });
+  }
+});
+
+referralRouter.patch("/custom-codes/:id", async (req: any, res) => {
+  try {
+    if (typeof req.body?.is_active !== "boolean") return res.status(400).json({ error: "An active status is required." });
+    const result = await db.execute({ sql: "UPDATE custom_bonus_codes SET is_active = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", args: [req.body.is_active ? 1 : 0, req.params.id] });
+    if (Number((result as any).rowsAffected || 0) !== 1) return res.status(404).json({ error: "Bonus code not found." });
+    res.json({ success: true });
+  } catch (error: any) {
+    console.error("Failed to update custom bonus code:", error);
+    res.status(500).json({ error: error.message || "Failed to update custom bonus code" });
+  }
+});
+
+referralRouter.delete("/custom-codes/:id", async (req: any, res) => {
+  try {
+    const result = await db.execute({ sql: "DELETE FROM custom_bonus_codes WHERE id = ? AND COALESCE(usage_count, 0) = 0", args: [req.params.id] });
+    if (Number((result as any).rowsAffected || 0) === 1) return res.json({ success: true });
+    const exists = await db.execute({ sql: "SELECT usage_count FROM custom_bonus_codes WHERE id = ?", args: [req.params.id] });
+    if (!exists.rows.length) return res.status(404).json({ error: "Bonus code not found." });
+    return res.status(409).json({ error: "A used bonus code cannot be deleted because its redemption audit must be retained. Disable it instead." });
+  } catch (error: any) {
+    console.error("Failed to delete custom bonus code:", error);
+    res.status(500).json({ error: error.message || "Failed to delete custom bonus code" });
+  }
+});
+
+// =========================================================================
 // 4b. GET /api/admin/referrals/clients - Registered Clients for Manual Rewards
 // =========================================================================
 referralRouter.get("/clients", async (req: any, res) => {

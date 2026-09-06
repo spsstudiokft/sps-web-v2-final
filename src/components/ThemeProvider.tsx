@@ -14,6 +14,8 @@ interface ThemeContextType {
   setPublicMode: (mode: ThemeMode) => void;
   setAdminMode: (mode: ThemeMode) => void;
   toggleTheme: () => void;
+  publicThemeToggleEnabled: boolean;
+  adminThemeToggleEnabled: boolean;
   publicTheme: ThemeConfig;
   adminTheme: ThemeConfig;
   setPublicTheme: (theme: ThemeConfig) => void;
@@ -80,6 +82,8 @@ const ThemeContext = createContext<ThemeContextType>({
   setPublicMode: () => {},
   setAdminMode: () => {},
   toggleTheme: () => {},
+  publicThemeToggleEnabled: true,
+  adminThemeToggleEnabled: true,
   publicTheme: defaultPublicPreset,
   adminTheme: defaultAdminPreset,
   setPublicTheme: () => {},
@@ -170,6 +174,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [adminTheme, setAdminThemeState] = useState<ThemeConfig>(defaultAdminPreset);
   const [publicMode, setPublicModeState] = useState<ThemeMode>(() => getSavedThemeMode("public"));
   const [adminMode, setAdminModeState] = useState<ThemeMode>(() => getSavedThemeMode("admin"));
+  const [publicThemeToggleEnabled, setPublicThemeToggleEnabled] = useState(true);
+  const [adminThemeToggleEnabled, setAdminThemeToggleEnabled] = useState(true);
   const isAdminRoute = location.pathname.startsWith("/admin");
   const mode = isAdminRoute ? adminMode : publicMode;
 
@@ -232,6 +238,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       const res = await fetch("/api/public/settings");
       if (!res.ok) return;
       const data = await res.json();
+      setPublicThemeToggleEnabled(data.public_theme_toggle_enabled !== "0" && data.public_theme_toggle_enabled !== "false");
+      setAdminThemeToggleEnabled(data.admin_theme_toggle_enabled !== "0" && data.admin_theme_toggle_enabled !== "false");
 
       if (data.favicon_url !== undefined) {
         updateDocumentFavicon(data.favicon_url);
@@ -246,8 +254,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
             setPublicThemeState(parsed);
           }
         } catch (e) {}
-      } else if (data.theme_colors) {
-        // Fallback to legacy theme_colors
+      }
+      if (data.theme_colors) {
+        // Settings overrides only the public base palette. Typography and
+        // UI-system configuration remain fixed in the active theme.
         try {
           const colors = JSON.parse(data.theme_colors);
           setPublicThemeState(prev => ({
@@ -314,14 +324,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     root.setAttribute("data-public-theme", publicMode);
     root.setAttribute("data-admin-theme", adminMode);
 
-    // Collect fonts to load
-    const fontsToLoad = [
-      publicTheme.typography?.headingFont,
-      publicTheme.typography?.bodyFont,
-      adminTheme.typography?.headingFont,
-      adminTheme.typography?.bodyFont
-    ].filter(Boolean) as string[];
-    loadGoogleFonts(fontsToLoad);
+    // Typography is intentionally fixed across every SPS surface.  Legacy
+    // theme records may still contain a display font, but they must never
+    // alter the public, admin or portal typeface.
+    loadGoogleFonts(["Plus Jakarta Sans"]);
 
     const colors = activeThemeConfig.colors || defaultPublicPreset.colors;
     const light = colors.light || defaultPublicPreset.colors.light;
@@ -346,8 +352,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     root.style.setProperty("--theme-accent-foreground", activeAccentFg);
 
     // Typography CSS Variables
-    const headingFont = activeThemeConfig.typography?.headingFont || "Plus Jakarta Sans";
-    const bodyFont = activeThemeConfig.typography?.bodyFont || "Plus Jakarta Sans";
+    const headingFont = "Plus Jakarta Sans";
+    const bodyFont = "Plus Jakarta Sans";
     
     const headingFamily = headingFont.startsWith("System Serif")
       ? 'ui-serif, Georgia, Cambria, "Times New Roman", Times, serif'
@@ -391,6 +397,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         setPublicMode,
         setAdminMode,
         toggleTheme,
+        publicThemeToggleEnabled,
+        adminThemeToggleEnabled,
         publicTheme,
         adminTheme,
         setPublicTheme,

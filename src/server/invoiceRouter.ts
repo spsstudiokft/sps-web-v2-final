@@ -7,6 +7,7 @@ import {
 } from "./services/emailService.js";
 import { processInvoicePaymentReferral } from "./services/referralService.js";
 import { getAppUrl } from "./appUrl.js";
+import { notifyAllAdmins } from "./services/portalNotificationService.js";
 
 export const invoiceRouter = Router();
 export const publicInvoiceRouter = Router();
@@ -1233,6 +1234,13 @@ invoiceRouter.post("/:id/payments", async (req: any, res) => {
         console.warn("Failed to dispatch payment receipt email:", receiptErr);
       }
     }
+
+    await notifyAllAdmins({
+      type: "invoice_payment_received",
+      title: isFullyPaid ? "Számla befizetve" : "Részfizetés érkezett",
+      body: `${String(inv.invoice_number || "Számla")} · ${formatCurrency(paymentAmount, inv.currency)}${isFullyPaid ? " · teljesítve" : ""}`,
+      link: "/admin/budget?tab=invoices"
+    });
 
     res.json({
       success: true,

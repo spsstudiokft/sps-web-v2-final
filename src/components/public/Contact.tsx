@@ -74,6 +74,7 @@ export function Contact({
   // Pricing, Extras & Fees state
   const [allPlans, setAllPlans] = useState<PricingPlan[]>(initialPlans || []);
   const [selectedPlan, setSelectedPlan] = useState<PricingPlan | null>(null);
+  const [selectedPlans, setSelectedPlans] = useState<PricingPlan[]>([]);
   const [availableExtras, setAvailableExtras] = useState<ExtraService[]>(initialExtras || []);
   const [selectedExtras, setSelectedExtras] = useState<Record<string, number>>({});
   const [feeRules, setFeeRules] = useState<PricingFeeRule[]>(initialFeeRules || []);
@@ -82,6 +83,9 @@ export function Contact({
   const [travelEstimateStatus, setTravelEstimateStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [travelEstimateError, setTravelEstimateError] = useState("");
   const [showPricingDetails, setShowPricingDetails] = useState<boolean>(true);
+  const [bonusCodes, setBonusCodes] = useState([""]);
+  const [bonusPreviews, setBonusPreviews] = useState<Array<{ code: string; valid: boolean; title?: string; description?: string; reward_type?: string; reward_value?: number; currency?: string }>>([]);
+  const [bonusPreviewStatus, setBonusPreviewStatus] = useState<"idle" | "checking" | "valid" | "invalid">("idle");
 
   // Track whether message was manually customized by user
   const [isMessageCustomized, setIsMessageCustomized] = useState(false);
@@ -119,6 +123,30 @@ export function Contact({
     return () => { clearTimeout(timer); controller.abort(); };
   }, [contactForm.property_city]);
 
+  useEffect(() => {
+    const normalizedCodes = bonusCodes.map((code) => code.trim().toUpperCase()).filter((code) => code.length >= 3);
+    if (!normalizedCodes.length) {
+      setBonusPreviews([]);
+      setBonusPreviewStatus("idle");
+      return;
+    }
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      setBonusPreviewStatus("checking");
+      try {
+        const response = await fetch(`/api/public/bonus-codes/preview?codes=${encodeURIComponent(normalizedCodes.join(","))}`, { signal: controller.signal });
+        const data = await response.json().catch(() => ({ codes: [] }));
+        if (controller.signal.aborted) return;
+        const previews = Array.isArray(data.codes) ? data.codes : [];
+        setBonusPreviews(previews);
+        setBonusPreviewStatus(previews.some((preview: any) => preview.valid) ? "valid" : "invalid");
+      } catch (error: any) {
+        if (error.name !== "AbortError") { setBonusPreviews([]); setBonusPreviewStatus("invalid"); }
+      }
+    }, 450);
+    return () => { clearTimeout(timer); controller.abort(); };
+  }, [bonusCodes]);
+
   // Helper to extract translated title of a plan
   const getPlanTitle = (p: PricingPlan): string => {
     return t(p.title, currentLang, defaultLang) || p.title;
@@ -154,6 +182,7 @@ export function Contact({
         }
         if (plan) {
           setSelectedPlan(plan);
+          setSelectedPlans([plan]);
           setShowPricingDetails(true);
           // Pre-fill message
           const generatedMsg = getPlanMessageTemplate(plan, contactForm.name);
@@ -173,6 +202,7 @@ export function Contact({
             const generatedMsg = getPlanMessageTemplate(firstPlan, contactForm.name);
             setContactForm((prev) => ({ ...prev, message: generatedMsg }));
             setIsMessageCustomized(false);
+            setSelectedPlans([firstPlan]);
             return firstPlan;
           }
           return currentPlan;
@@ -208,23 +238,45 @@ export function Contact({
   const handleSelectPlan = (planId: string) => {
     if (!planId) {
       setSelectedPlan(null);
+      setSelectedPlans([]);
       setSelectedExtras({});
       setTravelDistance(0);
       return;
     }
     const found = allPlans.find((p) => p.id === planId);
     if (found) {
-      setSelectedPlan(found);
-      const generatedMsg = getPlanMessageTemplate(found, contactForm.name);
-      setContactForm((prev) => ({ ...prev, message: generatedMsg }));
-      setIsMessageCustomized(false);
+      setSelectedPlans((current) => {
+        if (current.some((plan) => plan.id === found.id)) return current;
+        if (current.length > 0 && String(current[0].currency).toUpperCase() !== String(found.currency).toUpperCase()) {
+          setErrorMessage(tUi("contact.plan_currency_mismatch", currentLang, undefined, defaultLang) || "Packages with different currencies cannot be combined.");
+          return current;
+        }
+        const next = [...current, found];
+        setSelectedPlan(next[0]);
+        if (current.length === 0) {
+          const generatedMsg = getPlanMessageTemplate(found, contactForm.name);
+          setContactForm((prev) => ({ ...prev, message: generatedMsg }));
+          setIsMessageCustomized(false);
+        }
+        return next;
+      });
     }
   };
 
   const handleClearPlan = () => {
     setSelectedPlan(null);
+    setSelectedPlans([]);
     setSelectedExtras({});
     setTravelDistance(0);
+  };
+
+  const handleRemovePlan = (planId: string) => {
+    setSelectedPlans((current) => {
+      const next = current.filter((plan) => plan.id !== planId);
+      setSelectedPlan(next[0] || null);
+      if (!next.length) setSelectedExtras({});
+      return next;
+    });
   };
 
   const handleResetTemplate = () => {
@@ -250,7 +302,7 @@ export function Contact({
   };
 
   // Calculate live fees & total breakdown
-  const currency = selectedPlan?.currency || availableExtras[0]?.currency || "USD";
+  const currency = selectedPlans[0]?.currency || availableExtras[0]?.currency || "USD";
   const formatCalculatorPrice = (amount: number) => {
     const currencyCode = String(currency || "").toUpperCase();
     // HUF does not have a practical fractional unit in customer-facing
@@ -280,7 +332,7 @@ export function Contact({
   }, [selectedExtrasList]);
 
   const calculatedFees = useMemo(() => {
-    const subtotalBeforeFees = (selectedPlan ? Number(selectedPlan.price) : 0) + extrasSubtotal;
+    const subtotalBeforeFees = selectedPlans.reduce((sum, plan) => sum + Number(plan.price || 0), 0) + extrasSubtotal;
     return feeRules.map((rule) => {
       const isDistance = rule.fee_type === "distance" || rule.fee_type === "distance_tiered";
       const costInfo = calculateFeeRuleCost(rule, isDistance ? travelDistance : 0, subtotalBeforeFees);
@@ -290,22 +342,39 @@ export function Contact({
         explanation: costInfo.explanation,
       };
     });
-  }, [feeRules, travelDistance, selectedPlan, extrasSubtotal]);
+  }, [feeRules, travelDistance, selectedPlans, extrasSubtotal]);
 
   const feesTotal = useMemo(() => {
     return calculatedFees.reduce((acc, f) => acc + f.cost, 0);
   }, [calculatedFees]);
 
   const estimatedTotal = useMemo(() => {
-    const basePlanPrice = selectedPlan ? Number(selectedPlan.price) : 0;
+    const basePlanPrice = selectedPlans.reduce((sum, plan) => sum + Number(plan.price || 0), 0);
     return basePlanPrice + extrasSubtotal + feesTotal;
-  }, [selectedPlan, extrasSubtotal, feesTotal]);
+  }, [selectedPlans, extrasSubtotal, feesTotal]);
 
   // All configurable plan, extra and travel-fee prices are stored as net
   // amounts. Keep that breakdown intact and present the statutory VAT and
   // payable gross total explicitly to the visitor.
   const vatAmount = useMemo(() => estimatedTotal * HUNGARIAN_VAT_RATE, [estimatedTotal]);
   const grossEstimatedTotal = useMemo(() => estimatedTotal + vatAmount, [estimatedTotal, vatAmount]);
+  const appliedBonusPreviews = useMemo(() => {
+    let remaining = grossEstimatedTotal;
+    return bonusCodes.map((enteredCode) => {
+      const code = enteredCode.trim().toUpperCase();
+      const preview = bonusPreviews.find((item) => item.code === code);
+      const currencyMatches = Boolean(preview && String(preview.currency || currency).toUpperCase() === String(currency).toUpperCase());
+      const saving = preview?.valid && currencyMatches && remaining > 0
+        ? preview.reward_type === "discount_percent"
+          ? Math.min(remaining, remaining * Math.max(0, Number(preview.reward_value || 0)) / 100)
+          : Math.min(remaining, Math.max(0, Number(preview.reward_value || 0)))
+        : 0;
+      remaining -= saving;
+      return { code, preview, currencyMatches, saving };
+    }).filter((item) => item.code.length >= 3);
+  }, [bonusCodes, bonusPreviews, currency, grossEstimatedTotal]);
+  const estimatedBonusSaving = appliedBonusPreviews.reduce((total, item) => total + item.saving, 0);
+  const discountedGrossEstimatedTotal = Math.max(0, grossEstimatedTotal - estimatedBonusSaving);
 
   // Settings evaluation
   const showPhone = settings.contact_form_show_phone !== "0" && settings.contact_form_show_phone !== "false";
@@ -415,7 +484,7 @@ export function Contact({
     }
 
     // Format extra services payload
-    const formattedExtrasPayload = selectedPlan
+    const formattedExtrasPayload = selectedPlans.length
       ? selectedExtrasList.map((item) => ({
           id: item.service.id,
           title: t(item.service.title, currentLang, defaultLang) || item.service.title,
@@ -426,7 +495,7 @@ export function Contact({
       : [];
 
     // Format fees payload
-    const formattedFeesPayload = selectedPlan
+    const formattedFeesPayload = selectedPlans.length
       ? calculatedFees.map((f) => ({
           id: f.rule.id,
           name: t(f.rule.name, currentLang, defaultLang) || f.rule.name,
@@ -459,11 +528,13 @@ export function Contact({
           availability_start: showAvailability ? contactForm.availability_start : undefined,
           availability_end: showAvailability ? contactForm.availability_end : undefined,
           message: contactForm.message,
-          plan_id: selectedPlan ? selectedPlan.id : undefined,
-          plan_name: selectedPlan ? getPlanTitle(selectedPlan) : undefined,
-          extra_services: selectedPlan && formattedExtrasPayload.length > 0 ? JSON.stringify(formattedExtrasPayload) : undefined,
-          fee_details: selectedPlan && formattedFeesPayload.length > 0 ? JSON.stringify(formattedFeesPayload) : undefined,
-          estimated_total: selectedPlan && estimatedTotal > 0 ? estimatedTotal : undefined,
+          plan_id: selectedPlans[0]?.id,
+          plan_name: selectedPlans.map(getPlanTitle).join(" + ") || undefined,
+          selected_plan_ids: selectedPlans.map((plan) => plan.id),
+          extra_services: selectedPlans.length && formattedExtrasPayload.length > 0 ? JSON.stringify(formattedExtrasPayload) : undefined,
+          fee_details: selectedPlans.length && formattedFeesPayload.length > 0 ? JSON.stringify(formattedFeesPayload) : undefined,
+          estimated_total: selectedPlans.length && estimatedTotal > 0 ? estimatedTotal : undefined,
+          bonus_codes: appliedBonusPreviews.filter((item) => item.preview?.valid && item.currencyMatches).map((item) => item.code),
           currency: currency,
           cookie_consent: true,
           privacy_policy_accepted: true,
@@ -484,7 +555,11 @@ export function Contact({
           message: "" 
         });
         setSelectedPlan(null);
+        setSelectedPlans([]);
         setSelectedExtras({});
+        setBonusCodes([""]);
+        setBonusPreviews([]);
+        setBonusPreviewStatus("idle");
         setPhoneError("");
         setAvailabilityError("");
         setHasAcceptedPrivacyPolicy(false);
@@ -681,7 +756,7 @@ export function Contact({
                       <span>{tUi("contact.selected_package", currentLang, undefined, defaultLang) || "Selected Package / Plan:"}</span>
                     </span>
 
-                    {selectedPlan && (
+                    {selectedPlans.length > 0 && (
                       <button
                         type="button"
                         onClick={handleClearPlan}
@@ -695,13 +770,13 @@ export function Contact({
 
                   <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                     <select
-                      value={selectedPlan?.id || ""}
+                      value=""
                       onChange={(e) => handleSelectPlan(e.target.value)}
                       className="flex-1 px-3.5 py-2.5 bg-background border border-border rounded-xl text-text text-sm focus:ring-2 focus:ring-primary focus:outline-none"
                     >
-                      <option value="">-- {tUi("contact.select_plan_optional", currentLang, undefined, defaultLang) || "None (Custom Request)"} --</option>
-                      {allPlans.map((p) => (
-                        <option key={p.id} value={p.id}>
+                      <option value="">+ {tUi("contact.add_package", currentLang, undefined, defaultLang) || "Add a package or bundle"}</option>
+                      {allPlans.filter((p) => !selectedPlans.some((selected) => selected.id === p.id)).map((p) => (
+                        <option key={p.id} value={p.id} disabled={selectedPlans.length > 0 && String(selectedPlans[0].currency).toUpperCase() !== String(p.currency).toUpperCase()}>
                           {getPlanTitle(p)} ({formatCurrencyPrice(p.price, p.currency)}
                           {p.billing_period ? ` / ${p.billing_period}` : ""})
                           {p.type === "bundle" ? " [Bundle]" : ""}
@@ -709,23 +784,14 @@ export function Contact({
                       ))}
                     </select>
 
-                    {selectedPlan && (
-                      <div className="flex items-center justify-between sm:justify-end gap-2 px-3 py-2 rounded-xl bg-primary/10 text-primary border border-primary/20 shrink-0">
-                        <span className="text-xs font-bold uppercase">
-                          {selectedPlan.type === "bundle" ? "Bundle:" : "Plan:"}
-                        </span>
-                        <span className="text-sm font-extrabold">
-                          {formatCurrencyPrice(selectedPlan.price, selectedPlan.currency)}
-                        </span>
-                      </div>
-                    )}
                   </div>
+                  {selectedPlans.length > 0 && <div className="space-y-2"><div className="grid gap-2 sm:grid-cols-2">{selectedPlans.map((plan) => <div key={plan.id} className="flex items-center justify-between gap-3 rounded-xl border border-primary/20 bg-primary/5 px-3 py-2.5"><div className="min-w-0"><span className="block truncate text-xs font-bold text-text">{getPlanTitle(plan)}</span><span className="text-[11px] text-muted-text">{plan.type === "bundle" ? (tUi("contact.bundle", currentLang, undefined, defaultLang) || "Bundle") : (tUi("contact.package", currentLang, undefined, defaultLang) || "Package")}</span></div><div className="flex items-center gap-2"><span className="whitespace-nowrap text-sm font-extrabold text-primary">{formatCurrencyPrice(plan.price, plan.currency)}</span><button type="button" onClick={() => handleRemovePlan(plan.id)} className="rounded-lg p-1 text-muted-text hover:bg-background hover:text-red-500" aria-label={`${getPlanTitle(plan)} eltávolítása`}><X className="h-4 w-4" /></button></div></div>)}</div><div className="flex items-center justify-between border-t border-border/70 pt-2 text-xs font-bold text-text"><span>{tUi("contact.package_subtotal", currentLang, undefined, defaultLang) || "Packages subtotal"}</span><span className="text-primary">{formatCalculatorPrice(selectedPlans.reduce((sum, plan) => sum + Number(plan.price || 0), 0))}</span></div></div>}
                 </div>
               )}
 
               {/* Extra Services Accordion / Selector - Only visible when a plan or bundle is selected */}
               <AnimatePresence>
-                {selectedPlan && availableExtras.length > 0 && (
+                {selectedPlans.length > 0 && availableExtras.length > 0 && (
                   <motion.div
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: "auto" }}
@@ -811,7 +877,7 @@ export function Contact({
 
               {/* Travel Distance & Live Fee Breakdown (Estimated Cost Calculator) - Only visible when a plan or bundle is selected */}
               <AnimatePresence>
-                {selectedPlan && (
+                {selectedPlans.length > 0 && (
                   <motion.div
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: "auto" }}
@@ -829,9 +895,10 @@ export function Contact({
                           <span>{tUi("contact.estimated_cost_title", currentLang, undefined, defaultLang) || "Estimated Investment Summary"}</span>
                         </div>
 
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2">
+                          {estimatedBonusSaving > 0 && <span className="text-xs font-semibold text-muted-text line-through">{formatCalculatorPrice(grossEstimatedTotal)}</span>}
                           <span className="text-sm font-extrabold text-primary">
-                            {formatCalculatorPrice(grossEstimatedTotal)}
+                            {formatCalculatorPrice(estimatedBonusSaving > 0 ? discountedGrossEstimatedTotal : grossEstimatedTotal)}
                           </span>
                           {showPricingDetails ? <ChevronUp className="w-4 h-4 text-muted-text" /> : <ChevronDown className="w-4 h-4 text-muted-text" />}
                         </div>
@@ -872,12 +939,7 @@ export function Contact({
 
                           {/* Itemized summary lines */}
                           <div className="space-y-1.5 pt-1">
-                            {selectedPlan && (
-                              <div className="flex items-center justify-between text-muted-text">
-                                <span>{getPlanTitle(selectedPlan)} ({selectedPlan.type === "bundle" ? "Bundle" : "Base Plan"})</span>
-                                <span className="font-semibold text-text">{formatCurrencyPrice(selectedPlan.price, selectedPlan.currency)}</span>
-                              </div>
-                            )}
+                            {selectedPlans.map((plan) => <div key={plan.id} className="flex items-center justify-between text-muted-text"><span>{getPlanTitle(plan)} ({plan.type === "bundle" ? (tUi("contact.bundle", currentLang, undefined, defaultLang) || "Bundle") : (tUi("contact.package", currentLang, undefined, defaultLang) || "Package")})</span><span className="font-semibold text-text">{formatCurrencyPrice(plan.price, plan.currency)}</span></div>)}
 
                             {selectedExtrasList.map((item, idx) => (
                               <div key={idx} className="flex items-center justify-between text-muted-text">
@@ -900,6 +962,20 @@ export function Contact({
                               </div>
                             ))}
 
+                            <div className="mt-3 rounded-xl border border-primary/20 bg-primary/5 p-3 space-y-2.5">
+                              <div className="flex items-center justify-between gap-2 text-xs font-bold text-text"><span className="flex items-center gap-2"><Tag className="h-3.5 w-3.5 text-primary" />Promóciós kódok</span><span className="text-[10px] font-medium text-muted-text">Legfeljebb 3 kombinálható</span></div>
+                              {bonusCodes.map((code, index) => (
+                                <div key={index} className="flex gap-2">
+                                  <input type="text" value={code} onChange={(event) => setBonusCodes((current) => current.map((item, itemIndex) => itemIndex === index ? event.target.value.toUpperCase().replace(/\s/g, "") : item))} placeholder={`Kód ${index + 1} (pl. SPSWELCOME)`} maxLength={64} className="aero-input min-w-0 flex-1 rounded-lg border border-border bg-background px-3 py-2 text-xs font-mono font-semibold tracking-wide text-text placeholder:font-sans placeholder:font-normal placeholder:tracking-normal" />
+                                  {bonusCodes.length > 1 && <button type="button" aria-label={`Kód ${index + 1} eltávolítása`} onClick={() => setBonusCodes((current) => current.filter((_, itemIndex) => itemIndex !== index))} className="rounded-lg border border-border px-2 text-muted-text transition-colors hover:bg-background hover:text-text"><X className="h-3.5 w-3.5" /></button>}
+                                </div>
+                              ))}
+                              {bonusCodes.length < 3 && <button type="button" onClick={() => setBonusCodes((current) => [...current, ""])} className="text-[11px] font-semibold text-primary hover:underline">+ További kód hozzáadása</button>}
+                              {bonusPreviewStatus === "checking" && <p className="text-[11px] text-muted-text">Kód ellenőrzése…</p>}
+                              {appliedBonusPreviews.map((item) => item.preview?.valid ? <div key={item.code} className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-2.5 text-[11px] text-emerald-800 dark:text-emerald-200"><div className="font-bold">{item.preview.title}: {item.preview.reward_type === "discount_percent" ? `${item.preview.reward_value}% kedvezmény` : `${formatCurrencyPrice(Number(item.preview.reward_value || 0), item.preview.currency || currency)} kedvezmény`}</div>{item.preview.description && <p className="mt-1 text-emerald-700 dark:text-emerald-300">{item.preview.description}</p>}{!item.currencyMatches ? <p className="mt-1.5 font-medium text-amber-700 dark:text-amber-300">A kód {item.preview.currency} pénznemhez használható, az ajánlat pedig {currency} pénznemű.</p> : grossEstimatedTotal > 0 ? <p className="mt-1.5 font-semibold">Ezzel a kóddal: −{formatCalculatorPrice(item.saving)}</p> : <p className="mt-1.5">Válassz csomagot a pontos kedvezményhez.</p>}</div> : <div key={item.code} className="rounded-lg border border-red-500/20 bg-red-500/5 p-2.5 text-[11px] font-medium text-red-600">A(z) {item.code} kód nem érvényes, lejárt, vagy felhasználásra került.</div>)}
+                              {estimatedBonusSaving > 0 && <div className="rounded-lg border border-primary/25 bg-primary/10 p-2.5 text-[11px] text-text"><div className="font-bold">Összes kombinált kedvezmény: −{formatCalculatorPrice(estimatedBonusSaving)}</div><div className="mt-1 font-semibold text-primary">Kedvezményes bruttó összeg: {formatCalculatorPrice(discountedGrossEstimatedTotal)}</div></div>}
+                            </div>
+
                             <div className="pt-2 border-t border-border space-y-2 text-sm">
                               <div className="flex items-center justify-between font-semibold text-muted-text">
                                 <span>{tUi("contact.estimated_net_total", currentLang, undefined, defaultLang) || "Estimated net total:"}</span>
@@ -909,9 +985,12 @@ export function Contact({
                                 <span>{tUi("contact.estimated_vat", { rate: HUNGARIAN_VAT_RATE * 100 }, currentLang, defaultLang) || "VAT (27%):"}</span>
                                 <span>{formatCalculatorPrice(vatAmount)}</span>
                               </div>
-                              <div className="pt-2 border-t border-border flex items-center justify-between font-bold text-text">
+                              <div className="pt-2 border-t border-border space-y-1.5 font-bold text-text">
+                                {estimatedBonusSaving > 0 && <div className="flex items-center justify-between text-sm text-emerald-700 dark:text-emerald-300"><span>Kuponkedvezmény:</span><span>−{formatCalculatorPrice(estimatedBonusSaving)}</span></div>}
+                                <div className="flex items-center justify-between">
                                 <span>{tUi("contact.estimated_gross_total", currentLang, undefined, defaultLang) || "Estimated gross total:"}</span>
-                                <span className="text-primary text-base font-extrabold">{formatCalculatorPrice(grossEstimatedTotal)}</span>
+                                <span className="flex items-center gap-2 text-primary text-base font-extrabold">{estimatedBonusSaving > 0 && <span className="text-xs font-semibold text-muted-text line-through">{formatCalculatorPrice(grossEstimatedTotal)}</span>}{formatCalculatorPrice(estimatedBonusSaving > 0 ? discountedGrossEstimatedTotal : grossEstimatedTotal)}</span>
+                                </div>
                               </div>
                             </div>
                           </div>

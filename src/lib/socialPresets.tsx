@@ -4,7 +4,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import type { IconDefinition } from "@fortawesome/fontawesome-svg-core";
 import {
   faInstagram,
-  faFacebookF,
+  faFacebook,
   faYoutube,
   faTiktok,
   faLinkedinIn,
@@ -270,9 +270,15 @@ export function SocialIconRenderer({
   const normalizedIcon = canonicalize(normalizeIconKey(icon));
   const normalizedPlatform = canonicalize(normalizeIconKey(platform));
   const supportedIcons = type === "group" ? groupIcons : linkIcons;
-  const iconKey = supportedIcons.has(normalizedIcon)
-    ? normalizedIcon
-    : (supportedIcons.has(normalizedPlatform) ? normalizedPlatform : (type === "group" ? "share-2" : "link"));
+  const brandPlatforms = new Set(["instagram", "facebook", "youtube", "tiktok", "linkedin", "x", "x-twitter", "twitter", "whatsapp", "telegram", "vimeo", "vimeo-v", "pinterest", "threads", "github", "discord", "behance", "dribbble"]);
+  // A saved generic icon (such as `link`) must never override a known social
+  // platform. This repairs legacy nodes where Facebook had the correct
+  // platform value but a fallback link icon was persisted.
+  const iconKey = type === "link" && brandPlatforms.has(normalizedPlatform)
+    ? normalizedPlatform
+    : (supportedIcons.has(normalizedIcon)
+      ? normalizedIcon
+      : (supportedIcons.has(normalizedPlatform) ? normalizedPlatform : (type === "group" ? "share-2" : "link")));
   const explicitColorStyle = color ? { color } : undefined;
   const renderIcon = (definition: IconDefinition) => (
     <span className={`inline-flex shrink-0 items-center justify-center leading-none ${className}`} style={explicitColorStyle} aria-hidden="true" data-social-icon={iconKey} data-icon-family="fontawesome">
@@ -318,7 +324,7 @@ export function SocialIconRenderer({
     case "instagram":
       return renderIcon(faInstagram);
     case "facebook":
-      return renderIcon(faFacebookF);
+      return renderIcon(faFacebook);
     case "youtube":
       return renderIcon(faYoutube);
     case "tiktok":

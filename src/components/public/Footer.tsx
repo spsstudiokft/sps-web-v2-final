@@ -5,6 +5,7 @@ import { useTheme } from "../ThemeProvider";
 import { t, tUi } from "../../lib/i18n";
 import { LegalDocumentModal } from "./LegalDocumentModal";
 import { SocialIconRenderer } from "../../lib/socialPresets";
+import { PublicPushSubscription } from "./PublicPushSubscription";
 
 type LegalType = "privacy" | "terms" | "cookies" | "legal_notice";
 type LegalDocuments = Record<LegalType, Record<string, { title: string; content: string; updated_at?: string }>>;
@@ -98,6 +99,10 @@ export function Footer({ settings }: { settings: SiteSettings }) {
             })}
           </nav>
         )}
+        <div className="pt-2">
+          <PublicPushSubscription />
+          <p className="mt-2 max-w-md text-[11px] leading-relaxed text-background/55">Csak szolgáltatási állapot-, karbantartási és incidensértesítések. Feliratkozáskor nem hozunk létre fiókot és nem kérünk e-mail-címet.</p>
+        </div>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3 pt-2">
           <span className="rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-[11px] font-bold tracking-wider text-primary">{version}</span>
           <p className="max-w-2xl text-[11px] leading-relaxed text-background/55">{aiNotice}</p>

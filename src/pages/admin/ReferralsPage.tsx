@@ -50,13 +50,17 @@ import {
 
 export default function ReferralsPage() {
   const { tUi } = useLanguage();
-  const [activeTab, setActiveTab] = useState<"overview" | "referrals" | "tiers" | "rewards" | "settings">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "referrals" | "tiers" | "rewards" | "codes" | "settings">("overview");
   
   // Data states
   const [stats, setStats] = useState<AdminReferralStats | null>(null);
   const [referrals, setReferrals] = useState<ClientReferral[]>([]);
   const [tiers, setTiers] = useState<ReferralTier[]>([]);
   const [rewards, setRewards] = useState<ReferralReward[]>([]);
+  const [customCodes, setCustomCodes] = useState<any[]>([]);
+  const [creatingCustomCode, setCreatingCustomCode] = useState(false);
+  const [customCodeModal, setCustomCodeModal] = useState<{ isOpen: boolean; id: string | null }>({ isOpen: false, id: null });
+  const [customCodeForm, setCustomCodeForm] = useState({ code: "", title: "", description: "", reward_type: "discount_percent", reward_value: 10, currency: "USD", usage_limit: "", starts_at: "", expires_at: "" });
   const [settings, setSettings] = useState<ReferralProgramSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -136,11 +140,12 @@ export default function ReferralsPage() {
       const token = localStorage.getItem("admin_token") || localStorage.getItem("token");
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
-      const [statsRes, refsRes, tiersRes, rewardsRes, settingsRes, clientsRes] = await Promise.all([
+      const [statsRes, refsRes, tiersRes, rewardsRes, codesRes, settingsRes, clientsRes] = await Promise.all([
         fetch("/api/admin/referrals/stats", { headers }),
         fetch("/api/admin/referrals/list", { headers }),
         fetch("/api/admin/referrals/tiers", { headers }),
         fetch("/api/admin/referrals/rewards", { headers }),
+        fetch("/api/admin/referrals/custom-codes", { headers }),
         fetch("/api/admin/referrals/settings", { headers }),
         fetch("/api/admin/referrals/clients", { headers })
       ]);
@@ -155,11 +160,12 @@ export default function ReferralsPage() {
         }
       };
 
-      const [statsData, refsData, tiersData, rewardsData, settingsData, clientsData] = await Promise.all([
+      const [statsData, refsData, tiersData, rewardsData, codesData, settingsData, clientsData] = await Promise.all([
         parseSafe(statsRes),
         parseSafe(refsRes),
         parseSafe(tiersRes),
         parseSafe(rewardsRes),
+        parseSafe(codesRes),
         parseSafe(settingsRes),
         parseSafe(clientsRes)
       ]);
@@ -168,6 +174,7 @@ export default function ReferralsPage() {
       if (Array.isArray(refsData)) setReferrals(refsData);
       if (Array.isArray(tiersData)) setTiers(tiersData);
       if (Array.isArray(rewardsData)) setRewards(rewardsData);
+      if (Array.isArray(codesData)) setCustomCodes(codesData);
       if (settingsData) setSettings(settingsData);
       if (Array.isArray(clientsData)) setClientList(clientsData);
     } catch (err: any) {
@@ -204,6 +211,49 @@ export default function ReferralsPage() {
     } catch (err: any) {
       alert(err.message || tUi("admin.referrals.runtime.status_update_failed"));
     }
+  };
+
+  const openCustomCodeModal = (code?: any) => {
+    setCustomCodeForm(code ? {
+      code: String(code.code || ""), title: String(code.title || ""), description: String(code.description || ""), reward_type: code.reward_type === "discount_fixed" ? "discount_fixed" : "discount_percent", reward_value: Number(code.reward_value || 0), currency: String(code.currency || settings?.currency || "USD"), usage_limit: code.usage_limit === null || code.usage_limit === undefined ? "" : String(code.usage_limit), starts_at: code.starts_at ? new Date(code.starts_at).toISOString().slice(0, 16) : "", expires_at: code.expires_at ? new Date(code.expires_at).toISOString().slice(0, 16) : ""
+    } : { code: "", title: "", description: "", reward_type: "discount_percent", reward_value: 10, currency: settings?.currency || "USD", usage_limit: "", starts_at: "", expires_at: "" });
+    setCustomCodeModal({ isOpen: true, id: code?.id || null });
+  };
+
+  const handleSaveCustomCode = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setCreatingCustomCode(true);
+    try {
+      const token = localStorage.getItem("admin_token") || localStorage.getItem("token");
+      const isEdit = Boolean(customCodeModal.id);
+      const res = await fetch(isEdit ? `/api/admin/referrals/custom-codes/${customCodeModal.id}` : "/api/admin/referrals/custom-codes", { method: isEdit ? "PUT" : "POST", headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) }, body: JSON.stringify({ ...customCodeForm, reward_value: Number(customCodeForm.reward_value), usage_limit: customCodeForm.usage_limit === "" ? null : Number(customCodeForm.usage_limit), starts_at: customCodeForm.starts_at || null, expires_at: customCodeForm.expires_at || null }) });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "A promóciós kód mentése nem sikerült.");
+      setCustomCodeModal({ isOpen: false, id: null });
+      await loadAllData();
+    } catch (error: any) { alert(error.message || "A promóciós kód mentése nem sikerült."); }
+    finally { setCreatingCustomCode(false); }
+  };
+
+  const handleToggleCustomCode = async (id: string, isActive: boolean) => {
+    try {
+      const token = localStorage.getItem("admin_token") || localStorage.getItem("token");
+      const res = await fetch(`/api/admin/referrals/custom-codes/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) }, body: JSON.stringify({ is_active: !isActive }) });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "A promóciós kód frissítése nem sikerült.");
+      await loadAllData();
+    } catch (error: any) { alert(error.message || "A promóciós kód frissítése nem sikerült."); }
+  };
+
+  const handleDeleteCustomCode = async (id: string) => {
+    if (!(await globalThis.appConfirm("Biztosan törlöd ezt a még fel nem használt promóciós kódot?", { tone: "danger", confirmLabel: "Törlés" }))) return;
+    try {
+      const token = localStorage.getItem("admin_token") || localStorage.getItem("token");
+      const res = await fetch(`/api/admin/referrals/custom-codes/${id}`, { method: "DELETE", headers: token ? { Authorization: `Bearer ${token}` } : {} });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "A promóciós kód törlése nem sikerült.");
+      await loadAllData();
+    } catch (error: any) { alert(error.message || "A promóciós kód törlése nem sikerült."); }
   };
 
   // Tier Modal Save
@@ -574,6 +624,18 @@ export default function ReferralsPage() {
           >
             <Tag className="w-4 h-4" />
             <span>{tUi("admin.referrals.page.issued_rewards_vouchers")}{rewards.length})</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab("codes")}
+            className={`pb-3 text-sm font-semibold border-b-2 transition-colors flex items-center gap-2 ${
+              activeTab === "codes"
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-text hover:text-text"
+            }`}
+          >
+            <Tag className="w-4 h-4" />
+            <span>Promóciós kódok ({customCodes.length})</span>
           </button>
 
           <button
@@ -1135,6 +1197,16 @@ export default function ReferralsPage() {
         </div>
       )}
 
+      {/* TAB 5: SHOPIFY-STYLE CUSTOM BONUS CODES */}
+      {activeTab === "codes" && (
+        <div className="space-y-6">
+          <div>
+            <div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-base font-bold text-text">Egyedi promóciós kódok</h2><p className="mt-1 text-xs text-muted-text">Hozz létre ügyfelek által használható kedvezménykódokat, és kövesd a felhasználásukat.</p></div><Button size="sm" onClick={() => openCustomCodeModal()} className="gap-1.5"><Plus className="h-3.5 w-3.5" />Kód létrehozása</Button></div>
+          </div>
+          <Card className="border-border shadow-xs"><CardContent className="p-0">{customCodes.length === 0 ? <div className="p-12 text-center text-xs text-muted-text">Még nincs létrehozott promóciós kód.</div> : <div className="overflow-x-auto"><table className="w-full text-left text-xs"><thead><tr className="border-b border-border bg-muted/20 text-[10px] font-semibold uppercase tracking-wider text-muted-text"><th className="px-4 py-3">Kód</th><th className="px-4 py-3">Kedvezmény</th><th className="px-4 py-3">Felhasználás</th><th className="px-4 py-3">Érvényesség</th><th className="px-4 py-3">Állapot</th><th className="px-4 py-3 text-right">Művelet</th></tr></thead><tbody className="divide-y divide-border/60">{customCodes.map((code) => <tr key={code.id}><td className="px-4 py-3"><div className="font-mono font-bold text-text">{code.code}</div><div className="text-muted-text">{code.title}</div></td><td className="px-4 py-3 font-semibold text-emerald-600">{code.reward_type === "discount_percent" ? `${code.reward_value}%` : formatMoney(code.reward_value, code.currency)}</td><td className="px-4 py-3">{code.usage_count}{code.usage_limit ? ` / ${code.usage_limit}` : " / ∞"}</td><td className="px-4 py-3 text-muted-text">{code.expires_at ? new Date(code.expires_at).toLocaleDateString() : "Nincs lejárat"}</td><td className="px-4 py-3"><span className={Number(code.is_active) ? "text-emerald-600" : "text-muted-text"}>{Number(code.is_active) ? "Aktív" : "Inaktív"}</span></td><td className="px-4 py-3 text-right"><div className="flex justify-end gap-1.5"><Button size="sm" variant="outline" onClick={() => openCustomCodeModal(code)}><Edit2 className="h-3.5 w-3.5" /> <span className="sr-only">Szerkesztés</span></Button><Button size="sm" variant="outline" onClick={() => handleToggleCustomCode(code.id, Boolean(Number(code.is_active)))}>{Number(code.is_active) ? "Kikapcsolás" : "Bekapcsolás"}</Button><Button size="sm" variant="outline" disabled={Number(code.usage_count) > 0} title={Number(code.usage_count) > 0 ? "A felhasznált kódok naplózási okból nem törölhetők." : "Törlés"} onClick={() => handleDeleteCustomCode(code.id)} className="text-red-600"><Trash2 className="h-3.5 w-3.5" /></Button></div></td></tr>)}</tbody></table></div>}</CardContent></Card>
+        </div>
+      )}
+
       {/* TAB 5: PROGRAM SETTINGS */}
       {activeTab === "settings" && settings && (
         <Card className="border-border shadow-xs max-w-2xl">
@@ -1454,6 +1526,30 @@ export default function ReferralsPage() {
                   <span>{tUi("admin.referrals.page.save_tier")}</span>
                 </Button>
               </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: Create / Edit Custom Bonus Code */}
+      {customCodeModal.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
+          <div className="w-full max-w-2xl overflow-hidden rounded-2xl border border-border bg-surface shadow-xl animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between border-b border-border p-5"><div className="flex items-center gap-2"><Tag className="h-4 w-4 text-primary" /><h3 className="text-sm font-bold text-text">{customCodeModal.id ? "Promóciós kód szerkesztése" : "Új promóciós kód"}</h3></div><button type="button" onClick={() => setCustomCodeModal({ isOpen: false, id: null })} className="rounded-lg p-1 text-muted-text hover:bg-muted hover:text-text"><X className="h-4 w-4" /></button></div>
+            <form onSubmit={handleSaveCustomCode} className="space-y-4 p-5">
+              {Number(customCodes.find((code) => code.id === customCodeModal.id)?.usage_count || 0) > 0 && <div className="rounded-xl border border-amber-500/25 bg-amber-500/10 px-3 py-2.5 text-xs text-amber-800 dark:text-amber-200">A kód már felhasználásra került. A napló megőrzése érdekében a kód, a kedvezmény és a pénznem nem módosítható.</div>}
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="space-y-1.5"><Label className="text-xs">Kód</Label><Input required minLength={3} maxLength={64} disabled={Number(customCodes.find((code) => code.id === customCodeModal.id)?.usage_count || 0) > 0} value={customCodeForm.code} onChange={(event) => setCustomCodeForm({ ...customCodeForm, code: event.target.value.toUpperCase().replace(/\s/g, "") })} placeholder="SPSWELCOME" /></div>
+                <div className="space-y-1.5"><Label className="text-xs">Megnevezés</Label><Input required value={customCodeForm.title} onChange={(event) => setCustomCodeForm({ ...customCodeForm, title: event.target.value })} placeholder="Őszi kedvezmény" /></div>
+                <div className="space-y-1.5"><Label className="text-xs">Kedvezmény típusa</Label><select disabled={Number(customCodes.find((code) => code.id === customCodeModal.id)?.usage_count || 0) > 0} value={customCodeForm.reward_type} onChange={(event) => setCustomCodeForm({ ...customCodeForm, reward_type: event.target.value })} className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text disabled:cursor-not-allowed disabled:opacity-60"><option value="discount_percent">Százalékos</option><option value="discount_fixed">Fix összeg</option></select></div>
+                <div className="space-y-1.5"><Label className="text-xs">Érték {customCodeForm.reward_type === "discount_percent" ? "(%)" : ""}</Label><Input required disabled={Number(customCodes.find((code) => code.id === customCodeModal.id)?.usage_count || 0) > 0} type="number" min="0.01" max={customCodeForm.reward_type === "discount_percent" ? 100 : undefined} step="0.01" value={customCodeForm.reward_value} onChange={(event) => setCustomCodeForm({ ...customCodeForm, reward_value: Number(event.target.value) })} /></div>
+                <div className="space-y-1.5"><Label className="text-xs">Pénznem</Label><select disabled={Number(customCodes.find((code) => code.id === customCodeModal.id)?.usage_count || 0) > 0} value={customCodeForm.currency} onChange={(event) => setCustomCodeForm({ ...customCodeForm, currency: event.target.value })} className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text disabled:cursor-not-allowed disabled:opacity-60">{SUPPORTED_CURRENCIES.map((currency) => <option key={currency.code} value={currency.code}>{currency.code}</option>)}</select></div>
+                <div className="space-y-1.5"><Label className="text-xs">Felhasználási limit</Label><Input type="number" min={Number(customCodes.find((code) => code.id === customCodeModal.id)?.usage_count || 0) || 1} value={customCodeForm.usage_limit} onChange={(event) => setCustomCodeForm({ ...customCodeForm, usage_limit: event.target.value })} placeholder="Korlátlan" /></div>
+                <div className="space-y-1.5"><Label className="text-xs">Kezdet</Label><Input type="datetime-local" value={customCodeForm.starts_at} onChange={(event) => setCustomCodeForm({ ...customCodeForm, starts_at: event.target.value })} /></div>
+                <div className="space-y-1.5"><Label className="text-xs">Lejárat</Label><Input type="datetime-local" value={customCodeForm.expires_at} onChange={(event) => setCustomCodeForm({ ...customCodeForm, expires_at: event.target.value })} /></div>
+              </div>
+              <div className="space-y-1.5"><Label className="text-xs">Leírás</Label><Input value={customCodeForm.description} onChange={(event) => setCustomCodeForm({ ...customCodeForm, description: event.target.value })} placeholder="Opcionális, belső tájékoztatáshoz" /></div>
+              <div className="flex justify-end gap-2 border-t border-border pt-4"><Button type="button" variant="ghost" onClick={() => setCustomCodeModal({ isOpen: false, id: null })}>Mégse</Button><Button type="submit" disabled={creatingCustomCode}>{creatingCustomCode ? "Mentés…" : customCodeModal.id ? "Módosítások mentése" : "Kód létrehozása"}</Button></div>
             </form>
           </div>
         </div>

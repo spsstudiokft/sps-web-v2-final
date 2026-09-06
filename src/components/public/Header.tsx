@@ -83,6 +83,10 @@ export function Header({ settings, hasServices = true, hasPortfolio = true, hasP
   const location = useLocation();
   const lastScrollY = useRef(0);
   const isHeroInViewRef = useRef(true);
+  const navShellRef = useRef<HTMLDivElement>(null);
+  const brandRef = useRef<HTMLAnchorElement>(null);
+  const desktopNavRef = useRef<HTMLElement>(null);
+  const [navNeedsExpansion, setNavNeedsExpansion] = useState(false);
 
   // Determine active logo based on light/dark mode with graceful fallbacks
   const activeLogo = mode === "dark"
@@ -95,6 +99,7 @@ export function Header({ settings, hasServices = true, hasPortfolio = true, hasP
   const showLogo = brandDisplay !== "name_only" && Boolean(activeLogo) && !logoLoadFailed;
   const showStudioName = brandDisplay === "name_only" || brandDisplay === "logo_and_name" || !showLogo;
   const showProperties = settings.property_menu_enabled !== "0" && settings.property_menu_enabled !== "false";
+  const showOpenSource = ["1", "true"].includes(String(settings.open_source_enabled || "").toLowerCase());
   const isStandalonePage = location.pathname !== "/";
   const sectionHref = (section: string) => isStandalonePage ? `/#${section}` : `#${section}`;
 
@@ -102,6 +107,26 @@ export function Header({ settings, hasServices = true, hasPortfolio = true, hasP
   useEffect(() => {
     setLogoLoadFailed(false);
   }, [activeLogo]);
+
+  // Preserve the established header width until the actual, non-wrapping menu
+  // no longer fits alongside the brand. The calculation is independent from
+  // the current shell width, so it also contracts again when content is hidden.
+  useEffect(() => {
+    const update = () => {
+      const brand = brandRef.current;
+      const menu = desktopNavRef.current;
+      if (!brand || !menu || window.innerWidth < 1360) return setNavNeedsExpansion(false);
+      const baseWidth = Math.min(1280, window.innerWidth - 32);
+      const requiredWidth = brand.getBoundingClientRect().width + menu.scrollWidth + 72;
+      setNavNeedsExpansion(requiredWidth > baseWidth + 2);
+    };
+    update();
+    const observer = typeof ResizeObserver !== "undefined" ? new ResizeObserver(update) : null;
+    if (brandRef.current && observer) observer.observe(brandRef.current);
+    if (desktopNavRef.current && observer) observer.observe(desktopNavRef.current);
+    window.addEventListener("resize", update);
+    return () => { observer?.disconnect(); window.removeEventListener("resize", update); };
+  }, [hasServices, hasPortfolio, hasPricing, hasFaq, showProperties, showOpenSource, currentLang]);
 
   useEffect(() => {
     let ticking = false;
@@ -193,8 +218,9 @@ export function Header({ settings, hasServices = true, hasPortfolio = true, hasP
 
   return (
     <header className={`aero-header fixed w-full top-0 px-4 pt-4 md:pt-6 z-50 transition-transform duration-300 ${isVisible ? "translate-y-0" : "-translate-y-full"} pointer-events-none`}>
-      <div className="aero-nav relative z-10 max-w-7xl mx-auto pointer-events-auto h-16 md:h-20 px-4 md:px-6 flex items-center justify-between min-w-0">
+      <div ref={navShellRef} className={`aero-nav relative z-10 mx-auto w-full ${navNeedsExpansion ? "max-w-[calc(100vw-2rem)]" : "max-w-7xl"} pointer-events-auto h-16 md:h-20 px-4 md:px-6 flex items-center justify-between gap-5 min-w-0 transition-[max-width] duration-300`}>
         <Link
+          ref={brandRef}
           to="/"
           onClick={(event) => { if (!isStandalonePage) { event.preventDefault(); window.scrollTo({ top: 0, behavior: "smooth" }); } }}
           className="flex min-w-0 items-center gap-2.5 hover:opacity-85 transition-opacity outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-lg py-1 px-1 cursor-pointer"
@@ -214,7 +240,7 @@ export function Header({ settings, hasServices = true, hasPortfolio = true, hasP
         </Link>
         
         {/* Desktop Nav */}
-        <nav className="hidden md:flex gap-6 lg:gap-8 text-sm font-medium items-center">
+        <nav ref={desktopNavRef} className="hidden shrink-0 whitespace-nowrap min-[1360px]:flex items-center gap-4 text-sm font-medium lg:gap-5 xl:gap-6">
           <a 
             href={sectionHref("about")}
             className={`transition-colors focus-visible:ring-2 focus-visible:ring-primary rounded-sm outline-none px-1 py-0.5 ${
@@ -264,6 +290,10 @@ export function Header({ settings, hasServices = true, hasPortfolio = true, hasP
             {tUi("FAQ", currentLang, undefined, defaultLang) || "FAQ"}
           </a>}
 
+          {showOpenSource && <Link to="/open-source" className="flex items-center gap-2 text-text/90 hover:text-primary transition-colors px-1 py-0.5">
+            <span>Open Source</span>
+          </Link>}
+
           {showProperties && <Link to="/properties" className="flex items-center gap-2 text-text/90 hover:text-primary transition-colors px-1 py-0.5">
             <FontAwesomeIcon icon={faHouse} aria-hidden="true" />
             <span>{tUi("Properties", currentLang, undefined, defaultLang) || "Properties"}</span>
@@ -281,7 +311,7 @@ export function Header({ settings, hasServices = true, hasPortfolio = true, hasP
         </nav>
 
         {/* Mobile menu button & selector */}
-        <div className="md:hidden flex shrink-0 items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2 min-[1360px]:hidden">
           <div className="hidden sm:contents">
             <ThemeToggle id="navbar-theme-toggle-mobile" size="md" />
             <LanguageSelector />
@@ -307,7 +337,7 @@ export function Header({ settings, hasServices = true, hasPortfolio = true, hasP
 
       {/* Mobile Nav */}
       {mobileMenuOpen && (
-        <div className="md:hidden absolute top-[calc(100%+0.5rem)] left-4 right-4 bg-background supports-[backdrop-filter]:bg-background/80 supports-[backdrop-filter]:backdrop-blur-lg border border-border shadow-xl rounded-2xl py-4 px-6 flex flex-col gap-4 pointer-events-auto">
+        <div className="absolute top-[calc(100%+0.5rem)] left-4 right-4 bg-background supports-[backdrop-filter]:bg-background/80 supports-[backdrop-filter]:backdrop-blur-lg border border-border shadow-xl rounded-2xl py-4 px-6 flex flex-col gap-4 pointer-events-auto min-[1360px]:hidden">
           <div className="flex flex-col gap-4">
             <a 
               href={sectionHref("about")}
@@ -363,6 +393,8 @@ export function Header({ settings, hasServices = true, hasPortfolio = true, hasP
             >
               {tUi("FAQ", currentLang, undefined, defaultLang) || "FAQ"}
             </a>}
+
+            {showOpenSource && <Link to="/open-source" onClick={closeMenu} className="text-lg font-medium text-text hover:text-primary transition-colors focus-visible:ring-2 focus-visible:ring-primary rounded-sm outline-none w-fit">Open Source</Link>}
 
             <div className="pt-4 mt-2 border-t border-border flex flex-col gap-3">
               <div className="flex items-center justify-between py-1">

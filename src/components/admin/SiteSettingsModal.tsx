@@ -43,8 +43,16 @@ import {
   HardDrive,
   Terminal,
   ExternalLink,
-  ShieldCheck
+  ShieldCheck,
+  ChevronDown
 } from "lucide-react";
+
+function ModalAccordion({ title, children, defaultOpen = true }: { title: string; children: React.ReactNode; defaultOpen?: boolean }) {
+  return <details open={defaultOpen} className="group overflow-hidden rounded-2xl border border-border bg-surface/65">
+    <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm font-bold text-text transition-colors hover:bg-primary/[0.04] sm:px-5"><span>{title}</span><ChevronDown className="h-4 w-4 shrink-0 text-primary transition-transform group-open:rotate-180" /></summary>
+    <div className="border-t border-border p-4 sm:p-5">{children}</div>
+  </details>;
+}
 
 interface SiteSettingsModalProps {
   isOpen: boolean;
@@ -294,7 +302,7 @@ export function SiteSettingsModal({
 
           {/* TAB 1: General & Branding */}
           {activeTab === "general" && (
-            <div className="space-y-6">
+            <ModalAccordion title="Általános beállítások"><div className="space-y-6">
               {/* Studio Name & Identity */}
               <div className="p-5 rounded-2xl bg-surface border border-border space-y-4">
                 <div className="flex items-center gap-2 text-text font-bold text-sm">
@@ -344,6 +352,7 @@ export function SiteSettingsModal({
                   value={settings.theme_colors}
                   onChange={(val) => handleChange("theme_colors", val)}
                 />
+                <div className="grid gap-3 pt-2 sm:grid-cols-2"><label className="flex items-center justify-between rounded-xl border border-border bg-background p-3 text-xs font-semibold"><span>Weboldal témaváltó</span><input type="checkbox" className="h-4 w-4 accent-primary" checked={settings.public_theme_toggle_enabled !== "0"} onChange={e=>handleChange("public_theme_toggle_enabled", e.target.checked ? "1" : "0")}/></label><label className="flex items-center justify-between rounded-xl border border-border bg-background p-3 text-xs font-semibold"><span>Admin témaváltó</span><input type="checkbox" className="h-4 w-4 accent-primary" checked={settings.admin_theme_toggle_enabled !== "0"} onChange={e=>handleChange("admin_theme_toggle_enabled", e.target.checked ? "1" : "0")}/></label></div>
               </div>
 
               {/* Storage & Media Provider */}
@@ -584,21 +593,21 @@ export function SiteSettingsModal({
                     {tUi("admin.settings.modal.local_storage_saves_uploaded_images_and_videos_directl")}<code className="text-text font-mono text-[11px]">{tUi("admin.settings.modal.uploads")}</code> {tUi("admin.settings.modal.with_support_for_large_files_up_to_10_gb")}</p>
                 )}
               </div>
-            </div>
+            </div></ModalAccordion>
           )}
 
           {/* TAB: Branding & Logos */}
           {activeTab === "branding" && (
-            <BrandingManager
+            <ModalAccordion title="Logók és böngészőikon"><BrandingManager
               settings={settings}
               onChange={handleChange}
               token={localStorage.getItem("admin_token") || localStorage.getItem("token")}
-            />
+            /></ModalAccordion>
           )}
 
           {/* TAB 2: Languages & Translations */}
           {activeTab === "translations" && (
-            <div className="space-y-6">
+            <ModalAccordion title="Nyelvek és fordítások"><div className="space-y-6">
               {/* Language Manager */}
               <div className="p-5 rounded-2xl bg-surface border border-border space-y-4">
                 <div className="flex items-center gap-2 text-text font-bold text-sm">
@@ -623,12 +632,12 @@ export function SiteSettingsModal({
                   handleChange("custom_translations", translationsJson);
                 }}
               />
-            </div>
+            </div></ModalAccordion>
           )}
 
           {/* TAB 3: Contact & Inquiries */}
           {activeTab === "contact" && (
-            <div className="space-y-6">
+            <ModalAccordion title="Kapcsolati űrlap és elérhetőségek"><div className="space-y-6">
               {/* Contact Section Copy */}
               <div className="p-5 rounded-2xl bg-surface border border-border space-y-4">
                 <div className="flex items-center gap-2 text-text font-bold text-sm">
@@ -870,12 +879,12 @@ export function SiteSettingsModal({
                   )}
                 </div>
               </div>
-            </div>
+            </div></ModalAccordion>
           )}
 
           {/* TAB 4: Content & Copywriting */}
           {activeTab === "content" && (
-            <div className="space-y-6">
+            <ModalAccordion title="Nyilvános weboldal-tartalom"><div className="space-y-6">
               <SectionMediaManager settings={settings} onChange={handleChange} />
 
               {/* Hero Section */}
@@ -957,12 +966,12 @@ export function SiteSettingsModal({
                   placeholder={tUi("admin.settings.modal.describe_your_studio_history_visual_expertise_and_high")}
                 />
               </div>
-            </div>
+            </div></ModalAccordion>
           )}
 
           {/* TAB 4: SEO & Social Metadata */}
           {activeTab === "seo" && (
-            <div className="space-y-6">
+            <ModalAccordion title="SEO és keresőmegjelenés"><div className="space-y-6">
               <div className="p-5 rounded-2xl bg-surface border border-border space-y-4">
                 <div className="flex items-center gap-2 text-text font-bold text-sm">
                   <Search className="w-4 h-4 text-primary" aria-hidden="true" />
@@ -974,12 +983,12 @@ export function SiteSettingsModal({
                   siteLanguages={siteLangs}
                 />
               </div>
-            </div>
+            </div></ModalAccordion>
           )}
 
           {/* TAB 5: Email Service & Resend Integration */}
           {activeTab === "email" && (
-            <div className="space-y-6">
+            <ModalAccordion title="E-mail és kézbesítési beállítások"><div className="space-y-6">
               <div className="p-5 rounded-2xl bg-surface border border-border space-y-3">
                 <div className="flex items-center gap-2 text-text font-bold text-sm"><ExternalLink className="w-4 h-4 text-primary" /><span>{tUi("admin.settings.modal.google_review_automation")}</span></div>
                 <div>
@@ -989,7 +998,7 @@ export function SiteSettingsModal({
                 </div>
               </div>
               <EmailSettingsManager settings={settings} onChange={(key, val) => handleChange(key, val)} />
-            </div>
+            </div></ModalAccordion>
           )}
         </div>
 

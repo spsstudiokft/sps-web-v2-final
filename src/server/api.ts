@@ -11,6 +11,13 @@ import {
 } from "./services/referralService.js";
 import { translationService } from "./services/translationService.js";
 import { getAllLegalDocuments } from "./services/legalDocumentService.js";
+
+let translationDefaultsSynced = false;
+async function ensureTranslationDefaults() {
+  if (translationDefaultsSynced) return;
+  await translationService.importFromHardcoded(false);
+  translationDefaultsSynced = true;
+}
 import { markGoogleReviewClicked } from "./services/googleReviewService.js";
 import { getAppUrl, getCanonicalPublicUrl } from "./appUrl.js";
 import { renderPublicSeoHome } from "./publicSeoHtml.js";
@@ -1608,6 +1615,7 @@ router.post("/invitations/accept", async (req, res) => {
 // ... public endpoints
 router.get("/public/translations", async (req, res) => {
   try {
+    await ensureTranslationDefaults();
     res.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
     res.set("Vercel-CDN-Cache-Control", "no-store");
     const { locale, group } = req.query;
@@ -1675,6 +1683,7 @@ router.get("/public/coming-soon-config", async (_req, res) => {
          OR key IN (
            'studio_name', 'site_languages', 'default_language', 'custom_translations',
            'theme_colors', 'theme_public_config', 'logo_header_light', 'logo_header_dark',
+           'public_theme_toggle_enabled', 'admin_theme_toggle_enabled',
            'logo_footer_light', 'logo_footer_dark', 'logo_alt_text', 'footer_brand_display',
            'footer_version', 'footer_ai_notice', 'footer_created_prefix', 'footer_created_suffix'
          )
@@ -1705,6 +1714,118 @@ router.get("/public/settings", async (req, res) => {
   }
 });
 
+type OpenSourceRepository = {
+  id: number;
+  name: string;
+  description: string;
+  html_url: string;
+  homepage: string;
+  language: string;
+  stargazers_count: number;
+  forks_count: number;
+  updated_at: string;
+  topics: string[];
+};
+
+const openSourceRepositoryCache = new Map<string, { expiresAt: number; repositories: OpenSourceRepository[] }>();
+const openSourceRepositoryDetailCache = new Map<string, { expiresAt: number; repository: OpenSourceRepository; readme: string; changelog: string; changelogName: string | null }>();
+const githubOwnerPattern = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?$/;
+const githubRepositoryPattern = /^[A-Za-z0-9][A-Za-z0-9._-]{0,99}$/;
+
+async function getOpenSourceSettings() {
+  const result = await db.execute({ sql: "SELECT key, value FROM settings WHERE key IN ('open_source_enabled', 'open_source_github_owner')", args: [] });
+  const values = result.rows.reduce((acc: Record<string, string>, row: any) => { acc[String(row.key)] = String(row.value || ""); return acc; }, {});
+  return { enabled: ["1", "true"].includes((values.open_source_enabled || "").toLowerCase()), owner: (values.open_source_github_owner || "").trim() };
+}
+function getGitHubHeaders() {
+  const headers: Record<string, string> = { Accept: "application/vnd.github+json", "User-Agent": "SPS-Studio-Open-Source" };
+  if (process.env.GITHUB_TOKEN) headers.Authorization = `Bearer ${process.env.GITHUB_TOKEN}`;
+  return headers;
+}
+function toOpenSourceRepository(repo: any): OpenSourceRepository {
+  return { id: Number(repo.id), name: String(repo.name || "Untitled repository"), description: String(repo.description || "").slice(0, 500), html_url: String(repo.html_url || ""), homepage: String(repo.homepage || ""), language: String(repo.language || ""), stargazers_count: Number(repo.stargazers_count || 0), forks_count: Number(repo.forks_count || 0), updated_at: String(repo.updated_at || ""), topics: Array.isArray(repo.topics) ? repo.topics.map(String).slice(0, 8) : [] };
+}
+function decodeGitHubFile(content: any) {
+  return content?.encoding === "base64" && typeof content.content === "string" ? Buffer.from(content.content.replace(/\s/g, ""), "base64").toString("utf8") : "";
+}
+
+router.get("/public/open-source", async (_req, res) => {
+  try {
+    const { enabled, owner } = await getOpenSourceSettings();
+
+    if (!enabled || !githubOwnerPattern.test(owner)) {
+      return res.status(404).json({ error: "Az Open Source oldal jelenleg nem érhető el." });
+    }
+
+    const cached = openSourceRepositoryCache.get(owner.toLowerCase());
+    if (cached && cached.expiresAt > Date.now()) {
+      res.set("Cache-Control", "public, max-age=300, s-maxage=600, stale-while-revalidate=3600");
+      return res.json({ repositories: cached.repositories });
+    }
+
+    const query = "type=public&sort=updated&direction=desc&per_page=100";
+    const headers = getGitHubHeaders();
+
+    let response = await fetch(`https://api.github.com/orgs/${encodeURIComponent(owner)}/repos?${query}`, { headers });
+    if (response.status === 404) {
+      response = await fetch(`https://api.github.com/users/${encodeURIComponent(owner)}/repos?${query}`, { headers });
+    }
+    if (!response.ok) {
+      console.error("GitHub Open Source repository fetch failed", response.status, owner);
+      return res.status(502).json({ error: "A GitHub repók most nem tölthetők be." });
+    }
+
+    const data = await response.json();
+    const repositories: OpenSourceRepository[] = (Array.isArray(data) ? data : [])
+      .filter((repo: any) => repo && !repo.fork && !repo.archived)
+      .map(toOpenSourceRepository);
+
+    openSourceRepositoryCache.set(owner.toLowerCase(), { expiresAt: Date.now() + 10 * 60 * 1000, repositories });
+    res.set("Cache-Control", "public, max-age=300, s-maxage=600, stale-while-revalidate=3600");
+    res.json({ repositories });
+  } catch (error) {
+    console.error("Open Source repository fetch error:", error);
+    res.status(500).json({ error: "A repók betöltése nem sikerült." });
+  }
+});
+
+router.get("/public/open-source/:repository", async (req, res) => {
+  try {
+    const { enabled, owner } = await getOpenSourceSettings();
+    const repositoryName = String(req.params.repository || "").trim();
+    if (!enabled || !githubOwnerPattern.test(owner) || !githubRepositoryPattern.test(repositoryName)) return res.status(404).json({ error: "Az Open Source projekt nem érhető el." });
+    const cacheKey = `${owner.toLowerCase()}/${repositoryName.toLowerCase()}`;
+    const cached = openSourceRepositoryDetailCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) { res.set("Cache-Control", "public, max-age=300, s-maxage=600, stale-while-revalidate=3600"); return res.json(cached); }
+    const baseUrl = `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repositoryName)}`;
+    const headers = getGitHubHeaders();
+    const repositoryResponse = await fetch(baseUrl, { headers });
+    if (repositoryResponse.status === 404) return res.status(404).json({ error: "A GitHub repó nem található." });
+    if (!repositoryResponse.ok) return res.status(502).json({ error: "A GitHub repó most nem tölthető be." });
+    const rawRepository = await repositoryResponse.json();
+    if (rawRepository.fork || rawRepository.archived) return res.status(404).json({ error: "Ez a repó nem publikus az Open Source könyvtárban." });
+    const [readmeResponse, rootResponse] = await Promise.all([fetch(`${baseUrl}/readme`, { headers }), fetch(`${baseUrl}/contents`, { headers })]);
+    const readme = readmeResponse.ok ? decodeGitHubFile(await readmeResponse.json()) : "";
+    const rootFiles = rootResponse.ok ? await rootResponse.json() : [];
+    const changelogFile = Array.isArray(rootFiles) ? rootFiles.find((file: any) => /^(change(log)?|history)(\.(md|mdx|txt))?$/i.test(String(file?.name || ""))) : null;
+    let changelog = "";
+    if (changelogFile?.name) { const fileResponse = await fetch(`${baseUrl}/contents/${encodeURIComponent(String(changelogFile.name))}`, { headers }); if (fileResponse.ok) changelog = decodeGitHubFile(await fileResponse.json()); }
+    const payload = { repository: toOpenSourceRepository(rawRepository), readme, changelog, changelogName: changelogFile?.name || null };
+    openSourceRepositoryDetailCache.set(cacheKey, { expiresAt: Date.now() + 10 * 60 * 1000, ...payload });
+    res.set("Cache-Control", "public, max-age=300, s-maxage=600, stale-while-revalidate=3600");
+    res.json(payload);
+  } catch (error) { console.error("Open Source repository detail fetch error:", error); res.status(500).json({ error: "A repó részleteinek betöltése nem sikerült." }); }
+});
+
+router.get("/public/whatsapp-config", async (_req, res) => {
+  try {
+    const result = await db.execute({ sql: "SELECT key, value FROM settings WHERE key IN ('whatsapp_chat_enabled', 'whatsapp_chat_phone', 'whatsapp_chat_message')", args: [] });
+    const values = result.rows.reduce((acc: Record<string, string>, row: any) => ({ ...acc, [String(row.key)]: String(row.value || "") }), {});
+    res.set("Cache-Control", "public, max-age=30, s-maxage=60");
+    res.json({ enabled: ["1", "true"].includes(values.whatsapp_chat_enabled?.toLowerCase() || ""), phone: values.whatsapp_chat_phone || "", message: values.whatsapp_chat_message || "" });
+  } catch { res.json({ enabled: false, phone: "", message: "" }); }
+});
+
 router.get("/public/legal-documents", async (_req, res) => {
   try {
     res.json(await getAllLegalDocuments());
@@ -1726,6 +1847,7 @@ router.get("/public/cookie-catalog", async (_req, res) => {
       { id: "infobar-session", name: "sps_dismissed_infobar_session", category: "necessary", consent_scope: "necessary", storage: "sessionStorage", provider: "SPS Studio", duration: "Session", purpose: "Avoids repeating an information-bar message during a visit.", active: true, required: true, visible_public: true },
       { id: "infobar-permanent", name: "sps_dismissed_infobar_permanent", category: "preferences", consent_scope: "all", storage: "localStorage", provider: "SPS Studio", duration: "Until settings change", purpose: "Remembers dismissed non-critical information-bar messages.", active: true, required: false, visible_public: true },
       { id: "incident-dismissal", name: "sps_incident_status_dismissed_v2", category: "necessary", consent_scope: "necessary", storage: "localStorage / sessionStorage", provider: "SPS Studio", duration: "Until incident changes", purpose: "Avoids repeating an incident-status message already dismissed by the visitor.", active: true, required: true, visible_public: true },
+      { id: "exit-coupon-frequency", name: "sps_exit_coupon_*", category: "preferences", consent_scope: "necessary", storage: "cookie / sessionStorage", provider: "SPS Studio", duration: "Up to 12 months", purpose: "Limits repeat display of the exit-intent coupon and records the visitor frequency cap.", active: true, required: true, visible_public: true },
       { id: "google-analytics", name: "_ga, _ga_*, _gid, _gat_*", category: "analytics", consent_scope: "all", storage: "cookie", provider: "Google Analytics", duration: "Up to 2 years", purpose: "Measures visits, pages and interactions after analytics consent.", active: true, required: false, visible_public: true },
       { id: "ahrefs-analytics", name: "analytics.ahrefs.com/analytics.js", category: "analytics", consent_scope: "all", storage: "script", provider: "Ahrefs Web Analytics", duration: "No persistent cookie", purpose: "Aggregated website-usage analytics loaded after analytics consent.", active: true, required: false, visible_public: true },
       { id: "vercel-web-analytics", name: "/_vercel/insights/script.js", category: "analytics", consent_scope: "all", storage: "script", provider: "Vercel Web Analytics", duration: "No persistent cookie", purpose: "Measures anonymized page views after analytics consent.", active: true, required: false, visible_public: true },
@@ -1944,6 +2066,7 @@ router.get(["/public/robots.txt", "/robots.txt"], (req, res) => {
     "User-agent: *",
     "Allow: /",
     "Disallow: /admin/",
+    "Disallow: /admin/developer/",
     "Disallow: /client/",
     "Disallow: /api/",
     "Disallow: /auth/",
@@ -2309,9 +2432,43 @@ router.get("/public/info-bar", async (req, res) => {
   }
 });
 
+// Publicly expose only the customer-facing terms of an active custom code.
+// This lets the quote calculator show its effect without exposing admin data.
+router.get("/public/bonus-codes/preview", async (req, res) => {
+  try {
+    const requested = String(req.query.codes || req.query.code || "").split(",").map((code) => code.trim().toUpperCase()).filter(Boolean);
+    const codes = [...new Set(requested)].slice(0, 3);
+    if (!codes.length || codes.some((code) => !/^[A-Z0-9][A-Z0-9_-]{2,63}$/.test(code))) return res.json({ valid: false, codes: [] });
+    const result = await db.execute({
+      sql: `SELECT code, title, description, reward_type, reward_value, currency
+            FROM custom_bonus_codes
+            WHERE UPPER(code) IN (${codes.map(() => "?").join(", ")}) AND is_active = 1
+              AND (starts_at IS NULL OR starts_at <= CURRENT_TIMESTAMP)
+              AND (expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP)
+              AND (usage_limit IS NULL OR usage_count < usage_limit)
+            LIMIT 3`,
+      args: codes,
+    });
+    const byCode = new Map((result.rows as any[]).map((bonus) => [String(bonus.code).toUpperCase(), bonus]));
+    const previews = codes.map((code) => {
+      const bonus: any = byCode.get(code);
+      return bonus ? { valid: true, code: bonus.code, title: bonus.title, description: bonus.description, reward_type: bonus.reward_type, reward_value: Number(bonus.reward_value), currency: bonus.currency } : { valid: false, code };
+    });
+    res.json({ valid: previews.some((preview) => preview.valid), codes: previews, ...(previews.length === 1 ? previews[0] : {}) });
+  } catch (error) {
+    console.error("Public bonus code preview failed:", error);
+    res.status(500).json({ valid: false, error: "Unable to validate the bonus code." });
+  }
+});
+
 router.post("/public/contact", requireHuman, async (req, res) => {
   try {
     const { name, email, phone, message, subject, property_address, property_city, availability_start, availability_end, plan_id, plan_name } = req.body;
+    const requestedPlanIds = [...new Set((Array.isArray(req.body?.selected_plan_ids) ? req.body.selected_plan_ids : [plan_id]).map((id: unknown) => String(id || "").trim()).filter(Boolean))].slice(0, 12);
+    const requestedBonusCodes = (Array.isArray(req.body?.bonus_codes) ? req.body.bonus_codes : [])
+      .map((code: unknown) => String(code || "").trim().toUpperCase())
+      .filter((code: string) => /^[A-Z0-9][A-Z0-9_-]{2,63}$/.test(code));
+    const uniqueBonusCodes = [...new Set(requestedBonusCodes)].slice(0, 3);
 
     if (req.body.cookie_consent !== true) {
       return res.status(403).json({ error: "Cookie consent is required before submitting the contact form" });
@@ -2411,8 +2568,9 @@ router.post("/public/contact", requireHuman, async (req, res) => {
     const cleanPropertyCity = property_city && typeof property_city === "string" ? property_city.trim() : "";
     const cleanTravelOneWayKm = Number.isFinite(Number(req.body.travel_distance_one_way_km)) ? Math.max(0, Number(req.body.travel_distance_one_way_km)) : 0;
     const cleanTravelRoundTripKm = Number.isFinite(Number(req.body.travel_distance_round_trip_km)) ? Math.max(0, Number(req.body.travel_distance_round_trip_km)) : 0;
-    const cleanPlanId = plan_id && typeof plan_id === "string" ? plan_id.trim() : null;
-    const cleanPlanName = plan_name && typeof plan_name === "string" ? plan_name.trim() : "";
+    let cleanPlanId = requestedPlanIds[0] || null;
+    let cleanPlanName = plan_name && typeof plan_name === "string" ? plan_name.trim() : "";
+    let cleanSelectedPlans = "[]";
     // The request only supplies selections. Prices, quantities and totals are
     // resolved below from the active server-side price lists.
     const requestedExtras = (() => {
@@ -2428,15 +2586,21 @@ router.post("/public/contact", requireHuman, async (req, res) => {
     let cleanEstimatedTotal = 0;
     let cleanCurrency = "USD";
     let cleanPlanPrice = 0;
-    if (cleanPlanId) {
+    if (requestedPlanIds.length) {
       try {
         const planResult = await db.execute({
-          sql: "SELECT price, currency FROM pricing_plans WHERE id = ? AND is_enabled = 1 LIMIT 1",
-          args: [cleanPlanId],
+          sql: `SELECT id, title, type, price, currency FROM pricing_plans WHERE is_enabled = 1 AND id IN (${requestedPlanIds.map(() => "?").join(",")})`,
+          args: requestedPlanIds,
         });
-        if (planResult.rows.length > 0) {
-          cleanPlanPrice = Number(planResult.rows[0].price) || 0;
-          cleanCurrency = String(planResult.rows[0].currency || "USD");
+        const plansById = new Map((planResult.rows as any[]).map((plan) => [String(plan.id), plan]));
+        const selectedPlans = requestedPlanIds.map((id) => plansById.get(id)).filter(Boolean) as any[];
+        if (selectedPlans.length > 0) {
+          cleanCurrency = String(selectedPlans[0].currency || "USD");
+          const compatiblePlans = selectedPlans.filter((plan) => String(plan.currency || cleanCurrency).toUpperCase() === cleanCurrency.toUpperCase());
+          cleanPlanId = compatiblePlans[0] ? String(compatiblePlans[0].id) : null;
+          cleanPlanPrice = compatiblePlans.reduce((sum, plan) => sum + Math.max(0, Number(plan.price) || 0), 0);
+          cleanSelectedPlans = JSON.stringify(compatiblePlans.map((plan) => ({ id: String(plan.id), title: String(plan.title || "Package"), type: String(plan.type || "tier"), price: Math.max(0, Number(plan.price) || 0, ), currency: cleanCurrency })));
+          if (!cleanPlanName) cleanPlanName = compatiblePlans.map((plan) => String(plan.title || "Package")).join(" + ");
 
           const requestedQuantities = new Map<string, number>();
           for (const entry of requestedExtras) {
@@ -2505,10 +2669,26 @@ router.post("/public/contact", requireHuman, async (req, res) => {
       }
     }
 
+    // Persist only currently usable, currency-compatible custom codes. The
+    // final invoice still revalidates them before charging, so this is an
+    // inquiry/quote record rather than a redemption.
+    let cleanBonusCodes = "[]";
+    if (uniqueBonusCodes.length) {
+      const bonusResult = await db.execute({
+        sql: `SELECT code FROM custom_bonus_codes WHERE UPPER(code) IN (${uniqueBonusCodes.map(() => "?").join(", ")}) AND is_active = 1
+              AND UPPER(currency) = ? AND (starts_at IS NULL OR starts_at <= CURRENT_TIMESTAMP)
+              AND (expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP)
+              AND (usage_limit IS NULL OR usage_count < usage_limit)`,
+        args: [...uniqueBonusCodes, cleanCurrency.toUpperCase()],
+      });
+      const validCodes = new Set((bonusResult.rows as any[]).map((bonus) => String(bonus.code).toUpperCase()));
+      cleanBonusCodes = JSON.stringify(uniqueBonusCodes.filter((code) => validCodes.has(code)));
+    }
+
     await db.execute({
       sql: `INSERT INTO contact_submissions 
-            (id, name, email, phone, subject, property_address, availability_start, availability_end, message, plan_id, plan_name, extra_services, fee_details, estimated_total, currency, is_read, status, is_archived) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 'new', 0)`,
+            (id, name, email, phone, subject, property_address, availability_start, availability_end, message, plan_id, plan_name, selected_plans, extra_services, fee_details, estimated_total, currency, bonus_codes, is_read, status, is_archived) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 'new', 0)`,
       args: [
         id,
         name.trim(),
@@ -2521,10 +2701,12 @@ router.post("/public/contact", requireHuman, async (req, res) => {
         message.trim(),
         cleanPlanId,
         cleanPlanName,
+        cleanSelectedPlans,
         cleanExtraServices,
         cleanFeeDetails,
         cleanEstimatedTotal,
-        cleanCurrency
+        cleanCurrency,
+        cleanBonusCodes
       ]
     });
 

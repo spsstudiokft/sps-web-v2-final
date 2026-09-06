@@ -1,106 +1,31 @@
-import { useState, useEffect } from "react";
-import { ThemeConfig, THEME_PRESETS } from "../../lib/themeTypes";
-import { ThemeEditor } from "./ThemeEditor";
-import { ThemePreview } from "./ThemePreview";
-import { Link } from "react-router-dom";
-import { ExternalLink, Palette, Sparkles } from "lucide-react";
-import { useLanguage } from "../../contexts/LanguageContext";
+import { useEffect, useState } from "react";
+import { Palette } from "lucide-react";
+import { THEME_PRESETS, ThemeColorMode } from "../../lib/themeTypes";
 
-export type ThemeColors = {
-  background: string;
-  surface: string;
-  surfaceHover?: string;
-  text: string;
-  mutedText: string;
-  inverseText?: string;
-  border: string;
-  primary: string;
-  primaryForeground?: string;
-  accent: string;
-  accentForeground?: string;
-};
+type PaletteMode = Pick<ThemeColorMode, "background" | "surface" | "text" | "mutedText" | "primary" | "accent">;
+type PaletteSettings = { light: PaletteMode; dark: PaletteMode };
 
-export type ThemeSettings = {
-  light: ThemeColors;
-  dark: ThemeColors;
-};
+const keys: Array<{ key: keyof PaletteMode; label: string }> = [
+  { key: "background", label: "Háttér" }, { key: "surface", label: "Felület / kártyák" }, { key: "text", label: "Fő szöveg" },
+  { key: "mutedText", label: "Másodlagos szöveg" }, { key: "primary", label: "Elsődleges márkaszín" }, { key: "accent", label: "Kiemelőszín" },
+];
 
-export const defaultTheme: ThemeSettings = {
-  light: {
-    background: "#ffffff",
-    surface: "#f8fafc",
-    text: "#0f172a",
-    mutedText: "#64748b",
-    border: "#e2e8f0",
-    primary: "#0f172a",
-    accent: "#3b82f6"
-  },
-  dark: {
-    background: "#0f172a",
-    surface: "#1e293b",
-    text: "#f8fafc",
-    mutedText: "#94a3b8",
-    border: "#334155",
-    primary: "#f8fafc",
-    accent: "#3b82f6"
-  }
-};
+function readPalette(value?: string): PaletteSettings {
+  const fallback = THEME_PRESETS.find(theme => theme.id === "preset-sps-studio-cinematic") || THEME_PRESETS[0];
+  const base = { light: { ...fallback.colors.light }, dark: { ...fallback.colors.dark } };
+  try {
+    const parsed = value ? JSON.parse(value) : {};
+    const colors = parsed.colors || parsed;
+    return { light: { ...base.light, ...(colors.light || {}) }, dark: { ...base.dark, ...(colors.dark || {}) } };
+  } catch { return base; }
+}
 
-export function ThemeManager({ 
-  value, 
-  onChange,
-  target = "public"
-}: { 
-  value?: string; 
-  onChange: (val: string) => void;
-  target?: "public" | "admin" | "both";
-}) {
-  const { tUi, currentLanguage } = useLanguage();
-  const [themeConfig, setThemeConfig] = useState<ThemeConfig>(() => {
-    if (value) {
-      try {
-        const parsed = JSON.parse(value);
-        if (parsed.colors) return parsed;
-        if (parsed.light && parsed.dark) {
-          return {
-            ...THEME_PRESETS[0],
-            colors: {
-              light: { ...THEME_PRESETS[0].colors.light, ...parsed.light },
-              dark: { ...THEME_PRESETS[0].colors.dark, ...parsed.dark }
-            }
-          };
-        }
-      } catch (e) {}
-    }
-    return THEME_PRESETS[0];
-  });
-
-  const handleConfigChange = (updated: ThemeConfig) => {
-    setThemeConfig(updated);
-    onChange(JSON.stringify(updated));
+export function ThemeManager({ value, onChange }: { value?: string; onChange: (val: string) => void }) {
+  const [palette, setPalette] = useState<PaletteSettings>(() => readPalette(value));
+  useEffect(() => setPalette(readPalette(value)), [value]);
+  const setColor = (mode: "light" | "dark", key: keyof PaletteMode, color: string) => {
+    const next = { ...palette, [mode]: { ...palette[mode], [key]: color } };
+    setPalette(next); onChange(JSON.stringify(next));
   };
-
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between p-3.5 rounded-xl bg-primary/5 border border-primary/20">
-        <div className="flex items-center gap-2 text-xs font-semibold text-text">
-          <Palette className="w-4 h-4 text-primary" />
-          <span>{tUi("themeManager.prompt_full_studio", currentLanguage) || "Need full multi-theme management and live side-by-side preview?"}</span>
-        </div>
-        <Link
-          to="/admin/themes"
-          className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-bold flex items-center gap-1.5 hover:opacity-90 transition-opacity"
-        >
-          <span>{tUi("themeManager.open_studio", currentLanguage) || "Open Theme Studio"}</span>
-          <ExternalLink className="w-3 h-3" />
-        </Link>
-      </div>
-
-      <ThemeEditor
-        theme={themeConfig}
-        onChange={handleConfigChange}
-        target={target}
-      />
-    </div>
-  );
+  return <div className="space-y-5"><div className="rounded-xl border border-primary/20 bg-primary/5 p-3 text-sm text-muted-text"><div className="flex items-center gap-2 font-semibold text-text"><Palette className="h-4 w-4 text-primary" />Weboldal alapszínei</div><p className="mt-1 text-xs leading-5">Csak a publikus weboldal színpalettája módosítható. Betűtípusok, árnyékok, formák és az adminfelület témája rögzített.</p></div><div className="grid gap-5 lg:grid-cols-2">{(["light", "dark"] as const).map(mode => <section key={mode} className="rounded-xl border border-border bg-background p-4"><h4 className="text-sm font-bold text-text">{mode === "light" ? "Világos mód" : "Sötét mód"}</h4><div className="mt-4 grid gap-3">{keys.map(({ key, label }) => <label key={key} className="grid grid-cols-[2rem_1fr] items-center gap-3 text-sm font-medium text-text"><input type="color" value={palette[mode][key]} onChange={event => setColor(mode, key, event.target.value)} className="h-8 w-8 cursor-pointer rounded border border-border bg-transparent p-0.5" aria-label={`${mode} ${label}`} /><span>{label}<code className="ml-2 text-xs font-normal text-muted-text">{palette[mode][key]}</code></span></label>)}</div></section>)}</div></div>;
 }
