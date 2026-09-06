@@ -11,6 +11,7 @@
 
 ### [Fixed] Typography consistency
 
+- Made the unlisted Lou Goossens Easter egg page safe at narrow mobile widths: the bitmap scales within the available viewport, compact header controls no longer compete for space, and long developer-note headings wrap without horizontal overflow.
 - Fixed public-navbar and admin-sidebar language selectors resetting immediately to the default locale when preference-cookie consent is absent. Both selectors now use the same enabled-language list and retain the chosen locale for the active session.
 - Audited Vercel's split serverless API handlers against the full local router. Campaign, public push, and exit-coupon routes now have matching production mounts; public handlers initialize pending database migrations before accessing schema-backed data; and dedicated admin handlers enforce the same menu permissions as the local API. Added a repeatable `npm run audit:vercel-routes` parity check to catch future production-only route omissions before deployment without blocking the preview build.
 - Added the missing Vercel rewrite for nested public health endpoints, restoring production access to `/api/health/lou` and other routes below `/api/health`.

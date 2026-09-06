@@ -12,8 +12,8 @@ type LouData = {
 
 function BitmapName({ bitmap }: { bitmap: LouData["name_bitmap"] }) {
   const rows = useMemo(() => Array.from({ length: 7 }, (_, row) => bitmap.text.split("").map((letter) => letter === " " ? "000" : bitmap.glyphs[letter]?.[row] || "00000").join("0")), [bitmap]);
-  return <div className="inline-grid gap-1 rounded-2xl border border-primary/30 bg-background/60 p-4 shadow-[0_0_42px_rgba(69,187,255,.18)]" aria-label={bitmap.text} role="img">
-    {rows.map((row, rowIndex) => <div key={rowIndex} className="flex gap-1">{row.split("").map((pixel, pixelIndex) => <i key={pixelIndex} className={`block h-2.5 w-2.5 rounded-[2px] sm:h-3 sm:w-3 ${pixel === "1" ? "bg-primary shadow-[0_0_10px_rgba(82,194,255,.9)]" : "bg-primary/10"}`} />)}</div>)}
+  return <div className="grid w-full max-w-full gap-[clamp(1px,0.25vw,4px)] overflow-hidden rounded-2xl border border-primary/30 bg-background/60 p-2.5 shadow-[0_0_42px_rgba(69,187,255,.18)] sm:inline-grid sm:w-auto sm:p-4" aria-label={bitmap.text} role="img">
+    {rows.map((row, rowIndex) => <div key={rowIndex} className="flex justify-center gap-[clamp(1px,0.25vw,4px)]">{row.split("").map((pixel, pixelIndex) => <i key={pixelIndex} className={`block h-[clamp(2px,0.9vw,12px)] w-[clamp(2px,0.9vw,12px)] shrink-0 rounded-[1px] sm:rounded-[2px] ${pixel === "1" ? "bg-primary shadow-[0_0_10px_rgba(82,194,255,.9)]" : "bg-primary/10"}`} />)}</div>)}
   </div>;
 }
 
@@ -44,7 +44,7 @@ export default function LouGoossensArchivePage() {
 
   const hu = language === "hu";
   const copy = hu ? {
-    occupation: "belga színész",
+    occupation: "színész",
     summary: "Lou Goossens belga színész, akinek filmes pályája az Alleen Ik című holland nyelvű rövidfilmmel indult. Szélesebb ismertséget Elias Montero megformálásával szerzett Anthony Schatteman Young Hearts című felnövéstörténetében.",
     career: [
       "Goossens 2022-ben debütált a vásznon Flor szerepében Jasper De Maeseneer Alleen Ik című rövidfilmjében.",
@@ -79,7 +79,7 @@ export default function LouGoossensArchivePage() {
 
   return <main className="min-h-screen overflow-x-hidden bg-[radial-gradient(circle_at_20%_12%,rgba(50,174,255,.22),transparent_28%),radial-gradient(circle_at_90%_88%,rgba(63,117,255,.15),transparent_31%)] bg-background px-5 py-10 text-text sm:px-8 sm:py-16">
     <section className="mx-auto max-w-5xl">
-      <div className="mb-9 flex items-center justify-between gap-4"><div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[.22em] text-primary"><ShieldCheck size={16}/> {copy.archive}</div><div className="flex items-center rounded-xl border border-primary/25 bg-background/55 p-1 text-xs font-bold"><Languages size={15} className="mx-2 text-primary"/><button type="button" onClick={() => setLanguage("hu")} className={`rounded-lg px-2.5 py-1.5 transition-colors ${hu ? "bg-primary text-primary-foreground" : "text-muted-text hover:text-text"}`}>HU</button><button type="button" onClick={() => setLanguage("en")} className={`rounded-lg px-2.5 py-1.5 transition-colors ${!hu ? "bg-primary text-primary-foreground" : "text-muted-text hover:text-text"}`}>EN</button></div></div>
+      <div className="mb-9 flex items-center justify-between gap-3"><div className="min-w-0 truncate text-xs font-bold uppercase tracking-[.16em] text-primary sm:tracking-[.22em]"><ShieldCheck className="mr-2 inline-block" size={16}/>{copy.archive}</div><div className="flex shrink-0 items-center rounded-xl border border-primary/25 bg-background/55 p-1 text-xs font-bold"><Languages size={15} className="mx-2 text-primary"/><button type="button" onClick={() => setLanguage("hu")} className={`rounded-lg px-2.5 py-1.5 transition-colors ${hu ? "bg-primary text-primary-foreground" : "text-muted-text hover:text-text"}`}>HU</button><button type="button" onClick={() => setLanguage("en")} className={`rounded-lg px-2.5 py-1.5 transition-colors ${!hu ? "bg-primary text-primary-foreground" : "text-muted-text hover:text-text"}`}>EN</button></div></div>
       <div className="grid items-center gap-10 lg:grid-cols-[1fr_260px]">
         <div>
           <p className="mb-5 text-sm font-semibold uppercase tracking-[.22em] text-muted-text">{copy.occupation}</p>
@@ -88,8 +88,8 @@ export default function LouGoossensArchivePage() {
         </div>
       </div>
       <aside className="mt-10 rounded-2xl border border-primary/30 bg-primary/5 shadow-[0_0_36px_rgba(69,187,255,.10)] backdrop-blur-xl">
-        <button type="button" onClick={() => setDeveloperNoteOpen(open => !open)} aria-expanded={developerNoteOpen} className="flex w-full items-center justify-between gap-4 p-6 text-left sm:p-7">
-          <span className="text-sm font-bold uppercase tracking-[.16em] text-primary">{copy.noteTitle}</span>
+        <button type="button" onClick={() => setDeveloperNoteOpen(open => !open)} aria-expanded={developerNoteOpen} className="flex w-full items-center justify-between gap-3 p-5 text-left sm:gap-4 sm:p-7">
+          <span className="min-w-0 text-sm font-bold uppercase tracking-[.1em] text-primary sm:tracking-[.16em]">{copy.noteTitle}</span>
           <ChevronDown size={20} className={`shrink-0 text-primary transition-transform ${developerNoteOpen ? "rotate-180" : ""}`} />
         </button>
         {developerNoteOpen && <div className="px-6 pb-6 sm:px-7 sm:pb-7"><p lang={language} className="text-base leading-7 text-text">{copy.developerNote}</p></div>}
