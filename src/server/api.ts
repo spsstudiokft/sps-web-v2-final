@@ -2464,11 +2464,11 @@ router.get("/public/bonus-codes/preview", async (req, res) => {
 router.post("/public/contact", requireHuman, async (req, res) => {
   try {
     const { name, email, phone, message, subject, property_address, property_city, availability_start, availability_end, plan_id, plan_name } = req.body;
-    const requestedPlanIds = [...new Set((Array.isArray(req.body?.selected_plan_ids) ? req.body.selected_plan_ids : [plan_id]).map((id: unknown) => String(id || "").trim()).filter(Boolean))].slice(0, 12);
-    const requestedBonusCodes = (Array.isArray(req.body?.bonus_codes) ? req.body.bonus_codes : [])
+    const requestedPlanIds: string[] = [...new Set<string>((Array.isArray(req.body?.selected_plan_ids) ? req.body.selected_plan_ids : [plan_id]).map((id: unknown): string => String(id || "").trim()).filter(Boolean))].slice(0, 12);
+    const requestedBonusCodes: string[] = (Array.isArray(req.body?.bonus_codes) ? req.body.bonus_codes : [])
       .map((code: unknown) => String(code || "").trim().toUpperCase())
       .filter((code: string) => /^[A-Z0-9][A-Z0-9_-]{2,63}$/.test(code));
-    const uniqueBonusCodes = [...new Set(requestedBonusCodes)].slice(0, 3);
+    const uniqueBonusCodes: string[] = [...new Set<string>(requestedBonusCodes)].slice(0, 3);
 
     if (req.body.cookie_consent !== true) {
       return res.status(403).json({ error: "Cookie consent is required before submitting the contact form" });
@@ -2592,7 +2592,7 @@ router.post("/public/contact", requireHuman, async (req, res) => {
           sql: `SELECT id, title, type, price, currency FROM pricing_plans WHERE is_enabled = 1 AND id IN (${requestedPlanIds.map(() => "?").join(",")})`,
           args: requestedPlanIds,
         });
-        const plansById = new Map((planResult.rows as any[]).map((plan) => [String(plan.id), plan]));
+        const plansById = new Map<string, any>((planResult.rows as any[]).map((plan): [string, any] => [String(plan.id), plan]));
         const selectedPlans = requestedPlanIds.map((id) => plansById.get(id)).filter(Boolean) as any[];
         if (selectedPlans.length > 0) {
           cleanCurrency = String(selectedPlans[0].currency || "USD");
@@ -2681,7 +2681,7 @@ router.post("/public/contact", requireHuman, async (req, res) => {
               AND (usage_limit IS NULL OR usage_count < usage_limit)`,
         args: [...uniqueBonusCodes, cleanCurrency.toUpperCase()],
       });
-      const validCodes = new Set((bonusResult.rows as any[]).map((bonus) => String(bonus.code).toUpperCase()));
+      const validCodes = new Set<string>((bonusResult.rows as any[]).map((bonus): string => String(bonus.code).toUpperCase()));
       cleanBonusCodes = JSON.stringify(uniqueBonusCodes.filter((code) => validCodes.has(code)));
     }
 

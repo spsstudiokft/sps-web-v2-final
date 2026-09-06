@@ -5,6 +5,7 @@
 ### [Fixed] Typography consistency
 
 - Enforced Plus Jakarta Sans as the single display and body font across the public site, installer page, admin interface, and portals; legacy theme records can no longer load Playfair Display or another heading font.
+- Fixed strict TypeScript inference in the public inquiry endpoint by explicitly typing selected plan IDs and bonus-code lookup collections, removing the three `unknown`-to-`string` build failures.
 - Replaced the generic device glyphs on the PWA installer guidance with recognisable Android, Chrome, Apple, Safari, Windows, and macOS platform logos.
 - Routed admin client-feedback notifications directly into the matching persistent chat tray without changing the workspace sidebar state; legacy notifications now open the most recent client conversation instead of the retired feedback page.
 - Added per-user notification archive and irreversible delete controls to both admin and client portal notification panels, with recipient-scoped API authorization and archived items removed from the active list.
