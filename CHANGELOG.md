@@ -8,6 +8,19 @@
 - Updated the installer links to open the dedicated portal origins and added a Cloudflare–Vercel DNS, TLS, verification, and rollback guide.
 - Added dedicated Admin, Client, and Property PWA icon variants while retaining the SPS icon design, so installed applications are distinguishable at a glance.
 
+### [New] Registration coupon crediting
+
+- Client registration now validates administrator-managed custom bonus codes alongside referral and invitation codes, then records valid codes as account-bound claims after account creation or magic-link verification.
+- Claimed coupons appear in the client reward area and can only be redeemed by their credited account; invoice redemption remains the authoritative point for applying the discount and incrementing the coupon usage count.
+- Fixed-value custom coupons are converted into separately tracked client credit at activation. Only the most recently activated eligible custom coupon controls discount eligibility: a fixed-value credit suppresses older percentage coupons, while an active percentage coupon is shown with its expiry date. Referral rewards remain independent and may coexist with that single custom discount.
+- Partially used credit vouchers now retain their unused balance for a later invoice instead of being prematurely consumed.
+
+### [New] Admin invoice benefit application
+
+- Invoice creation now lets an administrator select one eligible portal-client credit or coupon in the invoice currency. The benefit is consumed only when the invoice is created, never while an inquiry is submitted.
+- Credit is recorded as an invoice payment and deducted from the client balance; percentage and fixed rewards are recorded as invoice discounts. Every application is persisted in an invoice benefit audit record and shown to the client on the invoice.
+- Invoices with an applied client benefit are financially locked against later editing, preventing an accidental mismatch between the invoice, the coupon, and the client credit balance.
+
 ### [Updated] Crawler access
 
 - Added explicit crawler policies for major search, AI, and social-preview bots. Crawlers arriving through either public hostname receive the same safe public-route access and the canonical `www.spsstudio.hu` sitemap.

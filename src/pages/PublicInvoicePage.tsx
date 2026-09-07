@@ -463,6 +463,13 @@ export default function PublicInvoicePage() {
                 </div>
               )}
 
+              {Array.isArray(invoice.benefits) && invoice.benefits.map((benefit: any, index: number) => (
+                <div key={`${benefit.source_kind}-${benefit.source_code}-${index}`} className="flex justify-between gap-3 text-emerald-700 dark:text-emerald-300">
+                  <span className="min-w-0 truncate">{copy("clientBenefit")}: {benefit.source_title || benefit.source_code || "—"}</span>
+                  <span className="shrink-0 font-semibold">{benefit.benefit_type === "credit" ? formatMoney(benefit.applied_amount, invoice.currency) : `-${formatMoney(benefit.applied_amount, invoice.currency)}`}</span>
+                </div>
+              ))}
+
               <div className="flex justify-between items-center pt-2.5 border-t border-border text-sm font-bold">
                 <span className="text-text font-heading">{copy("total")}:</span>
                 <span className="text-base text-primary font-heading">

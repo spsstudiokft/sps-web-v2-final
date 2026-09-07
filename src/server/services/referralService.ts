@@ -96,6 +96,44 @@ export async function redeemPortalInviteCoupon(code: string, email: string, user
   return true;
 }
 
+/** Claims an administrator-managed promotion for a newly registered client.
+ * The invoice redemption flow remains responsible for usage counts and value. */
+export async function claimCustomBonusCodeAtRegistration(code: string, email: string, userId: string): Promise<boolean> {
+  const normalizedCode = code.trim().toUpperCase();
+  const normalizedEmail = email.trim().toLowerCase();
+  if (!/^[A-Z0-9][A-Z0-9_-]{2,63}$/.test(normalizedCode) || !normalizedEmail || !userId) return false;
+  const match = await db.execute({
+    sql: `SELECT id, code, title, description, reward_type, reward_value, currency, expires_at FROM custom_bonus_codes
+          WHERE UPPER(code) = ? AND is_active = 1
+            AND (starts_at IS NULL OR starts_at <= CURRENT_TIMESTAMP)
+            AND (expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP)
+            AND (usage_limit IS NULL OR usage_count < usage_limit)
+            AND (issued_to_email IS NULL OR LOWER(TRIM(issued_to_email)) = ?)
+          LIMIT 1`,
+    args: [normalizedCode, normalizedEmail],
+  });
+  const bonus: any = match.rows[0];
+  const bonusCodeId = String(bonus?.id || "");
+  if (!bonusCodeId) return false;
+  const claim = await db.execute({ sql: "INSERT OR IGNORE INTO client_bonus_code_claims (id, bonus_code_id, user_id) VALUES (?, ?, ?)", args: [crypto.randomUUID(), bonusCodeId, userId] });
+  // A fixed custom coupon becomes client credit immediately. It gets its own
+  // personal credit voucher, so the original promotion cannot also be applied
+  // as an invoice discount.
+  if (Number((claim as any).rowsAffected || 0) === 1 && String(bonus.reward_type) === "discount_fixed") {
+    const value = Math.max(0, Number(bonus.reward_value || 0));
+    if (value > 0) {
+      const creditVoucherCode = `CREDIT-${crypto.randomBytes(5).toString("hex").toUpperCase()}`;
+      await db.execute({
+        sql: `INSERT INTO referral_rewards (id, user_id, recipient_role, reward_type, reward_value, currency, title, description, voucher_code, status, expires_at)
+              VALUES (?, ?, 'coupon_claim', 'credit', ?, ?, ?, ?, ?, 'available', ?)`,
+        args: [crypto.randomUUID(), userId, value, String(bonus.currency || "HUF"), `${String(bonus.title || "Kedvezménykupon")} – egyenlegjóváírás`, String(bonus.description || "Regisztrációkor jóváírt kuponkredit."), creditVoucherCode, bonus.expires_at || null],
+      });
+      await db.execute({ sql: "UPDATE users SET referral_credits = COALESCE(referral_credits, 0) + ? WHERE id = ?", args: [value, userId] });
+    }
+  }
+  return true;
+}
+
 // Ensure user has a referral code and tier assigned
 export async function ensureUserReferralCode(userId: string, email?: string): Promise<string> {
   const userRes = await db.execute({
@@ -763,6 +801,23 @@ export async function getClientReferralProfile(userId: string, appOrigin: string
     reward_value: Number(row.reward_value || 0)
   }));
 
+  // Custom promotions never stack: only the latest still-active claim is
+  // considered. Fixed claims were converted to separate credit at activation
+  // and therefore suppress older percentage claims instead of combining.
+  const claimedBonusesRes = await db.execute({
+    sql: `SELECT c.id AS bonus_code_id, c.code, c.title, c.description, c.reward_type, c.reward_value, c.currency,
+                 c.expires_at, c.is_active, claim.claimed_at
+          FROM client_bonus_code_claims claim
+          JOIN custom_bonus_codes c ON c.id = claim.bonus_code_id
+          WHERE claim.user_id = ? AND c.is_active = 1
+            AND (c.starts_at IS NULL OR c.starts_at <= CURRENT_TIMESTAMP)
+            AND (c.expires_at IS NULL OR c.expires_at > CURRENT_TIMESTAMP)
+            AND (c.usage_limit IS NULL OR c.usage_count < c.usage_limit)
+          ORDER BY claim.claimed_at DESC`,
+    args: [userId],
+  });
+  const claimedBonusCodes = claimedBonusesRes.rows.slice(0, 1).map((row: any) => ({ ...row, reward_value: Number(row.reward_value || 0) }));
+
   const totalCreditsEarned = rewards
     .filter(r => r.reward_type === "credit")
     .reduce((acc, r) => acc + r.reward_value, 0);
@@ -799,6 +854,7 @@ export async function getClientReferralProfile(userId: string, appOrigin: string
     total_revenue_generated: totalRevenueGenerated,
     all_tiers: tiers,
     rewards: rewards as any,
+    claimed_bonus_codes: claimedBonusCodes as any,
     recent_referrals: allRefs.slice(0, 15) as any
   };
 }

@@ -812,6 +812,18 @@ export interface ClientReferralProfile {
   total_revenue_generated: number;
   all_tiers: ReferralTier[];
   rewards: ReferralReward[];
+  claimed_bonus_codes?: Array<{
+    bonus_code_id: string;
+    code: string;
+    title: string;
+    description: string;
+    reward_type: ReferralRewardType;
+    reward_value: number;
+    currency: string;
+    expires_at?: string | null;
+    is_active: number | boolean;
+    claimed_at: string;
+  }>;
   recent_referrals: ClientReferral[];
 }
 

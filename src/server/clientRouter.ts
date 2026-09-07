@@ -1148,10 +1148,22 @@ clientRouter.post("/bonus-codes/redeem", async (req, res) => {
     if (!code || !invoiceId) return res.status(400).json({ error: "Bonus code and invoice are required." });
 
     const [codeResult, invoiceResult] = await Promise.all([
-      db.execute({ sql: `SELECT * FROM custom_bonus_codes WHERE UPPER(code) = ? AND is_active = 1
+      db.execute({ sql: `SELECT * FROM custom_bonus_codes WHERE UPPER(code) = ? AND reward_type = 'discount_percent' AND is_active = 1
                          AND (starts_at IS NULL OR starts_at <= CURRENT_TIMESTAMP)
                          AND (expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP)
-                         AND (issued_to_email IS NULL OR LOWER(TRIM(issued_to_email)) = ?) LIMIT 1`, args: [code, String(user.email).trim().toLowerCase()] }),
+                         AND (issued_to_email IS NULL OR LOWER(TRIM(issued_to_email)) = ?)
+                         AND (NOT EXISTS (SELECT 1 FROM client_bonus_code_claims claims WHERE claims.bonus_code_id = custom_bonus_codes.id)
+                              OR EXISTS (SELECT 1 FROM client_bonus_code_claims claims WHERE claims.bonus_code_id = custom_bonus_codes.id AND claims.user_id = ?))
+                         AND (NOT EXISTS (SELECT 1 FROM client_bonus_code_claims claims WHERE claims.user_id = ?)
+                              OR custom_bonus_codes.id = (
+                                SELECT latest.bonus_code_id FROM client_bonus_code_claims latest
+                                JOIN custom_bonus_codes latest_code ON latest_code.id = latest.bonus_code_id
+                                WHERE latest.user_id = ? AND latest_code.is_active = 1
+                                  AND (latest_code.starts_at IS NULL OR latest_code.starts_at <= CURRENT_TIMESTAMP)
+                                  AND (latest_code.expires_at IS NULL OR latest_code.expires_at > CURRENT_TIMESTAMP)
+                                ORDER BY latest.claimed_at DESC LIMIT 1
+                              ))
+                         LIMIT 1`, args: [code, String(user.email).trim().toLowerCase(), user.id, user.id, user.id] }),
       db.execute({ sql: "SELECT * FROM invoices WHERE id = ? AND LOWER(TRIM(client_email)) = ? AND LOWER(TRIM(status)) NOT IN ('draft', 'cancelled', 'paid') LIMIT 1", args: [invoiceId, String(user.email).trim().toLowerCase()] })
     ]);
     const bonus: any = codeResult.rows[0];
@@ -1231,7 +1243,21 @@ clientRouter.post("/rewards/redeem", async (req, res) => {
       const amountPaid = Number(totals.rows[0]?.total_paid || 0); const paid = amountPaid >= Number(invoice.total_amount || 0);
       await db.execute({ sql: "UPDATE invoices SET amount_paid = ?, status = CASE WHEN ? THEN 'paid' ELSE status END, paid_at = CASE WHEN ? THEN CURRENT_TIMESTAMP ELSE paid_at END, updated_at = CURRENT_TIMESTAMP WHERE id = ?", args: [amountPaid, paid ? 1 : 0, paid ? 1 : 0, invoiceId] });
     }
-    const consume = await db.execute({ sql: "UPDATE referral_rewards SET status = 'redeemed', redeemed_at = CURRENT_TIMESTAMP, redeemed_invoice_id = ?, redeemed_notes = ? WHERE id = ? AND status = 'available'", args: [invoiceId, `Redeemed by client against invoice ${invoice.invoice_number}`, reward.id] });
+    // Credit rewards represent an account balance. If only a part of the
+    // voucher is needed for this invoice, retain the remaining balance and
+    // keep its voucher available for a later invoice.
+    const consume = type === "credit"
+      ? await db.execute({
+          sql: `UPDATE referral_rewards
+                SET reward_value = reward_value - ?,
+                    status = CASE WHEN reward_value - ? <= 0 THEN 'redeemed' ELSE 'available' END,
+                    redeemed_at = CASE WHEN reward_value - ? <= 0 THEN CURRENT_TIMESTAMP ELSE NULL END,
+                    redeemed_invoice_id = CASE WHEN reward_value - ? <= 0 THEN ? ELSE NULL END,
+                    redeemed_notes = CASE WHEN reward_value - ? <= 0 THEN ? ELSE NULL END
+                WHERE id = ? AND status = 'available' AND reward_value >= ?`,
+          args: [appliedAmount, appliedAmount, appliedAmount, appliedAmount, invoiceId, appliedAmount, `Redeemed by client against invoice ${invoice.invoice_number}`, reward.id, appliedAmount],
+        })
+      : await db.execute({ sql: "UPDATE referral_rewards SET status = 'redeemed', redeemed_at = CURRENT_TIMESTAMP, redeemed_invoice_id = ?, redeemed_notes = ? WHERE id = ? AND status = 'available'", args: [invoiceId, `Redeemed by client against invoice ${invoice.invoice_number}`, reward.id] });
     if (Number((consume as any).rowsAffected || 0) !== 1) return res.status(409).json({ error: "This bonus code was just used. Refresh your rewards and try another code." });
     res.json({ success: true, applied_amount: appliedAmount, currency: invoice.currency, invoice_id: invoiceId });
   } catch (error: any) { console.error("Client bonus redemption failed", error); res.status(500).json({ error: error.message || "Failed to redeem bonus code" }); }

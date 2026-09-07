@@ -7,7 +7,8 @@ import { db, ensureChangelogTables, ensureTestimonialsTable, getDb, isLocalDemoD
 import { 
   processRegistrationReferral, 
   ensureUserReferralCode,
-  redeemPortalInviteCoupon
+  redeemPortalInviteCoupon,
+  claimCustomBonusCodeAtRegistration
 } from "./services/referralService.js";
 import { translationService } from "./services/translationService.js";
 import { getAllLegalDocuments } from "./services/legalDocumentService.js";
@@ -1084,7 +1085,10 @@ router.post("/auth/verify-magic-link", async (req, res) => {
           ipAddress: (magicLink.ip_address as string) || "",
           appOrigin
         });
-        if (!referralWasProcessed) await redeemPortalInviteCoupon((magicLink.referral_code as string).trim(), userEmail, userRow.id);
+        if (!referralWasProcessed) {
+          const inviteRedeemed = await redeemPortalInviteCoupon((magicLink.referral_code as string).trim(), userEmail, userRow.id);
+          if (!inviteRedeemed) await claimCustomBonusCodeAtRegistration((magicLink.referral_code as string).trim(), userEmail, userRow.id);
+        }
       } catch (refProcessErr) {
         console.warn("Failed to process registration referral from magic link:", refProcessErr);
       }
@@ -1219,7 +1223,10 @@ router.post("/auth/register", requireHuman, async (req, res) => {
         ipAddress: clientIp,
         appOrigin
       });
-      if (!referralWasProcessed) await redeemPortalInviteCoupon(cleanReferralCode, cleanEmail, id);
+      if (!referralWasProcessed) {
+        const inviteRedeemed = await redeemPortalInviteCoupon(cleanReferralCode, cleanEmail, id);
+        if (!inviteRedeemed) await claimCustomBonusCodeAtRegistration(cleanReferralCode, cleanEmail, id);
+      }
     }
 
     // Insert properties into client_properties

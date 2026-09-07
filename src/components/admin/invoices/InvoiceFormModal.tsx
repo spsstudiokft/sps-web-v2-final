@@ -85,6 +85,9 @@ export function InvoiceFormModal({
   const [paymentLink, setPaymentLink] = useState("");
   const [budgetEntryId, setBudgetEntryId] = useState<string>("");
   const [createBudgetEntry, setCreateBudgetEntry] = useState(false);
+  const [clientBenefits, setClientBenefits] = useState<any[]>([]);
+  const [selectedClientBenefit, setSelectedClientBenefit] = useState("");
+  const [loadingClientBenefits, setLoadingClientBenefits] = useState(false);
 
   // Line items
   const [items, setItems] = useState<FormLineItem[]>([
@@ -196,6 +199,23 @@ export function InvoiceFormModal({
       .catch(() => setClientProperties([]));
   }, [clientId]);
 
+  useEffect(() => {
+    if (!isOpen || editingInvoice || !clientEmail.includes("@")) {
+      setClientBenefits([]);
+      setSelectedClientBenefit("");
+      return;
+    }
+    let cancelled = false;
+    const token = localStorage.getItem("admin_token") || localStorage.getItem("token");
+    setLoadingClientBenefits(true);
+    void fetch(`/api/admin/invoices/client-benefits?email=${encodeURIComponent(clientEmail)}&currency=${encodeURIComponent(selectedCurrency)}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+      .then((res) => res.ok ? res.json() : { benefits: [] })
+      .then((data) => { if (!cancelled) { setClientBenefits(Array.isArray(data.benefits) ? data.benefits : []); setSelectedClientBenefit(""); } })
+      .catch(() => { if (!cancelled) { setClientBenefits([]); setSelectedClientBenefit(""); } })
+      .finally(() => { if (!cancelled) setLoadingClientBenefits(false); });
+    return () => { cancelled = true; };
+  }, [isOpen, editingInvoice, clientEmail, selectedCurrency]);
+
   const resetForm = () => {
     setInvoiceNumber("");
     setClientId("");
@@ -220,6 +240,8 @@ export function InvoiceFormModal({
     setPaymentLink("");
     setBudgetEntryId("");
     setCreateBudgetEntry(true);
+    setClientBenefits([]);
+    setSelectedClientBenefit("");
     setItems([
       {
         description: "Real Estate Photography & Visual Media Production",
@@ -341,6 +363,7 @@ export function InvoiceFormModal({
         notes: notes,
         payment_method_instructions: paymentMethodInstructions,
         payment_link: paymentLink,
+        client_benefit: selectedClientBenefit ? (() => { const [source_kind, source_id] = selectedClientBenefit.split(":"); return { source_kind, source_id }; })() : null,
         budget_entry_id: budgetEntryId || null,
         create_budget_entry: createBudgetEntry,
         items
@@ -602,6 +625,38 @@ export function InvoiceFormModal({
                 </label>
               )}
             </div>
+          </div>
+
+          {/* Client portal credits and coupons are consumed only when this invoice is created. */}
+          <div className="bg-primary/5 border border-primary/25 rounded-xl p-4 space-y-3">
+            <div className="flex items-start gap-2">
+              <Percent className="mt-0.5 w-4 h-4 text-primary shrink-0" />
+              <div>
+                <h3 className="text-xs font-bold uppercase tracking-wider text-primary">Client credit or coupon</h3>
+                <p className="mt-0.5 text-[11px] text-muted-text">Apply one eligible portal benefit at invoice creation. The balance or coupon is recorded against this invoice and cannot be stacked with another custom coupon.</p>
+              </div>
+            </div>
+            {editingInvoice ? (
+              <p className="rounded-lg border border-border bg-background/60 px-3 py-2 text-xs text-muted-text">Benefits are locked after invoice creation to keep the client balance and invoice audit trail consistent.</p>
+            ) : !clientEmail.includes("@") ? (
+              <p className="rounded-lg border border-border bg-background/60 px-3 py-2 text-xs text-muted-text">Select or enter a portal client email to load eligible credits and coupons.</p>
+            ) : loadingClientBenefits ? (
+              <p className="text-xs text-muted-text">Loading the client’s available benefits…</p>
+            ) : clientBenefits.length ? (
+              <div>
+                <label className="block text-[11px] font-semibold text-text mb-1">Apply to this invoice</label>
+                <select value={selectedClientBenefit} onChange={(event) => setSelectedClientBenefit(event.target.value)} className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-xs text-text focus:outline-none focus:ring-1 focus:ring-primary">
+                  <option value="">No client benefit selected</option>
+                  {clientBenefits.map((benefit) => {
+                    const value = Number(benefit.reward_value || 0);
+                    const typeLabel = benefit.benefit_type === "credit" ? `${formatMoney(value)} credit` : benefit.benefit_type === "discount_percent" ? `${value}% discount` : `${formatMoney(value)} discount`;
+                    return <option key={`${benefit.source_kind}:${benefit.source_id}`} value={`${benefit.source_kind}:${benefit.source_id}`}>{benefit.title || benefit.code} · {typeLabel}{benefit.expires_at ? ` · expires ${new Date(benefit.expires_at).toLocaleDateString()}` : ""}</option>;
+                  })}
+                </select>
+              </div>
+            ) : (
+              <p className="rounded-lg border border-border bg-background/60 px-3 py-2 text-xs text-muted-text">This portal client has no eligible credit or coupon in the selected currency.</p>
+            )}
           </div>
 
           {/* Section 3: Line Items */}

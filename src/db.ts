@@ -266,7 +266,43 @@ const ensureCustomBonusCodeSchema = async (client: ReturnType<typeof createClien
       UNIQUE(bonus_code_id, invoice_id)
     )
   `);
+  // Registration claims make an otherwise reusable promotion visible and
+  // redeemable only for the client who supplied it during onboarding.
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS client_bonus_code_claims (
+      id TEXT PRIMARY KEY,
+      bonus_code_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      claimed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(bonus_code_id, user_id)
+    )
+  `);
+  await client.execute("CREATE INDEX IF NOT EXISTS idx_client_bonus_code_claims_user ON client_bonus_code_claims(user_id, claimed_at DESC)");
   try { await client.execute("ALTER TABLE contact_submissions ADD COLUMN bonus_codes TEXT DEFAULT '[]'"); } catch {}
+};
+
+// Kept outside the full initializer so already-initialized Turso and local
+// databases receive the invoice audit table on their next startup.
+const ensureInvoiceBenefitSchema = async (client: ReturnType<typeof createClient>) => {
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS invoice_benefit_redemptions (
+      id TEXT PRIMARY KEY,
+      invoice_id TEXT NOT NULL,
+      client_id TEXT NOT NULL,
+      source_kind TEXT NOT NULL,
+      source_id TEXT NOT NULL,
+      source_code TEXT DEFAULT '',
+      source_title TEXT DEFAULT '',
+      benefit_type TEXT NOT NULL,
+      applied_amount REAL NOT NULL DEFAULT 0,
+      currency TEXT NOT NULL DEFAULT 'HUF',
+      created_by_id TEXT DEFAULT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (invoice_id) REFERENCES invoices(id) ON DELETE CASCADE
+    )
+  `);
+  await client.execute("CREATE INDEX IF NOT EXISTS idx_invoice_benefit_redemptions_invoice ON invoice_benefit_redemptions(invoice_id)");
+  await client.execute("CREATE INDEX IF NOT EXISTS idx_invoice_benefit_redemptions_source ON invoice_benefit_redemptions(source_kind, source_id)");
 };
 
 export const setupDatabase = async () => {
@@ -274,6 +310,7 @@ export const setupDatabase = async () => {
   // This migration is intentionally run before the fast-path marker too, so
   // existing local databases receive new campaign tables and columns.
   await ensureCustomBonusCodeSchema(client);
+  await ensureInvoiceBenefitSchema(client);
 
   // Authentication factors are scoped to the portal context because one
   // users row may represent both a client account and a secondary admin
@@ -713,6 +750,7 @@ export const setupDatabase = async () => {
       // Post-v8 migrations must run even where the original initialization
       // marker is already present. Both statements are safe to repeat.
       await ensureCustomBonusCodeSchema(client);
+      await ensureInvoiceBenefitSchema(client);
       await ensureLocalDemoAdmin(client);
       return;
     }
@@ -854,6 +892,23 @@ export const setupDatabase = async () => {
         FOREIGN KEY (invoice_id) REFERENCES invoices(id) ON DELETE CASCADE
       )
     `);
+    await client.execute(`
+      CREATE TABLE IF NOT EXISTS invoice_benefit_redemptions (
+        id TEXT PRIMARY KEY,
+        invoice_id TEXT NOT NULL,
+        client_id TEXT NOT NULL,
+        source_kind TEXT NOT NULL,
+        source_id TEXT NOT NULL,
+        source_code TEXT DEFAULT '',
+        source_title TEXT DEFAULT '',
+        benefit_type TEXT NOT NULL,
+        applied_amount REAL NOT NULL DEFAULT 0,
+        currency TEXT NOT NULL DEFAULT 'HUF',
+        created_by_id TEXT DEFAULT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (invoice_id) REFERENCES invoices(id) ON DELETE CASCADE
+      )
+    `);
     await client.execute("CREATE INDEX IF NOT EXISTS idx_client_properties_client_id ON client_properties(client_id)");
     await client.execute("CREATE INDEX IF NOT EXISTS idx_client_links_client_id ON client_links(client_id)");
     await client.execute("CREATE INDEX IF NOT EXISTS idx_invoices_number ON invoices(invoice_number)");
@@ -863,6 +918,8 @@ export const setupDatabase = async () => {
     await client.execute("CREATE INDEX IF NOT EXISTS idx_invoices_budget ON invoices(budget_entry_id)");
     await client.execute("CREATE INDEX IF NOT EXISTS idx_invoice_items_invoice ON invoice_items(invoice_id)");
     await client.execute("CREATE INDEX IF NOT EXISTS idx_invoice_payments_invoice ON invoice_payments(invoice_id)");
+    await client.execute("CREATE INDEX IF NOT EXISTS idx_invoice_benefit_redemptions_invoice ON invoice_benefit_redemptions(invoice_id)");
+    await client.execute("CREATE INDEX IF NOT EXISTS idx_invoice_benefit_redemptions_source ON invoice_benefit_redemptions(source_kind, source_id)");
   } catch (initErr) {
     console.warn("[DB Setup] Property/links/invoices table creation notice:", initErr);
   }

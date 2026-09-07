@@ -54,6 +54,7 @@ export default function ClientRegister() {
     referrer_name?: string;
     welcome_reward?: { type: string; value: number; description: string };
   } | null>(null);
+  const [bonusCodeInfo, setBonusCodeInfo] = useState<{ valid: boolean; title?: string; description?: string; reward_type?: string; reward_value?: number; currency?: string } | null>(null);
   const [validatingRef, setValidatingRef] = useState(false);
   const [referralProgramActive, setReferralProgramActive] = useState<boolean | null>(null);
   const [showReferralInput, setShowReferralInput] = useState(
@@ -72,6 +73,7 @@ export default function ClientRegister() {
     const code = referralCode.trim();
     if (!code) {
       setReferralInfo(null);
+      setBonusCodeInfo(null);
       return;
     }
 
@@ -80,13 +82,14 @@ export default function ClientRegister() {
       try {
         const res = await fetch(`/api/public/referrals/validate-code/${encodeURIComponent(code)}`);
         const data = await res.json();
-        if (data.valid) {
-          setReferralInfo(data);
-        } else {
-          setReferralInfo({ valid: false });
-        }
+        if (data.valid) { setReferralInfo(data); setBonusCodeInfo(null); return; }
+        setReferralInfo({ valid: false });
+        const bonusResponse = await fetch(`/api/public/bonus-codes/preview?code=${encodeURIComponent(code)}`);
+        const bonusData = await bonusResponse.json().catch(() => ({ valid: false }));
+        setBonusCodeInfo(bonusData?.valid ? bonusData : { valid: false });
       } catch {
         setReferralInfo(null);
+        setBonusCodeInfo(null);
       } finally {
         setValidatingRef(false);
       }
@@ -417,9 +420,9 @@ export default function ClientRegister() {
                         <span>Kupon- vagy meghívókód <span className="font-normal text-muted-text">(opcionális)</span></span>
                       </span>
                       {validatingRef && <Loader2 className="w-3 h-3 animate-spin text-muted-text" />}
-                      {!validatingRef && referralInfo?.valid && (
+                      {!validatingRef && (referralInfo?.valid || bonusCodeInfo?.valid) && (
                         <span className="text-[11px] text-emerald-600 font-semibold flex items-center gap-1">
-                          <Check className="w-3 h-3" /> Valid
+                          <Check className="w-3 h-3" /> Érvényes
                         </span>
                       )}
                     </Label>
@@ -428,7 +431,7 @@ export default function ClientRegister() {
                       type="text"
                       value={referralCode}
                       onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
-                      placeholder="e.g. REF-ALEX9K4M"
+                      placeholder="pl. REF-ALEX9K4M vagy SPSWELCOME"
                       className="border-amber-400/45 bg-background/80 text-xs font-mono uppercase tracking-wider focus-visible:ring-amber-400/60"
                     />
                     {referralProgramActive === false && (
@@ -440,7 +443,14 @@ export default function ClientRegister() {
                     {referralInfo?.program_active === false && referralInfo.message && (
                       <p className="text-[11px] text-amber-600 dark:text-amber-400">{referralInfo.message}</p>
                     )}
-                    {referralCode.trim() && !validatingRef && referralInfo && !referralInfo.valid && (
+                    {bonusCodeInfo?.valid && (
+                      <div className="mt-2 rounded-lg border border-emerald-500/25 bg-emerald-500/10 px-2.5 py-2 text-[11px] text-emerald-800 dark:text-emerald-200">
+                        <span className="font-semibold">{bonusCodeInfo.title || "Kedvezménykupon"}: </span>
+                        {bonusCodeInfo.reward_type === "discount_percent" ? `${bonusCodeInfo.reward_value}% kedvezmény` : `${bonusCodeInfo.reward_value} ${bonusCodeInfo.currency || "HUF"} kedvezmény`}
+                        <span className="block pt-0.5 text-emerald-700 dark:text-emerald-300">Regisztráció után a kupon a fiókodhoz lesz rendelve.</span>
+                      </div>
+                    )}
+                    {referralCode.trim() && !validatingRef && referralInfo && !referralInfo.valid && !bonusCodeInfo?.valid && (
                       !referralInfo.message && <p className="text-[11px] text-amber-600 dark:text-amber-400">
                         Referral code not found, but you can still proceed with registration.
                       </p>

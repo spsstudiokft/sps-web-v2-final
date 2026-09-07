@@ -21,7 +21,8 @@ import {
   ExternalLink,
   ChevronRight,
   Info,
-  Users
+  Users,
+  Tag
 } from "lucide-react";
 import { Button } from "../../components/ui/Button";
 import { Input } from "../../components/ui/Input";
@@ -208,8 +209,25 @@ export default function ClientReferralsPage() {
   }
 
   const { current_tier, next_tier, all_tiers, rewards, recent_referrals } = profile;
+  const claimedBonusCodes = profile.claimed_bonus_codes || [];
+  const activeCustomBonus = claimedBonusCodes[0]?.reward_type === "discount_percent" ? claimedBonusCodes[0] : null;
+  const vouchers = [
+    ...rewards.map((reward) => ({ ...reward, source: "reward" as const })),
+    ...claimedBonusCodes.filter((bonus) => bonus.reward_type === "discount_percent").map((bonus) => ({
+      id: `custom-${bonus.bonus_code_id}`,
+      title: bonus.title,
+      description: bonus.description,
+      voucher_code: bonus.code,
+      reward_type: bonus.reward_type,
+      reward_value: bonus.reward_value,
+      currency: bonus.currency,
+      expires_at: bonus.expires_at,
+      status: Number(bonus.is_active) === 1 ? "available" : "inactive",
+      source: "custom" as const,
+    })),
+  ];
 
-  if (!profile.program_settings?.is_active) {
+  if (!profile.program_settings?.is_active && !activeCustomBonus && Number(profile.available_credits || 0) <= 0) {
     return (
       <div className="mx-auto max-w-2xl py-8">
         <Card className="overflow-hidden border-amber-500/35 bg-gradient-to-br from-amber-500/10 via-surface to-primary/5 shadow-xs">
@@ -245,17 +263,27 @@ export default function ClientReferralsPage() {
           </p>
         </div>
 
-        {/* Available Credits Badge */}
-        <div className="flex items-center gap-3 bg-surface border border-border p-2.5 px-4 rounded-xl shadow-xs">
-          <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-            <DollarSign className="w-4 h-4" />
-          </div>
-          <div>
-            <div className="text-[11px] text-muted-text font-medium">{tUi("client.referrals.available_credits")}</div>
-            <div className="text-base font-bold text-emerald-600 dark:text-emerald-400 font-mono">
-              {formatMoney(profile.available_credits)}
+        <div className="flex flex-wrap items-stretch gap-3">
+          {/* Credits are a balance and intentionally distinct from percentage coupons. */}
+          <div className="flex items-center gap-3 bg-surface border border-border p-2.5 px-4 rounded-xl shadow-xs">
+            <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+              <DollarSign className="w-4 h-4" />
+            </div>
+            <div>
+              <div className="text-[11px] text-muted-text font-medium">{tUi("client.referrals.available_credits")}</div>
+              <div className="text-base font-bold text-emerald-600 dark:text-emerald-400 font-mono">
+                {formatMoney(profile.available_credits)}
+              </div>
             </div>
           </div>
+          {activeCustomBonus && <div className="flex items-center gap-3 border border-primary/30 bg-primary/10 p-2.5 px-4 rounded-xl shadow-xs">
+            <div className="w-8 h-8 rounded-lg bg-primary/15 text-primary flex items-center justify-center"><Tag className="w-4 h-4" /></div>
+            <div>
+              <div className="text-[11px] text-muted-text font-medium">{tUi("client.referrals.active_coupon_discount")}</div>
+              <div className="text-base font-bold text-primary font-mono">{activeCustomBonus.reward_value}%</div>
+              <div className="text-[10px] text-muted-text">{activeCustomBonus.expires_at ? tUi("client.referrals.coupon_expires", { date: new Date(activeCustomBonus.expires_at).toLocaleDateString() }) : tUi("client.referrals.coupon_no_expiry")}</div>
+            </div>
+          </div>}
         </div>
       </div>
 
@@ -542,7 +570,7 @@ export default function ClientReferralsPage() {
                 <span>{tUi("client.referrals.vouchers")}</span>
               </CardTitle>
               <span className="text-xs font-mono font-semibold px-2 py-0.5 rounded-full bg-muted text-muted-text">
-                {rewards.length} Vouchers
+                {vouchers.length} Vouchers
               </span>
             </div>
             <CardDescription className="text-xs">
@@ -551,7 +579,7 @@ export default function ClientReferralsPage() {
           </CardHeader>
 
           <CardContent className="p-5 pt-0 flex-1">
-            {rewards.length === 0 ? (
+            {vouchers.length === 0 ? (
               <div className="p-6 text-center text-muted-text space-y-2">
                 <Gift className="w-8 h-8 mx-auto opacity-40" />
                 <p className="text-xs">{tUi("client.referrals.no_vouchers")}</p>
@@ -559,7 +587,7 @@ export default function ClientReferralsPage() {
               </div>
             ) : (
               <div className="space-y-2.5 max-h-72 overflow-y-auto pr-1">
-                {rewards.map((rw) => (
+                {vouchers.map((rw) => (
                   <div
                     key={rw.id}
                     className={`p-3 rounded-xl border transition-all ${
@@ -611,7 +639,7 @@ export default function ClientReferralsPage() {
                           </>
                         )}
                       </button>
-                      {rw.status === "available" && ["discount_percent", "discount_fixed", "credit"].includes(rw.reward_type) && <button type="button" onClick={() => openRedemption(rw.voucher_code)} className="text-[11px] font-semibold text-primary hover:underline">Beváltás</button>}
+                      {rw.status === "available" && ["discount_percent", "discount_fixed", "credit"].includes(rw.reward_type) && <button type="button" onClick={() => openRedemption(rw.voucher_code, rw.source)} className="text-[11px] font-semibold text-primary hover:underline">Beváltás</button>}
                     </div>
                   </div>
                 ))}

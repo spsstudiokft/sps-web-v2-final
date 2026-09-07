@@ -1136,6 +1136,13 @@ export const generatedApiRoutes = [
   },
   {
     "method": "GET",
+    "path": "/api/admin/invoices/client-benefits",
+    "summary": "Reads the invoices resource.",
+    "access": "Admin",
+    "source": "invoiceRouter.ts"
+  },
+  {
+    "method": "GET",
     "path": "/api/admin/invoices/clients-lookup",
     "summary": "Reads the invoices resource.",
     "access": "Admin",

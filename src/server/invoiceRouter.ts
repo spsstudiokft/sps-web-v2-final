@@ -79,6 +79,127 @@ async function validateInvoiceBusinessLinks(clientId: string | null, projectId: 
   }
 }
 
+type ClientBenefitSelection = { source_kind?: string; source_id?: string };
+
+async function getClientInvoiceBenefits(email: string, currency: string) {
+  const normalizedEmail = normalizeEmail(email);
+  const normalizedCurrency = String(currency || "").trim().toUpperCase();
+  if (!normalizedEmail || !normalizedCurrency) return { clientId: null, benefits: [] as any[] };
+  const userResult = await db.execute({ sql: "SELECT id FROM users WHERE role = 'client' AND LOWER(TRIM(email)) = ? LIMIT 1", args: [normalizedEmail] });
+  const clientId = String(userResult.rows[0]?.id || "");
+  if (!clientId) return { clientId: null, benefits: [] as any[] };
+
+  const [rewardsResult, customResult] = await Promise.all([
+    db.execute({
+      sql: `SELECT id, voucher_code, title, description, reward_type, reward_value, currency, expires_at
+            FROM referral_rewards
+            WHERE user_id = ? AND status = 'available' AND reward_type IN ('credit', 'discount_percent', 'discount_fixed')
+              AND UPPER(COALESCE(currency, ?)) = ?
+              AND (expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP)
+            ORDER BY created_at DESC`,
+      args: [clientId, normalizedCurrency, normalizedCurrency],
+    }),
+    db.execute({
+      sql: `SELECT c.id, c.code, c.title, c.description, c.reward_type, c.reward_value, c.currency, c.expires_at
+            FROM client_bonus_code_claims claim
+            JOIN custom_bonus_codes c ON c.id = claim.bonus_code_id
+            WHERE claim.user_id = ? AND c.reward_type = 'discount_percent' AND c.is_active = 1
+              AND UPPER(COALESCE(c.currency, ?)) = ?
+              AND (c.starts_at IS NULL OR c.starts_at <= CURRENT_TIMESTAMP)
+              AND (c.expires_at IS NULL OR c.expires_at > CURRENT_TIMESTAMP)
+              AND (c.usage_limit IS NULL OR c.usage_count < c.usage_limit)
+              AND c.id = (
+                SELECT latest.bonus_code_id FROM client_bonus_code_claims latest
+                JOIN custom_bonus_codes latest_code ON latest_code.id = latest.bonus_code_id
+                WHERE latest.user_id = ? AND latest_code.is_active = 1
+                  AND (latest_code.starts_at IS NULL OR latest_code.starts_at <= CURRENT_TIMESTAMP)
+                  AND (latest_code.expires_at IS NULL OR latest_code.expires_at > CURRENT_TIMESTAMP)
+                ORDER BY latest.claimed_at DESC LIMIT 1
+              )
+            LIMIT 1`,
+      args: [clientId, normalizedCurrency, normalizedCurrency, clientId],
+    }),
+  ]);
+
+  return {
+    clientId,
+    benefits: [
+      ...(rewardsResult.rows as any[]).map((row) => ({
+        source_kind: "reward", source_id: String(row.id), code: String(row.voucher_code || ""), title: String(row.title || "VIP reward"),
+        description: String(row.description || ""), benefit_type: String(row.reward_type), reward_value: Number(row.reward_value || 0), currency: String(row.currency || normalizedCurrency), expires_at: row.expires_at || null,
+      })),
+      ...(customResult.rows as any[]).map((row) => ({
+        source_kind: "custom", source_id: String(row.id), code: String(row.code || ""), title: String(row.title || "Custom discount"),
+        description: String(row.description || ""), benefit_type: "discount_percent", reward_value: Number(row.reward_value || 0), currency: String(row.currency || normalizedCurrency), expires_at: row.expires_at || null,
+      })),
+    ],
+  };
+}
+
+async function applyClientBenefitToInvoice(input: { invoiceId: string; clientId: string | null; currency: string; selection: ClientBenefitSelection; currentUserId: string; }) {
+  const sourceKind = String(input.selection?.source_kind || "");
+  const sourceId = String(input.selection?.source_id || "");
+  if (!sourceKind || !sourceId) return null;
+  if (!input.clientId) throw new Error("The selected client does not have a portal account with a usable benefit.");
+  const invoiceResult = await db.execute({ sql: "SELECT id, invoice_number, total_amount, amount_paid, discount_amount FROM invoices WHERE id = ? LIMIT 1", args: [input.invoiceId] });
+  const invoice: any = invoiceResult.rows[0];
+  if (!invoice) throw new Error("Invoice was not found while applying the client benefit.");
+  const amountDue = Math.max(0, Number(invoice.total_amount || 0) - Number(invoice.amount_paid || 0));
+  if (amountDue <= 0) throw new Error("The invoice has no outstanding amount for the selected benefit.");
+  const normalizedCurrency = String(input.currency || "").toUpperCase();
+
+  let benefit: any;
+  if (sourceKind === "reward") {
+    const result = await db.execute({
+      sql: `SELECT * FROM referral_rewards WHERE id = ? AND user_id = ? AND status = 'available'
+            AND reward_type IN ('credit', 'discount_percent', 'discount_fixed')
+            AND UPPER(COALESCE(currency, ?)) = ? AND (expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP) LIMIT 1`,
+      args: [sourceId, input.clientId, normalizedCurrency, normalizedCurrency],
+    });
+    benefit = result.rows[0] as any;
+  } else if (sourceKind === "custom") {
+    const result = await db.execute({
+      sql: `SELECT c.* FROM client_bonus_code_claims claim JOIN custom_bonus_codes c ON c.id = claim.bonus_code_id
+            WHERE c.id = ? AND claim.user_id = ? AND c.reward_type = 'discount_percent' AND c.is_active = 1
+              AND UPPER(COALESCE(c.currency, ?)) = ? AND (c.starts_at IS NULL OR c.starts_at <= CURRENT_TIMESTAMP)
+              AND (c.expires_at IS NULL OR c.expires_at > CURRENT_TIMESTAMP) AND (c.usage_limit IS NULL OR c.usage_count < c.usage_limit)
+              AND c.id = (SELECT latest.bonus_code_id FROM client_bonus_code_claims latest JOIN custom_bonus_codes latest_code ON latest_code.id = latest.bonus_code_id WHERE latest.user_id = ? AND latest_code.is_active = 1 AND (latest_code.starts_at IS NULL OR latest_code.starts_at <= CURRENT_TIMESTAMP) AND (latest_code.expires_at IS NULL OR latest_code.expires_at > CURRENT_TIMESTAMP) ORDER BY latest.claimed_at DESC LIMIT 1)
+            LIMIT 1`,
+      args: [sourceId, input.clientId, normalizedCurrency, normalizedCurrency, input.clientId],
+    });
+    benefit = result.rows[0] as any;
+  } else throw new Error("Unknown client benefit selection.");
+  if (!benefit) throw new Error("The selected client benefit is unavailable, expired, or no longer current.");
+
+  const type = String(sourceKind === "custom" ? "discount_percent" : benefit.reward_type || "");
+  const value = Math.max(0, Number(sourceKind === "custom" ? benefit.reward_value : benefit.reward_value || 0));
+  const appliedAmount = type === "discount_percent" ? Math.min(amountDue, Math.round(amountDue * value * 100) / 10000) : Math.min(amountDue, value);
+  if (appliedAmount <= 0) throw new Error("The selected client benefit has no applicable value.");
+
+  if (sourceKind === "custom") {
+    const consumed = await db.execute({ sql: "UPDATE custom_bonus_codes SET usage_count = usage_count + 1, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND is_active = 1 AND (usage_limit IS NULL OR usage_count < usage_limit)", args: [benefit.id] });
+    if (Number((consumed as any).rowsAffected || 0) !== 1) throw new Error("The selected coupon was just used up or disabled.");
+    await db.execute({ sql: "INSERT INTO custom_bonus_code_redemptions (id, bonus_code_id, user_id, invoice_id, applied_amount, currency) VALUES (?, ?, ?, ?, ?, ?)", args: [crypto.randomUUID(), benefit.id, input.clientId, input.invoiceId, appliedAmount, normalizedCurrency] });
+  } else if (type === "credit") {
+    const debited = await db.execute({ sql: "UPDATE users SET referral_credits = referral_credits - ? WHERE id = ? AND COALESCE(referral_credits, 0) >= ?", args: [appliedAmount, input.clientId, appliedAmount] });
+    if (Number((debited as any).rowsAffected || 0) !== 1) throw new Error("The client's available credit balance is insufficient.");
+    const consumed = await db.execute({
+      sql: "UPDATE referral_rewards SET reward_value = reward_value - ?, status = CASE WHEN reward_value - ? <= 0 THEN 'redeemed' ELSE 'available' END, redeemed_at = CASE WHEN reward_value - ? <= 0 THEN CURRENT_TIMESTAMP ELSE NULL END, redeemed_invoice_id = CASE WHEN reward_value - ? <= 0 THEN ? ELSE NULL END, redeemed_notes = CASE WHEN reward_value - ? <= 0 THEN ? ELSE NULL END WHERE id = ? AND status = 'available' AND reward_value >= ?",
+      args: [appliedAmount, appliedAmount, appliedAmount, appliedAmount, input.invoiceId, appliedAmount, `Applied by administrator to invoice ${invoice.invoice_number}`, benefit.id, appliedAmount],
+    });
+    if (Number((consumed as any).rowsAffected || 0) !== 1) throw new Error("The selected credit benefit was updated concurrently. Please refresh and try again.");
+    await db.execute({ sql: "INSERT INTO invoice_payments (id, invoice_id, amount, payment_date, payment_method, transaction_reference, notes, recorded_by_id, recorded_by_name, created_at) VALUES (?, ?, ?, ?, 'referral_credit', ?, ?, ?, 'Admin invoice benefit', CURRENT_TIMESTAMP)", args: [crypto.randomUUID(), input.invoiceId, appliedAmount, new Date().toISOString().slice(0, 10), String(benefit.voucher_code || ""), `Client credit applied by administrator: ${String(benefit.voucher_code || "credit")}`, input.currentUserId] });
+    await db.execute({ sql: "UPDATE invoices SET amount_paid = amount_paid + ?, status = CASE WHEN amount_paid + ? >= total_amount THEN 'paid' ELSE status END, paid_at = CASE WHEN amount_paid + ? >= total_amount THEN CURRENT_TIMESTAMP ELSE paid_at END, updated_at = CURRENT_TIMESTAMP WHERE id = ?", args: [appliedAmount, appliedAmount, appliedAmount, input.invoiceId] });
+  } else {
+    const consumed = await db.execute({ sql: "UPDATE referral_rewards SET status = 'redeemed', redeemed_at = CURRENT_TIMESTAMP, redeemed_invoice_id = ?, redeemed_notes = ? WHERE id = ? AND status = 'available'", args: [input.invoiceId, `Applied by administrator to invoice ${invoice.invoice_number}`, benefit.id] });
+    if (Number((consumed as any).rowsAffected || 0) !== 1) throw new Error("The selected reward was updated concurrently. Please refresh and try again.");
+  }
+
+  if (type !== "credit") await db.execute({ sql: "UPDATE invoices SET discount_amount = discount_amount + ?, total_amount = MAX(0, total_amount - ?), updated_at = CURRENT_TIMESTAMP WHERE id = ?", args: [appliedAmount, appliedAmount, input.invoiceId] });
+  await db.execute({ sql: "INSERT INTO invoice_benefit_redemptions (id, invoice_id, client_id, source_kind, source_id, source_code, source_title, benefit_type, applied_amount, currency, created_by_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", args: [crypto.randomUUID(), input.invoiceId, input.clientId, sourceKind, sourceId, String(sourceKind === "custom" ? benefit.code : benefit.voucher_code || ""), String(benefit.title || "Client benefit"), type, appliedAmount, normalizedCurrency, input.currentUserId] });
+  return { appliedAmount, type, sourceKind, code: String(sourceKind === "custom" ? benefit.code : benefit.voucher_code || ""), title: String(benefit.title || "Client benefit") };
+}
+
 // Helper to format currency for email and display
 function formatCurrency(amount: number, currency: string = "USD"): string {
   try {
@@ -232,7 +353,23 @@ invoiceRouter.get("/clients-lookup", async (req: any, res) => {
 });
 
 // =========================================================================
-// 3. GET /api/admin/invoices/summary - Invoicing summary metrics
+// 3. GET /api/admin/invoices/client-benefits - Eligible portal-client benefits
+// =========================================================================
+invoiceRouter.get("/client-benefits", async (req: any, res) => {
+  try {
+    const email = normalizeEmail(req.query?.email);
+    const currency = String(req.query?.currency || "").trim().toUpperCase();
+    if (!email || !currency) return res.json({ client_id: null, benefits: [] });
+    const result = await getClientInvoiceBenefits(email, currency);
+    res.json({ client_id: result.clientId, benefits: result.benefits });
+  } catch (error: any) {
+    console.error("Failed to load client invoice benefits:", error);
+    res.status(500).json({ error: error.message || "Failed to load client benefits" });
+  }
+});
+
+// =========================================================================
+// 4. GET /api/admin/invoices/summary - Invoicing summary metrics
 // =========================================================================
 invoiceRouter.get("/summary", async (req: any, res) => {
   try {
@@ -537,11 +674,16 @@ invoiceRouter.get("/:id", async (req: any, res) => {
       sql: "SELECT * FROM invoice_payments WHERE invoice_id = ? ORDER BY payment_date DESC, created_at DESC",
       args: [id]
     });
+    const benefitsRes = await db.execute({
+      sql: "SELECT source_kind, source_code, source_title, benefit_type, applied_amount, currency, created_at FROM invoice_benefit_redemptions WHERE invoice_id = ? ORDER BY created_at ASC",
+      args: [id],
+    });
 
     res.json({
       ...inv,
       items: itemsRes.rows,
       payments: paymentsRes.rows,
+      benefits: benefitsRes.rows,
       linked_budget_entry: inv.budget_entry_id ? {
         id: inv.budget_entry_id,
         description: inv.linked_budget_description,
@@ -586,6 +728,7 @@ invoiceRouter.post("/", async (req: any, res) => {
       notes = "",
       payment_method_instructions = "",
       payment_link = "",
+      client_benefit = null,
       items = []
     } = req.body;
 
@@ -750,13 +893,35 @@ invoiceRouter.post("/", async (req: any, res) => {
       });
     }
 
+    let appliedBenefit: any = null;
+    try {
+      appliedBenefit = await applyClientBenefitToInvoice({
+        invoiceId: id,
+        clientId: portalClientId,
+        currency,
+        selection: client_benefit || {},
+        currentUserId,
+      });
+    } catch (benefitError) {
+      // Do not leave a new invoice behind when the selected benefit has become
+      // invalid while it was being applied.
+      await db.execute({ sql: "DELETE FROM invoice_items WHERE invoice_id = ?", args: [id] });
+      await db.execute({ sql: "DELETE FROM invoices WHERE id = ?", args: [id] });
+      if (create_budget_entry && linkedBudgetId) await db.execute({ sql: "DELETE FROM budget_entries WHERE id = ?", args: [linkedBudgetId] });
+      throw benefitError;
+    }
+    const finalInvoice = await db.execute({ sql: "SELECT total_amount, amount_paid FROM invoices WHERE id = ?", args: [id] });
+    const finalRow: any = finalInvoice.rows[0];
+
     res.status(201).json({
       success: true,
       id,
       invoice_number: resolvedNumber,
       access_token: accessToken,
-      total_amount: totalAmount,
-      budget_entry_id: linkedBudgetId
+      total_amount: Number(finalRow?.total_amount || totalAmount),
+      amount_paid: Number(finalRow?.amount_paid || 0),
+      budget_entry_id: linkedBudgetId,
+      applied_benefit: appliedBenefit
     });
   } catch (error: any) {
     console.error("Error creating invoice:", error);
@@ -779,6 +944,10 @@ invoiceRouter.put("/:id", async (req: any, res) => {
 
     if (existingRes.rows.length === 0) {
       return res.status(404).json({ error: "Invoice not found" });
+    }
+    const appliedBenefits = await db.execute({ sql: "SELECT COUNT(*) AS count FROM invoice_benefit_redemptions WHERE invoice_id = ?", args: [id] });
+    if (Number((appliedBenefits.rows[0] as any)?.count || 0) > 0) {
+      return res.status(409).json({ error: "This invoice has an applied client benefit and cannot be edited. Archive it and issue a replacement invoice if a financial change is required." });
     }
 
     const {
@@ -1425,6 +1594,10 @@ publicInvoiceRouter.get("/:id", async (req: any, res) => {
       sql: "SELECT amount, payment_date, payment_method, transaction_reference, created_at FROM invoice_payments WHERE invoice_id = ? ORDER BY payment_date DESC",
       args: [id]
     });
+    const benefitsRes = await db.execute({
+      sql: "SELECT source_kind, source_code, source_title, benefit_type, applied_amount, currency, created_at FROM invoice_benefit_redemptions WHERE invoice_id = ? ORDER BY created_at ASC",
+      args: [id],
+    });
 
     // Sender/Studio Info
     const config = await getEmailSenderConfig();
@@ -1434,7 +1607,8 @@ publicInvoiceRouter.get("/:id", async (req: any, res) => {
         ...inv,
         stripe_checkout_available: await isStripeBillingEnabled(),
         items: itemsRes.rows,
-        payments: paymentsRes.rows
+        payments: paymentsRes.rows,
+        benefits: benefitsRes.rows
       },
       studio: {
         name: config.studioName,
