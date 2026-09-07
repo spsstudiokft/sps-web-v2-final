@@ -6,6 +6,7 @@
 
 - Prepared Admin, Client Portal, and Property Manager installations for the dedicated `admin.spsstudio.hu`, `client.spsstudio.hu`, and `property.spsstudio.hu` origins. Each installation now receives an independent browser-storage, service-worker, and cache boundary instead of sharing the main site's origin on Android Chrome.
 - Updated the installer links to open the dedicated portal origins and added a Cloudflare–Vercel DNS, TLS, verification, and rollback guide.
+- Added dedicated Admin, Client, and Property PWA icon variants while retaining the SPS icon design, so installed applications are distinguishable at a glance.
 
 ### [Updated] Crawler access
 

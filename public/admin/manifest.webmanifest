@@ -1,1 +1,1 @@
-{"name":"SPS Studio Admin","short_name":"SPS Admin","start_url":"/admin/","scope":"/admin/","display":"standalone","background_color":"#061526","theme_color":"#0b2138","icons":[{"src":"/pwa-icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]}
+{"name":"SPS Studio Admin","short_name":"SPS Admin","start_url":"/admin/","scope":"/admin/","display":"standalone","background_color":"#061526","theme_color":"#0b2138","icons":[{"src":"/admin/pwa-icon.svg?v=2","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]}
